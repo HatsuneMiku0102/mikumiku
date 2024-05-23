@@ -2,22 +2,29 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
+const RedisStore = require('connect-redis')(session);
 const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
+const redis = require('redis');
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const redisClient = redis.createClient({
+    url: process.env.REDIS_URL
+});
+
 app.use(bodyParser.json());
 
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false } // set true if using https
+    saveUninitialized: false,
+    store: new RedisStore({ client: redisClient }),
+    cookie: { secure: true } // using HTTPS
 }));
 
 // Serve static files from the "public" directory
@@ -119,5 +126,5 @@ app.post('/logout', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Server is running on https://localhost:${PORT}`);
 });
