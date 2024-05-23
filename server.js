@@ -12,6 +12,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
+
+// Serve static files from the "public" directory
 app.use(express.static(path.join(__dirname, 'public')));
 
 const users = [
