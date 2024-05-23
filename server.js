@@ -28,13 +28,13 @@ app.post('/login', (req, res) => {
     const user = users.find(u => u.username === username);
     if (!user) {
         console.error('Invalid username:', username);
-        return res.status(400).send('Invalid username or password');
+        return res.status(400).send({ message: 'Invalid username or password' });
     }
 
     const passwordIsValid = bcrypt.compareSync(password, user.password);
     if (!passwordIsValid) {
         console.error('Invalid password for username:', username);
-        return res.status(400).send('Invalid username or password');
+        return res.status(400).send({ message: 'Invalid username or password' });
     }
 
     const token = jwt.sign({ id: user.username }, process.env.JWT_SECRET, { expiresIn: 86400 });
@@ -111,21 +111,6 @@ app.get('/api/videos', (req, res) => {
 
         console.log('Video data retrieved successfully:', data);
         res.json(JSON.parse(data));
-    });
-});
-
-app.get('/admin-login.html', (req, res) => {
-    const adminLoginHtmlPath = path.join(__dirname, 'public', 'admin-login.html');
-    fs.readFile(adminLoginHtmlPath, 'utf8', (err, data) => {
-        if (err) {
-            console.error('Error reading admin-login.html:', err);
-            return res.status(500).send('Internal Server Error');
-        }
-
-        let modifiedHtml = data.replace('const ADMIN_USERNAME = "admin";', `const ADMIN_USERNAME = "${process.env.ADMIN_USERNAME}";`);
-        modifiedHtml = modifiedHtml.replace('const ADMIN_PASSWORD = "Vocaloid01@";', `const ADMIN_PASSWORD = "${process.env.ADMIN_PASSWORD}";`);
-
-        res.send(modifiedHtml);
     });
 });
 
