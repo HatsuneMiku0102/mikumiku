@@ -45,10 +45,12 @@ app.post('/login', (req, res) => {
     req.session.user = {
         username: user.username
     };
+    console.log('Session created:', req.session); // Logging session creation
     res.status(200).send({ auth: true });
 });
 
 function isAuthenticated(req, res, next) {
+    console.log('Checking authentication:', req.session); // Logging session check
     if (req.session.user) {
         next();
     } else {
@@ -114,6 +116,7 @@ app.post('/logout', (req, res) => {
         if (err) {
             return res.status(500).send({ message: 'Failed to log out' });
         }
+        console.log('Session destroyed'); // Logging session destruction
         res.redirect('/admin-login.html');
     });
 });
