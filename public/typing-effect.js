@@ -1,8 +1,8 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const textElement = document.getElementById('typing-text');
-    const text = "MikuMiku";
-    const delayBetweenWords = 500; // Delay in milliseconds between each word
-    const typingSpeed = 150; // Speed of typing each letter in milliseconds
+document.addEventListener('DOMContentLoaded', function () {
+    const textElement = document.querySelector('.site-title');
+    const text = textElement.textContent;
+    textElement.textContent = '';
+    const delayBetweenWords = 500; // Delay in milliseconds between words
 
     let index = 0;
 
