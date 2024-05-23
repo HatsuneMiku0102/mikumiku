@@ -114,6 +114,26 @@ app.get('/api/videos', (req, res) => {
     });
 });
 
+app.get('/admin-login.html', (req, res) => {
+    const adminLoginHtmlPath = path.join(__dirname, 'public', 'admin-login.html');
+    fs.readFile(adminLoginHtmlPath, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error reading admin-login.html:', err);
+            return res.status(500).send('Internal Server Error');
+        }
+
+        let modifiedHtml = data.replace(
+            '<script id="credentials-script" type="text/javascript"></script>',
+            `<script id="credentials-script" type="text/javascript">
+                const ADMIN_USERNAME = "${process.env.ADMIN_USERNAME}";
+                const ADMIN_PASSWORD = "${process.env.ADMIN_PASSWORD}";
+            </script>`
+        );
+
+        res.send(modifiedHtml);
+    });
+});
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
