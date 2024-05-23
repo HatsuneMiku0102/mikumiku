@@ -17,16 +17,18 @@ document.getElementById('video-form').addEventListener('submit', function(event)
         },
         body: JSON.stringify(video)
     })
-    .then(response => {
-        if (response.ok) {
+    .then(response => response.json().then(data => {
+        if (!response.ok) {
+            console.error('Failed to add video:', data);
+            alert('Failed to add video: ' + (data.message || 'Unknown error'));
+        } else {
             alert('Video added successfully');
             document.getElementById('video-form').reset();
-        } else {
-            alert('Failed to add video');
         }
-    })
+    }))
     .catch(error => {
         console.error('Error:', error);
+        alert('Failed to add video');
     });
 });
 
