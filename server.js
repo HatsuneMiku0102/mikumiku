@@ -52,6 +52,12 @@ app.post('/api/videos', verifyToken, (req, res) => {
 
     console.log('Received request to add video:', newVideo);
 
+    // Ensure the file exists
+    if (!fs.existsSync(videosFilePath)) {
+        console.log('videos.json does not exist. Creating a new one.');
+        fs.writeFileSync(videosFilePath, JSON.stringify([], null, 2));
+    }
+
     fs.readFile(videosFilePath, 'utf8', (err, data) => {
         if (err) {
             console.error('Error reading video data:', err);
