@@ -7,15 +7,30 @@ document.getElementById('video-form').addEventListener('submit', function(event)
 
     const video = { title, url: url.replace('youtu.be', 'youtube.com/embed'), description };
 
-    // Save to local storage (for demo purposes; use a server/database in production)
-    let videos = JSON.parse(localStorage.getItem('videos')) || [];
-    videos.push(video);
-    localStorage.setItem('videos', JSON.stringify(videos));
+    const token = localStorage.getItem('token');
 
-    // Clear the form
-    document.getElementById('video-form').reset();
+    fetch('/api/videos', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-access-token': token
+        },
+        body: JSON.stringify(video)
+    })
+    .then(response => {
+        if (response.ok) {
+            alert('Video added successfully');
+            document.getElementById('video-form').reset();
+        } else {
+            alert('Failed to add video');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
 });
 
 document.getElementById('logout').addEventListener('click', function() {
+    localStorage.removeItem('token');
     window.location.href = 'admin-login.html';
 });
