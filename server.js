@@ -17,8 +17,9 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: true, sameSite: 'strict' } // set true if using https
+    cookie: { secure: true, sameSite: 'None' }
 }));
+
 
 // Serve static files from the "public" directory
 app.use(express.static(path.join(__dirname, 'public')));
