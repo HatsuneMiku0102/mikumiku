@@ -14,7 +14,6 @@ document.getElementById('login-form').addEventListener('submit', function(event)
     .then(response => response.json())
     .then(data => {
         if (data.auth) {
-            localStorage.setItem('token', data.token);
             window.location.href = 'admin-dashboard.html';
         } else {
             document.getElementById('error-message').textContent = 'Invalid username or password';
