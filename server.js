@@ -2,30 +2,46 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
-const RedisStore = require('connect-redis')(session);
+const RedisStore = require('connect-redis').default;
 const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
-const redis = require('redis');
+const { createClient } = require('redis');
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const redisClient = redis.createClient({
-    url: process.env.REDIS_URL
+// Create Redis client
+const redisClient = createClient({
+    url: process.env.REDIS_URL || 'redis://localhost:6379'
+});
+
+redisClient.connect().catch(console.error);
+
+// Initialize Redis store
+const redisStore = new RedisStore({
+    client: redisClient,
+    prefix: 'sess:'
 });
 
 app.use(bodyParser.json());
 
 app.use(session({
+    store: redisStore,
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
-    saveUninitialized: false,
-    store: new RedisStore({ client: redisClient }),
-    cookie: { secure: true } // using HTTPS
+    saveUninitialized: true,
+    cookie: { secure: true, sameSite: 'None' } // Ensure secure cookies if using https
 }));
+
+// Middleware to log session details
+app.use((req, res, next) => {
+    console.log('Session ID:', req.sessionID);
+    console.log('Session Data:', req.session);
+    next();
+});
 
 // Serve static files from the "public" directory
 app.use(express.static(path.join(__dirname, 'public')));
@@ -41,24 +57,29 @@ app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
     if (!user) {
+        console.log('Invalid username');
         return res.status(400).send({ auth: false, message: 'Invalid username or password' });
     }
 
     const passwordIsValid = bcrypt.compareSync(password, user.password);
     if (!passwordIsValid) {
+        console.log('Invalid password');
         return res.status(400).send({ auth: false, message: 'Invalid username or password' });
     }
 
     req.session.user = {
         username: user.username
     };
+    console.log('Session created:', req.session); // Logging session creation
     res.status(200).send({ auth: true });
 });
 
 function isAuthenticated(req, res, next) {
+    console.log('Checking authentication:', req.session); // Logging session check
     if (req.session.user) {
         next();
     } else {
+        console.log('User not authenticated, redirecting to login');
         res.redirect('/admin-login.html');
     }
 }
@@ -119,12 +140,18 @@ app.get('/', (req, res) => {
 app.post('/logout', (req, res) => {
     req.session.destroy(err => {
         if (err) {
+            console.log('Failed to destroy session:', err); // Logging session destruction error
             return res.status(500).send({ message: 'Failed to log out' });
         }
+        console.log('Session destroyed'); // Logging session destruction
         res.redirect('/admin-login.html');
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is running on https://localhost:${PORT}`);
+app.listen(PORT, (err) => {
+    if (err) {
+        console.error('Server failed to start:', err);
+    } else {
+        console.log(`Server is running on http://localhost:${PORT}`);
+    }
 });
