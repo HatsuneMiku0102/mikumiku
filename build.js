@@ -23,4 +23,3 @@ adminLoginHtml = adminLoginHtml.replace(
 fs.writeFileSync(adminLoginHtmlPath, adminLoginHtml, 'utf8');
 
 console.log('Admin login HTML file has been updated with environment variables.');
-
