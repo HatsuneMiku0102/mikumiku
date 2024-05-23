@@ -115,6 +115,8 @@ app.get('/api/videos', (req, res) => {
 });
 
 app.get('/admin-login.html', (req, res) => {
+    console.log('Environment Variables:', process.env.ADMIN_USERNAME, process.env.ADMIN_PASSWORD); // Debug log
+    
     const adminLoginHtmlPath = path.join(__dirname, 'public', 'admin-login.html');
     fs.readFile(adminLoginHtmlPath, 'utf8', (err, data) => {
         if (err) {
@@ -130,6 +132,7 @@ app.get('/admin-login.html', (req, res) => {
             </script>`
         );
 
+        console.log('Modified HTML:', modifiedHtml); // Debug log
         res.send(modifiedHtml);
     });
 });
