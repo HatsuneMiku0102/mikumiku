@@ -17,7 +17,7 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: true, sameSite: 'strict' }
+    cookie: { secure: true, sameSite: 'strict' } // set true if using https
 }));
 
 // Serve static files from the "public" directory
@@ -34,11 +34,13 @@ app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
     if (!user) {
+        console.log('Invalid username');
         return res.status(400).send({ auth: false, message: 'Invalid username or password' });
     }
 
     const passwordIsValid = bcrypt.compareSync(password, user.password);
     if (!passwordIsValid) {
+        console.log('Invalid password');
         return res.status(400).send({ auth: false, message: 'Invalid username or password' });
     }
 
@@ -114,6 +116,7 @@ app.get('/', (req, res) => {
 app.post('/logout', (req, res) => {
     req.session.destroy(err => {
         if (err) {
+            console.log('Failed to destroy session:', err); // Logging session destruction error
             return res.status(500).send({ message: 'Failed to log out' });
         }
         console.log('Session destroyed'); // Logging session destruction
