@@ -26,26 +26,3 @@ fetch('public/videos.json')
         console.error('Error fetching video data:', error);
     });
 
-document.addEventListener('DOMContentLoaded', function() {
-    const videoContainer = document.getElementById('video-container');
-
-    // Fetch videos from local storage (for demo purposes; fetch from server/database in production)
-    let videos = JSON.parse(localStorage.getItem('videos')) || [];
-
-    if (videos && videos.length) {
-        // Iterate through each video and create HTML elements
-        videos.forEach(video => {
-            const videoItem = document.createElement('div');
-            videoItem.classList.add('video-item');
-            videoItem.innerHTML = `
-                <iframe width="560" height="315" src="${video.url}" frameborder="0" allowfullscreen></iframe>
-                <h3>${video.title}</h3>
-                <p class="video-description">${video.description}</p>
-            `;
-            videoContainer.appendChild(videoItem);
-        });
-    } else {
-        // If no videos available, display a message
-        videoContainer.innerHTML = '<p>No videos available</p>';
-    }
-});
