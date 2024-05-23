@@ -26,10 +26,16 @@ const users = [
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
-    if (!user) return res.status(400).send('Invalid username or password');
+    if (!user) {
+        console.error('Invalid username:', username);
+        return res.status(400).send('Invalid username or password');
+    }
 
     const passwordIsValid = bcrypt.compareSync(password, user.password);
-    if (!passwordIsValid) return res.status(400).send('Invalid username or password');
+    if (!passwordIsValid) {
+        console.error('Invalid password for username:', username);
+        return res.status(400).send('Invalid username or password');
+    }
 
     const token = jwt.sign({ id: user.username }, process.env.JWT_SECRET, { expiresIn: 86400 });
     res.status(200).send({ auth: true, token: token });
@@ -37,10 +43,16 @@ app.post('/login', (req, res) => {
 
 function verifyToken(req, res, next) {
     const token = req.headers['x-access-token'];
-    if (!token) return res.status(403).send('No token provided');
+    if (!token) {
+        console.error('No token provided');
+        return res.status(403).send('No token provided');
+    }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-        if (err) return res.status(500).send('Failed to authenticate token');
+        if (err) {
+            console.error('Failed to authenticate token:', err);
+            return res.status(500).send('Failed to authenticate token');
+        }
         req.userId = decoded.id;
         next();
     });
@@ -61,7 +73,7 @@ app.post('/api/videos', verifyToken, (req, res) => {
     fs.readFile(videosFilePath, 'utf8', (err, data) => {
         if (err) {
             console.error('Error reading video data:', err);
-            return res.status(500).send('Error reading video data');
+            return res.status(500).send({ message: 'Error reading video data', error: err });
         }
 
         console.log('Video data read successfully:', data);
@@ -71,7 +83,7 @@ app.post('/api/videos', verifyToken, (req, res) => {
             videos = JSON.parse(data);
         } catch (parseErr) {
             console.error('Error parsing video data:', parseErr);
-            return res.status(500).send('Error parsing video data');
+            return res.status(500).send({ message: 'Error parsing video data', error: parseErr });
         }
 
         videos.push(newVideo);
@@ -79,7 +91,7 @@ app.post('/api/videos', verifyToken, (req, res) => {
         fs.writeFile(videosFilePath, JSON.stringify(videos, null, 2), (err) => {
             if (err) {
                 console.error('Error saving video data:', err);
-                return res.status(500).send('Error saving video data');
+                return res.status(500).send({ message: 'Error saving video data', error: err });
             }
 
             console.log('Video added successfully:', newVideo);
@@ -94,11 +106,26 @@ app.get('/api/videos', (req, res) => {
     fs.readFile(videosFilePath, 'utf8', (err, data) => {
         if (err) {
             console.error('Error reading video data:', err);
-            return res.status(500).send('Error reading video data');
+            return res.status(500).send({ message: 'Error reading video data', error: err });
         }
 
         console.log('Video data retrieved successfully:', data);
         res.json(JSON.parse(data));
+    });
+});
+
+app.get('/admin-login.html', (req, res) => {
+    const adminLoginHtmlPath = path.join(__dirname, 'public', 'admin-login.html');
+    fs.readFile(adminLoginHtmlPath, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error reading admin-login.html:', err);
+            return res.status(500).send('Internal Server Error');
+        }
+
+        let modifiedHtml = data.replace('const ADMIN_USERNAME = "admin";', `const ADMIN_USERNAME = "${process.env.ADMIN_USERNAME}";`);
+        modifiedHtml = modifiedHtml.replace('const ADMIN_PASSWORD = "Vocaloid01@";', `const ADMIN_PASSWORD = "${process.env.ADMIN_PASSWORD}";`);
+
+        res.send(modifiedHtml);
     });
 });
 
