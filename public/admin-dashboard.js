@@ -1,15 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = 'admin-login.html';
-        return;
-    }
-
-    fetch('/api/videos', {
-        headers: {
-            'x-access-token': token
-        }
-    })
+    fetch('/api/videos')
     .then(response => {
         if (!response.ok) {
             throw new Error('Failed to fetch videos');
@@ -36,8 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch('/api/videos', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'x-access-token': token
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(video)
         })
@@ -62,8 +51,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById('logout').addEventListener('click', function() {
-        localStorage.removeItem('token');
-        window.location.href = 'admin-login.html';
+        fetch('/logout', {
+            method: 'POST'
+        })
+        .then(() => {
+            window.location.href = 'admin-login.html';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
     });
 });
 
