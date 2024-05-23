@@ -54,6 +54,11 @@ function verifyToken(req, res, next) {
     });
 }
 
+// Protecting the admin dashboard route
+app.get('/admin-dashboard.html', verifyToken, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
+});
+
 app.post('/api/videos', verifyToken, (req, res) => {
     const newVideo = req.body;
     const videosFilePath = path.join(__dirname, 'public', 'videos.json');
