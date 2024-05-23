@@ -5,6 +5,7 @@ const session = require('express-session');
 const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
+const MongoStore = require('connect-mongo');
 
 dotenv.config();
 
@@ -17,9 +18,18 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: true, sameSite: 'None' }
+    store: MongoStore.create({
+        mongoUrl: 'mongodb://localhost:27017/sessions' // Replace with your MongoDB connection string
+    }),
+    cookie: { secure: true, sameSite: 'None' } // 'None' for cross-site, 'Strict' or 'Lax' for same-site
 }));
 
+// Middleware to log session details
+app.use((req, res, next) => {
+    console.log('Session ID:', req.sessionID);
+    console.log('Session Data:', req.session);
+    next();
+});
 
 // Serve static files from the "public" directory
 app.use(express.static(path.join(__dirname, 'public')));
@@ -57,6 +67,7 @@ function isAuthenticated(req, res, next) {
     if (req.session.user) {
         next();
     } else {
+        console.log('User not authenticated, redirecting to login');
         res.redirect('/admin-login.html');
     }
 }
