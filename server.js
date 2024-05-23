@@ -122,7 +122,7 @@ app.get('/admin-login.html', (req, res) => {
             return res.status(500).send('Internal Server Error');
         }
 
-        let modifiedHtml = data.replace(
+        const modifiedHtml = data.replace(
             '<script id="credentials-script" type="text/javascript"></script>',
             `<script id="credentials-script" type="text/javascript">
                 const ADMIN_USERNAME = "${process.env.ADMIN_USERNAME}";
