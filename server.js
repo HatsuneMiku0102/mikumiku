@@ -11,10 +11,8 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve static files from the "public" directory
-app.use(express.static(path.join(__dirname, 'public')));
-
 app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
 const users = [
     {
@@ -51,13 +49,19 @@ app.post('/api/videos', verifyToken, (req, res) => {
     const videosFilePath = path.join(__dirname, 'public', 'videos.json');
 
     fs.readFile(videosFilePath, 'utf8', (err, data) => {
-        if (err) return res.status(500).send('Error reading video data');
+        if (err) {
+            console.error('Error reading video data:', err);
+            return res.status(500).send('Error reading video data');
+        }
 
         const videos = JSON.parse(data);
         videos.push(newVideo);
 
         fs.writeFile(videosFilePath, JSON.stringify(videos, null, 2), (err) => {
-            if (err) return res.status(500).send('Error saving video data');
+            if (err) {
+                console.error('Error saving video data:', err);
+                return res.status(500).send('Error saving video data');
+            }
 
             res.status(201).send('Video added');
         });
@@ -68,13 +72,15 @@ app.get('/api/videos', (req, res) => {
     const videosFilePath = path.join(__dirname, 'public', 'videos.json');
 
     fs.readFile(videosFilePath, 'utf8', (err, data) => {
-        if (err) return res.status(500).send('Error reading video data');
+        if (err) {
+            console.error('Error reading video data:', err);
+            return res.status(500).send('Error reading video data');
+        }
 
         res.json(JSON.parse(data));
     });
 });
 
-// Handle requests to the root URL
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
