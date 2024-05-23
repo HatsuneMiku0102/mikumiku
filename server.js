@@ -17,7 +17,7 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: true } // set true if using https
+    cookie: { secure: true, sameSite: 'strict' } 
 }));
 
 // Serve static files from the "public" directory
