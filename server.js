@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const session = require('express-session');
 const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
@@ -12,6 +12,13 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
+
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false } // set true if using https
+}));
 
 // Serve static files from the "public" directory
 app.use(express.static(path.join(__dirname, 'public')));
@@ -35,31 +42,26 @@ app.post('/login', (req, res) => {
         return res.status(400).send({ auth: false, message: 'Invalid username or password' });
     }
 
-    const token = jwt.sign({ id: user.username }, process.env.JWT_SECRET, { expiresIn: 86400 });
-    res.status(200).send({ auth: true, token: token });
+    req.session.user = {
+        username: user.username
+    };
+    res.status(200).send({ auth: true });
 });
 
-function verifyToken(req, res, next) {
-    const token = req.headers['x-access-token'];
-    if (!token) {
-        return res.status(403).send({ message: 'No token provided' });
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(500).send({ message: 'Failed to authenticate token' });
-        }
-        req.userId = decoded.id;
+function isAuthenticated(req, res, next) {
+    if (req.session.user) {
         next();
-    });
+    } else {
+        res.redirect('/admin-login.html');
+    }
 }
 
 // Protecting the admin dashboard route
-app.get('/admin-dashboard.html', verifyToken, (req, res) => {
+app.get('/admin-dashboard.html', isAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
-app.post('/api/videos', verifyToken, (req, res) => {
+app.post('/api/videos', isAuthenticated, (req, res) => {
     const newVideo = req.body;
     const videosFilePath = path.join(__dirname, 'public', 'videos.json');
 
@@ -105,6 +107,15 @@ app.get('/api/videos', (req, res) => {
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.post('/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            return res.status(500).send({ message: 'Failed to log out' });
+        }
+        res.redirect('/admin-login.html');
+    });
 });
 
 app.listen(PORT, () => {
