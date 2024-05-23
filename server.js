@@ -21,15 +21,8 @@ app.use(session({
     store: MongoStore.create({
         mongoUrl: 'mongodb://localhost:27017/sessions' // Replace with your MongoDB connection string
     }),
-    cookie: { secure: true, sameSite: 'None' } // 'None' for cross-site, 'Strict' or 'Lax' for same-site
+    cookie: { secure: true, sameSite: 'strict' } // Ensure secure cookies if using https
 }));
-
-// Middleware to log session details
-app.use((req, res, next) => {
-    console.log('Session ID:', req.sessionID);
-    console.log('Session Data:', req.session);
-    next();
-});
 
 // Serve static files from the "public" directory
 app.use(express.static(path.join(__dirname, 'public')));
