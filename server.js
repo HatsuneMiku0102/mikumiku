@@ -50,13 +50,24 @@ app.post('/api/videos', verifyToken, (req, res) => {
     const newVideo = req.body;
     const videosFilePath = path.join(__dirname, 'public', 'videos.json');
 
+    console.log('Received request to add video:', newVideo);
+
     fs.readFile(videosFilePath, 'utf8', (err, data) => {
         if (err) {
             console.error('Error reading video data:', err);
             return res.status(500).send('Error reading video data');
         }
 
-        const videos = JSON.parse(data);
+        console.log('Video data read successfully:', data);
+
+        let videos;
+        try {
+            videos = JSON.parse(data);
+        } catch (parseErr) {
+            console.error('Error parsing video data:', parseErr);
+            return res.status(500).send('Error parsing video data');
+        }
+
         videos.push(newVideo);
 
         fs.writeFile(videosFilePath, JSON.stringify(videos, null, 2), (err) => {
@@ -65,6 +76,7 @@ app.post('/api/videos', verifyToken, (req, res) => {
                 return res.status(500).send('Error saving video data');
             }
 
+            console.log('Video added successfully:', newVideo);
             res.status(201).send('Video added');
         });
     });
@@ -79,6 +91,7 @@ app.get('/api/videos', (req, res) => {
             return res.status(500).send('Error reading video data');
         }
 
+        console.log('Video data retrieved successfully:', data);
         res.json(JSON.parse(data));
     });
 });
