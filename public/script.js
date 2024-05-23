@@ -4,7 +4,7 @@ console.log("Welcome to MikuMiku <3");
 document.addEventListener('DOMContentLoaded', function() {
     const videoContainer = document.getElementById('video-container');
 
-    fetch('public/videos.json')
+    fetch('/api/videos')
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
@@ -13,10 +13,8 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(videos => {
             if (videos && videos.length) {
-                // Clear any previous "No videos available" message
-                videoContainer.innerHTML = '';
+                videoContainer.innerHTML = ''; // Clear any previous "No videos available" message
 
-                // Iterate through each video and create HTML elements
                 videos.forEach(video => {
                     const videoItem = document.createElement('div');
                     videoItem.classList.add('video-item');
@@ -28,7 +26,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     videoContainer.appendChild(videoItem);
                 });
             } else {
-                // If no videos available, display a message
                 videoContainer.innerHTML = '<p>No videos available</p>';
             }
         })
@@ -37,4 +34,5 @@ document.addEventListener('DOMContentLoaded', function() {
             videoContainer.innerHTML = '<p>Error loading videos</p>';
         });
 });
+
 
