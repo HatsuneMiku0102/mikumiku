@@ -5,7 +5,6 @@ const session = require('express-session');
 const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
-const MongoStore = require('connect-mongo');
 
 dotenv.config();
 
@@ -18,10 +17,7 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: true,
-    store: MongoStore.create({
-        mongoUrl: 'mongodb://localhost:27017/sessions' // Replace with your MongoDB connection string
-    }),
-    cookie: { secure: true, sameSite: 'strict' } // Ensure secure cookies if using https
+    cookie: { secure: false } // set true if using https
 }));
 
 // Serve static files from the "public" directory
@@ -38,29 +34,24 @@ app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
     if (!user) {
-        console.log('Invalid username');
         return res.status(400).send({ auth: false, message: 'Invalid username or password' });
     }
 
     const passwordIsValid = bcrypt.compareSync(password, user.password);
     if (!passwordIsValid) {
-        console.log('Invalid password');
         return res.status(400).send({ auth: false, message: 'Invalid username or password' });
     }
 
     req.session.user = {
         username: user.username
     };
-    console.log('Session created:', req.session); // Logging session creation
     res.status(200).send({ auth: true });
 });
 
 function isAuthenticated(req, res, next) {
-    console.log('Checking authentication:', req.session); // Logging session check
     if (req.session.user) {
         next();
     } else {
-        console.log('User not authenticated, redirecting to login');
         res.redirect('/admin-login.html');
     }
 }
@@ -121,10 +112,8 @@ app.get('/', (req, res) => {
 app.post('/logout', (req, res) => {
     req.session.destroy(err => {
         if (err) {
-            console.log('Failed to destroy session:', err); // Logging session destruction error
             return res.status(500).send({ message: 'Failed to log out' });
         }
-        console.log('Session destroyed'); // Logging session destruction
         res.redirect('/admin-login.html');
     });
 });
