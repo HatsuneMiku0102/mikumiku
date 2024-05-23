@@ -5,11 +5,14 @@ document.getElementById('video-form').addEventListener('submit', function(event)
     const url = document.getElementById('video-url').value;
     const description = document.getElementById('video-description').value;
 
-    const video = { title, url, description };
+    const video = { title, url: url.replace('youtu.be', 'youtube.com/embed'), description };
 
-    console.log('New video added:', video);
+    // Save to local storage (for demo purposes; use a server/database in production)
+    let videos = JSON.parse(localStorage.getItem('videos')) || [];
+    videos.push(video);
+    localStorage.setItem('videos', JSON.stringify(videos));
 
-
+    // Clear the form
     document.getElementById('video-form').reset();
 });
 
