@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const textElement = document.querySelector('.site-title');
-    const text = textElement.textContent;
-    textElement.textContent = '';
+    const textElement = document.getElementById('typing-text');
+    const text = 'MikuMiku';
     const delayBetweenWords = 500; // Delay in milliseconds between words
 
     let index = 0;
