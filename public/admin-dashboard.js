@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Fetch videos and render them
+
     fetch('/api/videos')
         .then(response => {
             if (!response.ok) {
@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.href = 'admin-login.html';
         });
 
-    // Add event listener to the video form
+
     document.getElementById('video-form').addEventListener('submit', function(event) {
         event.preventDefault();
 
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             alert('Video added successfully');
             document.getElementById('video-form').reset();
-            // Fetch and render updated videos
+
             fetch('/api/videos')
                 .then(response => response.json())
                 .then(videos => {
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Add event listener to the logout button
+
     document.getElementById('logout').addEventListener('click', function() {
         fetch('/logout', {
             method: 'POST'
@@ -79,7 +79,7 @@ function renderVideos(videos) {
         return;
     }
 
-    videoContainer.innerHTML = ''; // Clear previous content
+    videoContainer.innerHTML = ''; 
 
     videos.forEach(video => {
         const videoItem = document.createElement('div');
