@@ -1,27 +1,29 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Fetch videos and render them
     fetch('/api/videos')
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Failed to fetch videos');
-        }
-        return response.json();
-    })
-    .then(videos => {
-        renderVideos(videos);
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        window.location.href = 'admin-login.html';
-    });
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch videos');
+            }
+            return response.json();
+        })
+        .then(videos => {
+            renderVideos(videos);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            window.location.href = 'admin-login.html';
+        });
 
+    // Add event listener to the video form
     document.getElementById('video-form').addEventListener('submit', function(event) {
         event.preventDefault();
 
         const title = document.getElementById('video-title').value;
-        const url = document.getElementById('video-url').value;
+        const url = document.getElementById('video-url').value.replace('youtu.be', 'youtube.com/embed');
         const description = document.getElementById('video-description').value;
 
-        const video = { title, url: url.replace('youtu.be', 'youtube.com/embed'), description };
+        const video = { title, url, description };
 
         fetch('/api/videos', {
             method: 'POST',
@@ -43,6 +45,11 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             alert('Video added successfully');
             document.getElementById('video-form').reset();
+            fetch('/api/videos')
+                .then(response => response.json())
+                .then(videos => {
+                    renderVideos(videos);
+                });
         })
         .catch(error => {
             console.error('Error:', error);
@@ -50,6 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Add event listener to the logout button
     document.getElementById('logout').addEventListener('click', function() {
         fetch('/logout', {
             method: 'POST'
@@ -65,6 +73,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function renderVideos(videos) {
     const videoContainer = document.getElementById('video-container');
+    if (!videoContainer) {
+        console.error('Error: video-container element not found.');
+        return;
+    }
+    
     videoContainer.innerHTML = ''; // Clear previous content
 
     videos.forEach(video => {
