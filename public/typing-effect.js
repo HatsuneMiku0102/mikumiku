@@ -2,7 +2,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     const textElement = document.getElementById('typing-text');
     const text = 'MikuMiku';
-    const typingSpeed = 200; // delay between each character in milliseconds
+    const typingSpeed = 200; 
 
     let index = 0;
 
@@ -16,4 +16,4 @@ document.addEventListener('DOMContentLoaded', function () {
 
     typeCharacter();
 });
-</script>
+
