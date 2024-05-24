@@ -47,9 +47,14 @@
 
     <script src="/typing-effect.js"></script>
     <script>
-        // Fetch video data from JSON file
-        fetch('/videos.json')
-            .then(response => response.json())
+        // Fetch video data from the API endpoint
+        fetch('/api/videos')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch videos');
+                }
+                return response.json();
+            })
             .then(data => {
                 const videoContainer = document.getElementById('video-container');
                 if (data && data.length) {
