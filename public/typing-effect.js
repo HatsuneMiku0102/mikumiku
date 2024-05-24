@@ -1,4 +1,4 @@
-
+<script>
 document.addEventListener('DOMContentLoaded', function () {
     const textElement = document.getElementById('typing-text');
     const text = 'MikuMiku';
@@ -16,4 +16,4 @@ document.addEventListener('DOMContentLoaded', function () {
 
     typeCharacter();
 });
-
+</script>
