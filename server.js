@@ -17,7 +17,7 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false } // set true if using https
+    cookie: { secure: false } 
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
