@@ -5,9 +5,8 @@ const session = require('express-session');
 const path = require('path');
 const dotenv = require('dotenv');
 const { Pool } = require('pg');
-const AWS = require('aws-sdk');
 const multer = require('multer');
-const multerS3 = require('multer-s3');
+const fs = require('fs');
 
 dotenv.config();
 
@@ -25,15 +24,6 @@ app.use(session({
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// AWS S3 Configuration
-AWS.config.update({
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: process.env.AWS_REGION
-});
-
-const s3 = new AWS.S3();
-
 // PostgreSQL Configuration
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -42,17 +32,21 @@ const pool = new Pool({
     }
 });
 
-// Multer S3 Storage
-const upload = multer({
-    storage: multerS3({
-        s3: s3,
-        bucket: process.env.S3_BUCKET_NAME,
-        acl: 'public-read',
-        key: function (req, file, cb) {
-            cb(null, Date.now().toString() + '-' + file.originalname);
+// Multer Local Storage
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadPath = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath);
         }
-    })
+        cb(null, uploadPath);
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now().toString() + '-' + file.originalname);
+    }
 });
+
+const upload = multer({ storage: storage });
 
 const users = [
     {
@@ -93,7 +87,7 @@ app.get('/admin-dashboard.html', isAuthenticated, (req, res) => {
 
 app.post('/api/videos', isAuthenticated, upload.single('video'), async (req, res) => {
     const videoMetadata = {
-        url: req.file.location,
+        url: `/uploads/${req.file.filename}`,
         filename: req.file.originalname,
         uploadedAt: new Date()
     };
