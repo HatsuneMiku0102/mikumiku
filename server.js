@@ -120,6 +120,7 @@ app.get('/api/videos', async (req, res) => {
     }
 });
 
+// Serve the main page quickly without blocking
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
