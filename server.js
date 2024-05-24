@@ -23,10 +23,9 @@ app.use(session({
     cookie: { secure: false } // set true if using https
 }));
 
-// Serve static files from the "public" directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Configure AWS S3
+// AWS S3 Configuration
 AWS.config.update({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -35,7 +34,7 @@ AWS.config.update({
 
 const s3 = new AWS.S3();
 
-// Configure PostgreSQL
+// PostgreSQL Configuration
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
@@ -43,7 +42,7 @@ const pool = new Pool({
     }
 });
 
-// Set up Multer S3 for file uploads
+// Multer S3 Storage
 const upload = multer({
     storage: multerS3({
         s3: s3,
@@ -88,7 +87,6 @@ function isAuthenticated(req, res, next) {
     }
 }
 
-// Protecting the admin dashboard route
 app.get('/admin-dashboard.html', isAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
