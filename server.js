@@ -2,9 +2,12 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
-const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
+const { Pool } = require('pg');
+const AWS = require('aws-sdk');
+const multer = require('multer');
+const multerS3 = require('multer-s3');
 
 dotenv.config();
 
@@ -22,6 +25,35 @@ app.use(session({
 
 // Serve static files from the "public" directory
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Configure AWS S3
+AWS.config.update({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION
+});
+
+const s3 = new AWS.S3();
+
+// Configure PostgreSQL
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false
+    }
+});
+
+// Set up Multer S3 for file uploads
+const upload = multer({
+    storage: multerS3({
+        s3: s3,
+        bucket: process.env.S3_BUCKET_NAME,
+        acl: 'public-read',
+        key: function (req, file, cb) {
+            cb(null, Date.now().toString() + '-' + file.originalname);
+        }
+    })
+});
 
 const users = [
     {
@@ -61,48 +93,36 @@ app.get('/admin-dashboard.html', isAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
-app.post('/api/videos', isAuthenticated, (req, res) => {
-    const newVideo = req.body;
-    const videosFilePath = path.join(__dirname, 'public', 'videos.json');
+app.post('/api/videos', isAuthenticated, upload.single('video'), async (req, res) => {
+    const videoMetadata = {
+        url: req.file.location,
+        filename: req.file.originalname,
+        uploadedAt: new Date()
+    };
 
-    if (!fs.existsSync(videosFilePath)) {
-        fs.writeFileSync(videosFilePath, JSON.stringify([], null, 2));
+    try {
+        const client = await pool.connect();
+        const queryText = 'INSERT INTO videos(url, filename, uploaded_at) VALUES($1, $2, $3) RETURNING *';
+        const values = [videoMetadata.url, videoMetadata.filename, videoMetadata.uploadedAt];
+        await client.query(queryText, values);
+        client.release();
+        res.status(201).send({ message: 'Video added', video: videoMetadata });
+    } catch (err) {
+        console.error('Error saving video metadata to PostgreSQL:', err);
+        res.status(500).send('Error saving video metadata');
     }
-
-    fs.readFile(videosFilePath, 'utf8', (err, data) => {
-        if (err) {
-            return res.status(500).send({ message: 'Error reading video data', error: err });
-        }
-
-        let videos;
-        try {
-            videos = JSON.parse(data);
-        } catch (parseErr) {
-            return res.status(500).send({ message: 'Error parsing video data', error: parseErr });
-        }
-
-        videos.push(newVideo);
-
-        fs.writeFile(videosFilePath, JSON.stringify(videos, null, 2), (err) => {
-            if (err) {
-                return res.status(500).send({ message: 'Error saving video data', error: err });
-            }
-
-            res.status(201).send({ message: 'Video added' });
-        });
-    });
 });
 
-app.get('/api/videos', (req, res) => {
-    const videosFilePath = path.join(__dirname, 'public', 'videos.json');
-
-    fs.readFile(videosFilePath, 'utf8', (err, data) => {
-        if (err) {
-            return res.status(500).send({ message: 'Error reading video data', error: err });
-        }
-
-        res.json(JSON.parse(data));
-    });
+app.get('/api/videos', async (req, res) => {
+    try {
+        const client = await pool.connect();
+        const result = await client.query('SELECT * FROM videos');
+        client.release();
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error retrieving video metadata from PostgreSQL:', err);
+        res.status(500).send('Error retrieving video metadata');
+    }
 });
 
 app.get('/', (req, res) => {
