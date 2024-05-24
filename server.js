@@ -87,19 +87,21 @@ app.get('/admin-dashboard.html', isAuthenticated, (req, res) => {
 
 app.post('/api/videos', isAuthenticated, upload.single('video'), async (req, res) => {
     if (!req.file) {
+        console.error('File upload failed: no file received');
         return res.status(400).send({ error: 'File upload failed' });
     }
 
     const videoMetadata = {
         url: `/uploads/${req.file.filename}`,
-        filename: req.file.originalname,
+        title: req.body.title,
+        description: req.body.description,
         uploadedAt: new Date()
     };
 
     try {
         const client = await pool.connect();
-        const queryText = 'INSERT INTO videos(url, filename, uploaded_at) VALUES($1, $2, $3) RETURNING *';
-        const values = [videoMetadata.url, videoMetadata.filename, videoMetadata.uploadedAt];
+        const queryText = 'INSERT INTO videos(url, title, description, uploaded_at) VALUES($1, $2, $3, $4) RETURNING *';
+        const values = [videoMetadata.url, videoMetadata.title, videoMetadata.description, videoMetadata.uploadedAt];
         const result = await client.query(queryText, values);
         client.release();
         res.status(201).send({ message: 'Video added', video: result.rows[0] });
