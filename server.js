@@ -2,7 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
-const RedisStore = require('connect-redis').default;
+const RedisStore = require('connect-redis')(session); // Correct way to require connect-redis
 const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
@@ -20,16 +20,10 @@ const redisClient = createClient({
 
 redisClient.connect().catch(console.error);
 
-// Initialize Redis store
-const redisStore = new RedisStore({
-    client: redisClient,
-    prefix: 'sess:'
-});
-
 app.use(bodyParser.json());
 
 app.use(session({
-    store: redisStore,
+    store: new RedisStore({ client: redisClient }), // Use RedisStore correctly
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: true,
