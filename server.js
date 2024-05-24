@@ -111,6 +111,7 @@ app.post('/api/videos', isAuthenticated, upload.single('video'), async (req, res
     }
 });
 
+
 app.get('/api/videos', async (req, res) => {
     try {
         const client = await pool.connect();
