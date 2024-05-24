@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-
+    <!-- Title Bar -->
     <div class="title-bar">
         <div class="container">
             <img src="/logo.png" alt="Logo" class="logo">
@@ -15,7 +15,7 @@
         </div>
     </div>
 
-
+    <!-- Custom Banner Image with About Me Section -->
     <div class="banner">
         <img src="/banner.webp" alt="Banner Image" class="banner-img">
         <div class="about">
@@ -26,7 +26,7 @@
         </div>
     </div>
 
-
+    <!-- Videos Section -->
     <div class="container">
         <h1>Hand Picked Vocaloid Tracks <3</h1>
         <section class="videos">
@@ -37,7 +37,7 @@
         </section>
     </div>
 
-
+    <!-- Footer -->
     <footer class="footer">
         <div class="container">
             <p>&copy; 2024 MikuMiku. All rights reserved.</p>
@@ -47,7 +47,7 @@
 
     <script src="/typing-effect.js"></script>
     <script>
-
+        // Fetch video data from the API endpoint
         fetch('/api/videos')
             .then(response => {
                 if (!response.ok) {
@@ -58,7 +58,7 @@
             .then(data => {
                 const videoContainer = document.getElementById('video-container');
                 if (data && data.length) {
-
+                    // Iterate through each video and create HTML elements
                     data.forEach(video => {
                         const videoItem = document.createElement('div');
                         videoItem.classList.add('video-item');
@@ -70,7 +70,7 @@
                         videoContainer.appendChild(videoItem);
                     });
                 } else {
-
+                    // If no videos available, display a message
                     videoContainer.innerHTML = '<p>No videos available</p>';
                 }
             })
@@ -78,6 +78,47 @@
                 console.error('Error fetching video data:', error);
                 document.getElementById('video-container').innerHTML = '<p>Error loading videos.</p>';
             });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const textElement = document.getElementById('typing-text');
+            const text = 'MikuMiku';
+            const delayBetweenWords = 500; // delay between words in milliseconds
+            const typingSpeed = 200; // delay between each character in milliseconds
+
+            let index = 0;
+            let currentWord = '';
+
+            function typeCharacter() {
+                if (index < text.length) {
+                    currentWord += text[index];
+                    textElement.innerHTML = currentWord;
+                    index++;
+                    setTimeout(typeCharacter, typingSpeed);
+                } else if (index === text.length) {
+                    setTimeout(() => {
+                        textElement.innerHTML = currentWord + ' ';
+                        index++;
+                        setTimeout(typeWord, delayBetweenWords);
+                    }, typingSpeed);
+                }
+            }
+
+            function typeWord() {
+                if (index < text.length) {
+                    currentWord = '';
+                    while (index < text.length && text[index] !== ' ') {
+                        currentWord += text[index];
+                        index++;
+                    }
+                    index++; // skip the space
+                    textElement.innerHTML = currentWord + ' ';
+                    setTimeout(typeCharacter, delayBetweenWords);
+                }
+            }
+
+            typeWord();
+        });
     </script>
 </body>
 </html>
