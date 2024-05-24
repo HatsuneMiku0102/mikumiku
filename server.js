@@ -5,8 +5,6 @@ const session = require('express-session');
 const path = require('path');
 const dotenv = require('dotenv');
 const { Pool } = require('pg');
-const multer = require('multer');
-const fs = require('fs');
 
 dotenv.config();
 
@@ -31,22 +29,6 @@ const pool = new Pool({
         rejectUnauthorized: false
     }
 });
-
-// Multer Local Storage
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadPath = path.join(__dirname, 'uploads');
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath);
-        }
-        cb(null, uploadPath);
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now().toString() + '-' + file.originalname);
-    }
-});
-
-const upload = multer({ storage: storage });
 
 const users = [
     {
@@ -85,14 +67,9 @@ app.get('/admin-dashboard.html', isAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
-app.post('/api/videos', isAuthenticated, upload.single('video'), async (req, res) => {
-    if (!req.file) {
-        console.error('File upload failed: no file received');
-        return res.status(400).send({ error: 'File upload failed' });
-    }
-
+app.post('/api/videos', isAuthenticated, async (req, res) => {
     const videoMetadata = {
-        url: `/uploads/${req.file.filename}`,
+        url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
         title: req.body.title,
         description: req.body.description,
         uploadedAt: new Date()
@@ -110,7 +87,6 @@ app.post('/api/videos', isAuthenticated, upload.single('video'), async (req, res
         res.status(500).send({ error: 'Error saving video metadata' });
     }
 });
-
 
 app.get('/api/videos', async (req, res) => {
     try {
