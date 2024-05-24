@@ -13,9 +13,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Create Redis client
+// Create Redis client using the URL from environment variables
 const redisClient = createClient({
-    url: process.env.REDIS_URL || 'redis://localhost:6379'
+    url: process.env.REDIS_URL
 });
 
 redisClient.connect().catch(console.error);
