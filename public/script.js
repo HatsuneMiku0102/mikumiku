@@ -1,4 +1,4 @@
-// Your JavaScript code can go here
+
 console.log("Welcome to MikuMiku <3");
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(videos => {
             if (videos && videos.length) {
-                videoContainer.innerHTML = ''; // Clear any previous "No videos available" message
+                videoContainer.innerHTML = ''; 
 
                 videos.forEach(video => {
                     const videoItem = document.createElement('div');
