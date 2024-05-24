@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     const textElement = document.getElementById('typing-text');
     const text = 'MikuMiku';
-    const delayBetweenWords = 500; // Delay in milliseconds between words
+    const delayBetweenWords = 500; 
 
     let index = 0;
 
@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 currentWord += text[index];
                 index++;
             }
-            index++; // Skip the space character
+            index++; 
             textElement.innerHTML += currentWord + ' ';
             setTimeout(typeWord, delayBetweenWords);
         }
