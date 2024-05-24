@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             alert('Video added successfully');
             document.getElementById('video-form').reset();
+            // Fetch and render updated videos
             fetch('/api/videos')
                 .then(response => response.json())
                 .then(videos => {
@@ -77,7 +78,7 @@ function renderVideos(videos) {
         console.error('Error: video-container element not found.');
         return;
     }
-    
+
     videoContainer.innerHTML = ''; // Clear previous content
 
     videos.forEach(video => {
