@@ -86,6 +86,10 @@ app.get('/admin-dashboard.html', isAuthenticated, (req, res) => {
 });
 
 app.post('/api/videos', isAuthenticated, upload.single('video'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).send({ error: 'File upload failed' });
+    }
+
     const videoMetadata = {
         url: `/uploads/${req.file.filename}`,
         filename: req.file.originalname,
@@ -96,12 +100,12 @@ app.post('/api/videos', isAuthenticated, upload.single('video'), async (req, res
         const client = await pool.connect();
         const queryText = 'INSERT INTO videos(url, filename, uploaded_at) VALUES($1, $2, $3) RETURNING *';
         const values = [videoMetadata.url, videoMetadata.filename, videoMetadata.uploadedAt];
-        await client.query(queryText, values);
+        const result = await client.query(queryText, values);
         client.release();
-        res.status(201).send({ message: 'Video added', video: videoMetadata });
+        res.status(201).send({ message: 'Video added', video: result.rows[0] });
     } catch (err) {
         console.error('Error saving video metadata to PostgreSQL:', err);
-        res.status(500).send('Error saving video metadata');
+        res.status(500).send({ error: 'Error saving video metadata' });
     }
 });
 
@@ -113,7 +117,7 @@ app.get('/api/videos', async (req, res) => {
         res.json(result.rows);
     } catch (err) {
         console.error('Error retrieving video metadata from PostgreSQL:', err);
-        res.status(500).send('Error retrieving video metadata');
+        res.status(500).send({ error: 'Error retrieving video metadata' });
     }
 });
 
