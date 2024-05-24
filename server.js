@@ -2,8 +2,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
-const RedisStore = require('connect-redis')(session); // Correct way to require connect-redis
-const fs = require('fs');
+const RedisStore = require('connect-redis')(session);
+const fs = require('fs').promises; // Use promises with fs
 const path = require('path');
 const dotenv = require('dotenv');
 const { createClient } = require('redis');
@@ -18,16 +18,20 @@ const redisClient = createClient({
     url: process.env.REDIS_URL
 });
 
-redisClient.connect().catch(console.error);
+redisClient.on('error', (err) => console.error('Redis Client Error', err));
+
+(async () => {
+    await redisClient.connect();
+})();
 
 app.use(bodyParser.json());
 
 app.use(session({
-    store: new RedisStore({ client: redisClient }), // Use RedisStore correctly
+    store: new RedisStore({ client: redisClient }),
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: true, sameSite: 'None' } // Ensure secure cookies if using https
+    cookie: { secure: true, sameSite: 'None' }
 }));
 
 // Middleware to log session details
@@ -64,12 +68,12 @@ app.post('/login', (req, res) => {
     req.session.user = {
         username: user.username
     };
-    console.log('Session created:', req.session); // Logging session creation
+    console.log('Session created:', req.session);
     res.status(200).send({ auth: true });
 });
 
 function isAuthenticated(req, res, next) {
-    console.log('Checking authentication:', req.session); // Logging session check
+    console.log('Checking authentication:', req.session);
     if (req.session.user) {
         next();
     } else {
@@ -83,48 +87,37 @@ app.get('/admin-dashboard.html', isAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
-app.post('/api/videos', isAuthenticated, (req, res) => {
+app.post('/api/videos', isAuthenticated, async (req, res) => {
     const newVideo = req.body;
     const videosFilePath = path.join(__dirname, 'public', 'videos.json');
 
-    if (!fs.existsSync(videosFilePath)) {
-        fs.writeFileSync(videosFilePath, JSON.stringify([], null, 2));
-    }
-
-    fs.readFile(videosFilePath, 'utf8', (err, data) => {
-        if (err) {
-            return res.status(500).send({ message: 'Error reading video data', error: err });
-        }
-
-        let videos;
-        try {
+    try {
+        let videos = [];
+        if (await fs.access(videosFilePath).then(() => true).catch(() => false)) {
+            const data = await fs.readFile(videosFilePath, 'utf8');
             videos = JSON.parse(data);
-        } catch (parseErr) {
-            return res.status(500).send({ message: 'Error parsing video data', error: parseErr });
         }
 
         videos.push(newVideo);
 
-        fs.writeFile(videosFilePath, JSON.stringify(videos, null, 2), (err) => {
-            if (err) {
-                return res.status(500).send({ message: 'Error saving video data', error: err });
-            }
-
-            res.status(201).send({ message: 'Video added' });
-        });
-    });
+        await fs.writeFile(videosFilePath, JSON.stringify(videos, null, 2));
+        res.status(201).send({ message: 'Video added' });
+    } catch (err) {
+        console.error('Error handling video data:', err);
+        res.status(500).send({ message: 'Error handling video data', error: err });
+    }
 });
 
-app.get('/api/videos', (req, res) => {
+app.get('/api/videos', async (req, res) => {
     const videosFilePath = path.join(__dirname, 'public', 'videos.json');
 
-    fs.readFile(videosFilePath, 'utf8', (err, data) => {
-        if (err) {
-            return res.status(500).send({ message: 'Error reading video data', error: err });
-        }
-
+    try {
+        const data = await fs.readFile(videosFilePath, 'utf8');
         res.json(JSON.parse(data));
-    });
+    } catch (err) {
+        console.error('Error reading video data:', err);
+        res.status(500).send({ message: 'Error reading video data', error: err });
+    }
 });
 
 app.get('/', (req, res) => {
@@ -134,10 +127,10 @@ app.get('/', (req, res) => {
 app.post('/logout', (req, res) => {
     req.session.destroy(err => {
         if (err) {
-            console.log('Failed to destroy session:', err); // Logging session destruction error
+            console.log('Failed to destroy session:', err);
             return res.status(500).send({ message: 'Failed to log out' });
         }
-        console.log('Session destroyed'); // Logging session destruction
+        console.log('Session destroyed');
         res.redirect('/admin-login.html');
     });
 });
