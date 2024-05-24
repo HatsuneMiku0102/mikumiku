@@ -19,15 +19,18 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('video-form').addEventListener('submit', function(event) {
         event.preventDefault();
 
-        const formData = new FormData();
-        formData.append('title', document.getElementById('video-title').value);
-        formData.append('url', document.getElementById('video-url').value.replace('youtu.be', 'youtube.com/embed'));
-        formData.append('description', document.getElementById('video-description').value);
-        formData.append('video', document.getElementById('video-file').files[0]);
+        const title = document.getElementById('video-title').value;
+        const url = document.getElementById('video-url').value.replace('youtu.be', 'youtube.com/embed');
+        const description = document.getElementById('video-description').value;
+
+        const video = { title, url, description };
 
         fetch('/api/videos', {
             method: 'POST',
-            body: formData
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(video)
         })
         .then(response => {
             if (!response.ok) {
