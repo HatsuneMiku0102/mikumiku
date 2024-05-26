@@ -7,14 +7,12 @@
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-
     <div class="title-bar">
         <div class="container">
             <img src="/logo.png" alt="Logo" class="logo">
             <h1 class="site-title"><span id="typing-text"></span></h1>
         </div>
     </div>
-
     <div class="banner">
         <img src="/banner.webp" alt="Banner Image" class="banner-img">
         <div class="about">
@@ -24,7 +22,6 @@
             </div>
         </div>
     </div>
-
     <div class="videos">
         <h1 class="fancy-title" id="fancy-title"></h1>
         <section class="videos">
@@ -34,72 +31,14 @@
             </div>
         </section>
     </div>
-
     <footer class="footer">
         <div class="container">
             <p>&copy; 2024 MikuMiku. All rights reserved.</p>
             <p><a href="/admin-login.html">Admin Login</a></p>
         </div>
     </footer>
-
+    <script src="/typing-effect.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const textElement = document.getElementById('typing-text');
-            const text = 'MikuMiku';
-            const typingSpeed = 200;
-
-            let index = 0;
-
-            function typeCharacter() {
-                if (index < text.length) {
-                    textElement.innerHTML += text[index];
-                    index++;
-                    setTimeout(typeCharacter, typingSpeed);
-                }
-            }
-
-            typeCharacter();
-        });
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const textElement = document.getElementById('fancy-title');
-            const text = 'Hand Picked Vocaloid Tracks <3';
-            const typingSpeed = 300;
-
-            const words = text.split(' ');
-            let wordIndex = 0;
-
-            function typeWord() {
-                if (wordIndex < words.length) {
-                    textElement.innerHTML += (wordIndex > 0 ? ' ' : '') + words[wordIndex];
-                    wordIndex++;
-                    setTimeout(typeWord, typingSpeed);
-                } else {
-                    textElement.classList.remove('blinking-cursor');
-                }
-            }
-
-            typeWord();
-        });
-
-        document.querySelector('.fancy-title').addEventListener('mouseover', function () {
-            for (let i = 0; i < 50; i++) {
-                createBlossom();
-            }
-        });
-
-        function createBlossom() {
-            const blossom = document.createElement('div');
-            blossom.classList.add('blossom');
-            blossom.style.left = `${Math.random() * 100}%`;
-            blossom.style.animationDuration = `${Math.random() * 5 + 3}s`;
-            document.body.appendChild(blossom);
-
-            setTimeout(() => {
-                blossom.remove();
-            }, 8000);
-        }
-        
         fetch('/api/videos')
             .then(response => {
                 if (!response.ok) {
@@ -128,6 +67,61 @@
                 console.error('Error fetching video data:', error);
                 document.getElementById('video-container').innerHTML = '<p>Error loading videos.</p>';
             });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const textElement = document.getElementById('typing-text');
+            const text = 'MikuMiku';
+            const typingSpeed = 200;
+            let index = 0;
+
+            function typeCharacter() {
+                if (index < text.length) {
+                    textElement.innerHTML += text[index];
+                    index++;
+                    setTimeout(typeCharacter, typingSpeed);
+                }
+            }
+
+            typeCharacter();
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const textElement = document.getElementById('fancy-title');
+            const text = 'Hand Picked Vocaloid Tracks <3';
+            const typingSpeed = 300;
+
+            const words = text.split(' ');
+            let wordIndex = 0;
+
+            function typeWord() {
+                if (wordIndex < words.length) {
+                    textElement.innerHTML += (wordIndex > 0 ? ' ' : '') + words[wordIndex];
+                    wordIndex++;
+                    setTimeout(typeWord, typingSpeed);
+                }
+            }
+
+            typeWord();
+        });
+
+        document.querySelector('.fancy-title').addEventListener('mouseover', function () {
+            for (let i = 0; i < 50; i++) {
+                createBlossom();
+            }
+        });
+
+        function createBlossom() {
+            const blossom = document.createElement('div');
+            blossom.classList.add('blossom');
+            blossom.style.left = `${Math.random() * 100}%`;
+            blossom.style.animationDuration = `${Math.random() * 5 + 3}s`;
+            document.body.appendChild(blossom);
+
+            setTimeout(() => {
+                blossom.remove();
+            }, 8000);
+        }
     </script>
 </body>
 </html>
