@@ -1,181 +1,214 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MikuMiku | Home</title>
-    <link rel="stylesheet" href="/styles.css">
-    <style>
-        .blossom {
-            position: fixed;
-            top: 0;
-            width: 30px;
-            height: 30px;
-            background-image: url('/blossom.png'); 
-            background-size: cover;
-            opacity: 1;
-            animation: fall linear infinite;
-            pointer-events: none;
-            z-index: 1001;
-        }
+body {
+    font-family: Arial, sans-serif;
+    background-color: #2c2c2c;
+    color: #ffffff;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
 
-        @keyframes fall {
-            0% {
-                transform: translateY(-100px);
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(100vh);
-                opacity: 1;
-            }
-        }
+.container {
+    width: 90%;
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+}
 
-        .fancy-title {
-            font-size: 3em;
-            color: cyan;
-            text-align: center;
-            margin-top: 20px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            overflow: hidden;
-            white-space: nowrap;
-            border-right: 0.15em solid cyan;
-            animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
-            display: inline-block;
-        }
+.title-bar {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.5); 
+    backdrop-filter: blur(10px); 
+    padding: 10px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
 
-        @keyframes typing {
-            from { width: 0; }
-            to { width: 100%; }
-        }
+.title-bar .container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 0 20px;
+}
 
-        @keyframes blink-caret {
-            from, to { border-color: transparent; }
-            50% { border-color: cyan; }
-        }
-    </style>
-</head>
-<body>
+.title-bar .logo {
+    width: 100px;
+    height: auto;
+    margin-right: 20px;
+}
 
-    <div class="title-bar">
-        <div class="container">
-            <img src="/logo.png" alt="Logo" class="logo">
-            <h1 class="site-title"><span id="typing-text"></span></h1>
-        </div>
-    </div>
+.title-bar .site-title {
+    font-size: 2em;
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: bold;
+    color: cyan;
+    overflow: hidden;
+    white-space: nowrap;
+    border-right: 0.15em solid cyan; 
+    animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+    display: inline-block;
+}
 
-    <div class="banner">
-        <img src="/banner.webp" alt="Banner Image" class="banner-img">
-        <div class="about">
-            <div class="container">
-                <h2>About Me</h2>
-                <p>Hey there, I'm Hystoriya, a 24-year-old developer and tetragametic chimera. If you are looking for 24/7 Discord bot hosting or Minecraft servers, then you should totally check out <a href="https://pylexnodes.net/" target="_blank">Pylexnodes</a>.</p>
-            </div>
-        </div>
-    </div>
+@keyframes typing {
+    from { width: 0; }
+    to { width: 100%; }
+}
 
-    <div class="videos">
-        <h1 class="fancy-title" id="fancy-title"></h1>
-        <section class="videos">
-            <div class="container">
-                <h2>Only The Finest</h2>
-                <div class="video-grid" id="video-container"></div>
-            </div>
-        </section>
-    </div>
+@keyframes blink-caret {
+    from, to { border-color: transparent; }
+    50% { border-color: cyan; }
+}
 
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; 2024 MikuMiku. All rights reserved.</p>
-            <p><a href="/admin-login.html">Admin Login</a></p>
-        </div>
-    </footer>
+.banner {
+    flex: 1;
+    position: relative;
+    text-align: center;
+    color: white;
+    width: 100%;
+    height: 100vh; 
+    overflow: hidden;
+    margin-top: 80px; 
+}
 
-    <script src="/typing-effect.js"></script>
-    <script>
-        fetch('/api/videos')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to fetch videos');
-                }
-                return response.json();
-            })
-            .then(data => {
-                const videoContainer = document.getElementById('video-container');
-                if (data && data.length) {
-                    data.forEach(video => {
-                        const videoItem = document.createElement('div');
-                        videoItem.classList.add('video-item');
-                        videoItem.innerHTML = `
-                            <iframe width="560" height="315" src="${video.url}" frameborder="0" allowfullscreen></iframe>
-                            <h3>${video.title}</h3>
-                            <p>${video.description}</p>
-                        `;
-                        videoContainer.appendChild(videoItem);
-                    });
-                } else {
-                    videoContainer.innerHTML = '<p>No videos available</p>';
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching video data:', error);
-                document.getElementById('video-container').innerHTML = '<p>Error loading videos.</p>';
-            });
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const textElement = document.getElementById('typing-text');
-            const text = 'MikuMiku';
-            const typingSpeed = 200;
+.banner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
 
-            let index = 0;
+.about {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.6);
+    padding: 20px;
+    border-radius: 10px;
+}
 
-            function typeCharacter() {
-                if (index < text.length) {
-                    textElement.innerHTML += text[index];
-                    index++;
-                    setTimeout(typeCharacter, typingSpeed);
-                }
-            }
+.videos {
+    padding: 40px 0;
+}
 
-            typeCharacter();
-        });
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const textElement = document.getElementById('fancy-title');
-            const text = 'Hand Picked Vocaloid Tracks <3';
-            const typingSpeed = 300;
+.video-item {
+    background: #444;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s, box-shadow 0.3s;
+    display: flex;
+    flex-direction: column;
+}
 
-            const words = text.split(' ');
-            let wordIndex = 0;
+.video-item:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
 
-            function typeWord() {
-                if (wordIndex < words.length) {
-                    textElement.innerHTML += (wordIndex > 0 ? ' ' : '') + words[wordIndex];
-                    wordIndex++;
-                    setTimeout(typeWord, typingSpeed);
-                }
-            }
+.video-item iframe {
+    width: 100%;
+    height: 200px;
+    border: none;
+}
 
-            typeWord();
-        });
+.video-item h3, .video-item p {
+    margin: 10px;
+    font-size: 14px;
+    color: #fff;
+}
 
-        document.querySelector('.fancy-title').addEventListener('mouseover', function () {
-            for (let i = 0; i < 50; i++) {
-                createBlossom();
-            }
-        });
+.video-item h3 {
+    font-size: 18px;
+}
 
-        function createBlossom() {
-            const blossom = document.createElement('div');
-            blossom.classList.add('blossom');
-            blossom.style.left = `${Math.random() * 100}%`;
-            blossom.style.animationDuration = `${Math.random() * 5 + 3}s`;
-            document.body.appendChild(blossom);
+.video-description {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3; 
+    -webkit-box-orient: vertical;
+}
 
-            setTimeout(() => {
-                blossom.remove();
-            }, 8000);
-        }
-    </script>
-</body>
-</html>
+.footer {
+    background: #000; 
+    padding: 10px 0; 
+    text-align: center;
+    color: #999;  
+    font-size: 14px;
+}
+
+.fancy-title {
+    font-size: 3em;
+    color: cyan;
+    text-align: center;
+    margin-top: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    white-space: nowrap;
+    border-right: 0.15em solid cyan;
+    display: inline-block;
+}
+
+.blossom {
+    position: fixed;
+    top: 0;
+    width: 30px;
+    height: 30px;
+    background-image: url('/blossom.png'); /* Use the blossom.png from the root directory */
+    background-size: cover;
+    opacity: 1;
+    animation: fall linear infinite;
+    pointer-events: none;
+    z-index: 1001;
+}
+
+@keyframes fall {
+    0% {
+        transform: translateY(-100px);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .title-bar .logo {
+        width: 15%;
+    }
+    .title-bar .site-title {
+        font-size: 1.5em;
+    }
+    .video-item {
+        flex: 1 1 calc(50% - 40px); 
+    }
+}
+
+@media (max-width: 480px) {
+    .title-bar .logo {
+        width: 20%;
+    }
+    .title-bar .site-title {
+        font-size: 1.2em;
+    }
+    .video-item {
+        flex: 1 1 calc(100% - 40px); 
+    }
+}
