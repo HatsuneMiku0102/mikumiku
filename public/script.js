@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-
+    // Typing effect for the fancy title
     const fancyTitleElement = document.getElementById('fancy-title');
     const fancyText = 'Vocaloid Tracks <3';
     const fancyTypingSpeed = 300;
@@ -21,28 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     typeFancyWord(fancyTitleElement, fancyText, fancyTypingSpeed);
 
-
-    const mainTitleElement = document.getElementById('typing-text');
-    const mainText = 'MikuMiku';
-    const mainTypingSpeed = 200;
-
-    function typeMainCharacter(element, text, speed) {
-        element.innerHTML = '';
-        let index = 0;
-
-        function type() {
-            if (index < text.length) {
-                element.innerHTML += text[index];
-                index++;
-                setTimeout(type, speed);
-            }
-        }
-        type();
-    }
-
-    typeMainCharacter(mainTitleElement, mainText, mainTypingSpeed);
-
-
+    // Fetch videos
     fetch('/videos.json')
         .then(response => {
             if (!response.ok) {
