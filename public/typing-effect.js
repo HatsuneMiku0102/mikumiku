@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let index = 0;
     
-    // Clear the text content before starting the typing animation
     textElement.innerHTML = '';
 
     function typeCharacter() {
