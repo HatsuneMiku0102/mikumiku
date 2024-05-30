@@ -43,76 +43,77 @@
 
     <script src="/typing-effect.js"></script>
     <script>
-        fetch('/api/videos')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to fetch videos');
-                }
-                return response.json();
-            })
-            .then(data => {
-                const videoContainer = document.getElementById('video-container');
-                if (data && data.length) {
-                    data.forEach(video => {
-                        const videoItem = document.createElement('div');
-                        videoItem.classList.add('video-item');
-                        videoItem.innerHTML = `
-                            <iframe width="560" height="315" src="${video.url}" frameborder="0" allowfullscreen></iframe>
-                            <h3>${video.title}</h3>
-                            <p>${video.description}</p>
-                        `;
-                        videoContainer.appendChild(videoItem);
-                    });
-                } else {
-                    videoContainer.innerHTML = '<p>No videos available</p>';
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching video data:', error);
-                document.getElementById('video-container').innerHTML = '<p>Error loading videos.</p>';
-            });
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const typingTextElement = document.getElementById('typing-text');
+        document.addEventListener('DOMContentLoaded', function() {
+            // Typing effect for the fancy title
             const fancyTitleElement = document.getElementById('fancy-title');
-            const text1 = 'MikuMiku';
-            const text2 = 'Vocaloid Tracks <3';
-            const typingSpeed = 200;
+            const fancyText = 'Vocaloid Tracks <3';
+            const fancyTypingSpeed = 300;
 
-            function typeCharacter(element, text, speed) {
+            function typeFancyWord(element, text, speed) {
                 element.innerHTML = '';
-                let index = 0;
+                const words = text.split(' ');
+                let wordIndex = 0;
+
                 function type() {
-                    if (index < text.length) {
-                        element.innerHTML += text[index];
-                        index++;
+                    if (wordIndex < words.length) {
+                        element.innerHTML += (wordIndex > 0 ? ' ' : '') + words[wordIndex];
+                        wordIndex++;
                         setTimeout(type, speed);
                     }
                 }
                 type();
             }
 
-            typeCharacter(typingTextElement, text1, typingSpeed);
-            typeCharacter(fancyTitleElement, text2, typingSpeed + 100);
-        });
+            typeFancyWord(fancyTitleElement, fancyText, fancyTypingSpeed);
 
-        document.querySelector('.fancy-title').addEventListener('mouseover', function () {
-            for (let i = 0; i < 50; i++) {
-                createBlossom();
+            // Fetch videos
+            fetch('/api/videos')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch videos');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const videoContainer = document.getElementById('video-container');
+                    if (data && data.length) {
+                        data.forEach(video => {
+                            const videoItem = document.createElement('div');
+                            videoItem.classList.add('video-item');
+                            videoItem.innerHTML = `
+                                <iframe width="560" height="315" src="${video.url}" frameborder="0" allowfullscreen></iframe>
+                                <h3>${video.title}</h3>
+                                <p>${video.description}</p>
+                            `;
+                            videoContainer.appendChild(videoItem);
+                        });
+                    } else {
+                        videoContainer.innerHTML = '<p>No videos available</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching video data:', error);
+                    document.getElementById('video-container').innerHTML = '<p>Error loading videos.</p>';
+                });
+
+            document.querySelector('.fancy-title').addEventListener('mouseover', function () {
+                for (let i = 0; i < 50; i++) {
+                    createBlossom();
+                }
+            });
+
+            function createBlossom() {
+                const blossom = document.createElement('div');
+                blossom.classList.add('blossom');
+                blossom.style.left = `${Math.random() * 100}%`;
+                blossom.style.animationDuration = `${Math.random() * 5 + 3}s`;
+                document.body.appendChild(blossom);
+
+                setTimeout(() => {
+                    blossom.remove();
+                }, 8000);
             }
         });
-
-        function createBlossom() {
-            const blossom = document.createElement('div');
-            blossom.classList.add('blossom');
-            blossom.style.left = `${Math.random() * 100}%`;
-            blossom.style.animationDuration = `${Math.random() * 5 + 3}s`;
-            document.body.appendChild(blossom);
-
-            setTimeout(() => {
-                blossom.remove();
-            }, 8000);
-        }
     </script>
 </body>
 </html>
