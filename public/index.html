@@ -80,8 +80,13 @@
                         data.forEach(video => {
                             const videoItem = document.createElement('div');
                             videoItem.classList.add('video-item');
+                            videoItem.setAttribute('data-video-url', video.url);
+
+                            // Check if video.url is correct
+                            console.log(`Video URL: ${video.url}`);
+
                             videoItem.innerHTML = `
-                                <img src="https://img.youtube.com/vi/${video.url.split('/').pop()}/0.jpg" alt="${video.title} Thumbnail" class="video-thumbnail lazy" loading="lazy">
+                                <img src="https://img.youtube.com/vi/${getYoutubeID(video.url)}/0.jpg" alt="${video.title} Thumbnail" class="video-thumbnail lazy" loading="lazy">
                                 <button class="play-button">Play</button>
                                 <h3>${video.title}</h3>
                                 <p>${video.description}</p>
@@ -109,7 +114,7 @@
                     entries.forEach(entry => {
                         if (entry.isIntersecting) {
                             const videoItem = entry.target;
-                            const videoUrl = videoItem.querySelector('.play-button').dataset.videoUrl;
+                            const videoUrl = videoItem.getAttribute('data-video-url');
                             loadVideo(videoItem, videoUrl);
                             observer.unobserve(videoItem);
                         }
@@ -121,9 +126,9 @@
                 });
 
                 document.querySelectorAll('.play-button').forEach(button => {
-                    const videoUrl = button.closest('.video-item').getAttribute('data-video-url');
                     button.addEventListener('click', () => {
                         const videoItem = button.closest('.video-item');
+                        const videoUrl = videoItem.getAttribute('data-video-url');
                         loadVideo(videoItem, videoUrl);
                     });
                 });
@@ -139,6 +144,12 @@
                 iframe.allowFullscreen = true;
                 container.innerHTML = "";
                 container.appendChild(iframe);
+            }
+
+            function getYoutubeID(url) {
+                const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+                const match = url.match(regExp);
+                return (match && match[2].length === 11) ? match[2] : null;
             }
 
             document.querySelector('.fancy-title').addEventListener('mouseover', function () {
