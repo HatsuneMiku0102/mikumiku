@@ -1,41 +1,40 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const textElement = document.getElementById('fancy-title');
-    const text = 'Vocaloid Tracks <3';
-    const typingSpeed = 300;
+    // Typing effect for the fancy title
+    const fancyTitleElement = document.getElementById('fancy-title');
+    const fancyText = 'Vocaloid Tracks <3';
+    const fancyTypingSpeed = 300;
 
-    const words = text.split(' ');
-    let wordIndex = 0;
+    const fancyWords = fancyText.split(' ');
+    let fancyWordIndex = 0;
 
-    function typeWord() {
-        if (wordIndex < words.length) {
-            textElement.innerHTML += (wordIndex > 0 ? ' ' : '') + words[wordIndex];
-            wordIndex++;
-            setTimeout(typeWord, typingSpeed);
+    function typeFancyWord() {
+        if (fancyWordIndex < fancyWords.length) {
+            fancyTitleElement.innerHTML += (fancyWordIndex > 0 ? ' ' : '') + fancyWords[fancyWordIndex];
+            fancyWordIndex++;
+            setTimeout(typeFancyWord, fancyTypingSpeed);
         }
     }
 
-    typeWord();
-});
+    typeFancyWord();
 
-document.querySelector('.fancy-title').addEventListener('mouseover', function () {
-    for (let i = 0; i < 50; i++) {
-        createBlossom();
+    // Typing effect for the main title
+    const mainTitleElement = document.getElementById('typing-text');
+    const mainText = 'MikuMiku';
+    const mainTypingSpeed = 200;
+
+    let mainIndex = 0;
+
+    function typeMainCharacter() {
+        if (mainIndex < mainText.length) {
+            mainTitleElement.innerHTML += mainText[mainIndex];
+            mainIndex++;
+            setTimeout(typeMainCharacter, mainTypingSpeed);
+        }
     }
-});
 
-function createBlossom() {
-    const blossom = document.createElement('div');
-    blossom.classList.add('blossom');
-    blossom.style.left = `${Math.random() * 100}%`;
-    blossom.style.animationDuration = `${Math.random() * 5 + 3}s`;
-    document.body.appendChild(blossom);
+    typeMainCharacter();
 
-    setTimeout(() => {
-        blossom.remove();
-    }, 8000);
-}
-
-document.addEventListener("DOMContentLoaded", function() {
+    // Fetch videos
     fetch('/videos.json')
         .then(response => {
             if (!response.ok) {
@@ -67,6 +66,7 @@ document.addEventListener("DOMContentLoaded", function() {
             document.getElementById('video-container').innerHTML = '<p>Error loading videos.</p>';
         });
 
+    // Lazy load videos on intersection
     const loadVideo = (container) => {
         const videoUrl = container.getAttribute("data-video-url");
         const iframe = document.createElement("iframe");
@@ -113,3 +113,21 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 });
+
+document.querySelector('.fancy-title').addEventListener('mouseover', function () {
+    for (let i = 0; i < 50; i++) {
+        createBlossom();
+    }
+});
+
+function createBlossom() {
+    const blossom = document.createElement('div');
+    blossom.classList.add('blossom');
+    blossom.style.left = `${Math.random() * 100}%`;
+    blossom.style.animationDuration = `${Math.random() * 5 + 3}s`;
+    document.body.appendChild(blossom);
+
+    setTimeout(() => {
+        blossom.remove();
+    }, 8000);
+}
