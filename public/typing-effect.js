@@ -1,8 +1,7 @@
-<script>
 document.addEventListener('DOMContentLoaded', function () {
     const textElement = document.getElementById('typing-text');
     const text = 'MikuMiku';
-    const typingSpeed = 200; 
+    const typingSpeed = 200;
 
     let index = 0;
 
@@ -16,4 +15,3 @@ document.addEventListener('DOMContentLoaded', function () {
 
     typeCharacter();
 });
-</script>
