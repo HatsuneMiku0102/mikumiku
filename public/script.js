@@ -1,24 +1,3 @@
-
-console.log("Welcome to MikuMiku <3");
-
-document.addEventListener('DOMContentLoaded', function() {
-    const textElement = document.getElementById('typing-text');
-    const text = 'MikuMiku';
-    const typingSpeed = 200;
-
-    let index = 0;
-
-    function typeCharacter() {
-        if (index < text.length) {
-            textElement.innerHTML += text[index];
-            index++;
-            setTimeout(typeCharacter, typingSpeed);
-        }
-    }
-
-    typeCharacter();
-});
-
 document.addEventListener('DOMContentLoaded', function() {
     const textElement = document.getElementById('fancy-title');
     const text = 'Vocaloid Tracks <3';
@@ -57,7 +36,7 @@ function createBlossom() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    fetch('/api/videos')
+    fetch('/videos.json')
         .then(response => {
             if (!response.ok) {
                 throw new Error('Failed to fetch videos');
@@ -134,7 +113,3 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 });
-
-
-
-
