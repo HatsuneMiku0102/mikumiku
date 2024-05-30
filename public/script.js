@@ -1,7 +1,7 @@
 
 console.log("Welcome to MikuMiku <3");
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function() {
     const textElement = document.getElementById('typing-text');
     const text = 'MikuMiku';
     const typingSpeed = 200;
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function () {
     typeCharacter();
 });
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function() {
     const textElement = document.getElementById('fancy-title');
     const text = 'Vocaloid Tracks <3';
     const typingSpeed = 300;
@@ -134,7 +134,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 });
-
 
 
 
