@@ -1,40 +1,48 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Typing effect for the fancy title
+
     const fancyTitleElement = document.getElementById('fancy-title');
     const fancyText = 'Vocaloid Tracks <3';
     const fancyTypingSpeed = 300;
 
-    const fancyWords = fancyText.split(' ');
-    let fancyWordIndex = 0;
+    function typeFancyWord(element, text, speed) {
+        element.innerHTML = '';
+        const words = text.split(' ');
+        let wordIndex = 0;
 
-    function typeFancyWord() {
-        if (fancyWordIndex < fancyWords.length) {
-            fancyTitleElement.innerHTML += (fancyWordIndex > 0 ? ' ' : '') + fancyWords[fancyWordIndex];
-            fancyWordIndex++;
-            setTimeout(typeFancyWord, fancyTypingSpeed);
+        function type() {
+            if (wordIndex < words.length) {
+                element.innerHTML += (wordIndex > 0 ? ' ' : '') + words[wordIndex];
+                wordIndex++;
+                setTimeout(type, speed);
+            }
         }
+        type();
     }
 
-    typeFancyWord();
+    typeFancyWord(fancyTitleElement, fancyText, fancyTypingSpeed);
 
-    // Typing effect for the main title
+
     const mainTitleElement = document.getElementById('typing-text');
     const mainText = 'MikuMiku';
     const mainTypingSpeed = 200;
 
-    let mainIndex = 0;
+    function typeMainCharacter(element, text, speed) {
+        element.innerHTML = '';
+        let index = 0;
 
-    function typeMainCharacter() {
-        if (mainIndex < mainText.length) {
-            mainTitleElement.innerHTML += mainText[mainIndex];
-            mainIndex++;
-            setTimeout(typeMainCharacter, mainTypingSpeed);
+        function type() {
+            if (index < text.length) {
+                element.innerHTML += text[index];
+                index++;
+                setTimeout(type, speed);
+            }
         }
+        type();
     }
 
-    typeMainCharacter();
+    typeMainCharacter(mainTitleElement, mainText, mainTypingSpeed);
 
-    // Fetch videos
+
     fetch('/videos.json')
         .then(response => {
             if (!response.ok) {
@@ -112,22 +120,22 @@ document.addEventListener('DOMContentLoaded', function() {
             loadVideo(container);
         });
     });
-});
 
-document.querySelector('.fancy-title').addEventListener('mouseover', function () {
-    for (let i = 0; i < 50; i++) {
-        createBlossom();
+    document.querySelector('.fancy-title').addEventListener('mouseover', function () {
+        for (let i = 0; i < 50; i++) {
+            createBlossom();
+        }
+    });
+
+    function createBlossom() {
+        const blossom = document.createElement('div');
+        blossom.classList.add('blossom');
+        blossom.style.left = `${Math.random() * 100}%`;
+        blossom.style.animationDuration = `${Math.random() * 5 + 3}s`;
+        document.body.appendChild(blossom);
+
+        setTimeout(() => {
+            blossom.remove();
+        }, 8000);
     }
 });
-
-function createBlossom() {
-    const blossom = document.createElement('div');
-    blossom.classList.add('blossom');
-    blossom.style.left = `${Math.random() * 100}%`;
-    blossom.style.animationDuration = `${Math.random() * 5 + 3}s`;
-    document.body.appendChild(blossom);
-
-    setTimeout(() => {
-        blossom.remove();
-    }, 8000);
-}
