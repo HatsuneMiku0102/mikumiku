@@ -1,7 +1,7 @@
 
 console.log("Welcome to MikuMiku <3");
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const textElement = document.getElementById('typing-text');
     const text = 'MikuMiku';
     const typingSpeed = 200;
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
     typeCharacter();
 });
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const textElement = document.getElementById('fancy-title');
     const text = 'Vocaloid Tracks <3';
     const typingSpeed = 300;
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
     typeWord();
 });
 
-document.querySelector('.fancy-title').addEventListener('mouseover', function() {
+document.querySelector('.fancy-title').addEventListener('mouseover', function () {
     for (let i = 0; i < 50; i++) {
         createBlossom();
     }
@@ -57,7 +57,36 @@ function createBlossom() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    const videoContainers = document.querySelectorAll(".video-item");
+    fetch('/api/videos')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch videos');
+            }
+            return response.json();
+        })
+        .then(data => {
+            const videoContainer = document.getElementById('video-container');
+            if (data && data.length) {
+                data.forEach(video => {
+                    const videoItem = document.createElement('div');
+                    videoItem.classList.add('video-item');
+                    videoItem.setAttribute('data-video-id', video.id);
+                    videoItem.innerHTML = `
+                        <img src="${video.thumbnail}" alt="${video.title} Thumbnail" class="video-thumbnail">
+                        <button class="play-button">Play</button>
+                        <h3>${video.title}</h3>
+                        <p>${video.description}</p>
+                    `;
+                    videoContainer.appendChild(videoItem);
+                });
+            } else {
+                videoContainer.innerHTML = '<p>No videos available</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching video data:', error);
+            document.getElementById('video-container').innerHTML = '<p>Error loading videos.</p>';
+        });
 
     const loadVideo = (container) => {
         const videoId = container.getAttribute("data-video-id");
@@ -87,7 +116,7 @@ document.addEventListener("DOMContentLoaded", function() {
         threshold: 0.1
     });
 
-    videoContainers.forEach(container => {
+    document.querySelectorAll(".video-item").forEach(container => {
         observer.observe(container);
     });
 
@@ -105,6 +134,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 });
+
 
 
 
