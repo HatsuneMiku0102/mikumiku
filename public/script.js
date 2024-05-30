@@ -70,9 +70,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 data.forEach(video => {
                     const videoItem = document.createElement('div');
                     videoItem.classList.add('video-item');
-                    videoItem.setAttribute('data-video-id', video.id);
+                    videoItem.setAttribute('data-video-url', video.url);
                     videoItem.innerHTML = `
-                        <img src="${video.thumbnail}" alt="${video.title} Thumbnail" class="video-thumbnail">
+                        <img src="https://img.youtube.com/vi/${video.url.split('/').pop()}/0.jpg" alt="${video.title} Thumbnail" class="video-thumbnail">
                         <button class="play-button">Play</button>
                         <h3>${video.title}</h3>
                         <p>${video.description}</p>
@@ -89,11 +89,11 @@ document.addEventListener("DOMContentLoaded", function() {
         });
 
     const loadVideo = (container) => {
-        const videoId = container.getAttribute("data-video-id");
+        const videoUrl = container.getAttribute("data-video-url");
         const iframe = document.createElement("iframe");
         iframe.width = "560";
         iframe.height = "315";
-        iframe.src = `https://www.youtube.com/embed/${videoId}`;
+        iframe.src = videoUrl;
         iframe.frameBorder = "0";
         iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
         iframe.allowFullscreen = true;
@@ -134,6 +134,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 });
+
 
 
 
