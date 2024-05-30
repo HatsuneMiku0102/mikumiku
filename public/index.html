@@ -66,7 +66,7 @@
 
             typeFancyWord(fancyTitleElement, fancyText, fancyTypingSpeed);
 
-            // Fetch videos
+            // Fetch videos and lazy load them
             fetch('/api/videos')
                 .then(response => {
                     if (!response.ok) {
@@ -81,12 +81,14 @@
                             const videoItem = document.createElement('div');
                             videoItem.classList.add('video-item');
                             videoItem.innerHTML = `
-                                <iframe width="560" height="315" src="${video.url}" frameborder="0" allowfullscreen></iframe>
+                                <img src="https://img.youtube.com/vi/${video.url.split('/').pop()}/0.jpg" alt="${video.title} Thumbnail" class="video-thumbnail lazy" loading="lazy">
+                                <button class="play-button">Play</button>
                                 <h3>${video.title}</h3>
                                 <p>${video.description}</p>
                             `;
                             videoContainer.appendChild(videoItem);
                         });
+                        initializeLazyLoad();
                     } else {
                         videoContainer.innerHTML = '<p>No videos available</p>';
                     }
@@ -95,6 +97,49 @@
                     console.error('Error fetching video data:', error);
                     document.getElementById('video-container').innerHTML = '<p>Error loading videos.</p>';
                 });
+
+            function initializeLazyLoad() {
+                const lazyLoadOptions = {
+                    root: null,
+                    rootMargin: "0px",
+                    threshold: 0.1
+                };
+
+                const observer = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const videoItem = entry.target;
+                            const videoUrl = videoItem.querySelector('.play-button').dataset.videoUrl;
+                            loadVideo(videoItem, videoUrl);
+                            observer.unobserve(videoItem);
+                        }
+                    });
+                }, lazyLoadOptions);
+
+                document.querySelectorAll('.video-item').forEach(videoItem => {
+                    observer.observe(videoItem);
+                });
+
+                document.querySelectorAll('.play-button').forEach(button => {
+                    const videoUrl = button.closest('.video-item').getAttribute('data-video-url');
+                    button.addEventListener('click', () => {
+                        const videoItem = button.closest('.video-item');
+                        loadVideo(videoItem, videoUrl);
+                    });
+                });
+            }
+
+            function loadVideo(container, videoUrl) {
+                const iframe = document.createElement("iframe");
+                iframe.width = "560";
+                iframe.height = "315";
+                iframe.src = videoUrl;
+                iframe.frameBorder = "0";
+                iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+                iframe.allowFullscreen = true;
+                container.innerHTML = "";
+                container.appendChild(iframe);
+            }
 
             document.querySelector('.fancy-title').addEventListener('mouseover', function () {
                 for (let i = 0; i < 50; i++) {
