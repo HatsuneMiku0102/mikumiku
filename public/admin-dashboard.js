@@ -7,12 +7,14 @@ document.addEventListener('DOMContentLoaded', function() {
             return response.json();
         })
         .then(videos => {
+            if (!Array.isArray(videos)) {
+                throw new Error('Invalid response format');
+            }
             renderVideos(videos);
         })
         .catch(error => {
             console.error('Error loading videos:', error);
             alert('Error loading videos: ' + error.message);
-            // Do not redirect to the login page on error to keep the admin panel accessible
         });
 
     document.getElementById('video-form').addEventListener('submit', function(event) {
@@ -49,6 +51,9 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch('/api/videos')
                 .then(response => response.json())
                 .then(videos => {
+                    if (!Array.isArray(videos)) {
+                        throw new Error('Invalid response format');
+                    }
                     renderVideos(videos);
                 });
         })
