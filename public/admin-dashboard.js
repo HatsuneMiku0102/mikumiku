@@ -6,18 +6,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             return response.json();
         })
-        .then(data => {
-            if (data.videos && data.videos.length === 0) {
-                console.log('No videos found');
-                renderVideos([]);  // Call renderVideos with an empty array
-            } else {
-                renderVideos(data.videos || data);  // Handle both cases where data.videos or data is the array
-            }
+        .then(videos => {
+            renderVideos(videos);
         })
         .catch(error => {
             console.error('Error loading videos:', error);
             alert('Error loading videos: ' + error.message);
-            window.location.href = 'admin-login.html';
+            // Do not redirect to the login page on error to keep the admin panel accessible
         });
 
     document.getElementById('video-form').addEventListener('submit', function(event) {
