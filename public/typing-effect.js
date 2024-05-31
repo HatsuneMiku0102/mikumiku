@@ -11,7 +11,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 index++;
                 setTimeout(typeCharacter, 150);
             } else {
-                element.classList.add('with-caret');
+                const blinkCaret = document.createElement('span');
+                blinkCaret.classList.add('blink-caret');
+                element.appendChild(blinkCaret);
             }
         }
 
@@ -21,13 +23,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
 const style = document.createElement('style');
 style.innerHTML = `
-    .with-caret::after {
-        content: '|';
+    .blink-caret {
         display: inline-block;
         width: 1px;  /* Adjust width to fit the cursor correctly */
         margin-left: 2px; /* Add some space between the text and cursor */
+        background-color: cyan;
         animation: blink-caret 0.75s step-end infinite;
-        color: cyan;
     }
 
     @keyframes blink-caret {
