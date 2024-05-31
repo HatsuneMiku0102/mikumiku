@@ -72,7 +72,7 @@ app.post('/api/videos', isAuthenticated, async (req, res) => {
         url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
         title: req.body.title,
         description: req.body.description,
-        category: req.body.category,  // Ensure the category is being captured
+        category: req.body.category,
         uploadedAt: new Date()
     };
 
@@ -94,7 +94,7 @@ app.get('/api/videos', async (req, res) => {
         const client = await pool.connect();
         const result = await client.query('SELECT * FROM videos');
         client.release();
-        res.json(result.rows); // Ensure it always returns an array
+        res.json(result.rows);
     } catch (err) {
         console.error('Error retrieving video metadata from PostgreSQL:', err);
         res.status(500).send({ error: 'Error retrieving video metadata', details: err.message });
