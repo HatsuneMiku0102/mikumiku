@@ -55,105 +55,72 @@
 
     <script src="/typing-effect.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            fetch('/api/videos')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch videos');
-                    }
-                    return response.json();
-                })
-                .then(videos => {
-                    if (!Array.isArray(videos)) {
-                        throw new Error('Invalid response format');
-                    }
-                    renderVideos(videos);
-                })
-                .catch(error => {
-                    console.error('Error loading videos:', error);
-                    alert('Error loading videos: ' + error.message);
-                });
-
-            document.querySelector('.category-bar').addEventListener('click', function(event) {
-                if (event.target.tagName === 'BUTTON') {
-                    const category = event.target.getAttribute('data-category');
-                    fetch('/api/videos')
-                        .then(response => response.json())
-                        .then(videos => {
-                            if (!Array.isArray(videos)) {
-                                throw new Error('Invalid response format');
-                            }
-                            const filteredVideos = category === 'all' ? videos : videos.filter(video => video.category === category);
-                            renderVideos(filteredVideos);
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('Failed to filter videos');
-                        });
-                }
-            });
-        });
-
-        function renderVideos(videos) {
-            const videoContainer = document.getElementById('video-container');
-            if (!videoContainer) {
-                console.error('Error: video-container element not found.');
-                return;
-            }
-
-            videoContainer.innerHTML = '';
-
-            if (videos.length === 0) {
-                videoContainer.innerHTML = '<p>No videos available</p>';
-                return;
-            }
-
-            videos.forEach(video => {
-                const videoItem = document.createElement('div');
-                videoItem.classList.add('video-item');
-                videoItem.setAttribute('data-id', video.id);
-                videoItem.innerHTML = `
-                    <iframe width="720" height="405" src="${video.url}" frameborder="0" allowfullscreen></iframe>
-                    <h3>${video.title}</h3>
-                    <p class="video-description">${video.description}</p>
-                    <p class="video-category"><strong>Category:</strong> ${video.category}</p>
-                    <button class="delete-button" data-id="${video.id}">Delete</button>
-                `;
-                videoContainer.appendChild(videoItem);
-            });
-
-            document.querySelectorAll('.delete-button').forEach(button => {
-                button.addEventListener('click', function() {
-                    const videoId = this.getAttribute('data-id');
-                    console.log('Deleting video with ID:', videoId);
-                    deleteVideo(videoId);
-                });
-            });
-        }
-
-        function deleteVideo(videoId) {
-            fetch(`/api/videos/${videoId}`, {
-                method: 'DELETE'
-            })
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('/api/videos')
             .then(response => {
                 if (!response.ok) {
-                    console.error('Failed to delete video:', response);
-                    throw new Error('Failed to delete video');
+                    throw new Error('Failed to fetch videos');
                 }
                 return response.json();
             })
-            .then(() => {
-                alert('Video deleted successfully');
-                const videoItem = document.querySelector(`.video-item[data-id="${videoId}"]`);
-                if (videoItem) {
-                    videoItem.remove();
+            .then(videos => {
+                if (!Array.isArray(videos)) {
+                    throw new Error('Invalid response format');
                 }
+                renderVideos(videos);
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to delete video');
+                console.error('Error loading videos:', error);
+                alert('Error loading videos: ' + error.message);
             });
+    
+        document.querySelector('.category-bar').addEventListener('click', function(event) {
+            if (event.target.tagName === 'BUTTON') {
+                const category = event.target.getAttribute('data-category');
+                fetch('/api/videos')
+                    .then(response => response.json())
+                    .then(videos => {
+                        if (!Array.isArray(videos)) {
+                            throw new Error('Invalid response format');
+                        }
+                        const filteredVideos = category === 'all' ? videos : videos.filter(video => video.category.toLowerCase() === category.toLowerCase());
+                        renderVideos(filteredVideos);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Failed to filter videos');
+                    });
+            }
+        });
+    });
+    
+    function renderVideos(videos) {
+        const videoContainer = document.getElementById('video-container');
+        if (!videoContainer) {
+            console.error('Error: video-container element not found.');
+            return;
         }
+    
+        videoContainer.innerHTML = '';
+    
+        if (videos.length === 0) {
+            videoContainer.innerHTML = '<p>No videos available</p>';
+            return;
+        }
+    
+        videos.forEach(video => {
+            const videoItem = document.createElement('div');
+            videoItem.classList.add('video-item');
+            videoItem.innerHTML = `
+                <iframe width="720" height="405" src="${video.url}" frameborder="0" allowfullscreen></iframe>
+                <h3>${video.title}</h3>
+                <p class="video-description">${video.description}</p>
+                <p class="video-category"><strong>Category:</strong> ${video.category}</p>
+            `;
+            videoContainer.appendChild(videoItem);
+        });
+    }
+
     </script>
 </body>
 </html>
