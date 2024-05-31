@@ -11,9 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 index++;
                 setTimeout(typeCharacter, 150);
             } else {
-                const blinkCaret = document.createElement('span');
-                blinkCaret.classList.add('blink-caret');
-                element.appendChild(blinkCaret);
+                element.classList.add('with-caret');
             }
         }
 
@@ -23,7 +21,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 const style = document.createElement('style');
 style.innerHTML = `
-    .blink-caret {
+    .with-caret::after {
+        content: '|';
         display: inline-block;
         width: 1px;
         margin-left: 2px;
