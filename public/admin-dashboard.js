@@ -17,63 +17,69 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Error loading videos: ' + error.message);
         });
 
-    document.getElementById('video-form').addEventListener('submit', function(event) {
-        event.preventDefault();
+    const videoForm = document.getElementById('video-form');
+    if (videoForm) {
+        videoForm.addEventListener('submit', function(event) {
+            event.preventDefault();
 
-        const title = document.getElementById('video-title').value;
-        const url = document.getElementById('video-url').value.replace('youtu.be', 'youtube.com/embed');
-        const description = document.getElementById('video-description').value;
-        const category = document.getElementById('video-category').value;
+            const title = document.getElementById('video-title').value;
+            const url = document.getElementById('video-url').value.replace('youtu.be', 'youtube.com/embed');
+            const description = document.getElementById('video-description').value;
+            const category = document.getElementById('video-category').value;
 
-        const video = { title, url, description, category };
+            const video = { title, url, description, category };
 
-        fetch('/api/videos', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(video)
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(data => {
-                    console.error('Failed to add video:', data);
-                    alert('Failed to add video: ' + (data.message || 'Unknown error'));
-                    throw new Error('Failed to add video');
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            alert('Video added successfully');
-            document.getElementById('video-form').reset();
+            fetch('/api/videos', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(video)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        console.error('Failed to add video:', data);
+                        alert('Failed to add video: ' + (data.message || 'Unknown error'));
+                        throw new Error('Failed to add video');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert('Video added successfully');
+                videoForm.reset();
 
-            fetch('/api/videos')
-                .then(response => response.json())
-                .then(videos => {
-                    if (!Array.isArray(videos)) {
-                        throw new Error('Invalid response format');
-                    }
-                    renderVideos(videos);
-                });
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Failed to add video');
+                fetch('/api/videos')
+                    .then(response => response.json())
+                    .then(videos => {
+                        if (!Array.isArray(videos)) {
+                            throw new Error('Invalid response format');
+                        }
+                        renderVideos(videos);
+                    });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to add video');
+            });
         });
-    });
+    }
 
-    document.getElementById('logout').addEventListener('click', function() {
-        fetch('/logout', {
-            method: 'POST'
-        })
-        .then(() => {
-            window.location.href = 'admin-login.html';
-        })
-        .catch(error => {
-            console.error('Error:', error);
+    const logoutButton = document.getElementById('logout');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', function() {
+            fetch('/logout', {
+                method: 'POST'
+            })
+            .then(() => {
+                window.location.href = 'admin-login.html';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
         });
-    });
+    }
 
     document.querySelector('.category-bar').addEventListener('click', function(event) {
         if (event.target.tagName === 'BUTTON') {
