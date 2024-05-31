@@ -150,31 +150,25 @@
             function getYoutubeID(url) {
                 const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
                 const match = url.match(regExp);
-                return (match && match[2].length === 11) ? match[2] : null;
+                return (match && match[2].length == 11) ? match[2] : null;
             }
 
-            document.querySelector('.category-bar').addEventListener('click', function(e) {
-                if (e.target.tagName === 'BUTTON') {
-                    e.preventDefault();
-                    const category = e.target.getAttribute('data-category');
-                    filterVideos(category);
+            document.querySelector('.category-bar').addEventListener('click', function(event) {
+                if (event.target.tagName === 'BUTTON') {
+                    const category = event.target.getAttribute('data-category');
+                    document.querySelectorAll('.video-item').forEach(video => {
+                        if (category === 'all' || video.getAttribute('data-category') === category) {
+                            video.style.display = 'block';
+                        } else {
+                            video.style.display = 'none';
+                        }
+                    });
                     document.querySelectorAll('.category-bar button').forEach(button => {
                         button.classList.remove('active');
                     });
-                    e.target.classList.add('active');
+                    event.target.classList.add('active');
                 }
             });
-
-            function filterVideos(category) {
-                const videos = document.querySelectorAll('.video-item');
-                videos.forEach(video => {
-                    if (category === 'all' || video.getAttribute('data-category') === category) {
-                        video.style.display = 'block';
-                    } else {
-                        video.style.display = 'none';
-                    }
-                });
-            }
         });
     </script>
 </body>
