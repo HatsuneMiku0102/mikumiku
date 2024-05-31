@@ -112,7 +112,7 @@ function renderVideos(videos) {
     videos.forEach(video => {
         const videoItem = document.createElement('div');
         videoItem.classList.add('video-item');
-        videoItem.setAttribute('data-id', video.id);  // Adding data-id attribute for the video
+        videoItem.setAttribute('data-id', video.id);
         videoItem.innerHTML = `
             <iframe width="720" height="405" src="${video.url}" frameborder="0" allowfullscreen></iframe>
             <h3>${video.title}</h3>
@@ -126,7 +126,7 @@ function renderVideos(videos) {
     document.querySelectorAll('.delete-button').forEach(button => {
         button.addEventListener('click', function() {
             const videoId = this.getAttribute('data-id');
-            console.log('Deleting video with ID:', videoId); // Debugging log
+            console.log('Deleting video with ID:', videoId);
             deleteVideo(videoId);
         });
     });
@@ -138,7 +138,7 @@ function deleteVideo(videoId) {
     })
     .then(response => {
         if (!response.ok) {
-            console.error('Failed to delete video:', response); // Debugging log
+            console.error('Failed to delete video:', response);
             throw new Error('Failed to delete video');
         }
         return response.json();
@@ -147,7 +147,7 @@ function deleteVideo(videoId) {
         alert('Video deleted successfully');
         const videoItem = document.querySelector(`.video-item[data-id="${videoId}"]`);
         if (videoItem) {
-            videoItem.remove();  // Remove the video item from the DOM
+            videoItem.remove();
         }
     })
     .catch(error => {
