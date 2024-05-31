@@ -11,7 +11,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 index++;
                 setTimeout(typeCharacter, 150);
             } else {
-                element.innerHTML = element.innerHTML + '<span class="blink-caret"></span>';
+                const blinkCaret = document.createElement('span');
+                blinkCaret.classList.add('blink-caret');
+                element.appendChild(blinkCaret);
             }
         }
 
