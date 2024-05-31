@@ -115,7 +115,9 @@
                         if (entry.isIntersecting) {
                             const videoItem = entry.target;
                             const videoUrl = videoItem.getAttribute('data-video-url');
-                            loadVideo(videoItem, videoUrl);
+                            videoItem.querySelector('.play-button').addEventListener('click', () => {
+                                loadVideo(videoItem, videoUrl);
+                            });
                             observer.unobserve(videoItem);
                         }
                     });
@@ -123,14 +125,6 @@
 
                 document.querySelectorAll('.video-item').forEach(videoItem => {
                     observer.observe(videoItem);
-                });
-
-                document.querySelectorAll('.play-button').forEach(button => {
-                    button.addEventListener('click', () => {
-                        const videoItem = button.closest('.video-item');
-                        const videoUrl = videoItem.getAttribute('data-video-url');
-                        loadVideo(videoItem, videoUrl);
-                    });
                 });
             }
 
@@ -144,6 +138,21 @@
                 iframe.allowFullscreen = true;
                 container.innerHTML = "";
                 container.appendChild(iframe);
+
+                // Remove iframe when it goes out of the viewport to save memory
+                const observer = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (!entry.isIntersecting) {
+                            container.innerHTML = `
+                                <img src="https://img.youtube.com/vi/${getYoutubeID(videoUrl)}/0.jpg" alt="Video Thumbnail" class="video-thumbnail lazy" loading="lazy">
+                                <button class="play-button">Play</button>
+                            `;
+                            observer.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: 0 });
+
+                observer.observe(container);
             }
 
             function getYoutubeID(url) {
