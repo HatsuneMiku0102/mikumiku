@@ -29,19 +29,85 @@
             margin: 0 auto;
             padding: 20px;
         }
-        .hero {
-            background: rgba(0, 0, 0, 0.7);
+        .about {
+            background: rgba(0, 0, 0, 0.7); /* Transparent black background */
             color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             text-align: center;
-            padding: 100px 20px;
-            margin-top: 60px;
+            width: 80%;
+            max-width: 800px;
+            z-index: 10;
+            overflow: hidden;
         }
-        .hero h1 {
-            font-size: 3em;
-            margin: 0 0 20px;
+        .about h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: white;
         }
-        .hero p {
+        .about p {
             font-size: 1.2em;
+            line-height: 1.6;
+            color: white;
+        }
+        .about a {
+            background: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+            font-weight: bold;
+            animation: rainbow 5s infinite;
+        }
+        .about a:hover {
+            text-decoration: underline;
+        }
+        @keyframes rainbow {
+            0%, 100% {
+                background-position: 0 0;
+            }
+            50% {
+                background-position: 100% 0;
+            }
+        }
+        .discord-widget {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .discord-widget iframe {
+            width: 100%;
+            max-width: 500px;
+            height: 600px;
+            border: none;
+        }
+        .community-section {
+            margin-top: 30px;
+            font-size: 1.2em;
+            text-align: center;
+            color: white;
+        }
+        .arrow-down {
+            display: block;
+            margin: 10px auto;
+            width: 0; 
+            height: 0; 
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 20px solid white;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
         }
         .videos {
             padding: 20px;
@@ -107,27 +173,20 @@
         </div>
     </div>
 
-    <div class="hero">
-        <div class="container">
-            <h1>Welcome to MikuMiku</h1>
-            <p>Your hub for Vocaloid tracks and more</p>
-        </div>
-    </div>
-
-    <div class="banner" style="position: relative;">
+    <div class="banner" style="position: relative; margin-top: 60px;">
         <img src="/banner.webp" alt="Banner Image" class="banner-img">
         <div class="about">
             <div class="container">
                 <h2>About Me</h2>
                 <p>Hey there, I'm Hystoriya, a 24-year-old developer and tetragametic chimera. If you are looking for 24/7 Discord bot hosting or Minecraft servers, then you should totally check out <a href="https://pylexnodes.net/" target="_blank">Pylexnodes</a>.</p>
-     
+                <!-- Community Section -->
                 <div class="community-section">
                     If you're looking for a Destiny 2 clan or a chill community to hangout in, join us below.
                     <div class="arrow-down"></div>
                 </div>
-    
+                <!-- Discord Embed Widget -->
                 <div class="discord-widget">
-                    <iframe src="https://discord.com/widget?id=998323411304591481&theme=dark" allowtransparency="true" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
+                    <iframe src="https://discord.com/widget?id=YOUR_DISCORD_SERVER_ID&theme=dark" allowtransparency="true" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
                 </div>
             </div>
         </div>
@@ -147,29 +206,7 @@
     <script src="/typing-effect.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-
-            const fancyTitleElement = document.getElementById('fancy-title');
-            const fancyText = 'Vocaloid Tracks <3';
-            const fancyTypingSpeed = 300;
-
-            function typeFancyWord(element, text, speed) {
-                element.innerHTML = '';
-                const words = text.split(' ');
-                let wordIndex = 0;
-
-                function type() {
-                    if (wordIndex < words.length) {
-                        element.innerHTML += (wordIndex > 0 ? ' ' : '') + words[wordIndex];
-                        wordIndex++;
-                        setTimeout(type, speed);
-                    }
-                }
-                type();
-            }
-
-            typeFancyWord(fancyTitleElement, fancyText, fancyTypingSpeed);
-
-
+            // Fetch videos and lazy load them
             fetch('/api/videos')
                 .then(response => {
                     if (!response.ok) {
@@ -185,7 +222,7 @@
                             videoItem.classList.add('video-item');
                             videoItem.setAttribute('data-video-url', video.url);
 
-
+                            // Check if video.url is correct
                             console.log(`Video URL: ${video.url}`);
 
                             videoItem.innerHTML = `
@@ -244,7 +281,7 @@
                 container.innerHTML = "";
                 container.appendChild(iframe);
 
-
+                // Remove iframe when it goes out of the viewport to save memory
                 const observer = new IntersectionObserver((entries, observer) => {
                     entries.forEach(entry => {
                         if (!entry.isIntersecting) {
@@ -268,24 +305,6 @@
                 const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
                 const match = url.match(regExp);
                 return (match && match[2].length === 11) ? match[2] : null;
-            }
-
-            document.querySelector('.fancy-title').addEventListener('mouseover', function () {
-                for (let i = 0; i < 50; i++) {
-                    createBlossom();
-                }
-            });
-
-            function createBlossom() {
-                const blossom = document.createElement('div');
-                blossom.classList.add('blossom');
-                blossom.style.left = `${Math.random() * 100}%`;
-                blossom.style.animationDuration = `${Math.random() * 5 + 3}s`;
-                document.body.appendChild(blossom);
-
-                setTimeout(() => {
-                    blossom.remove();
-                }, 8000);
             }
         });
     </script>
