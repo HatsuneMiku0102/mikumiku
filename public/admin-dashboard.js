@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error:', error);
+            alert('Error loading videos: ' + error.message);
             window.location.href = 'admin-login.html';
         });
 
