@@ -11,9 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 index++;
                 setTimeout(typeCharacter, 150);
             } else {
-                const blinkCaret = document.createElement('span');
-                blinkCaret.classList.add('blink-caret');
-                element.appendChild(blinkCaret);
+                element.classList.add('with-caret');
             }
         }
 
@@ -23,16 +21,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
 const style = document.createElement('style');
 style.innerHTML = `
-    .blink-caret {
-        border-right: 2px solid cyan;
+    .with-caret::after {
+        content: '|';
+        display: inline-block;
+        width: 1px;  /* Adjust width to fit the cursor correctly */
+        margin-left: 2px; /* Add some space between the text and cursor */
         animation: blink-caret 0.75s step-end infinite;
+        color: cyan;
     }
+
     @keyframes blink-caret {
         0%, 100% {
-            border-color: transparent;
+            opacity: 1;
         }
         50% {
-            border-color: cyan;
+            opacity: 0;
         }
     }
 `;
