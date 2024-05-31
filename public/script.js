@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Typing effect for the fancy title
+
     const fancyTitleElement = document.getElementById('fancy-title');
     const fancyText = 'Vocaloid Tracks <3';
     const fancyTypingSpeed = 300;
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     typeFancyWord(fancyTitleElement, fancyText, fancyTypingSpeed);
 
-    // Fetch videos
+
     fetch('/videos.json')
         .then(response => {
             if (!response.ok) {
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('video-container').innerHTML = '<p>Error loading videos.</p>';
         });
 
-    // Lazy load videos on intersection
+
     const loadVideo = (container) => {
         const videoUrl = container.getAttribute("data-video-url");
         const iframe = document.createElement("iframe");
