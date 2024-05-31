@@ -24,15 +24,18 @@ document.addEventListener('DOMContentLoaded', function () {
 const style = document.createElement('style');
 style.innerHTML = `
     .blink-caret {
-        border-right: 0.15em solid cyan;
+        display: inline-block;
+        width: 2px;
+        height: 1em;
+        background-color: cyan;
         animation: blink-caret 0.75s step-end infinite;
     }
     @keyframes blink-caret {
-        from, to {
-            border-color: transparent;
+        0%, 100% {
+            opacity: 1;
         }
         50% {
-            border-color: cyan;
+            opacity: 0;
         }
     }
 `;
