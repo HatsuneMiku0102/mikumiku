@@ -25,12 +25,11 @@ const style = document.createElement('style');
 style.innerHTML = `
     .blink-caret {
         display: inline-block;
-        width: 1px;  /* Adjust width to fit the cursor correctly */
-        margin-left: 2px; /* Add some space between the text and cursor */
+        width: 1px;
+        margin-left: 2px;
         background-color: cyan;
         animation: blink-caret 0.75s step-end infinite;
     }
-
     @keyframes blink-caret {
         0%, 100% {
             opacity: 1;
