@@ -111,35 +111,37 @@
                 transform: translateY(0);
             }
             50% {
-                transform: translateY(-10px;
+                transform: translateY(-10px);
             }
         }
         .videos-section {
-            display: flex;
             margin-top: 20px;
-            flex-direction: column;
-            align-items: center;
         }
-        .videos-section .category-bar {
+        .category-bar {
             display: flex;
             justify-content: center;
             margin-bottom: 20px;
-            padding: 10px 20px;
+            padding: 10px 0;
             background: rgba(0, 0, 0, 0.5);
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
-        .videos-section .category-bar a {
-            margin: 0 15px;
+        .category-bar button {
+            background: transparent;
+            border: none;
             color: white;
-            text-decoration: none;
-            transition: color 0.3s;
+            padding: 10px 20px;
+            margin: 0 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+            border-radius: 5px;
         }
-        .videos-section .category-bar a:hover {
-            color: #00bfff;
+        .category-bar button:hover, .category-bar button.active {
+            background: #00bfff;
+            transform: scale(1.1);
         }
         .videos {
-            width: 100%;
             padding: 20px;
         }
         .video-grid {
@@ -149,8 +151,7 @@
             justify-content: center;
         }
         .video-item {
-            background: transparent;
-            border: none;
+            background: rgba(0, 0, 0, 0.7);
             border-radius: 8px;
             overflow: hidden;
             transition: transform 0.3s, box-shadow 0.3s;
@@ -243,11 +244,11 @@
 
     <div class="videos-section container">
         <div class="category-bar">
-            <a href="#" data-category="all">All</a>
-            <a href="#" data-category="vocaloid">Vocaloid</a>
-            <a href="#" data-category="trance">Trance</a>
-            <a href="#" data-category="rock">Rock</a>
-            <a href="#" data-category="other">Other Genres</a>
+            <button data-category="all">All</button>
+            <button data-category="vocaloid">Vocaloid</button>
+            <button data-category="trance">Trance</button>
+            <button data-category="rock">Rock</button>
+            <button data-category="other">Other Genres</button>
         </div>
         <div class="videos">
             <h2>Videos</h2>
@@ -329,8 +330,8 @@
 
             function loadVideo(container, videoUrl) {
                 const iframe = document.createElement("iframe");
-                iframe.width = "720";
-                iframe.height = "405";
+                iframe.width = "100%";
+                iframe.height = "315";
                 iframe.src = videoUrl;
                 iframe.frameBorder = "0";
                 iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
@@ -366,10 +367,14 @@
 
             // Category filter
             document.querySelector('.category-bar').addEventListener('click', function(e) {
-                if (e.target.tagName === 'A') {
+                if (e.target.tagName === 'BUTTON') {
                     e.preventDefault();
                     const category = e.target.getAttribute('data-category');
                     filterVideos(category);
+                    document.querySelectorAll('.category-bar button').forEach(button => {
+                        button.classList.remove('active');
+                    });
+                    e.target.classList.add('active');
                 }
             });
 
