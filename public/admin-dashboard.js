@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-
     fetch('/api/videos')
         .then(response => {
             if (!response.ok) {
@@ -15,15 +14,15 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.href = 'admin-login.html';
         });
 
-
     document.getElementById('video-form').addEventListener('submit', function(event) {
         event.preventDefault();
 
         const title = document.getElementById('video-title').value;
         const url = document.getElementById('video-url').value.replace('youtu.be', 'youtube.com/embed');
         const description = document.getElementById('video-description').value;
+        const category = document.getElementById('video-category').value;
 
-        const video = { title, url, description };
+        const video = { title, url, description, category };
 
         fetch('/api/videos', {
             method: 'POST',
@@ -58,7 +57,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-
     document.getElementById('logout').addEventListener('click', function() {
         fetch('/logout', {
             method: 'POST'
@@ -85,9 +83,10 @@ function renderVideos(videos) {
         const videoItem = document.createElement('div');
         videoItem.classList.add('video-item');
         videoItem.innerHTML = `
-            <iframe width="560" height="315" src="${video.url}" frameborder="0" allowfullscreen></iframe>
+            <iframe width="720" height="405" src="${video.url}" frameborder="0" allowfullscreen></iframe>
             <h3>${video.title}</h3>
             <p class="video-description">${video.description}</p>
+            <p class="video-category"><strong>Category:</strong> ${video.category}</p>
         `;
         videoContainer.appendChild(videoItem);
     });
