@@ -93,15 +93,13 @@ app.get('/api/videos', async (req, res) => {
         const client = await pool.connect();
         const result = await client.query('SELECT * FROM videos');
         client.release();
-        if (result.rows.length === 0) {
-            return res.status(200).json({ message: 'No videos found', videos: [] });
-        }
-        res.json(result.rows);
+        res.json(result.rows); // Ensure it always returns an array
     } catch (err) {
         console.error('Error retrieving video metadata from PostgreSQL:', err);
         res.status(500).send({ error: 'Error retrieving video metadata', details: err.message });
     }
 });
+
 
 
 app.delete('/api/videos/:id', isAuthenticated, async (req, res) => {
