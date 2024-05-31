@@ -72,7 +72,7 @@ app.post('/api/videos', isAuthenticated, async (req, res) => {
         url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
         title: req.body.title,
         description: req.body.description,
-        category: req.body.category,
+        category: req.body.category,  // Ensure the category is being captured
         uploadedAt: new Date()
     };
 
