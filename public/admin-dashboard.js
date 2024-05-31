@@ -74,6 +74,25 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error:', error);
         });
     });
+
+    document.querySelector('.category-bar').addEventListener('click', function(event) {
+        if (event.target.tagName === 'BUTTON') {
+            const category = event.target.getAttribute('data-category');
+            fetch('/api/videos')
+                .then(response => response.json())
+                .then(videos => {
+                    if (!Array.isArray(videos)) {
+                        throw new Error('Invalid response format');
+                    }
+                    const filteredVideos = category === 'all' ? videos : videos.filter(video => video.category === category);
+                    renderVideos(filteredVideos);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to filter videos');
+                });
+        }
+    });
 });
 
 function renderVideos(videos) {
@@ -101,38 +120,4 @@ function renderVideos(videos) {
             <p class="video-category"><strong>Category:</strong> ${video.category}</p>
             <button class="delete-button" data-id="${video.id}">Delete</button>
         `;
-        videoContainer.appendChild(videoItem);
-    });
-
-    document.querySelectorAll('.delete-button').forEach(button => {
-        button.addEventListener('click', function() {
-            const videoId = this.getAttribute('data-id');
-            console.log('Deleting video with ID:', videoId); // Debugging log
-            deleteVideo(videoId);
-        });
-    });
-}
-
-function deleteVideo(videoId) {
-    fetch(`/api/videos/${videoId}`, {
-        method: 'DELETE'
-    })
-    .then(response => {
-        if (!response.ok) {
-            console.error('Failed to delete video:', response); // Debugging log
-            throw new Error('Failed to delete video');
-        }
-        return response.json();
-    })
-    .then(() => {
-        alert('Video deleted successfully');
-        const videoItem = document.querySelector(`.video-item[data-id="${videoId}"]`);
-        if (videoItem) {
-            videoItem.remove();  // Remove the video item from the DOM
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to delete video');
-    });
-}
+        videoContainer.appendChild(video
