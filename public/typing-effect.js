@@ -1,19 +1,18 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const textElement = document.getElementById('typing-text');
-    const text = 'MikuMiku';
-    const typingSpeed = 200;
+    const typingElements = document.querySelectorAll('.site-title, .fancy-title h3');
+    typingElements.forEach(element => {
+        const text = element.textContent;
+        element.textContent = '';
+        let index = 0;
 
-    let index = 0;
-    
-    textElement.innerHTML = '';
-
-    function typeCharacter() {
-        if (index < text.length) {
-            textElement.innerHTML += text[index];
-            index++;
-            setTimeout(typeCharacter, typingSpeed);
+        function typeCharacter() {
+            if (index < text.length) {
+                element.textContent += text[index];
+                index++;
+                setTimeout(typeCharacter, 100);
+            }
         }
-    }
 
-    typeCharacter();
+        typeCharacter();
+    });
 });
