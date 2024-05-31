@@ -6,11 +6,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             return response.json();
         })
-        .then(videos => {
-            renderVideos(videos);
+        .then(data => {
+            if (data.videos && data.videos.length === 0) {
+                console.log('No videos found');
+                renderVideos([]);  // Call renderVideos with an empty array
+            } else {
+                renderVideos(data.videos || data);  // Handle both cases where data.videos or data is the array
+            }
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('Error loading videos:', error);
             alert('Error loading videos: ' + error.message);
             window.location.href = 'admin-login.html';
         });
@@ -79,6 +84,11 @@ function renderVideos(videos) {
     }
 
     videoContainer.innerHTML = '';
+
+    if (videos.length === 0) {
+        videoContainer.innerHTML = '<p>No videos available</p>';
+        return;
+    }
 
     videos.forEach(video => {
         const videoItem = document.createElement('div');
