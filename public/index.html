@@ -5,6 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MikuMiku | Home</title>
     <link rel="stylesheet" href="/styles.css">
+    <style>
+        .about {
+            background: linear-gradient(to right, #ff7e5f, #feb47b);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            text-align: center;
+        }
+        .about h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        .about p {
+            font-size: 1.2em;
+            line-height: 1.6;
+        }
+        .about a {
+            color: #ffeb3b;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .about a:hover {
+            text-decoration: underline;
+        }
+        .discord-widget {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .discord-widget iframe {
+            width: 100%;
+            max-width: 500px;
+            height: 600px;
+            border: none;
+        }
+    </style>
 </head>
 <body>
 
@@ -22,7 +60,9 @@
                 <h2>About Me</h2>
                 <p>Hey there, I'm Hystoriya, a 24-year-old developer and tetragametic chimera. If you are looking for 24/7 Discord bot hosting or Minecraft servers, then you should totally check out <a href="https://pylexnodes.net/" target="_blank">Pylexnodes</a>.</p>
 
-                <iframe src="https://discord.com/widget?id=998323411304591481&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
+                <div class="discord-widget">
+                    <iframe src="https://discord.com/widget?id=998323411304591481&theme=dark" allowtransparency="true" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
+                </div>
             </div>
         </div>
     </div>
@@ -46,7 +86,7 @@
     <script src="/typing-effect.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-
+            // Typing effect for the fancy title
             const fancyTitleElement = document.getElementById('fancy-title');
             const fancyText = 'Vocaloid Tracks <3';
             const fancyTypingSpeed = 300;
@@ -68,7 +108,7 @@
 
             typeFancyWord(fancyTitleElement, fancyText, fancyTypingSpeed);
 
-
+            // Fetch videos and lazy load them
             fetch('/api/videos')
                 .then(response => {
                     if (!response.ok) {
@@ -84,7 +124,7 @@
                             videoItem.classList.add('video-item');
                             videoItem.setAttribute('data-video-url', video.url);
 
-     
+                            // Check if video.url is correct
                             console.log(`Video URL: ${video.url}`);
 
                             videoItem.innerHTML = `
@@ -141,7 +181,7 @@
                 container.innerHTML = "";
                 container.appendChild(iframe);
 
-
+                // Remove iframe when it goes out of the viewport to save memory
                 const observer = new IntersectionObserver((entries, observer) => {
                     entries.forEach(entry => {
                         if (!entry.isIntersecting) {
