@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 const blinkCaret = document.createElement('span');
                 blinkCaret.classList.add('blink-caret');
+                blinkCaret.textContent = '\u200B'; 
                 element.appendChild(blinkCaret);
             }
         }
