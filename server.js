@@ -17,7 +17,7 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false } 
+    cookie: { secure: false }
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -84,7 +84,7 @@ app.post('/api/videos', isAuthenticated, async (req, res) => {
         res.status(201).send({ message: 'Video added', video: result.rows[0] });
     } catch (err) {
         console.error('Error saving video metadata to PostgreSQL:', err);
-        res.status(500).send({ error: 'Error saving video metadata' });
+        res.status(500).send({ error: 'Error saving video metadata', details: err.message });
     }
 });
 
@@ -96,7 +96,27 @@ app.get('/api/videos', async (req, res) => {
         res.json(result.rows);
     } catch (err) {
         console.error('Error retrieving video metadata from PostgreSQL:', err);
-        res.status(500).send({ error: 'Error retrieving video metadata' });
+        res.status(500).send({ error: 'Error retrieving video metadata', details: err.message });
+    }
+});
+
+app.delete('/api/videos/:id', isAuthenticated, async (req, res) => {
+    const videoId = req.params.id;
+    try {
+        const client = await pool.connect();
+        const queryText = 'DELETE FROM videos WHERE id = $1 RETURNING *';
+        const values = [videoId];
+        const result = await client.query(queryText, values);
+        client.release();
+
+        if (result.rowCount === 0) {
+            return res.status(404).send({ message: 'Video not found' });
+        }
+
+        res.status(200).send({ message: 'Video deleted', video: result.rows[0] });
+    } catch (err) {
+        console.error('Error deleting video from PostgreSQL:', err);
+        res.status(500).send({ error: 'Error deleting video', details: err.message });
     }
 });
 
