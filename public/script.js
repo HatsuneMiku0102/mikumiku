@@ -1,5 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
-
+document.addEventListener('DOMContentLoaded', function () {
     const fancyTitleElement = document.getElementById('fancy-title');
     const fancyText = 'Vocaloid Tracks <3';
     const fancyTypingSpeed = 300;
@@ -20,7 +19,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     typeFancyWord(fancyTitleElement, fancyText, fancyTypingSpeed);
-
 
     fetch('/videos.json')
         .then(response => {
@@ -44,6 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                     videoContainer.appendChild(videoItem);
                 });
+                initializeVideoLoading();
             } else {
                 videoContainer.innerHTML = '<p>No videos available</p>';
             }
@@ -53,52 +52,53 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('video-container').innerHTML = '<p>Error loading videos.</p>';
         });
 
+    function initializeVideoLoading() {
+        const loadVideo = (container) => {
+            const videoUrl = container.getAttribute("data-video-url");
+            const iframe = document.createElement("iframe");
+            iframe.width = "560";
+            iframe.height = "315";
+            iframe.src = videoUrl;
+            iframe.frameBorder = "0";
+            iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+            iframe.allowFullscreen = true;
+            container.innerHTML = "";
+            container.appendChild(iframe);
+        };
 
-    const loadVideo = (container) => {
-        const videoUrl = container.getAttribute("data-video-url");
-        const iframe = document.createElement("iframe");
-        iframe.width = "560";
-        iframe.height = "315";
-        iframe.src = videoUrl;
-        iframe.frameBorder = "0";
-        iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
-        iframe.allowFullscreen = true;
-        container.innerHTML = "";
-        container.appendChild(iframe);
-    };
+        const onIntersection = (entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    loadVideo(entry.target);
+                    observer.unobserve(entry.target);
+                }
+            });
+        };
 
-    const onIntersection = (entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                loadVideo(entry.target);
-                observer.unobserve(entry.target);
-            }
+        const observer = new IntersectionObserver(onIntersection, {
+            root: null,
+            rootMargin: "0px",
+            threshold: 0.1
         });
-    };
 
-    const observer = new IntersectionObserver(onIntersection, {
-        root: null,
-        rootMargin: "0px",
-        threshold: 0.1
-    });
-
-    document.querySelectorAll(".video-item").forEach(container => {
-        observer.observe(container);
-    });
-
-    document.querySelectorAll(".video-thumbnail").forEach(thumbnail => {
-        thumbnail.addEventListener("click", function() {
-            const container = thumbnail.parentElement;
-            loadVideo(container);
+        document.querySelectorAll(".video-item").forEach(container => {
+            observer.observe(container);
         });
-    });
 
-    document.querySelectorAll(".play-button").forEach(button => {
-        button.addEventListener("click", function() {
-            const container = button.parentElement;
-            loadVideo(container);
+        document.querySelectorAll(".video-thumbnail").forEach(thumbnail => {
+            thumbnail.addEventListener("click", function () {
+                const container = thumbnail.parentElement;
+                loadVideo(container);
+            });
         });
-    });
+
+        document.querySelectorAll(".play-button").forEach(button => {
+            button.addEventListener("click", function () {
+                const container = button.parentElement;
+                loadVideo(container);
+            });
+        });
+    }
 
     document.querySelector('.fancy-title').addEventListener('mouseover', function () {
         for (let i = 0; i < 50; i++) {
