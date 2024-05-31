@@ -111,7 +111,7 @@
                 transform: translateY(0);
             }
             50% {
-                transform: translateY(-10px);
+                transform: translateY(-10px;
             }
         }
         .videos-section {
@@ -140,6 +140,7 @@
             color: white;
             text-decoration: none;
             transition: color 0.3s;
+            cursor: pointer;
         }
         .videos-section .sidebar ul li a:hover {
             color: #00bfff;
@@ -147,6 +148,8 @@
         .videos {
             width: 80%;
             padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
         }
         .video-grid {
             display: flex;
@@ -154,12 +157,12 @@
             gap: 20px;
         }
         .video-item {
-            background: white;
+            background: transparent;
             border: 1px solid #ddd;
             border-radius: 8px;
             overflow: hidden;
             transition: transform 0.3s, box-shadow 0.3s;
-            width: calc(33.333% - 20px);
+            width: calc(50% - 20px);
             box-sizing: border-box;
             position: relative;
         }
@@ -245,12 +248,12 @@
     <div class="videos-section container">
         <div class="sidebar">
             <h2>Video Categories</h2>
-            <ul>
-                <li><a href="#">All</a></li>
-                <li><a href="#">Vocaloid</a></li>
-                <li><a href="#">Anime</a></li>
-                <li><a href="#">Gaming</a></li>
-                <li><a href="#">Music</a></li>
+            <ul id="category-list">
+                <li><a href="#" data-category="all">All</a></li>
+                <li><a href="#" data-category="vocaloid">Vocaloid</a></li>
+                <li><a href="#" data-category="anime">Anime</a></li>
+                <li><a href="#" data-category="gaming">Gaming</a></li>
+                <li><a href="#" data-category="music">Music</a></li>
             </ul>
         </div>
         <div class="videos">
@@ -284,9 +287,7 @@
                             const videoItem = document.createElement('div');
                             videoItem.classList.add('video-item');
                             videoItem.setAttribute('data-video-url', video.url);
-
-                            // Check if video.url is correct
-                            console.log(`Video URL: ${video.url}`);
+                            videoItem.setAttribute('data-category', video.category);
 
                             videoItem.innerHTML = `
                                 <img src="https://img.youtube.com/vi/${getYoutubeID(video.url)}/0.jpg" alt="${video.title} Thumbnail" class="video-thumbnail">
@@ -335,8 +336,8 @@
 
             function loadVideo(container, videoUrl) {
                 const iframe = document.createElement("iframe");
-                iframe.width = "560";
-                iframe.height = "315";
+                iframe.width = "720";
+                iframe.height = "405";
                 iframe.src = videoUrl;
                 iframe.frameBorder = "0";
                 iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
@@ -368,6 +369,26 @@
                 const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
                 const match = url.match(regExp);
                 return (match && match[2].length === 11) ? match[2] : null;
+            }
+
+            // Category filter
+            document.getElementById('category-list').addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    e.preventDefault();
+                    const category = e.target.getAttribute('data-category');
+                    filterVideos(category);
+                }
+            });
+
+            function filterVideos(category) {
+                const videos = document.querySelectorAll('.video-item');
+                videos.forEach(video => {
+                    if (category === 'all' || video.getAttribute('data-category') === category) {
+                        video.style.display = 'block';
+                    } else {
+                        video.style.display = 'none';
+                    }
+                });
             }
         });
     </script>
