@@ -18,24 +18,3 @@ document.addEventListener('DOMContentLoaded', function () {
         typeCharacter();
     });
 });
-
-const style = document.createElement('style');
-style.innerHTML = `
-    .with-caret::after {
-        content: '|';
-        display: inline-block;
-        width: 1px;
-        margin-left: 2px;
-        background-color: cyan;
-        animation: blink-caret 0.75s step-end infinite;
-    }
-    @keyframes blink-caret {
-        0%, 100% {
-            opacity: 1;
-        }
-        50% {
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
