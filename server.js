@@ -1,10 +1,11 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const session = require('express-session');
 const path = require('path');
 const dotenv = require('dotenv');
 const { Pool } = require('pg');
-const jwt = require('jsonwebtoken');
 
 dotenv.config();
 
@@ -12,6 +13,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
+
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false }
+}));
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 const pool = new Pool({
@@ -28,42 +37,51 @@ const users = [
     }
 ];
 
-const generateAccessToken = (username) => {
-    return jwt.sign({ username }, process.env.TOKEN_SECRET, { expiresIn: '1h' });
-};
-
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
     if (!user) {
-        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
+        return res.status(400).json({ auth: false, message: 'Invalid username or password' });
     }
 
     const passwordIsValid = bcrypt.compareSync(password, user.password);
     if (!passwordIsValid) {
-        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
+        return res.status(400).json({ auth: false, message: 'Invalid username or password' });
     }
 
-    const token = generateAccessToken(user.username);
-    res.status(200).send({ auth: true, token });
+    const token = jwt.sign({ id: user.username }, process.env.SESSION_SECRET, { expiresIn: 86400 });
+    res.status(200).json({ auth: true, token: token });
 });
 
-const authenticateToken = (req, res, next) => {
+function verifyToken(req, res, next) {
     const token = req.headers['authorization'];
-    if (!token) return res.status(401).send({ auth: false, message: 'No token provided' });
+    if (!token) {
+        return res.status(401).send({ auth: false, message: 'No token provided.' });
+    }
 
-    jwt.verify(token, process.env.TOKEN_SECRET, (err, user) => {
-        if (err) return res.status(403).send({ auth: false, message: 'Failed to authenticate token' });
-        req.user = user;
+    jwt.verify(token, process.env.SESSION_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(500).send({ auth: false, message: 'Failed to authenticate token.' });
+        }
+        req.userId = decoded.id;
         next();
     });
-};
+}
 
-app.get('/admin-dashboard.html', authenticateToken, (req, res) => {
+app.post('/logout', verifyToken, (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            return res.status(500).send({ message: 'Failed to log out' });
+        }
+        res.redirect('/admin-login.html');
+    });
+});
+
+app.get('/admin-dashboard.html', verifyToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
-app.post('/api/videos', authenticateToken, async (req, res) => {
+app.post('/api/videos', verifyToken, async (req, res) => {
     const videoMetadata = {
         url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
         title: req.body.title,
@@ -97,8 +115,8 @@ app.get('/api/videos', async (req, res) => {
     }
 });
 
-app.post('/logout', authenticateToken, (req, res) => {
-    res.send({ message: 'Logged out' });
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
