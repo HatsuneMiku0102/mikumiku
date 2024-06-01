@@ -11,11 +11,13 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const SESSION_SECRET = process.env.SESSION_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key';
 
 app.use(bodyParser.json());
 
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
     cookie: { secure: false } 
@@ -38,37 +40,37 @@ const users = [
     }
 ];
 
-app.post('/login', async (req, res) => {
+app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
     if (!user) {
-        return res.status(400).json({ auth: false, message: 'Invalid username or password' });
+        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
     }
 
     const passwordIsValid = bcrypt.compareSync(password, user.password);
     if (!passwordIsValid) {
-        return res.status(400).json({ auth: false, message: 'Invalid username or password' });
+        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
     }
 
-    const token = jwt.sign({ id: user.username }, process.env.SESSION_SECRET, {
-        expiresIn: 86400 // expires in 24 hours
+    const token = jwt.sign({ username: user.username }, JWT_SECRET, {
+        expiresIn: 86400 // 24 hours
     });
 
     req.session.token = token;
-    res.status(200).json({ auth: true, token: token });
+    res.status(200).send({ auth: true, token: token });
 });
 
 function isAuthenticated(req, res, next) {
     const token = req.session.token;
     if (!token) {
-        return res.status(401).json({ auth: false, message: 'No token provided.' });
+        return res.status(401).redirect('/admin-login.html');
     }
 
-    jwt.verify(token, process.env.SESSION_SECRET, (err, decoded) => {
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
         if (err) {
-            return res.status(500).json({ auth: false, message: 'Failed to authenticate token.' });
+            return res.status(401).redirect('/admin-login.html');
         }
-        req.userId = decoded.id;
+        req.user = decoded;
         next();
     });
 }
@@ -92,10 +94,10 @@ app.post('/api/videos', isAuthenticated, async (req, res) => {
         const values = [videoMetadata.url, videoMetadata.title, videoMetadata.description, videoMetadata.category, videoMetadata.uploadedAt];
         const result = await client.query(queryText, values);
         client.release();
-        res.status(201).json({ message: 'Video added', video: result.rows[0] });
+        res.status(201).send({ message: 'Video added', video: result.rows[0] });
     } catch (err) {
         console.error('Error saving video metadata to PostgreSQL:', err);
-        res.status(500).json({ error: 'Error saving video metadata' });
+        res.status(500).send({ error: 'Error saving video metadata' });
     }
 });
 
@@ -107,7 +109,7 @@ app.get('/api/videos', async (req, res) => {
         res.json(result.rows);
     } catch (err) {
         console.error('Error retrieving video metadata from PostgreSQL:', err);
-        res.status(500).json({ error: 'Error retrieving video metadata' });
+        res.status(500).send({ error: 'Error retrieving video metadata' });
     }
 });
 
