@@ -31,6 +31,13 @@ const pool = new Pool({
     }
 });
 
+const users = [
+    {
+        username: process.env.ADMIN_USERNAME,
+        password: bcrypt.hashSync(process.env.ADMIN_PASSWORD, 8)
+    }
+];
+
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
