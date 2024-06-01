@@ -3,7 +3,9 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => {
             if (!response.ok) {
                 if (response.status === 401) {
-                    window.location.href = '/admin-login.html'; 
+                    return response.json().then(data => {
+                        window.location.href = data.redirect; 
+                    });
                 }
                 throw new Error('Failed to fetch videos');
             }
@@ -38,7 +40,9 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => {
                 if (!response.ok) {
                     if (response.status === 401) {
-                        window.location.href = '/admin-login.html';
+                        return response.json().then(data => {
+                            window.location.href = data.redirect;
+                        });
                     }
                     return response.json().then(data => {
                         console.error('Failed to add video:', data);
