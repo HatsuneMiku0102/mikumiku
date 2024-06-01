@@ -11,7 +11,7 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const SESSION_SECRET = process.env.SESSION_SECRET || 'your-secret-key';
+const SESSION_SECRET = process.env.SESSION_SECRET || 'your-session-secret-key';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key';
 
 app.use(bodyParser.json());
@@ -20,7 +20,7 @@ app.use(session({
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false } 
+    cookie: { secure: false }
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
