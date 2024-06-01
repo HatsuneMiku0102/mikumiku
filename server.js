@@ -56,12 +56,14 @@ app.post('/login', (req, res) => {
 });
 
 function isAuthenticated(req, res, next) {
+    console.log('Session:', req.session); // Add this line for debugging
     if (req.session.user) {
         next();
     } else {
         res.status(401).send('Unauthorized: No session available');
     }
 }
+
 
 app.get('/admin-dashboard.html', isAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
