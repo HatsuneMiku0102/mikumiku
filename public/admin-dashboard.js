@@ -2,19 +2,18 @@ document.addEventListener('DOMContentLoaded', function() {
     fetch('/api/videos')
         .then(response => {
             if (!response.ok) {
+                if (response.status === 401) {
+                    window.location.href = '/admin-login.html'; 
+                }
                 throw new Error('Failed to fetch videos');
             }
             return response.json();
         })
         .then(videos => {
-            if (!Array.isArray(videos)) {
-                throw new Error('Invalid response format');
-            }
             renderVideos(videos);
         })
         .catch(error => {
             console.error('Error loading videos:', error);
-            alert('Error loading videos: ' + error.message);
         });
 
     const videoForm = document.getElementById('video-form');
