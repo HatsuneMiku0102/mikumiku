@@ -1,84 +1,30 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = '/admin-login.html';
-        return;
-    }
-
-    fetch('/api/videos', {
-        headers: {
-            'Authorization': token
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            if (response.status === 401) {
-                window.location.href = '/admin-login.html'; 
-            }
-            throw new Error('Failed to fetch videos');
-        }
-        return response.json();
-    })
-    .then(videos => {
-        renderVideos(videos);
-    })
-    .catch(error => {
-        console.error('Error loading videos:', error);
-    });
-
-    const videoForm = document.getElementById('video-form');
-    if (videoForm) {
-        videoForm.addEventListener('submit', function(event) {
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(event) {
             event.preventDefault();
 
-            const title = document.getElementById('video-title').value;
-            const url = document.getElementById('video-url').value.replace('youtu.be', 'youtube.com/embed');
-            const description = document.getElementById('video-description').value;
-            const category = document.getElementById('video-category').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
 
-            const video = { title, url, description, category };
-
-            fetch('/api/videos', {
+            fetch('/login', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': token
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(video)
+                body: JSON.stringify({ username, password })
             })
-            .then(response => {
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        window.location.href = '/admin-login.html'; 
-                    }
-                    return response.json().then(data => {
-                        console.error('Failed to add video:', data);
-                        alert('Failed to add video: ' + (data.message || 'Unknown error'));
-                        throw new Error('Failed to add video');
-                    });
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
-                alert('Video added successfully');
-                videoForm.reset();
-
-                fetch('/api/videos', {
-                    headers: {
-                        'Authorization': token
-                    }
-                })
-                .then(response => response.json())
-                .then(videos => {
-                    if (!Array.isArray(videos)) {
-                        throw new Error('Invalid response format');
-                    }
-                    renderVideos(videos);
-                });
+                if (data.auth) {
+                    localStorage.setItem('token', data.token);
+                    window.location.href = '/admin-dashboard.html';
+                } else {
+                    alert(data.message);
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Failed to add video');
             });
         });
     }
@@ -87,38 +33,38 @@ document.addEventListener('DOMContentLoaded', function() {
     if (logoutButton) {
         logoutButton.addEventListener('click', function() {
             localStorage.removeItem('token');
-            window.location.href = 'admin-login.html';
+            window.location.href = '/admin-login.html';
         });
     }
 
-    document.querySelector('.category-bar').addEventListener('click', function(event) {
-        if (event.target.tagName === 'BUTTON') {
-            const category = event.target.getAttribute('data-category');
-            fetch('/api/videos')
-                .then(response => response.json())
-                .then(videos => {
-                    if (!Array.isArray(videos)) {
-                        throw new Error('Invalid response format');
-                    }
-                    const filteredVideos = category === 'all' ? videos : videos.filter(video => video.category === category);
-                    renderVideos(filteredVideos);
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Failed to filter videos');
-                });
-        }
-    });
+    fetchVideos();
+
+    function fetchVideos() {
+        const token = localStorage.getItem('token');
+        fetch('/api/videos', {
+            method: 'GET',
+            headers: {
+                'Authorization': token
+            }
+        })
+        .then(response => response.json())
+        .then(videos => {
+            renderVideos(videos);
+        })
+        .catch(error => {
+            console.error('Error loading videos:', error);
+        });
+    }
 });
 
 function renderVideos(videos) {
     const videoContainer = document.getElementById('video-container');
-    if (!videoContainer) {
-        console.error('Error: video-container element not found.');
+    videoContainer.innerHTML = '';
+
+    if (videos.length === 0) {
+        videoContainer.innerHTML = '<p>No videos available</p>';
         return;
     }
-
-    videoContainer.innerHTML = ''; 
 
     videos.forEach(video => {
         const videoItem = document.createElement('div');
@@ -137,7 +83,6 @@ function renderVideos(videos) {
     document.querySelectorAll('.delete-button').forEach(button => {
         button.addEventListener('click', function() {
             const videoId = this.getAttribute('data-id');
-            console.log('Deleting video with ID:', videoId);
             deleteVideo(videoId);
         });
     });
