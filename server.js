@@ -18,11 +18,12 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false }
+    cookie: { secure: false } 
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// PostgreSQL Configuration
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
@@ -30,14 +31,7 @@ const pool = new Pool({
     }
 });
 
-const users = [
-    {
-        username: process.env.ADMIN_USERNAME,
-        password: bcrypt.hashSync(process.env.ADMIN_PASSWORD, 8)
-    }
-];
-
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
     if (!user) {
@@ -49,39 +43,34 @@ app.post('/login', (req, res) => {
         return res.status(400).json({ auth: false, message: 'Invalid username or password' });
     }
 
-    const token = jwt.sign({ id: user.username }, process.env.SESSION_SECRET, { expiresIn: 86400 });
+    const token = jwt.sign({ id: user.username }, process.env.SESSION_SECRET, {
+        expiresIn: 86400 // expires in 24 hours
+    });
+
+    req.session.token = token;
     res.status(200).json({ auth: true, token: token });
 });
 
-function verifyToken(req, res, next) {
-    const token = req.headers['authorization'];
+function isAuthenticated(req, res, next) {
+    const token = req.session.token;
     if (!token) {
-        return res.status(401).send({ auth: false, message: 'No token provided.' });
+        return res.status(401).json({ auth: false, message: 'No token provided.' });
     }
 
     jwt.verify(token, process.env.SESSION_SECRET, (err, decoded) => {
         if (err) {
-            return res.status(500).send({ auth: false, message: 'Failed to authenticate token.' });
+            return res.status(500).json({ auth: false, message: 'Failed to authenticate token.' });
         }
         req.userId = decoded.id;
         next();
     });
 }
 
-app.post('/logout', verifyToken, (req, res) => {
-    req.session.destroy(err => {
-        if (err) {
-            return res.status(500).send({ message: 'Failed to log out' });
-        }
-        res.redirect('/admin-login.html');
-    });
-});
-
-app.get('/admin-dashboard.html', verifyToken, (req, res) => {
+app.get('/admin-dashboard.html', isAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
-app.post('/api/videos', verifyToken, async (req, res) => {
+app.post('/api/videos', isAuthenticated, async (req, res) => {
     const videoMetadata = {
         url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
         title: req.body.title,
@@ -96,10 +85,10 @@ app.post('/api/videos', verifyToken, async (req, res) => {
         const values = [videoMetadata.url, videoMetadata.title, videoMetadata.description, videoMetadata.category, videoMetadata.uploadedAt];
         const result = await client.query(queryText, values);
         client.release();
-        res.status(201).send({ message: 'Video added', video: result.rows[0] });
+        res.status(201).json({ message: 'Video added', video: result.rows[0] });
     } catch (err) {
         console.error('Error saving video metadata to PostgreSQL:', err);
-        res.status(500).send({ error: 'Error saving video metadata' });
+        res.status(500).json({ error: 'Error saving video metadata' });
     }
 });
 
@@ -111,12 +100,21 @@ app.get('/api/videos', async (req, res) => {
         res.json(result.rows);
     } catch (err) {
         console.error('Error retrieving video metadata from PostgreSQL:', err);
-        res.status(500).send({ error: 'Error retrieving video metadata' });
+        res.status(500).json({ error: 'Error retrieving video metadata' });
     }
 });
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.post('/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            return res.status(500).send({ message: 'Failed to log out' });
+        }
+        res.redirect('/admin-login.html');
+    });
 });
 
 app.listen(PORT, () => {
