@@ -17,7 +17,7 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false }
+    cookie: { secure: false } 
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -59,7 +59,7 @@ function isAuthenticated(req, res, next) {
     if (req.session.user) {
         next();
     } else {
-        res.redirect('/admin-login.html');
+        res.status(401).send('Unauthorized: No session available');
     }
 }
 
@@ -72,7 +72,7 @@ app.post('/api/videos', isAuthenticated, async (req, res) => {
         url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
         title: req.body.title,
         description: req.body.description,
-        category: req.body.category,
+        category: req.body.category,  // Make sure category is included
         uploadedAt: new Date()
     };
 
@@ -101,24 +101,17 @@ app.get('/api/videos', async (req, res) => {
     }
 });
 
-app.delete('/api/videos/:id', async (req, res) => {
+app.delete('/api/videos/:id', isAuthenticated, async (req, res) => {
     const videoId = req.params.id;
-
     try {
         const client = await pool.connect();
-        const queryText = 'DELETE FROM videos WHERE id = $1 RETURNING *';
-        const values = [videoId];
-        const result = await client.query(queryText, values);
+        const queryText = 'DELETE FROM videos WHERE id = $1';
+        await client.query(queryText, [videoId]);
         client.release();
-        
-        if (result.rowCount === 0) {
-            res.status(404).send({ error: 'Video not found' });
-        } else {
-            res.status(200).send({ message: 'Video deleted', video: result.rows[0] });
-        }
+        res.status(200).send({ message: 'Video deleted' });
     } catch (err) {
-        console.error('Error deleting video from PostgreSQL:', err);
-        res.status(500).send({ error: 'Error deleting video' });
+        console.error('Error deleting video metadata from PostgreSQL:', err);
+        res.status(500).send({ error: 'Error deleting video metadata' });
     }
 });
 
