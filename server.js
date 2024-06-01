@@ -17,7 +17,7 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false } 
+    cookie: { secure: false }
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -56,14 +56,12 @@ app.post('/login', (req, res) => {
 });
 
 function isAuthenticated(req, res, next) {
-    console.log('Session:', req.session); // Add this line for debugging
     if (req.session.user) {
         next();
     } else {
-        res.status(401).send('Unauthorized: No session available');
+        res.status(401).json({ error: 'Unauthorized' });
     }
 }
-
 
 app.get('/admin-dashboard.html', isAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
@@ -91,7 +89,7 @@ app.post('/api/videos', isAuthenticated, async (req, res) => {
     }
 });
 
-app.get('/api/videos', async (req, res) => {
+app.get('/api/videos', isAuthenticated, async (req, res) => {
     try {
         const client = await pool.connect();
         const result = await client.query('SELECT * FROM videos');
