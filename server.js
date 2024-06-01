@@ -18,12 +18,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key';
 
 app.use(bodyParser.json());
 app.use(cookieParser());
-
 app.use(session({
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: true } 
+    cookie: { secure: false } // Change to true if using HTTPS
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -42,6 +41,7 @@ const users = [
     }
 ];
 
+// Login Route
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
@@ -55,10 +55,11 @@ app.post('/login', (req, res) => {
     }
 
     const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: '1h' });
-    res.cookie('token', token, { httpOnly: true });
+    res.cookie('token', token, { httpOnly: true, secure: false }); // Change secure to true if using HTTPS
     res.status(200).send({ auth: true });
 });
 
+// Middleware to Verify Token
 function verifyToken(req, res, next) {
     const token = req.cookies.token;
     if (!token) {
@@ -74,10 +75,12 @@ function verifyToken(req, res, next) {
     });
 }
 
+// Protected Route
 app.get('/admin-dashboard.html', verifyToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
+// Add Video Route
 app.post('/api/videos', verifyToken, async (req, res) => {
     const videoMetadata = {
         url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
@@ -100,6 +103,7 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     }
 });
 
+// Get Videos Route
 app.get('/api/videos', async (req, res) => {
     try {
         const client = await pool.connect();
@@ -112,10 +116,12 @@ app.get('/api/videos', async (req, res) => {
     }
 });
 
+// Root Route
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Logout Route
 app.post('/logout', (req, res) => {
     res.clearCookie('token');
     req.session.destroy(err => {
@@ -126,6 +132,7 @@ app.post('/logout', (req, res) => {
     });
 });
 
+// Start the Server
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
