@@ -36,6 +36,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify(video)
             })
             .then(response => {
+                if (response.status === 401) {
+                    window.location.href = '/admin-login.html'; 
+                }
                 if (!response.ok) {
                     return response.json().then(data => {
                         console.error('Failed to add video:', data);
@@ -143,6 +146,9 @@ function deleteVideo(videoId) {
     })
     .then(response => {
         if (!response.ok) {
+            if (response.status === 401) {
+                window.location.href = '/admin-login.html'; 
+            }
             console.error('Failed to delete video:', response);
             throw new Error('Failed to delete video');
         }
