@@ -1,8 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
-const session = require('express-session');
 const jwt = require('jsonwebtoken');
+const session = require('express-session');
 const path = require('path');
 const dotenv = require('dotenv');
 const { Pool } = require('pg');
@@ -18,11 +18,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key';
 
 app.use(bodyParser.json());
 app.use(cookieParser());
+
 app.use(session({
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: true } // Change to true if using HTTPS
+    cookie: { secure: true, httpOnly: true } 
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -41,7 +42,6 @@ const users = [
     }
 ];
 
-// Login Route
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
@@ -55,33 +55,26 @@ app.post('/login', (req, res) => {
     }
 
     const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: '1h' });
-    res.cookie('token', token, { httpOnly: true, secure: false }); // Change secure to true if using HTTPS
+    res.cookie('token', token, { httpOnly: true, secure: true });
     res.status(200).send({ auth: true });
 });
 
-// Middleware to Verify Token
-function verifyToken(req, res, next) {
-    const token = req.cookies.token;
-    if (!token) {
-        return res.status(401).send({ auth: false, message: 'No token provided.' });
-    }
+function authenticateToken(req, res, next) {
+    const token = req.cookies.token || req.header('Authorization').replace('Bearer ', '');
+    if (!token) return res.redirect('/admin-login.html');
 
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(401).send({ auth: false, message: 'Failed to authenticate token.' });
-        }
-        req.user = decoded;
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.redirect('/admin-login.html');
+        req.user = user;
         next();
     });
 }
 
-// Protected Route
-app.get('/admin-dashboard.html', verifyToken, (req, res) => {
+app.get('/admin-dashboard.html', authenticateToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
-// Add Video Route
-app.post('/api/videos', verifyToken, async (req, res) => {
+app.post('/api/videos', authenticateToken, async (req, res) => {
     const videoMetadata = {
         url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
         title: req.body.title,
@@ -103,7 +96,6 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     }
 });
 
-// Get Videos Route
 app.get('/api/videos', async (req, res) => {
     try {
         const client = await pool.connect();
@@ -116,14 +108,8 @@ app.get('/api/videos', async (req, res) => {
     }
 });
 
-// Root Route
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Logout Route
 app.post('/logout', (req, res) => {
-    res.clearCookie('token');
+    res.clearCookie('token'); 
     req.session.destroy(err => {
         if (err) {
             return res.status(500).send({ message: 'Failed to log out' });
@@ -132,7 +118,6 @@ app.post('/logout', (req, res) => {
     });
 });
 
-// Start the Server
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
