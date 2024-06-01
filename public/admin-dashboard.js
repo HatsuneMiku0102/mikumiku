@@ -1,20 +1,30 @@
 document.addEventListener('DOMContentLoaded', function() {
-    fetch('/api/videos')
-        .then(response => {
-            if (!response.ok) {
-                if (response.status === 401) {
-                    window.location.href = '/admin-login.html'; 
-                }
-                throw new Error('Failed to fetch videos');
+    const token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = '/admin-login.html';
+        return;
+    }
+
+    fetch('/api/videos', {
+        headers: {
+            'Authorization': token
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            if (response.status === 401) {
+                window.location.href = '/admin-login.html'; 
             }
-            return response.json();
-        })
-        .then(videos => {
-            renderVideos(videos);
-        })
-        .catch(error => {
-            console.error('Error loading videos:', error);
-        });
+            throw new Error('Failed to fetch videos');
+        }
+        return response.json();
+    })
+    .then(videos => {
+        renderVideos(videos);
+    })
+    .catch(error => {
+        console.error('Error loading videos:', error);
+    });
 
     const videoForm = document.getElementById('video-form');
     if (videoForm) {
@@ -31,7 +41,8 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch('/api/videos', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': token
                 },
                 body: JSON.stringify(video)
             })
@@ -52,14 +63,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Video added successfully');
                 videoForm.reset();
 
-                fetch('/api/videos')
-                    .then(response => response.json())
-                    .then(videos => {
-                        if (!Array.isArray(videos)) {
-                            throw new Error('Invalid response format');
-                        }
-                        renderVideos(videos);
-                    });
+                fetch('/api/videos', {
+                    headers: {
+                        'Authorization': token
+                    }
+                })
+                .then(response => response.json())
+                .then(videos => {
+                    if (!Array.isArray(videos)) {
+                        throw new Error('Invalid response format');
+                    }
+                    renderVideos(videos);
+                });
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -71,15 +86,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const logoutButton = document.getElementById('logout');
     if (logoutButton) {
         logoutButton.addEventListener('click', function() {
-            fetch('/logout', {
-                method: 'POST'
-            })
-            .then(() => {
-                window.location.href = 'admin-login.html';
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
+            localStorage.removeItem('token');
+            window.location.href = 'admin-login.html';
         });
     }
 
@@ -136,8 +144,12 @@ function renderVideos(videos) {
 }
 
 function deleteVideo(videoId) {
+    const token = localStorage.getItem('token');
     fetch(`/api/videos/${videoId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+            'Authorization': token
+        }
     })
     .then(response => {
         if (!response.ok) {
