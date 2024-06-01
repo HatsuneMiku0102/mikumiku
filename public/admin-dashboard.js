@@ -1,11 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
-    fetch('/api/videos', {
-        credentials: 'same-origin'
-    })
+    fetch('/api/videos')
         .then(response => {
             if (!response.ok) {
                 if (response.status === 401) {
-                    window.location.href = '/admin-login.html';
+                    window.location.href = '/admin-login.html'; 
                 }
                 throw new Error('Failed to fetch videos');
             }
@@ -39,6 +37,9 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => {
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/admin-login.html'; 
+                    }
                     return response.json().then(data => {
                         console.error('Failed to add video:', data);
                         alert('Failed to add video: ' + (data.message || 'Unknown error'));
@@ -51,9 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Video added successfully');
                 videoForm.reset();
 
-                fetch('/api/videos', {
-                    credentials: 'same-origin'
-                })
+                fetch('/api/videos')
                     .then(response => response.json())
                     .then(videos => {
                         if (!Array.isArray(videos)) {
@@ -83,6 +82,25 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    document.querySelector('.category-bar').addEventListener('click', function(event) {
+        if (event.target.tagName === 'BUTTON') {
+            const category = event.target.getAttribute('data-category');
+            fetch('/api/videos')
+                .then(response => response.json())
+                .then(videos => {
+                    if (!Array.isArray(videos)) {
+                        throw new Error('Invalid response format');
+                    }
+                    const filteredVideos = category === 'all' ? videos : videos.filter(video => video.category === category);
+                    renderVideos(filteredVideos);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to filter videos');
+                });
+        }
+    });
 });
 
 function renderVideos(videos) {
@@ -92,12 +110,7 @@ function renderVideos(videos) {
         return;
     }
 
-    videoContainer.innerHTML = '';
-
-    if (videos.length === 0) {
-        videoContainer.innerHTML = '<p>No videos available</p>';
-        return;
-    }
+    videoContainer.innerHTML = ''; 
 
     videos.forEach(video => {
         const videoItem = document.createElement('div');
@@ -124,8 +137,7 @@ function renderVideos(videos) {
 
 function deleteVideo(videoId) {
     fetch(`/api/videos/${videoId}`, {
-        method: 'DELETE',
-        credentials: 'same-origin'
+        method: 'DELETE'
     })
     .then(response => {
         if (!response.ok) {
