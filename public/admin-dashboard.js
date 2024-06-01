@@ -132,8 +132,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById('logout').addEventListener('click', function() {
-        localStorage.removeItem('token');
-        window.location.href = 'admin-login.html';
+        fetch('/logout', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(() => {
+            localStorage.removeItem('token');
+            window.location.href = 'admin-login.html';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
     });
 
     fetchVideos();
