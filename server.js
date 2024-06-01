@@ -6,6 +6,7 @@ const path = require('path');
 const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
+const cookieParser = require('cookie-parser');
 
 dotenv.config();
 
@@ -16,6 +17,7 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'your-session-secret-key';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key';
 
 app.use(bodyParser.json());
+app.use(cookieParser());
 
 app.use(session({
     secret: SESSION_SECRET,
