@@ -37,6 +37,9 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => {
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/admin-login.html';
+                    }
                     return response.json().then(data => {
                         console.error('Failed to add video:', data);
                         alert('Failed to add video: ' + (data.message || 'Unknown error'));
