@@ -80,10 +80,20 @@ function verifyToken(req, res, next) {
     });
 }
 
-app.get('/admin-dashboard.html', verifyToken, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
+// Public route for fetching videos
+app.get('/api/videos/public', async (req, res) => {
+    try {
+        const client = await pool.connect();
+        const result = await client.query('SELECT * FROM videos');
+        client.release();
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error retrieving video metadata from PostgreSQL:', err);
+        res.status(500).send({ error: 'Error retrieving video metadata' });
+    }
 });
 
+// Protected route for adding videos
 app.post('/api/videos', verifyToken, async (req, res) => {
     const videoMetadata = {
         url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
@@ -106,6 +116,7 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     }
 });
 
+// Protected route for retrieving videos (for admin dashboard)
 app.get('/api/videos', verifyToken, async (req, res) => {
     try {
         const client = await pool.connect();
