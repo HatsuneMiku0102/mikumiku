@@ -89,7 +89,7 @@ app.post('/api/videos', isAuthenticated, async (req, res) => {
     }
 });
 
-app.get('/api/videos', isAuthenticated, async (req, res) => {
+app.get('/api/videos', async (req, res) => {
     try {
         const client = await pool.connect();
         const result = await client.query('SELECT * FROM videos');
