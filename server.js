@@ -80,6 +80,7 @@ function verifyToken(req, res, next) {
     });
 }
 
+// Ensure the middleware is applied to all routes that require authentication
 app.get('/admin-dashboard.html', verifyToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
@@ -106,7 +107,8 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     }
 });
 
-app.get('/api/videos', async (req, res) => {
+// Ensure the middleware is applied to all routes that require authentication
+app.get('/api/videos', verifyToken, async (req, res) => {
     try {
         const client = await pool.connect();
         const result = await client.query('SELECT * FROM videos');
