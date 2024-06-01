@@ -2,7 +2,6 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const session = require('express-session');
 const path = require('path');
 const dotenv = require('dotenv');
 const { Pool } = require('pg');
@@ -11,18 +10,11 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
 const SESSION_SECRET = process.env.SESSION_SECRET || 'your-session-secret-key';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key';
 
 app.use(bodyParser.json());
-
-app.use(session({
-    secret: SESSION_SECRET,
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false }
-}));
-
 app.use(express.static(path.join(__dirname, 'public')));
 
 // PostgreSQL Configuration
@@ -44,42 +36,39 @@ app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
     if (!user) {
-        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
+        return res.status(401).send({ auth: false, message: 'Invalid username or password' });
     }
 
     const passwordIsValid = bcrypt.compareSync(password, user.password);
     if (!passwordIsValid) {
-        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
+        return res.status(401).send({ auth: false, message: 'Invalid username or password' });
     }
 
-    const token = jwt.sign({ username: user.username }, JWT_SECRET, {
-        expiresIn: 86400 // 24 hours
-    });
-
-    req.session.token = token;
-    res.status(200).send({ auth: true, token: token });
+    const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: '1h' });
+    res.status(200).send({ auth: true, token });
 });
 
-function isAuthenticated(req, res, next) {
-    const token = req.session.token;
+function verifyToken(req, res, next) {
+    const token = req.headers['x-access-token'];
     if (!token) {
-        return res.status(401).redirect('/admin-login.html');
+        return res.status(401).send({ auth: false, message: 'No token provided' });
     }
 
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
         if (err) {
-            return res.status(401).redirect('/admin-login.html');
+            return res.status(401).send({ auth: false, message: 'Failed to authenticate token' });
         }
-        req.user = decoded;
+
+        req.username = decoded.username;
         next();
     });
 }
 
-app.get('/admin-dashboard.html', isAuthenticated, (req, res) => {
+app.get('/admin-dashboard.html', verifyToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
-app.post('/api/videos', isAuthenticated, async (req, res) => {
+app.post('/api/videos', verifyToken, async (req, res) => {
     const videoMetadata = {
         url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
         title: req.body.title,
@@ -115,15 +104,6 @@ app.get('/api/videos', async (req, res) => {
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-app.post('/logout', (req, res) => {
-    req.session.destroy(err => {
-        if (err) {
-            return res.status(500).send({ message: 'Failed to log out' });
-        }
-        res.redirect('/admin-login.html');
-    });
 });
 
 app.listen(PORT, () => {
