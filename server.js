@@ -1,9 +1,10 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const session = require('express-session');
 const path = require('path');
 const dotenv = require('dotenv');
+const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
 
 dotenv.config();
@@ -15,9 +16,16 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'your-session-secret-key';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key';
 
 app.use(bodyParser.json());
+
+app.use(session({
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false } 
+}));
+
 app.use(express.static(path.join(__dirname, 'public')));
 
-// PostgreSQL Configuration
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
@@ -36,39 +44,39 @@ app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
     if (!user) {
-        return res.status(401).send({ auth: false, message: 'Invalid username or password' });
+        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
     }
 
     const passwordIsValid = bcrypt.compareSync(password, user.password);
     if (!passwordIsValid) {
-        return res.status(401).send({ auth: false, message: 'Invalid username or password' });
+        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
     }
 
     const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: '1h' });
+    res.cookie('token', token, { httpOnly: true });
     res.status(200).send({ auth: true, token });
 });
 
-function verifyToken(req, res, next) {
-    const token = req.headers['x-access-token'];
+function authenticateToken(req, res, next) {
+    const token = req.cookies.token || req.headers['x-access-token'];
     if (!token) {
-        return res.status(401).send({ auth: false, message: 'No token provided' });
+        return res.status(401).send({ message: 'Unauthorized' });
     }
 
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) {
-            return res.status(401).send({ auth: false, message: 'Failed to authenticate token' });
+            return res.status(403).send({ message: 'Forbidden' });
         }
-
-        req.username = decoded.username;
+        req.user = user;
         next();
     });
 }
 
-app.get('/admin-dashboard.html', verifyToken, (req, res) => {
+app.get('/admin-dashboard.html', authenticateToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
-app.post('/api/videos', verifyToken, async (req, res) => {
+app.post('/api/videos', authenticateToken, async (req, res) => {
     const videoMetadata = {
         url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
         title: req.body.title,
@@ -102,8 +110,14 @@ app.get('/api/videos', async (req, res) => {
     }
 });
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.post('/logout', (req, res) => {
+    res.clearCookie('token'); // Ensure the token cookie is cleared
+    req.session.destroy(err => {
+        if (err) {
+            return res.status(500).send({ message: 'Failed to log out' });
+        }
+        res.status(200).send({ message: 'Logout successful' });
+    });
 });
 
 app.listen(PORT, () => {
