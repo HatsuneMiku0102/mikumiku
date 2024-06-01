@@ -17,7 +17,7 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false }
+    cookie: { secure: false } 
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -59,7 +59,7 @@ function isAuthenticated(req, res, next) {
     if (req.session.user) {
         next();
     } else {
-        res.status(401).json({ error: 'Unauthorized' });
+        res.status(401).send({ auth: false, message: 'Unauthorized' });
     }
 }
 
@@ -72,14 +72,13 @@ app.post('/api/videos', isAuthenticated, async (req, res) => {
         url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
         title: req.body.title,
         description: req.body.description,
-        category: req.body.category,
         uploadedAt: new Date()
     };
 
     try {
         const client = await pool.connect();
         const queryText = 'INSERT INTO videos(url, title, description, category, uploaded_at) VALUES($1, $2, $3, $4, $5) RETURNING *';
-        const values = [videoMetadata.url, videoMetadata.title, videoMetadata.description, videoMetadata.category, videoMetadata.uploadedAt];
+        const values = [videoMetadata.url, videoMetadata.title, videoMetadata.description, req.body.category, videoMetadata.uploadedAt];
         const result = await client.query(queryText, values);
         client.release();
         res.status(201).send({ message: 'Video added', video: result.rows[0] });
@@ -99,24 +98,6 @@ app.get('/api/videos', async (req, res) => {
         console.error('Error retrieving video metadata from PostgreSQL:', err);
         res.status(500).send({ error: 'Error retrieving video metadata' });
     }
-});
-
-app.delete('/api/videos/:id', isAuthenticated, async (req, res) => {
-    const videoId = req.params.id;
-    try {
-        const client = await pool.connect();
-        const queryText = 'DELETE FROM videos WHERE id = $1';
-        await client.query(queryText, [videoId]);
-        client.release();
-        res.status(200).send({ message: 'Video deleted' });
-    } catch (err) {
-        console.error('Error deleting video metadata from PostgreSQL:', err);
-        res.status(500).send({ error: 'Error deleting video metadata' });
-    }
-});
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.post('/logout', (req, res) => {
