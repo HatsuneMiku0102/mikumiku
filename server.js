@@ -72,13 +72,14 @@ app.post('/api/videos', isAuthenticated, async (req, res) => {
         url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
         title: req.body.title,
         description: req.body.description,
+        category: req.body.category,
         uploadedAt: new Date()
     };
 
     try {
         const client = await pool.connect();
         const queryText = 'INSERT INTO videos(url, title, description, category, uploaded_at) VALUES($1, $2, $3, $4, $5) RETURNING *';
-        const values = [videoMetadata.url, videoMetadata.title, videoMetadata.description, req.body.category, videoMetadata.uploadedAt];
+        const values = [videoMetadata.url, videoMetadata.title, videoMetadata.description, videoMetadata.category, videoMetadata.uploadedAt];
         const result = await client.query(queryText, values);
         client.release();
         res.status(201).send({ message: 'Video added', video: result.rows[0] });
