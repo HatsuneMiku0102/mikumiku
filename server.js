@@ -2,9 +2,9 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
+const jwt = require('jsonwebtoken');
 const path = require('path');
 const dotenv = require('dotenv');
-const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
 const cookieParser = require('cookie-parser');
 
@@ -23,7 +23,7 @@ app.use(session({
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false } 
+    cookie: { secure: false } // Change to true if using HTTPS
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -56,29 +56,29 @@ app.post('/login', (req, res) => {
 
     const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: '1h' });
     res.cookie('token', token, { httpOnly: true });
-    res.status(200).send({ auth: true, token });
+    res.status(200).send({ auth: true });
 });
 
-function authenticateToken(req, res, next) {
-    const token = req.cookies.token || req.headers['x-access-token'];
+function verifyToken(req, res, next) {
+    const token = req.cookies.token;
     if (!token) {
-        return res.status(401).send({ message: 'Unauthorized' });
+        return res.status(401).send({ auth: false, message: 'No token provided.' });
     }
 
-    jwt.verify(token, JWT_SECRET, (err, user) => {
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
         if (err) {
-            return res.status(403).send({ message: 'Forbidden' });
+            return res.status(401).send({ auth: false, message: 'Failed to authenticate token.' });
         }
-        req.user = user;
+        req.user = decoded;
         next();
     });
 }
 
-app.get('/admin-dashboard.html', authenticateToken, (req, res) => {
+app.get('/admin-dashboard.html', verifyToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
-app.post('/api/videos', authenticateToken, async (req, res) => {
+app.post('/api/videos', verifyToken, async (req, res) => {
     const videoMetadata = {
         url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
         title: req.body.title,
@@ -112,13 +112,17 @@ app.get('/api/videos', async (req, res) => {
     }
 });
 
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 app.post('/logout', (req, res) => {
-    res.clearCookie('token'); // Ensure the token cookie is cleared
+    res.clearCookie('token');
     req.session.destroy(err => {
         if (err) {
             return res.status(500).send({ message: 'Failed to log out' });
         }
-        res.status(200).send({ message: 'Logout successful' });
+        res.redirect('/admin-login.html');
     });
 });
 
