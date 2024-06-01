@@ -1,10 +1,10 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
-const session = require('express-session');
 const path = require('path');
 const dotenv = require('dotenv');
 const { Pool } = require('pg');
+const jwt = require('jsonwebtoken');
 
 dotenv.config();
 
@@ -12,17 +12,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
-
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false } 
-}));
-
 app.use(express.static(path.join(__dirname, 'public')));
 
-// PostgreSQL Configuration
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
@@ -37,6 +28,10 @@ const users = [
     }
 ];
 
+const generateAccessToken = (username) => {
+    return jwt.sign({ username }, process.env.TOKEN_SECRET, { expiresIn: '1h' });
+};
+
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
@@ -49,25 +44,26 @@ app.post('/login', (req, res) => {
         return res.status(400).send({ auth: false, message: 'Invalid username or password' });
     }
 
-    req.session.user = {
-        username: user.username
-    };
-    res.status(200).send({ auth: true });
+    const token = generateAccessToken(user.username);
+    res.status(200).send({ auth: true, token });
 });
 
-function isAuthenticated(req, res, next) {
-    if (req.session.user) {
-        return next();
-    } else {
-        return res.status(401).send({ auth: false, message: 'Unauthorized' });
-    }
-}
+const authenticateToken = (req, res, next) => {
+    const token = req.headers['authorization'];
+    if (!token) return res.status(401).send({ auth: false, message: 'No token provided' });
 
-app.get('/admin-dashboard.html', isAuthenticated, (req, res) => {
+    jwt.verify(token, process.env.TOKEN_SECRET, (err, user) => {
+        if (err) return res.status(403).send({ auth: false, message: 'Failed to authenticate token' });
+        req.user = user;
+        next();
+    });
+};
+
+app.get('/admin-dashboard.html', authenticateToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
-app.post('/api/videos', isAuthenticated, async (req, res) => {
+app.post('/api/videos', authenticateToken, async (req, res) => {
     const videoMetadata = {
         url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
         title: req.body.title,
@@ -101,13 +97,8 @@ app.get('/api/videos', async (req, res) => {
     }
 });
 
-app.post('/logout', (req, res) => {
-    req.session.destroy(err => {
-        if (err) {
-            return res.status(500).send({ message: 'Failed to log out' });
-        }
-        res.redirect('/admin-login.html');
-    });
+app.post('/logout', authenticateToken, (req, res) => {
+    res.send({ message: 'Logged out' });
 });
 
 app.listen(PORT, () => {
