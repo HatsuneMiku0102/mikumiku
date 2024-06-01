@@ -57,9 +57,9 @@ app.post('/login', (req, res) => {
 
 function isAuthenticated(req, res, next) {
     if (req.session.user) {
-        next();
+        return next();
     } else {
-        res.status(401).send({ auth: false, message: 'Unauthorized' });
+        return res.status(401).send({ auth: false, message: 'Unauthorized' });
     }
 }
 
