@@ -10,6 +10,7 @@ const cookieParser = require('cookie-parser');
 const axios = require('axios');
 const MongoStore = require('connect-mongo');
 const helmet = require('helmet');
+const mongoose = require('mongoose'); // Add mongoose
 
 dotenv.config();
 
@@ -20,6 +21,16 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/myfirstdatabase';
+
+// Connect to MongoDB
+mongoose.connect(mongoUrl, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => {
+    console.log('Connected to MongoDB');
+}).catch((err) => {
+    console.error('Error connecting to MongoDB:', err);
+});
 
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret-key',
@@ -143,6 +154,19 @@ app.get('/callback', async (req, res) => {
 
 app.get('/oauth-callback', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'callback.html'));
+});
+
+// Simple test route to verify MongoDB connection
+app.get('/test-mongo', async (req, res) => {
+    try {
+        const TestModel = mongoose.model('Test', new mongoose.Schema({ name: String }));
+        const testDoc = new TestModel({ name: 'Test Document' });
+        await testDoc.save();
+        res.send('MongoDB connection is working and document is saved.');
+    } catch (error) {
+        console.error('Error saving document to MongoDB:', error);
+        res.status(500).send('Error connecting to MongoDB.');
+    }
 });
 
 function generateRandomString(length) {
