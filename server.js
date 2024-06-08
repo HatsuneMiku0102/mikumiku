@@ -124,6 +124,7 @@ app.get('/login', (req, res) => {
 });
 
 // OAuth Callback Route
+// OAuth Callback Route
 app.get('/callback', async (req, res) => {
     const state = req.query.state;
     const code = req.query.code;
@@ -145,13 +146,15 @@ app.get('/callback', async (req, res) => {
         const accessToken = tokenData.access_token;
         const userInfo = await getBungieUserInfo(accessToken);
 
-        if (!userInfo.Response || !userInfo.Response.bungieNetUser) {
+        console.log('User Info Response:', userInfo); // Debugging
+
+        if (!userInfo.Response || !userInfo.Response.membershipId || !userInfo.Response.displayName) {
             throw new Error('Failed to obtain user information');
         }
 
-        const bungieName = userInfo.Response.bungieNetUser.displayName;
-        const membershipId = userInfo.Response.bungieNetUser.membershipId;
-        const platformType = userInfo.Response.primaryMembershipType;
+        const bungieName = userInfo.Response.displayName;
+        const membershipId = userInfo.Response.membershipId;
+        const platformType = userInfo.Response.primaryMembershipType || null;
 
         // Store the user information in the database
         const client = await pool.connect();
@@ -182,6 +185,7 @@ app.get('/callback', async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
+
 
 function generateRandomString(length) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
