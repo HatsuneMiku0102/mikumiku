@@ -62,7 +62,6 @@ app.use(session({
     }
 }));
 
-// Add middleware to log session creation and state saving
 app.use((req, res, next) => {
     console.log(`Session ID: ${req.session.id}`);
     console.log(`Session Data before modification: ${JSON.stringify(req.session)}`);
@@ -172,25 +171,8 @@ app.get('/callback', async (req, res) => {
     }
 });
 
-app.get('/oauth-callback', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'callback.html'));
-});
-
-// Simple test route to verify MongoDB connection
-app.get('/test-mongo', async (req, res) => {
-    try {
-        const TestModel = mongoose.model('Test', new mongoose.Schema({ name: String }));
-        const testDoc = new TestModel({ name: 'Test Document' });
-        await testDoc.save();
-        res.send('MongoDB connection is working and document is saved.');
-    } catch (error) {
-        console.error('Error saving document to MongoDB:', error);
-        res.status(500).send('Error connecting to MongoDB.');
-    }
-});
-
 function generateRandomString(length) {
-    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
     for (let i = 0; i < length; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -208,8 +190,24 @@ async function getBungieToken(code) {
         redirect_uri: REDIRECT_URI
     });
     const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
-    const response = await axios.post(url, payload.toString(), { headers });
-    return response.data;
+
+    try {
+        const response = await axios.post(url, payload.toString(), { headers });
+        console.log('Token Response:', response.data); // Debugging
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching Bungie token:', error);
+        if (error.response) {
+            console.log('Response data:', error.response.data);
+            console.log('Response status:', error.response.status);
+            console.log('Response headers:', error.response.headers);
+        } else if (error.request) {
+            console.log('Request made but no response received:', error.request);
+        } else {
+            console.log('Error setting up request:', error.message);
+        }
+        throw new Error('Failed to fetch Bungie token');
+    }
 }
 
 async function getBungieUserInfo(accessToken) {
@@ -222,6 +220,7 @@ async function getBungieUserInfo(accessToken) {
 
     try {
         const response = await axios.get(url, { headers });
+        console.log('User Info Response:', response.data); // Debugging
         return response.data;
     } catch (error) {
         console.error('Error fetching Bungie user info:', error);
@@ -239,7 +238,6 @@ async function getBungieUserInfo(accessToken) {
         throw new Error('Failed to fetch Bungie user info');
     }
 }
-
 
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
