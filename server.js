@@ -92,6 +92,13 @@ app.get('/callback', async (req, res) => {
             platform_type: platformType
         };
 
+        // Store the user information in the database
+        const client = await pool.connect();
+        const queryText = 'INSERT INTO users(bungie_name, membership_id, platform_type) VALUES($1, $2, $3) ON CONFLICT (membership_id) DO UPDATE SET bungie_name = EXCLUDED.bungie_name, platform_type = EXCLUDED.platform_type RETURNING *';
+        const values = [bungieName, membershipId, platformType];
+        const result = await client.query(queryText, values);
+        client.release();
+
         res.json(responseData);
     } catch (error) {
         console.error('Error during callback:', error);
@@ -136,6 +143,7 @@ async function getBungieUserInfo(accessToken) {
     return response.data;
 }
 
+// Login route
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
