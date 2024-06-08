@@ -330,6 +330,28 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     }
 });
 
+// Route to create users table
+app.get('/create-users-table', async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const createTableQuery = `
+            CREATE TABLE users (
+                id SERIAL PRIMARY KEY,
+                bungie_name VARCHAR(255) NOT NULL,
+                membership_id VARCHAR(255) UNIQUE NOT NULL,
+                platform_type VARCHAR(255)
+            );
+        `;
+        await client.query(createTableQuery);
+        res.send('Users table created successfully');
+    } catch (error) {
+        console.error('Error creating users table:', error);
+        res.status(500).send('Error creating users table');
+    } finally {
+        client.release();
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
