@@ -1,11 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const path = require('path');
 const dotenv = require('dotenv');
-const jwt = require('jsonwebtoken');
-const cookieParser = require('cookie-parser');
 const axios = require('axios');
 const MongoStore = require('connect-mongo');
 const helmet = require('helmet');
@@ -19,7 +16,6 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1); // Trust the first proxy for secure cookies
 
 app.use(bodyParser.json());
-app.use(cookieParser());
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/myfirstdatabase';
 
@@ -93,13 +89,6 @@ const userSchema = new mongoose.Schema({
 });
 
 const User = mongoose.model('User', userSchema);
-
-const users = [
-    {
-        username: process.env.ADMIN_USERNAME,
-        password: bcrypt.hashSync(process.env.ADMIN_PASSWORD, 8)
-    }
-];
 
 // OAuth Configuration
 const CLIENT_ID = process.env.CLIENT_ID;
@@ -254,76 +243,6 @@ async function getBungieUserInfo(accessToken) {
         throw new Error('Failed to fetch Bungie user info');
     }
 }
-
-app.post('/login', (req, res) => {
-    const { username, password } = req.body;
-    const user = users.find(u => u.username === username);
-    if (!user) {
-        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
-    }
-
-    const passwordIsValid = bcrypt.compareSync(password, user.password);
-    if (!passwordIsValid) {
-        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
-    }
-
-    const token = jwt.sign({ id: user.username }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
-        expiresIn: 86400 // 24 hours
-    });
-
-    res.cookie('token', token, {
-        httpOnly: true,
-        secure: true, // Set to true if using HTTPS
-        maxAge: 86400 * 1000 // 24 hours
-    });
-
-    res.status(200).send({ auth: true, token });
-});
-
-function verifyToken(req, res, next) {
-    const token = req.cookies.token;
-    if (!token) {
-        return res.status(401).send({ redirect: '/admin-login.html' });
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET || 'your-jwt-secret-key', (err, decoded) => {
-        if (err) {
-            return res.status(401).send({ redirect: '/admin-login.html' });
-        }
-        req.userId = decoded.id;
-        next();
-    });
-}
-
-// Public route for fetching videos
-app.get('/api/videos/public', async (req, res) => {
-    try {
-        // Add your logic here for fetching video metadata from MongoDB
-        res.json([]); // Placeholder response
-    } catch (err) {
-        console.error('Error retrieving video metadata:', err);
-        res.status(500).send({ error: 'Error retrieving video metadata' });
-    }
-});
-
-// Protected route for adding videos
-app.post('/api/videos', verifyToken, async (req, res) => {
-    const videoMetadata = {
-        url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
-        title: req.body.title,
-        description: req.body.description,
-        category: req.body.category,
-        uploadedAt: new Date()
-    };
-
-    try {
-        // Add your logic here for saving video metadata to MongoDB
-        res.status(201).send({ message: 'Video added', video: videoMetadata }); // Placeholder response
-    } catch (err) {
-        console.error('Error saving video metadata:', err);
-        res.status(500).send({ error: 'Error saving video metadata' });
-    }
-});
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
