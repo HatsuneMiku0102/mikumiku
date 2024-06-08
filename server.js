@@ -53,18 +53,25 @@ app.use(session({
     saveUninitialized: false,
     store: sessionStore,
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // Secure cookies for HTTPS in production
+        secure: process.env.NODE_ENV === 'production', // Set secure flag to true if using HTTPS in production
         sameSite: 'strict',
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
 
-// Add middleware to log session creation
+// Add middleware to log session creation and state saving
 app.use((req, res, next) => {
     console.log(`Session ID: ${req.session.id}`);
     console.log(`Session Data before save: ${JSON.stringify(req.session)}`);
-    next();
+    req.session.save((err) => {
+        if (err) {
+            console.error('Error saving session:', err);
+        } else {
+            console.log(`Session Data after save: ${JSON.stringify(req.session)}`);
+        }
+        next();
+    });
 });
 
 // Set CSP headers using helmet
