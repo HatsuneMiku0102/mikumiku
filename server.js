@@ -8,7 +8,7 @@ const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const axios = require('axios');
-const MemoryStore = require('memorystore')(session);
+const pgSession = require('connect-pg-simple')(session);
 
 dotenv.config();
 
@@ -18,18 +18,6 @@ const PORT = process.env.PORT || 3000;
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-session-secret-key',
-    resave: false,
-    saveUninitialized: false,
-    store: new MemoryStore({
-        checkPeriod: 86400000 // prune expired entries every 24h
-    }),
-    cookie: { secure: false } // Set to true if using HTTPS
-}));
-
-app.use(express.static(path.join(__dirname, 'public')));
-
 // PostgreSQL Configuration
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -37,6 +25,19 @@ const pool = new Pool({
         rejectUnauthorized: false
     }
 });
+
+app.use(session({
+    store: new pgSession({
+        pool: pool,                // Connection pool
+        tableName: 'session'       // Use another table-name than the default "session" one
+    }),
+    secret: process.env.SESSION_SECRET || 'your-session-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false } // Set to true if using HTTPS
+}));
+
+app.use(express.static(path.join(__dirname, 'public')));
 
 const users = [
     {
@@ -226,7 +227,7 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     }
 });
 
-// Protected route
+// Protected route for retrieving videos (for admin dashboard)
 app.get('/api/videos', verifyToken, async (req, res) => {
     try {
         const client = await pool.connect();
