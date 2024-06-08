@@ -106,6 +106,7 @@ app.get('/login', (req, res) => {
     req.session.save(err => {
         if (err) {
             console.error('Error saving session:', err);
+            return res.status(500).send('Internal Server Error');
         } else {
             console.log(`Generated state: ${state}`); // Logging state
             console.log(`Session after saving state: ${JSON.stringify(req.session)}`); // Logging session
