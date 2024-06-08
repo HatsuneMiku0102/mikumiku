@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const path = require('path');
 const dotenv = require('dotenv');
-const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const axios = require('axios');
@@ -86,13 +85,14 @@ app.use(helmet.contentSecurityPolicy({
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// PostgreSQL Configuration
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false
-    }
+// MongoDB Schema and Model
+const userSchema = new mongoose.Schema({
+    bungie_name: { type: String, required: true },
+    membership_id: { type: String, unique: true, required: true },
+    platform_type: { type: Number, required: true }
 });
+
+const User = mongoose.model('User', userSchema);
 
 const users = [
     {
@@ -145,20 +145,22 @@ app.get('/callback', async (req, res) => {
         const accessToken = tokenData.access_token;
         const userInfo = await getBungieUserInfo(accessToken);
 
-        if (!userInfo.Response || !userInfo.Response.membershipId || !userInfo.Response.displayName) {
+        if (!userInfo.Response || !userInfo.Response.bungieNetUser) {
             throw new Error('Failed to obtain user information');
         }
 
-        const bungieName = userInfo.Response.displayName;
-        const membershipId = userInfo.Response.membershipId;
-        const platformType = userInfo.Response.primaryMembershipType || null;
+        const bungieName = userInfo.Response.bungieNetUser.displayName;
+        const membershipId = userInfo.Response.bungieNetUser.membershipId;
+        const platformType = userInfo.Response.primaryMembershipType;
 
         // Store the user information in the database
-        const client = await pool.connect();
-        const queryText = 'INSERT INTO users(bungie_name, membership_id, platform_type) VALUES($1, $2, $3) ON CONFLICT (membership_id) DO UPDATE SET bungie_name = EXCLUDED.bungie_name, platform_type = EXCLUDED.platform_type RETURNING *';
-        const values = [bungieName, membershipId, platformType];
-        const result = await client.query(queryText, values);
-        client.release();
+        const user = new User({
+            bungie_name: bungieName,
+            membership_id: membershipId,
+            platform_type: platformType
+        });
+
+        await user.save();
 
         res.json({
             bungie_name: bungieName,
@@ -327,28 +329,6 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     } catch (err) {
         console.error('Error saving video metadata to PostgreSQL:', err);
         res.status(500).send({ error: 'Error saving video metadata' });
-    }
-});
-
-// Route to create users table
-app.get('/create-users-table', async (req, res) => {
-    const client = await pool.connect();
-    try {
-        const createTableQuery = `
-            CREATE TABLE users (
-                id SERIAL PRIMARY KEY,
-                bungie_name VARCHAR(255) NOT NULL,
-                membership_id VARCHAR(255) UNIQUE NOT NULL,
-                platform_type VARCHAR(255)
-            );
-        `;
-        await client.query(createTableQuery);
-        res.send('Users table created successfully');
-    } catch (error) {
-        console.error('Error creating users table:', error);
-        res.status(500).send('Error creating users table');
-    } finally {
-        client.release();
     }
 });
 
