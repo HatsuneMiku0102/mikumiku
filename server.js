@@ -32,24 +32,42 @@ mongoose.connect(mongoUrl, {
     console.error('Error connecting to MongoDB:', err);
 });
 
+const sessionStore = MongoStore.create({
+    mongoUrl: mongoUrl,
+    collectionName: 'sessions',
+    ttl: 14 * 24 * 60 * 60, // 14 days
+    autoRemove: 'native'
+});
+
+sessionStore.on('connected', () => {
+    console.log('Session store connected to MongoDB');
+});
+
+sessionStore.on('error', (error) => {
+    console.error('Session store error:', error);
+});
+
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret-key',
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: mongoUrl,
-        collectionName: 'sessions',
-        ttl: 14 * 24 * 60 * 60, // 14 days
-        autoRemove: 'native'
-    }),
+    store: sessionStore,
     cookie: { secure: false, sameSite: 'strict' } // Set secure to true if using HTTPS
 }));
 
-// Add middleware to log session creation
+// Middleware to log session creation and saving
 app.use((req, res, next) => {
     console.log(`Session ID: ${req.session.id}`);
-    console.log(`Session Data: ${JSON.stringify(req.session)}`);
-    next();
+    console.log(`Session Data before save: ${JSON.stringify(req.session)}`);
+    req.session.save(err => {
+        if (err) {
+            console.error('Error saving session:', err);
+        } else {
+            console.log('Session saved successfully');
+            console.log(`Session Data after save: ${JSON.stringify(req.session)}`);
+        }
+        next();
+    });
 });
 
 // Set CSP headers using helmet
