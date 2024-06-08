@@ -31,7 +31,7 @@ app.use(session({
         ttl: 14 * 24 * 60 * 60, // 14 days
         autoRemove: 'native'
     }),
-    cookie: { secure: true, sameSite: 'none' } // Ensure the cookie is sent over HTTPS
+    cookie: { secure: false, sameSite: 'strict' } // Set secure to false for local testing
 }));
 
 // Set CSP headers using helmet
