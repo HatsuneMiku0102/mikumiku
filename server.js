@@ -21,7 +21,7 @@ app.set('trust proxy', 1); // Trust the first proxy for secure cookies
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const mongoUrl = process.env.MONGO_URL || 'mongodb+srv://hystoriyaallusiataylor:mtW4aUnsTIr5VVcV@mikumiku.jf47gbz.mongodb.net/?retryWrites=true&w=majority&appName=mikumiku';
+const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/myfirstdatabase';
 
 // Connect to MongoDB
 mongoose.connect(mongoUrl, {
@@ -124,7 +124,6 @@ app.get('/login', (req, res) => {
 });
 
 // OAuth Callback Route
-// OAuth Callback Route
 app.get('/callback', async (req, res) => {
     const state = req.query.state;
     const code = req.query.code;
@@ -135,7 +134,6 @@ app.get('/callback', async (req, res) => {
     console.log(`Cookies: ${JSON.stringify(req.cookies)}`); // Log cookies
 
     if (state !== req.session.state) {
-        console.error(`State mismatch: received ${state}, expected ${req.session.state}`);
         return res.status(400).send('State mismatch. Potential CSRF attack.');
     }
 
@@ -146,8 +144,6 @@ app.get('/callback', async (req, res) => {
         }
         const accessToken = tokenData.access_token;
         const userInfo = await getBungieUserInfo(accessToken);
-
-        console.log('User Info Response:', userInfo); // Debugging
 
         if (!userInfo.Response || !userInfo.Response.membershipId) {
             console.error('Incomplete user info response:', userInfo);
