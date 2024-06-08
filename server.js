@@ -21,7 +21,7 @@ app.use(cookieParser());
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret-key',
     resave: false,
-    saveUninitialized: true, // Ensure sessions are saved
+    saveUninitialized: false,
     store: new MemoryStore({
         checkPeriod: 86400000 // prune expired entries every 24h
     }),
@@ -57,10 +57,11 @@ app.get('/login', (req, res) => {
     req.session.save(err => {
         if (err) {
             console.error('Error saving session:', err);
+        } else {
+            console.log(`Generated state: ${state}`); // Logging state
+            const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
+            res.redirect(authorizeUrl);
         }
-        console.log(`Generated state: ${state}`); // Logging state
-        const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
-        res.redirect(authorizeUrl);
     });
 });
 
@@ -166,7 +167,7 @@ app.post('/login', (req, res) => {
 
     res.cookie('token', token, {
         httpOnly: true,
-        secure: true, // Secure cookies for HTTPS
+        secure: false, // Set to true if using HTTPS
         maxAge: 86400 * 1000 // 24 hours
     });
 
@@ -224,29 +225,6 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     }
 });
 
-// Protected route
-app.get('/api/videos', verifyToken, async (req, res) => {
-    try {
-        const client = await pool.connect();
-        const result = await client.query('SELECT * FROM videos');
-        client.release();
-        res.json(result.rows);
-    } catch (err) {
-        console.error('Error retrieving video metadata from PostgreSQL:', err);
-        res.status(500).send({ error: 'Error retrieving video metadata' });
-    }
-});
-
-app.post('/logout', (req, res) => {
-    res.clearCookie('token');
-    req.session.destroy(err => {
-        if (err) {
-            return res.status(500).send({ message: 'Failed to log out' });
-        }
-        res.redirect('/admin-login.html');
-    });
-});
-
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
