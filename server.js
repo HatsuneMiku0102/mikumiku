@@ -8,6 +8,7 @@ const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const axios = require('axios');
+const MemoryStore = require('memorystore')(session);
 
 dotenv.config();
 
@@ -20,7 +21,10 @@ app.use(cookieParser());
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret-key',
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false, // Prevent unnecessary session creation
+    store: new MemoryStore({
+        checkPeriod: 86400000 // prune expired entries every 24h
+    }),
     cookie: { secure: false } // Set to true if using HTTPS
 }));
 
@@ -44,7 +48,7 @@ const users = [
 // OAuth Configuration
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = 'https://YOUR_HEROKU_APP_NAME.herokuapp.com/callback';  // Ensure this matches the URL in your Bungie app settings
+const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches the URL in your Bungie app settings
 
 // OAuth Login Route
 app.get('/login', (req, res) => {
@@ -83,15 +87,6 @@ app.get('/callback', async (req, res) => {
         const membershipId = userInfo.Response.bungieNetUser.membershipId;
         const platformType = userInfo.Response.primaryMembershipType;
 
-        // Here you can store the user's information in your database or session
-        // For simplicity, we'll just return it as a response
-
-        const responseData = {
-            bungie_name: bungieName,
-            membership_id: membershipId,
-            platform_type: platformType
-        };
-
         // Store the user information in the database
         const client = await pool.connect();
         const queryText = 'INSERT INTO users(bungie_name, membership_id, platform_type) VALUES($1, $2, $3) ON CONFLICT (membership_id) DO UPDATE SET bungie_name = EXCLUDED.bungie_name, platform_type = EXCLUDED.platform_type RETURNING *';
@@ -99,7 +94,11 @@ app.get('/callback', async (req, res) => {
         const result = await client.query(queryText, values);
         client.release();
 
-        res.json(responseData);
+        res.json({
+            bungie_name: bungieName,
+            membership_id: membershipId,
+            platform_type: platformType
+        });
     } catch (error) {
         console.error('Error during callback:', error);
         res.status(500).send('Internal Server Error');
@@ -143,7 +142,6 @@ async function getBungieUserInfo(accessToken) {
     return response.data;
 }
 
-// Login route
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
