@@ -44,7 +44,7 @@ const users = [
 // OAuth Configuration
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = 'https://YOUR_HEROKU_APP_NAME.herokuapp.com/callback';  // Replace with your actual redirect URI
+const REDIRECT_URI = 'https://YOUR_HEROKU_APP_NAME.herokuapp.com/oauth-callback';  // Ensure this matches the URL in your Bungie app settings
 
 // OAuth Login Route
 app.get('/login', (req, res) => {
@@ -65,8 +65,15 @@ app.get('/callback', async (req, res) => {
 
     try {
         const tokenData = await getBungieToken(code);
+        if (!tokenData.access_token) {
+            throw new Error('Failed to obtain access token');
+        }
         const accessToken = tokenData.access_token;
         const userInfo = await getBungieUserInfo(accessToken);
+        
+        if (!userInfo.Response || !userInfo.Response.bungieNetUser) {
+            throw new Error('Failed to obtain user information');
+        }
 
         const bungieName = userInfo.Response.bungieNetUser.displayName;
         const membershipId = userInfo.Response.bungieNetUser.membershipId;
