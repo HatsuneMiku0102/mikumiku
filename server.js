@@ -8,7 +8,6 @@ const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const axios = require('axios');
-const MemoryStore = require('memorystore')(session);
 
 dotenv.config();
 
@@ -21,10 +20,7 @@ app.use(cookieParser());
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret-key',
     resave: false,
-    saveUninitialized: false, // Prevent unnecessary session creation
-    store: new MemoryStore({
-        checkPeriod: 86400000 // prune expired entries every 24h
-    }),
+    saveUninitialized: true,
     cookie: { secure: false } // Set to true if using HTTPS
 }));
 
