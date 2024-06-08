@@ -59,6 +59,7 @@ app.get('/login', (req, res) => {
             console.error('Error saving session:', err);
         } else {
             console.log(`Generated state: ${state}`); // Logging state
+            console.log(`Session after saving state: ${JSON.stringify(req.session)}`); // Logging session
             const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
             res.redirect(authorizeUrl);
         }
