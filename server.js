@@ -53,7 +53,7 @@ app.use(session({
     saveUninitialized: false,
     store: sessionStore,
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // Set secure flag to true if using HTTPS in production
+        secure: true, // Ensure secure flag is true for HTTPS
         sameSite: 'strict',
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
@@ -64,14 +64,7 @@ app.use(session({
 app.use((req, res, next) => {
     console.log(`Session ID: ${req.session.id}`);
     console.log(`Session Data before save: ${JSON.stringify(req.session)}`);
-    req.session.save((err) => {
-        if (err) {
-            console.error('Error saving session:', err);
-        } else {
-            console.log(`Session Data after save: ${JSON.stringify(req.session)}`);
-        }
-        next();
-    });
+    next();
 });
 
 // Set CSP headers using helmet
@@ -243,7 +236,7 @@ app.post('/login', (req, res) => {
 
     res.cookie('token', token, {
         httpOnly: true,
-        secure: false, // Set to true if using HTTPS
+        secure: true, // Set to true if using HTTPS
         maxAge: 86400 * 1000 // 24 hours
     });
 
