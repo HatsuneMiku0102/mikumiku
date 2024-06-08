@@ -146,6 +146,7 @@ app.get('/callback', async (req, res) => {
         const userInfo = await getBungieUserInfo(accessToken);
 
         if (!userInfo.Response || !userInfo.Response.bungieNetUser) {
+            console.error('User info response:', userInfo);
             throw new Error('Failed to obtain user information');
         }
 
