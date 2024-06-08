@@ -124,6 +124,7 @@ app.get('/login', (req, res) => {
 });
 
 // OAuth Callback Route
+// OAuth Callback Route
 app.get('/callback', async (req, res) => {
     const state = req.query.state;
     const code = req.query.code;
@@ -146,14 +147,16 @@ app.get('/callback', async (req, res) => {
         const accessToken = tokenData.access_token;
         const userInfo = await getBungieUserInfo(accessToken);
 
-        if (!userInfo.Response || !userInfo.Response.bungieNetUser) {
-            console.error('User info response:', userInfo);
+        console.log('User Info Response:', userInfo); // Debugging
+
+        if (!userInfo.Response || !userInfo.Response.membershipId) {
+            console.error('Incomplete user info response:', userInfo);
             throw new Error('Failed to obtain user information');
         }
 
-        const bungieName = userInfo.Response.bungieNetUser.displayName;
-        const membershipId = userInfo.Response.bungieNetUser.membershipId;
-        const platformType = userInfo.Response.primaryMembershipType;
+        const bungieName = userInfo.Response.uniqueName;
+        const membershipId = userInfo.Response.membershipId;
+        const platformType = userInfo.Response.primaryMembershipType || 1; // Defaulting to 1 if not provided
 
         // Store the user information in MongoDB
         const user = await User.findOneAndUpdate(
