@@ -44,7 +44,7 @@ const users = [
 // OAuth Configuration
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = 'https://YOUR_HEROKU_APP_NAME.herokuapp.com/oauth-callback';  // Ensure this matches the URL in your Bungie app settings
+const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches the URL in your Bungie app settings
 
 // OAuth Login Route
 app.get('/login', (req, res) => {
