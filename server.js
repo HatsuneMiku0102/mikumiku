@@ -180,7 +180,7 @@ app.get('/callback', async (req, res) => {
 function generateRandomString(length) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
-    for (let i = 0; i < length; i++) {
+    for (let i = 0; length > i; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
