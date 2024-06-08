@@ -25,7 +25,7 @@ app.use(session({
     store: new MemoryStore({
         checkPeriod: 86400000 // prune expired entries every 24h
     }),
-    cookie: { secure: true, sameSite: 'strict' } // Secure cookies for HTTPS
+    cookie: { secure: false, sameSite: 'strict' } // Set secure to false for local testing
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
