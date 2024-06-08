@@ -21,7 +21,7 @@ app.set('trust proxy', 1); // Trust the first proxy for secure cookies
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/myfirstdatabase';
+const mongoUrl = process.env.MONGO_URL || 'mongodb+srv://hystoriyaallusiataylor:9dqI7vpdU2pPKkA9@mikumiku.jf47gbz.mongodb.net/?retryWrites=true&w=majority&appName=mikumiku';
 
 // Connect to MongoDB
 mongoose.connect(mongoUrl, {
@@ -31,6 +31,7 @@ mongoose.connect(mongoUrl, {
     console.log('Connected to MongoDB');
 }).catch((err) => {
     console.error('Error connecting to MongoDB:', err);
+    process.exit(1);
 });
 
 const sessionStore = MongoStore.create({
@@ -298,8 +299,8 @@ function verifyToken(req, res, next) {
 // Public route for fetching videos
 app.get('/api/videos/public', async (req, res) => {
     try {
-        // Add your logic here for fetching video metadata from MongoDB
-        res.json([]); // Placeholder response
+        const videos = await Video.find({});
+        res.json(videos);
     } catch (err) {
         console.error('Error retrieving video metadata:', err);
         res.status(500).send({ error: 'Error retrieving video metadata' });
@@ -317,8 +318,9 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     };
 
     try {
-        // Add your logic here for saving video metadata to MongoDB
-        res.status(201).send({ message: 'Video added', video: videoMetadata }); // Placeholder response
+        const video = new Video(videoMetadata);
+        await video.save();
+        res.status(201).send({ message: 'Video added', video });
     } catch (err) {
         console.error('Error saving video metadata:', err);
         res.status(500).send({ error: 'Error saving video metadata' });
