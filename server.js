@@ -144,7 +144,7 @@ app.get('/callback', async (req, res) => {
         }
         const accessToken = tokenData.access_token;
         const userInfo = await getBungieUserInfo(accessToken);
-        
+
         if (!userInfo.Response || !userInfo.Response.bungieNetUser) {
             throw new Error('Failed to obtain user information');
         }
@@ -167,6 +167,18 @@ app.get('/callback', async (req, res) => {
         });
     } catch (error) {
         console.error('Error during callback:', error);
+
+        // Detailed logging
+        if (error.response) {
+            console.log('Response data:', error.response.data);
+            console.log('Response status:', error.response.status);
+            console.log('Response headers:', error.response.headers);
+        } else if (error.request) {
+            console.log('Request made but no response received:', error.request);
+        } else {
+            console.log('Error setting up request:', error.message);
+        }
+
         res.status(500).send('Internal Server Error');
     }
 });
@@ -189,7 +201,10 @@ async function getBungieToken(code) {
         client_secret: CLIENT_SECRET,
         redirect_uri: REDIRECT_URI
     });
-    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+    const headers = { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-API-Key': process.env.X_API_KEY  // Adding X-API-Key header
+    };
 
     try {
         const response = await axios.post(url, payload.toString(), { headers });
@@ -214,7 +229,7 @@ async function getBungieUserInfo(accessToken) {
     const url = 'https://www.bungie.net/Platform/User/GetCurrentBungieNetUser/';
     const headers = {
         'Authorization': `Bearer ${accessToken}`,
-        'X-API-Key': CLIENT_ID,
+        'X-API-Key': process.env.X_API_KEY,  // Adding X-API-Key header
         'User-Agent': 'axios/0.21.4'
     };
 
