@@ -52,7 +52,12 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     store: sessionStore,
-    cookie: { secure: false, sameSite: 'strict' } // Set secure to true if using HTTPS
+    cookie: {
+        secure: process.env.NODE_ENV === 'production', // Secure cookies for HTTPS in production
+        sameSite: 'strict',
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
 }));
 
 // Add middleware to log session creation
