@@ -15,18 +15,18 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(bodyParser.json());
-app.use(cookieParser());
-
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret-key',
     resave: false,
-    saveUninitialized: true, // Should be true to ensure sessions are created
+    saveUninitialized: true, // Ensure sessions are created
     store: new MemoryStore({
         checkPeriod: 86400000 // prune expired entries every 24h
     }),
     cookie: { secure: false } // Set to true if using HTTPS
 }));
+
+app.use(bodyParser.json());
+app.use(cookieParser());
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -54,9 +54,11 @@ const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches th
 app.get('/login', (req, res) => {
     const state = generateRandomString(16);
     req.session.state = state;
-    console.log(`Generated state: ${state}`); // Logging state
-    const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
-    res.redirect(authorizeUrl);
+    req.session.save(() => {
+        console.log(`Generated state: ${state}`); // Logging state
+        const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
+        res.redirect(authorizeUrl);
+    });
 });
 
 // OAuth Callback Route
