@@ -8,7 +8,7 @@ const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const axios = require('axios');
-const MemoryStore = require('memorystore')(session);
+const MongoStore = require('connect-mongo');
 
 dotenv.config();
 
@@ -18,12 +18,17 @@ const PORT = process.env.PORT || 3000;
 app.use(bodyParser.json());
 app.use(cookieParser());
 
+const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/mydatabase';
+
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret-key',
     resave: false,
     saveUninitialized: false,
-    store: new MemoryStore({
-        checkPeriod: 86400000 // prune expired entries every 24h
+    store: MongoStore.create({
+        mongoUrl: mongoUrl,
+        collectionName: 'sessions',
+        ttl: 14 * 24 * 60 * 60, // 14 days
+        autoRemove: 'native'
     }),
     cookie: { secure: false, sameSite: 'strict' } // Set secure to false for local testing
 }));
