@@ -8,7 +8,6 @@ const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const axios = require('axios');
-const crypto = require('crypto');
 const MemoryStore = require('memorystore')(session);
 
 dotenv.config();
@@ -22,18 +21,12 @@ app.use(cookieParser());
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret-key',
     resave: false,
-    saveUninitialized: false, // Prevent unnecessary session creation
+    saveUninitialized: true, // Set to true to save new sessions
     store: new MemoryStore({
         checkPeriod: 86400000 // prune expired entries every 24h
     }),
     cookie: { secure: false } // Set to true if using HTTPS
 }));
-
-app.use((req, res, next) => {
-    res.locals.nonce = crypto.randomBytes(16).toString('base64');
-    res.setHeader("Content-Security-Policy", `default-src 'self'; script-src 'self' 'nonce-${res.locals.nonce}'`);
-    next();
-});
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -61,9 +54,14 @@ const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches th
 app.get('/login', (req, res) => {
     const state = generateRandomString(16);
     req.session.state = state;
-    console.log(`Generated state: ${state}`); // Logging state
-    const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
-    res.redirect(authorizeUrl);
+    req.session.save(err => {
+        if (err) {
+            console.error('Error saving session:', err);
+        }
+        console.log(`Generated state: ${state}`); // Logging state
+        const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
+        res.redirect(authorizeUrl);
+    });
 });
 
 // OAuth Callback Route
@@ -73,6 +71,7 @@ app.get('/callback', async (req, res) => {
 
     console.log(`Received state: ${state}`); // Logging received state
     console.log(`Session state: ${req.session.state}`); // Logging session state
+    console.log(`Complete session: ${JSON.stringify(req.session)}`);
 
     if (state !== req.session.state) {
         return res.status(400).send('State mismatch. Potential CSRF attack.');
