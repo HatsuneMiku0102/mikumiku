@@ -20,7 +20,12 @@
 
             if (state && code) {
                 fetch(`/callback?state=${state}&code=${code}`)
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch callback data');
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         if (data.bungie_name) {
                             document.getElementById('content').innerHTML = `<h1>Welcome, ${data.bungie_name}!</h1><p>Your registration is complete.</p>`;
