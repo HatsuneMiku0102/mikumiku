@@ -31,8 +31,15 @@ app.use(session({
         ttl: 14 * 24 * 60 * 60, // 14 days
         autoRemove: 'native'
     }),
-    cookie: { secure: false, sameSite: 'strict' } // Set secure to false for local testing
+    cookie: { secure: false, sameSite: 'strict' } // Set secure to true if using HTTPS
 }));
+
+// Add middleware to log session creation
+app.use((req, res, next) => {
+    console.log(`Session ID: ${req.session.id}`);
+    console.log(`Session Data: ${JSON.stringify(req.session)}`);
+    next();
+});
 
 // Set CSP headers using helmet
 app.use(helmet());
