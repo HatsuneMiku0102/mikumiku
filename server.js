@@ -134,6 +134,7 @@ app.get('/callback', async (req, res) => {
     console.log(`Cookies: ${JSON.stringify(req.cookies)}`); // Log cookies
 
     if (state !== req.session.state) {
+        console.error(`State mismatch: received ${state}, expected ${req.session.state}`);
         return res.status(400).send('State mismatch. Potential CSRF attack.');
     }
 
