@@ -15,6 +15,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(bodyParser.json());
+app.use(cookieParser());
+
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret-key',
     resave: false,
@@ -24,9 +27,6 @@ app.use(session({
     }),
     cookie: { secure: false } // Set to true if using HTTPS
 }));
-
-app.use(bodyParser.json());
-app.use(cookieParser());
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -54,8 +54,13 @@ const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches th
 app.get('/login', (req, res) => {
     const state = generateRandomString(16);
     req.session.state = state;
-    req.session.save(() => {
+    req.session.save(err => {
+        if (err) {
+            console.error('Session save error:', err);
+            return res.status(500).send('Internal Server Error');
+        }
         console.log(`Generated state: ${state}`); // Logging state
+        console.log(`Session after saving state: ${JSON.stringify(req.session)}`); // Debugging session
         const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
         res.redirect(authorizeUrl);
     });
@@ -68,6 +73,7 @@ app.get('/callback', async (req, res) => {
 
     console.log(`Received state: ${state}`); // Logging received state
     console.log(`Session state: ${req.session.state}`); // Logging session state
+    console.log(`Complete session: ${JSON.stringify(req.session)}`); // Debugging session
 
     if (state !== req.session.state) {
         return res.status(400).send('State mismatch. Potential CSRF attack.');
