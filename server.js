@@ -88,6 +88,10 @@ app.get('/callback', async (req, res) => {
     }
 });
 
+app.get('/oauth-callback', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'callback.html'));
+});
+
 function generateRandomString(length) {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
