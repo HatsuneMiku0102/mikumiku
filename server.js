@@ -31,10 +31,10 @@ app.use(session({
         ttl: 14 * 24 * 60 * 60, // 14 days
         autoRemove: 'native'
     }),
-    cookie: { secure: false, sameSite: 'strict' } // Set secure to false for local testing
+    cookie: { secure: true, sameSite: 'none' } // Ensure the cookie is sent over HTTPS
 }));
 
-// Set CSP headers
+// Set CSP headers using helmet
 app.use(helmet());
 app.use(helmet.contentSecurityPolicy({
     directives: {
