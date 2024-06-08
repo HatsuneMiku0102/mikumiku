@@ -4,42 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OAuth Callback</title>
-    <link rel="stylesheet" href="/styles.css">
-</head>
-<body>
-    <div id="content">
-        <h1>Processing your login...</h1>
-        <p>Please wait while we complete your authentication.</p>
-    </div>
-
-    <script>
+    <script nonce="<%= nonce %>">
         document.addEventListener('DOMContentLoaded', function() {
             const params = new URLSearchParams(window.location.search);
-            const state = params.get('state');
             const code = params.get('code');
-
-            if (state && code) {
-                fetch(`/callback?state=${state}&code=${code}`)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Failed to fetch callback data');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.bungie_name) {
-                            document.getElementById('content').innerHTML = `<h1>Welcome, ${data.bungie_name}!</h1><p>Your registration is complete.</p>`;
-                        } else {
-                            document.getElementById('content').innerHTML = `<h1>Error</h1><p>There was an issue with your registration.</p>`;
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error processing callback:', error);
-                        document.getElementById('content').innerHTML = `<h1>Error</h1><p>There was an issue with your registration.</p>`;
-                    });
-            } else {
-                document.getElementById('content').innerHTML = `<h1>Error</h1><p>Invalid callback parameters.</p>`;
-            }
+            const state = params.get('state');
+            // Here you can add more script logic if necessary
+        });
+    </script>
+</head>
+<body>
+    <h1>Callback</h1>
+    <p>Processing...</p>
+    <script nonce="<%= nonce %>">
+        // Your inline script code here
+        document.addEventListener('DOMContentLoaded', function() {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            const state = params.get('state');
+            // Your script logic here
         });
     </script>
 </body>
