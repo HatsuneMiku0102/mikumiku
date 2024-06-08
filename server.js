@@ -23,9 +23,9 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     store: new MemoryStore({
-        checkPeriod: 86400000
+        checkPeriod: 86400000 // prune expired entries every 24h
     }),
-    cookie: { secure: false }
+    cookie: { secure: false } // Set to true if using HTTPS
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -69,11 +69,13 @@ app.get('/callback', async (req, res) => {
 
     try {
         const tokenData = await getBungieToken(code);
+        console.log('Token data received:', tokenData);
         if (!tokenData.access_token) {
             throw new Error('Failed to obtain access token');
         }
         const accessToken = tokenData.access_token;
         const userInfo = await getBungieUserInfo(accessToken);
+        console.log('User info received:', userInfo);
         
         if (!userInfo.Response || !userInfo.Response.bungieNetUser) {
             throw new Error('Failed to obtain user information');
@@ -88,6 +90,8 @@ app.get('/callback', async (req, res) => {
         const values = [bungieName, membershipId, platformType];
         const result = await client.query(queryText, values);
         client.release();
+
+        console.log('Database insert/update result:', result);
 
         res.json({
             bungie_name: bungieName,
