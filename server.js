@@ -124,7 +124,6 @@ app.get('/login', (req, res) => {
 });
 
 // OAuth Callback Route
-// OAuth Callback Route
 app.get('/callback', async (req, res) => {
     const state = req.query.state;
     const code = req.query.code;
@@ -145,8 +144,6 @@ app.get('/callback', async (req, res) => {
         }
         const accessToken = tokenData.access_token;
         const userInfo = await getBungieUserInfo(accessToken);
-
-        console.log('User Info Response:', userInfo); // Debugging
 
         if (!userInfo.Response || !userInfo.Response.membershipId || !userInfo.Response.displayName) {
             throw new Error('Failed to obtain user information');
@@ -185,7 +182,6 @@ app.get('/callback', async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
-
 
 function generateRandomString(length) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
