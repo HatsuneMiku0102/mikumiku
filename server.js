@@ -7,6 +7,7 @@ const dotenv = require('dotenv');
 const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
+const axios = require('axios');
 
 dotenv.config();
 
@@ -39,6 +40,86 @@ const users = [
         password: bcrypt.hashSync(process.env.ADMIN_PASSWORD, 8)
     }
 ];
+
+// OAuth Configuration
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const REDIRECT_URI = 'https://YOUR_HEROKU_APP_NAME.herokuapp.com/callback';  // Replace with your actual redirect URI
+
+// OAuth Login Route
+app.get('/login', (req, res) => {
+    const state = generateRandomString(16);
+    req.session.state = state;
+    const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
+    res.redirect(authorizeUrl);
+});
+
+// OAuth Callback Route
+app.get('/callback', async (req, res) => {
+    const state = req.query.state;
+    const code = req.query.code;
+
+    if (state !== req.session.state) {
+        return res.status(400).send('State mismatch. Potential CSRF attack.');
+    }
+
+    try {
+        const tokenData = await getBungieToken(code);
+        const accessToken = tokenData.access_token;
+        const userInfo = await getBungieUserInfo(accessToken);
+
+        const bungieName = userInfo.Response.bungieNetUser.displayName;
+        const membershipId = userInfo.Response.bungieNetUser.membershipId;
+        const platformType = userInfo.Response.primaryMembershipType;
+
+        // Here you can store the user's information in your database or session
+        // For simplicity, we'll just return it as a response
+
+        const responseData = {
+            bungie_name: bungieName,
+            membership_id: membershipId,
+            platform_type: platformType
+        };
+
+        res.json(responseData);
+    } catch (error) {
+        console.error('Error during callback:', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+function generateRandomString(length) {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
+
+async function getBungieToken(code) {
+    const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
+    const payload = new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code,
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        redirect_uri: REDIRECT_URI
+    });
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+    const response = await axios.post(url, payload.toString(), { headers });
+    return response.data;
+}
+
+async function getBungieUserInfo(accessToken) {
+    const url = 'https://www.bungie.net/Platform/User/GetCurrentBungieNetUser/';
+    const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-API-Key': CLIENT_ID
+    };
+    const response = await axios.get(url, { headers });
+    return response.data;
+}
 
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
