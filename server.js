@@ -21,7 +21,7 @@ app.use(cookieParser());
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret-key',
     resave: false,
-    saveUninitialized: true, // Ensure sessions are created
+    saveUninitialized: false,
     store: new MemoryStore({
         checkPeriod: 86400000 // prune expired entries every 24h
     }),
