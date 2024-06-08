@@ -21,7 +21,7 @@ app.set('trust proxy', 1); // Trust the first proxy for secure cookies
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const mongoUrl = process.env.MONGO_URL || 'mongodb+srv://hystoriyaallusiataylor:9dqI7vpdU2pPKkA9@mikumiku.jf47gbz.mongodb.net/?retryWrites=true&w=majority&appName=mikumiku';
+const mongoUrl = process.env.MONGO_URL || 'mongodb+srv://hystoriyaallusiataylor:9dqI7vpdU2pPKkA9@cluster0.mongodb.net/myfirstdatabase?retryWrites=true&w=majority';
 
 // Connect to MongoDB
 mongoose.connect(mongoUrl, {
