@@ -153,19 +153,17 @@ app.get('/callback', async (req, res) => {
         const membershipId = userInfo.Response.bungieNetUser.membershipId;
         const platformType = userInfo.Response.primaryMembershipType;
 
-        // Store the user information in the database
-        const user = new User({
-            bungie_name: bungieName,
-            membership_id: membershipId,
-            platform_type: platformType
-        });
-
-        await user.save();
+        // Store the user information in MongoDB
+        const user = await User.findOneAndUpdate(
+            { membership_id: membershipId },
+            { bungie_name: bungieName, platform_type: platformType },
+            { new: true, upsert: true }
+        );
 
         res.json({
-            bungie_name: bungieName,
-            membership_id: membershipId,
-            platform_type: platformType
+            bungie_name: user.bungie_name,
+            membership_id: user.membership_id,
+            platform_type: user.platform_type
         });
     } catch (error) {
         console.error('Error during callback:', error);
@@ -299,12 +297,10 @@ function verifyToken(req, res, next) {
 // Public route for fetching videos
 app.get('/api/videos/public', async (req, res) => {
     try {
-        const client = await pool.connect();
-        const result = await client.query('SELECT * FROM videos');
-        client.release();
-        res.json(result.rows);
+        // Add your logic here for fetching video metadata from MongoDB
+        res.json([]); // Placeholder response
     } catch (err) {
-        console.error('Error retrieving video metadata from PostgreSQL:', err);
+        console.error('Error retrieving video metadata:', err);
         res.status(500).send({ error: 'Error retrieving video metadata' });
     }
 });
@@ -320,14 +316,10 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     };
 
     try {
-        const client = await pool.connect();
-        const queryText = 'INSERT INTO videos(url, title, description, category, uploaded_at) VALUES($1, $2, $3, $4, $5) RETURNING *';
-        const values = [videoMetadata.url, videoMetadata.title, videoMetadata.description, videoMetadata.category, videoMetadata.uploadedAt];
-        const result = await client.query(queryText, values);
-        client.release();
-        res.status(201).send({ message: 'Video added', video: result.rows[0] });
+        // Add your logic here for saving video metadata to MongoDB
+        res.status(201).send({ message: 'Video added', video: videoMetadata }); // Placeholder response
     } catch (err) {
-        console.error('Error saving video metadata to PostgreSQL:', err);
+        console.error('Error saving video metadata:', err);
         res.status(500).send({ error: 'Error saving video metadata' });
     }
 });
