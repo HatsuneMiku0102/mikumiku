@@ -63,7 +63,7 @@ app.use(session({
 // Add middleware to log session creation and state saving
 app.use((req, res, next) => {
     console.log(`Session ID: ${req.session.id}`);
-    console.log(`Session Data before save: ${JSON.stringify(req.session)}`);
+    console.log(`Session Data before modification: ${JSON.stringify(req.session)}`);
     next();
 });
 
@@ -188,7 +188,7 @@ app.get('/test-mongo', async (req, res) => {
 function generateRandomString(length) {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
-    for (let i = 0; i < length; i++) {
+    for (let i = 0; length > i; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
