@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const axios = require('axios');
 const MongoStore = require('connect-mongo');
+const helmet = require('helmet');
 
 dotenv.config();
 
@@ -31,6 +32,15 @@ app.use(session({
         autoRemove: 'native'
     }),
     cookie: { secure: false, sameSite: 'strict' } // Set secure to false for local testing
+}));
+
+// Set CSP headers
+app.use(helmet());
+app.use(helmet.contentSecurityPolicy({
+    directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"]
+    }
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
