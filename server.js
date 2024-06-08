@@ -216,11 +216,30 @@ async function getBungieUserInfo(accessToken) {
     const url = 'https://www.bungie.net/Platform/User/GetCurrentBungieNetUser/';
     const headers = {
         'Authorization': `Bearer ${accessToken}`,
-        'X-API-Key': CLIENT_ID
+        'X-API-Key': CLIENT_ID,
+        'User-Agent': 'axios/0.21.4'
     };
-    const response = await axios.get(url, { headers });
-    return response.data;
+
+    try {
+        const response = await axios.get(url, { headers });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching Bungie user info:', error);
+
+        if (error.response) {
+            console.log('Response data:', error.response.data);
+            console.log('Response status:', error.response.status);
+            console.log('Response headers:', error.response.headers);
+        } else if (error.request) {
+            console.log('Request made but no response received:', error.request);
+        } else {
+            console.log('Error setting up request:', error.message);
+        }
+
+        throw new Error('Failed to fetch Bungie user info');
+    }
 }
+
 
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
