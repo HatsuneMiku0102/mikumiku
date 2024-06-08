@@ -8,7 +8,8 @@ const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const axios = require('axios');
-const pgSession = require('connect-pg-simple')(session);
+const crypto = require('crypto');
+const MemoryStore = require('memorystore')(session);
 
 dotenv.config();
 
@@ -18,6 +19,24 @@ const PORT = process.env.PORT || 3000;
 app.use(bodyParser.json());
 app.use(cookieParser());
 
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-session-secret-key',
+    resave: false,
+    saveUninitialized: false, // Prevent unnecessary session creation
+    store: new MemoryStore({
+        checkPeriod: 86400000 // prune expired entries every 24h
+    }),
+    cookie: { secure: false } // Set to true if using HTTPS
+}));
+
+app.use((req, res, next) => {
+    res.locals.nonce = crypto.randomBytes(16).toString('base64');
+    res.setHeader("Content-Security-Policy", `default-src 'self'; script-src 'self' 'nonce-${res.locals.nonce}'`);
+    next();
+});
+
+app.use(express.static(path.join(__dirname, 'public')));
+
 // PostgreSQL Configuration
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -25,19 +44,6 @@ const pool = new Pool({
         rejectUnauthorized: false
     }
 });
-
-app.use(session({
-    store: new pgSession({
-        pool: pool,                // Connection pool
-        tableName: 'session'       // Use another table-name than the default "session" one
-    }),
-    secret: process.env.SESSION_SECRET || 'your-session-secret-key',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: false } // Set to true if using HTTPS
-}));
-
-app.use(express.static(path.join(__dirname, 'public')));
 
 const users = [
     {
@@ -47,24 +53,17 @@ const users = [
 ];
 
 // OAuth Configuration
-const CLIENT_ID = '46399';  // Replace with your actual client ID
-const CLIENT_SECRET = 'C7.3J-mlb6CsrnxWskNeBnYRENEARjHDELMaggh9fGs';  // Replace with your actual client secret
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches the URL in your Bungie app settings
 
 // OAuth Login Route
 app.get('/login', (req, res) => {
     const state = generateRandomString(16);
     req.session.state = state;
-    req.session.save(err => {
-        if (err) {
-            console.error('Session save error:', err);
-            return res.status(500).send('Internal Server Error');
-        }
-        console.log(`Generated state: ${state}`); // Logging state
-        console.log(`Session after saving state: ${JSON.stringify(req.session)}`); // Debugging session
-        const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
-        res.redirect(authorizeUrl);
-    });
+    console.log(`Generated state: ${state}`); // Logging state
+    const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
+    res.redirect(authorizeUrl);
 });
 
 // OAuth Callback Route
@@ -74,7 +73,6 @@ app.get('/callback', async (req, res) => {
 
     console.log(`Received state: ${state}`); // Logging received state
     console.log(`Session state: ${req.session.state}`); // Logging session state
-    console.log(`Complete session: ${JSON.stringify(req.session)}`); // Debugging session
 
     if (state !== req.session.state) {
         return res.status(400).send('State mismatch. Potential CSRF attack.');
@@ -227,7 +225,7 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     }
 });
 
-// Protected route for retrieving videos (for admin dashboard)
+// Protected route
 app.get('/api/videos', verifyToken, async (req, res) => {
     try {
         const client = await pool.connect();
@@ -253,3 +251,30 @@ app.post('/logout', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
+
+### Step 2: Adjust the Inline Script in `callback.html`
+Ensure that your inline scripts in `callback.html` include the nonce.
+
+### callback.html
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Callback</title>
+    <script nonce="<%= nonce %>">
+        // Your inline script code here
+    </script>
+</head>
+<body>
+    <h1>Callback</h1>
+    <p>Processing...</p>
+    <script nonce="<%= nonce %>">
+        // Your inline script code here
+        document.addEventListener('DOMContentLoaded', function() {
+            // Your script logic here
+        });
+    </script>
+</body>
+</html>
