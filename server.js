@@ -50,6 +50,7 @@ const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches th
 app.get('/login', (req, res) => {
     const state = generateRandomString(16);
     req.session.state = state;
+    console.log(`Generated state: ${state}`); // Logging state
     const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
     res.redirect(authorizeUrl);
 });
@@ -58,6 +59,9 @@ app.get('/login', (req, res) => {
 app.get('/callback', async (req, res) => {
     const state = req.query.state;
     const code = req.query.code;
+
+    console.log(`Received state: ${state}`); // Logging received state
+    console.log(`Session state: ${req.session.state}`); // Logging session state
 
     if (state !== req.session.state) {
         return res.status(400).send('State mismatch. Potential CSRF attack.');
@@ -208,7 +212,7 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     }
 });
 
-// Protected route for retrieving videos (for admin dashboard)
+// Protected route
 app.get('/api/videos', verifyToken, async (req, res) => {
     try {
         const client = await pool.connect();
