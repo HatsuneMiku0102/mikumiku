@@ -54,7 +54,7 @@ app.use(session({
     store: sessionStore,
     cookie: {
         secure: true, // Ensure secure flag is true for HTTPS
-        sameSite: 'strict',
+        sameSite: 'None', // Adjusting SameSite attribute
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
@@ -64,6 +64,7 @@ app.use(session({
 app.use((req, res, next) => {
     console.log(`Session ID: ${req.session.id}`);
     console.log(`Session Data before modification: ${JSON.stringify(req.session)}`);
+    console.log(`Cookies: ${JSON.stringify(req.cookies)}`);
     next();
 });
 
@@ -129,6 +130,7 @@ app.get('/callback', async (req, res) => {
     console.log(`Received state: ${state}`); // Logging received state
     console.log(`Session state: ${req.session.state}`); // Logging session state
     console.log(`Complete session: ${JSON.stringify(req.session)}`);
+    console.log(`Cookies: ${JSON.stringify(req.cookies)}`); // Log cookies
 
     if (state !== req.session.state) {
         return res.status(400).send('State mismatch. Potential CSRF attack.');
@@ -188,7 +190,7 @@ app.get('/test-mongo', async (req, res) => {
 function generateRandomString(length) {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
-    for (let i = 0; length > i; i++) {
+    for (let i = 0; i < length; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
