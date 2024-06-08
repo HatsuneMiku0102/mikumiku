@@ -251,30 +251,3 @@ app.post('/logout', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
-
-### Step 2: Adjust the Inline Script in `callback.html`
-Ensure that your inline scripts in `callback.html` include the nonce.
-
-### callback.html
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OAuth Callback</title>
-    <script nonce="<%= nonce %>">
-        // Your inline script code here
-    </script>
-</head>
-<body>
-    <h1>Callback</h1>
-    <p>Processing...</p>
-    <script nonce="<%= nonce %>">
-        // Your inline script code here
-        document.addEventListener('DOMContentLoaded', function() {
-            // Your script logic here
-        });
-    </script>
-</body>
-</html>
