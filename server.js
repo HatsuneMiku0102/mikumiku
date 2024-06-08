@@ -145,13 +145,13 @@ app.get('/callback', async (req, res) => {
         const accessToken = tokenData.access_token;
         const userInfo = await getBungieUserInfo(accessToken);
 
-        if (!userInfo.Response || !userInfo.Response.bungieNetUser) {
+        if (!userInfo.Response) {
             console.error('User info response:', userInfo);
             throw new Error('Failed to obtain user information');
         }
 
-        const bungieName = userInfo.Response.bungieNetUser.displayName;
-        const membershipId = userInfo.Response.bungieNetUser.membershipId;
+        const bungieName = userInfo.Response.displayName;
+        const membershipId = userInfo.Response.membershipId;
         const platformType = userInfo.Response.primaryMembershipType;
 
         // Store the user information in MongoDB
