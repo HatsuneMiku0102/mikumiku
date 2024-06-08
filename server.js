@@ -21,7 +21,7 @@ app.use(cookieParser());
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret-key',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // Should be true to ensure sessions are created
     store: new MemoryStore({
         checkPeriod: 86400000 // prune expired entries every 24h
     }),
@@ -30,6 +30,7 @@ app.use(session({
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// PostgreSQL Configuration
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
@@ -44,24 +45,27 @@ const users = [
     }
 ];
 
-const CLIENT_ID = '46399';
-const CLIENT_SECRET = 'C7.3J-mlb6CsrnxWskNeBnYRENEARjHDELMaggh9fGs';
-const REDIRECT_URI = 'https://mikumiku.dev/callback';
+// OAuth Configuration
+const CLIENT_ID = '46399';  // Replace with your actual client ID
+const CLIENT_SECRET = 'C7.3J-mlb6CsrnxWskNeBnYRENEARjHDELMaggh9fGs';  // Replace with your actual client secret
+const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches the URL in your Bungie app settings
 
+// OAuth Login Route
 app.get('/login', (req, res) => {
     const state = generateRandomString(16);
     req.session.state = state;
-    console.log(`Generated state: ${state}`);
+    console.log(`Generated state: ${state}`); // Logging state
     const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
     res.redirect(authorizeUrl);
 });
 
+// OAuth Callback Route
 app.get('/callback', async (req, res) => {
     const state = req.query.state;
     const code = req.query.code;
 
-    console.log(`Received state: ${state}`);
-    console.log(`Session state: ${req.session.state}`);
+    console.log(`Received state: ${state}`); // Logging received state
+    console.log(`Session state: ${req.session.state}`); // Logging session state
 
     if (state !== req.session.state) {
         return res.status(400).send('State mismatch. Potential CSRF attack.');
@@ -69,13 +73,11 @@ app.get('/callback', async (req, res) => {
 
     try {
         const tokenData = await getBungieToken(code);
-        console.log('Token data received:', tokenData);
         if (!tokenData.access_token) {
             throw new Error('Failed to obtain access token');
         }
         const accessToken = tokenData.access_token;
         const userInfo = await getBungieUserInfo(accessToken);
-        console.log('User info received:', userInfo);
         
         if (!userInfo.Response || !userInfo.Response.bungieNetUser) {
             throw new Error('Failed to obtain user information');
@@ -85,13 +87,12 @@ app.get('/callback', async (req, res) => {
         const membershipId = userInfo.Response.bungieNetUser.membershipId;
         const platformType = userInfo.Response.primaryMembershipType;
 
+        // Store the user information in the database
         const client = await pool.connect();
         const queryText = 'INSERT INTO users(bungie_name, membership_id, platform_type) VALUES($1, $2, $3) ON CONFLICT (membership_id) DO UPDATE SET bungie_name = EXCLUDED.bungie_name, platform_type = EXCLUDED.platform_type RETURNING *';
         const values = [bungieName, membershipId, platformType];
         const result = await client.query(queryText, values);
         client.release();
-
-        console.log('Database insert/update result:', result);
 
         res.json({
             bungie_name: bungieName,
@@ -154,13 +155,13 @@ app.post('/login', (req, res) => {
     }
 
     const token = jwt.sign({ id: user.username }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
-        expiresIn: 86400
+        expiresIn: 86400 // 24 hours
     });
 
     res.cookie('token', token, {
         httpOnly: true,
-        secure: false,
-        maxAge: 86400 * 1000
+        secure: false, // Set to true if using HTTPS
+        maxAge: 86400 * 1000 // 24 hours
     });
 
     res.status(200).send({ auth: true, token });
@@ -181,6 +182,7 @@ function verifyToken(req, res, next) {
     });
 }
 
+// Public route for fetching videos
 app.get('/api/videos/public', async (req, res) => {
     try {
         const client = await pool.connect();
@@ -193,6 +195,7 @@ app.get('/api/videos/public', async (req, res) => {
     }
 });
 
+// Protected route for adding videos
 app.post('/api/videos', verifyToken, async (req, res) => {
     const videoMetadata = {
         url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
@@ -215,6 +218,7 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     }
 });
 
+// Protected route
 app.get('/api/videos', verifyToken, async (req, res) => {
     try {
         const client = await pool.connect();
