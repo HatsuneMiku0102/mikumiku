@@ -21,16 +21,15 @@ app.use(cookieParser());
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret-key',
     resave: false,
-    saveUninitialized: false, // Prevent unnecessary session creation
+    saveUninitialized: false,
     store: new MemoryStore({
-        checkPeriod: 86400000 // prune expired entries every 24h
+        checkPeriod: 86400000
     }),
-    cookie: { secure: false } // Set to true if using HTTPS
+    cookie: { secure: false }
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// PostgreSQL Configuration
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
@@ -45,27 +44,24 @@ const users = [
     }
 ];
 
-// OAuth Configuration
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches the URL in your Bungie app settings
+const CLIENT_ID = '46399';
+const CLIENT_SECRET = 'C7.3J-mlb6CsrnxWskNeBnYRENEARjHDELMaggh9fGs';
+const REDIRECT_URI = 'https://mikumiku.dev/callback';
 
-// OAuth Login Route
 app.get('/login', (req, res) => {
     const state = generateRandomString(16);
     req.session.state = state;
-    console.log(`Generated state: ${state}`); // Logging state
+    console.log(`Generated state: ${state}`);
     const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
     res.redirect(authorizeUrl);
 });
 
-// OAuth Callback Route
 app.get('/callback', async (req, res) => {
     const state = req.query.state;
     const code = req.query.code;
 
-    console.log(`Received state: ${state}`); // Logging received state
-    console.log(`Session state: ${req.session.state}`); // Logging session state
+    console.log(`Received state: ${state}`);
+    console.log(`Session state: ${req.session.state}`);
 
     if (state !== req.session.state) {
         return res.status(400).send('State mismatch. Potential CSRF attack.');
@@ -87,7 +83,6 @@ app.get('/callback', async (req, res) => {
         const membershipId = userInfo.Response.bungieNetUser.membershipId;
         const platformType = userInfo.Response.primaryMembershipType;
 
-        // Store the user information in the database
         const client = await pool.connect();
         const queryText = 'INSERT INTO users(bungie_name, membership_id, platform_type) VALUES($1, $2, $3) ON CONFLICT (membership_id) DO UPDATE SET bungie_name = EXCLUDED.bungie_name, platform_type = EXCLUDED.platform_type RETURNING *';
         const values = [bungieName, membershipId, platformType];
@@ -155,13 +150,13 @@ app.post('/login', (req, res) => {
     }
 
     const token = jwt.sign({ id: user.username }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
-        expiresIn: 86400 // 24 hours
+        expiresIn: 86400
     });
 
     res.cookie('token', token, {
         httpOnly: true,
-        secure: false, // Set to true if using HTTPS
-        maxAge: 86400 * 1000 // 24 hours
+        secure: false,
+        maxAge: 86400 * 1000
     });
 
     res.status(200).send({ auth: true, token });
@@ -182,7 +177,6 @@ function verifyToken(req, res, next) {
     });
 }
 
-// Public route for fetching videos
 app.get('/api/videos/public', async (req, res) => {
     try {
         const client = await pool.connect();
@@ -195,7 +189,6 @@ app.get('/api/videos/public', async (req, res) => {
     }
 });
 
-// Protected route for adding videos
 app.post('/api/videos', verifyToken, async (req, res) => {
     const videoMetadata = {
         url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
@@ -218,7 +211,6 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     }
 });
 
-// Protected route
 app.get('/api/videos', verifyToken, async (req, res) => {
     try {
         const client = await pool.connect();
