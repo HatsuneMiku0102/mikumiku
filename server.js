@@ -16,6 +16,7 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1); // Trust the first proxy for secure cookies
 
 app.use(bodyParser.json());
+app.use(cookieParser());
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/myfirstdatabase';
 
