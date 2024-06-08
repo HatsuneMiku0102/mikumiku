@@ -10,7 +10,7 @@ const cookieParser = require('cookie-parser');
 const axios = require('axios');
 const MongoStore = require('connect-mongo');
 const helmet = require('helmet');
-const mongoose = require('mongoose'); // Add mongoose
+const mongoose = require('mongoose');
 
 dotenv.config();
 
@@ -55,19 +55,11 @@ app.use(session({
     cookie: { secure: false, sameSite: 'strict' } // Set secure to true if using HTTPS
 }));
 
-// Middleware to log session creation and saving
+// Add middleware to log session creation
 app.use((req, res, next) => {
     console.log(`Session ID: ${req.session.id}`);
     console.log(`Session Data before save: ${JSON.stringify(req.session)}`);
-    req.session.save(err => {
-        if (err) {
-            console.error('Error saving session:', err);
-        } else {
-            console.log('Session saved successfully');
-            console.log(`Session Data after save: ${JSON.stringify(req.session)}`);
-        }
-        next();
-    });
+    next();
 });
 
 // Set CSP headers using helmet
