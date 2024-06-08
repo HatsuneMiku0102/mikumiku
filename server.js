@@ -1,8 +1,11 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const path = require('path');
 const dotenv = require('dotenv');
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser'); // Ensure this is imported
 const axios = require('axios');
 const MongoStore = require('connect-mongo');
 const helmet = require('helmet');
@@ -16,7 +19,7 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1); // Trust the first proxy for secure cookies
 
 app.use(bodyParser.json());
-app.use(cookieParser());
+app.use(cookieParser()); // Use cookie-parser middleware
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/myfirstdatabase';
 
