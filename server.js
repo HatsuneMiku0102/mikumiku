@@ -1,3 +1,5 @@
+
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
@@ -74,7 +76,7 @@ app.use(session({
         secure: true, // Ensure secure flag is true for HTTPS
         sameSite: 'None', // Adjusting SameSite attribute
         httpOnly: true,
-        maxAge: 60 * 60 * 1000 // 1 hour
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
 
@@ -107,8 +109,7 @@ const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
     bungie_name: { type: String, required: true },
     membership_id: { type: String, unique: true, required: true },
-    platform_type: { type: Number, required: true },
-    last_used_authorize: { type: Date } // Add field for last used authorize command
+    platform_type: { type: Number, required: true }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -117,7 +118,7 @@ const sessionSchema = new mongoose.Schema({
     state: { type: String, required: true, unique: true },
     user_id: { type: String, required: true },
     session_id: { type: String, required: true },
-    created_at: { type: Date, default: Date.now, expires: 3600 }, // 1 hour
+    created_at: { type: Date, default: Date.now, expires: 86400 }, // 24 hours
     ip_address: { type: String },
     user_agent: { type: String }
 });
@@ -269,8 +270,7 @@ app.get('/callback', async (req, res) => {
             {
                 discord_id: discordId,
                 bungie_name: bungieName,
-                platform_type: platformType,
-                last_used_authorize: null // Initialize the last_used_authorize field
+                platform_type: platformType
             },
             { upsert: true, new: true }
         );
