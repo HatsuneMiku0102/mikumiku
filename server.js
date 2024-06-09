@@ -21,7 +21,8 @@ app.set('trust proxy', 1); // Trust the first proxy for secure cookies
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/myfirstdatabase';
+// Use the same MongoDB connection string as the bot
+const mongoUrl = process.env.MONGO_URL || 'mongodb+srv://hystoriyaallusiataylor:mtW4aUnsTIr5VVcV@mikumiku.jf47gbz.mongodb.net/?retryWrites=true&w=majority&appName=mikumiku';
 
 // Connect to MongoDB
 mongoose.connect(mongoUrl, {
@@ -129,6 +130,8 @@ app.get('/callback', async (req, res) => {
     console.log(`Received state: ${state}`); // Logging received state
 
     try {
+        // Additional debug logs for MongoDB query
+        console.log(`Querying MongoDB for state: ${state}`);
         const sessionData = await Session.findOne({ state: state }).exec();
         console.log(`Session data from DB: ${JSON.stringify(sessionData)}`);
 
