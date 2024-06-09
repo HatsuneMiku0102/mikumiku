@@ -116,7 +116,7 @@ const sessionSchema = new mongoose.Schema({
     state: { type: String, required: true, unique: true },
     user_id: { type: String, required: true },
     session_id: { type: String, required: true },
-    created_at: { type: Date, default: Date.now, expires: 120 }, // 1 hour
+    created_at: { type: Date, default: Date.now, expires: 3600 }, // 1 hour
     ip_address: { type: String },
     user_agent: { type: String }
 });
