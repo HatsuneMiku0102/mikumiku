@@ -22,7 +22,7 @@ app.set('trust proxy', 1); // Trust the first proxy for secure cookies
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const mongoUrl = process.env.MONGO_URL || 'mongodb+srv://hystoriyaallusiataylor:mtW4aUnsTIr5VVcV@mikumiku.jf47gbz.mongodb.net/myfirstdatabase?retryWrites=true&w=majority';
+const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/myfirstdatabase';
 
 // Connect to MongoDB
 mongoose.connect(mongoUrl, {
@@ -55,8 +55,8 @@ app.use(session({
     saveUninitialized: false,
     store: sessionStore,
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // Ensure secure flag is true for HTTPS
-        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax', // Adjusting SameSite attribute
+        secure: true, // Ensure secure flag is true for HTTPS
+        sameSite: 'None', // Adjusting SameSite attribute
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
@@ -134,9 +134,13 @@ app.get('/callback', async (req, res) => {
     console.log(`Complete session: ${JSON.stringify(req.session)}`);
     console.log(`Cookies: ${JSON.stringify(req.cookies)}`); // Log cookies
 
-    if (!req.session.state || state !== req.session.state) {
-        console.log(`State mismatch: received state (${state}) does not match session state (${req.session.state})`);
+    if (state !== req.session.state) {
         return res.status(400).send('State mismatch. Potential CSRF attack.');
+    }
+
+    // Check session expiry
+    if (!req.session) {
+        return res.status(401).send('Session expired');
     }
 
     try {
@@ -275,7 +279,7 @@ app.post('/login', (req, res) => {
 
     res.cookie('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // Set to true if using HTTPS
+        secure: true, // Set to true if using HTTPS
         maxAge: 86400 * 1000 // 24 hours
     });
 
