@@ -244,13 +244,20 @@ app.get('/callback', async (req, res) => {
             throw new Error('Failed to obtain user information');
         }
 
-        const bungieName = userInfo.Response.bungieNetUser.displayName;
-        const platformType = userInfo.Response.primaryMembershipType;
-        const membershipId = userInfo.Response.primaryMembershipId;
+        const bungieGlobalDisplayName = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayName;
+        const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode;
+        const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
 
-        if (!membershipId) {
+        const primaryMembership = userInfo.Response.destinyMemberships.find(
+            membership => membership.membershipId === userInfo.Response.primaryMembershipId
+        );
+
+        if (!primaryMembership) {
             throw new Error('Failed to obtain platform-specific membership ID');
         }
+
+        const membershipId = primaryMembership.membershipId;
+        const platformType = primaryMembership.membershipType;
 
         logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}`);
 
