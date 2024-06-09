@@ -17,9 +17,13 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Middleware
+app.use(bodyParser.json());
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Set trust proxy and configure session
 app.set('trust proxy', 1);
-app.use(cookieParser());
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret-key',
     resave: false,
@@ -38,18 +42,12 @@ app.use(session({
     }
 }));
 
-// Middleware for logging session data
-app.use((req, res, next) => {
-    console.log(`Session ID: ${req.session.id}`);
-    console.log(`Session Data before modification: ${JSON.stringify(req.session)}`);
-    console.log(`Cookies: ${JSON.stringify(req.cookies)}`);
-    next();
-});
-
 // Set CSP headers using helmet
 app.use(helmet());
 app.use(helmet.contentSecurityPolicy({
-    // CSP directives
+    directives: {
+        // CSP directives here
+    }
 }));
 
 // MongoDB connection
@@ -99,6 +97,33 @@ app.get('/callback', async (req, res) => {
 
     try {
         // Process callback
+        const tokenData = await getBungieToken(code);
+        if (!tokenData.access_token) {
+            throw new Error('Failed to obtain access token');
+        }
+        const accessToken = tokenData.access_token;
+        const userInfo = await getBungieUserInfo(accessToken);
+
+        if (!userInfo.Response || !userInfo.Response.membershipId) {
+            throw new Error('Failed to obtain user information');
+        }
+
+        const bungieName = userInfo.Response.uniqueName;
+        const membershipId = userInfo.Response.membershipId;
+        const platformType = userInfo.Response.primaryMembershipType || 1; // Defaulting to 1 if not provided
+
+        // Store or update user information in MongoDB
+        const user = await User.findOneAndUpdate(
+            { membership_id: membershipId },
+            { bungie_name: bungieName, platform_type: platformType },
+            { new: true, upsert: true }
+        );
+
+        res.json({
+            bungie_name: user.bungie_name,
+            membership_id: user.membership_id,
+            platform_type: user.platform_type
+        });
     } catch (error) {
         console.error('Error during callback:', error);
         res.status(500).send('Internal Server Error');
@@ -107,6 +132,20 @@ app.get('/callback', async (req, res) => {
 
 // Helper function to generate random string
 function generateRandomString(length) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
+
+// Helper functions for Bungie OAuth
+async function getBungieToken(code) {
+    // Implementation
+}
+
+async function getBungieUserInfo(accessToken) {
     // Implementation
 }
 
