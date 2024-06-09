@@ -37,7 +37,7 @@ mongoose.connect(mongoUrl, {
 
 const sessionStore = MongoStore.create({
     mongoUrl: mongoUrl,
-    collectionName: 'sessions', // Ensure this matches the collection name in MongoDB
+    collectionName: 'sessions',
     ttl: 14 * 24 * 60 * 60, // 14 days
     autoRemove: 'native'
 });
@@ -175,6 +175,7 @@ app.get('/callback', async (req, res) => {
     const code = req.query.code;
 
     console.log(`Received state: ${state}`);
+    console.log(`Received code: ${code}`);
 
     try {
         const sessionData = await Session.findOne({ state });
@@ -186,12 +187,14 @@ app.get('/callback', async (req, res) => {
         }
 
         const tokenData = await getBungieToken(code);
+        console.log(`Token data: ${JSON.stringify(tokenData)}`);
+
         if (!tokenData.access_token) {
             throw new Error('Failed to obtain access token');
         }
+
         const accessToken = tokenData.access_token;
         const userInfo = await getBungieUserInfo(accessToken);
-
         console.log('User Info Response:', userInfo);
 
         if (!userInfo.Response || !userInfo.Response.membershipId) {
