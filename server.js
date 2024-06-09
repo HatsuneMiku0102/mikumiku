@@ -10,6 +10,7 @@ const axios = require('axios');
 const MongoStore = require('connect-mongo');
 const helmet = require('helmet');
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 dotenv.config();
 
@@ -96,7 +97,11 @@ const User = mongoose.model('User', userSchema);
 
 const sessionSchema = new mongoose.Schema({
     state: { type: String, required: true, unique: true },
-    user_id: { type: String, required: true }
+    user_id: { type: String, required: true },
+    session_id: { type: String, required: true },
+    created_at: { type: Date, default: Date.now, expires: 86400 }, // 24 hours
+    ip_address: { type: String },
+    user_agent: { type: String }
 });
 
 const Session = mongoose.model('Session', sessionSchema, 'sessions'); // Explicitly specify the collection name
@@ -116,16 +121,26 @@ const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches th
 // OAuth Login Route
 app.get('/login', async (req, res) => {
     const state = generateRandomString(16);
-    req.session.state = state;
+    const user_id = req.query.user_id; // Assume user_id is passed in the query for simplicity
+    const ip_address = req.ip;
+    const user_agent = req.get('User-Agent');
+
+    const sessionData = new Session({
+        state,
+        user_id,
+        session_id: req.session.id,
+        ip_address,
+        user_agent
+    });
 
     try {
-        await req.session.save();
+        await sessionData.save();
         console.log(`Generated state: ${state}`);
-        console.log(`Session after saving state: ${JSON.stringify(req.session)}`);
+        console.log(`Inserted session: ${JSON.stringify(sessionData)}`);
         const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
         res.redirect(authorizeUrl);
     } catch (err) {
-        console.error('Error saving session:', err);
+        console.error('Error saving session to DB:', err);
         res.status(500).send('Internal Server Error');
     }
 });
@@ -136,15 +151,16 @@ app.get('/callback', async (req, res) => {
     const code = req.query.code;
 
     console.log(`Received state: ${state}`);
-    console.log(`Session state: ${req.session.state}`);
-    console.log(`Complete session: ${JSON.stringify(req.session)}`);
-
-    if (state !== req.session.state) {
-        console.log("State mismatch. Potential CSRF attack.");
-        return res.status(400).send('State mismatch. Potential CSRF attack.');
-    }
 
     try {
+        const sessionData = await Session.findOne({ state });
+        console.log(`Session data from DB: ${JSON.stringify(sessionData)}`);
+
+        if (!sessionData) {
+            console.log("State mismatch. Potential CSRF attack.");
+            return res.status(400).send('State mismatch. Potential CSRF attack.');
+        }
+
         const tokenData = await getBungieToken(code);
         if (!tokenData.access_token) {
             throw new Error('Failed to obtain access token');
@@ -167,7 +183,7 @@ app.get('/callback', async (req, res) => {
             { new: true, upsert: true }
         );
 
-        await Session.deleteOne({ state: state });
+        await Session.deleteOne({ state });
 
         res.json({
             bungie_name: user.bungie_name,
@@ -190,12 +206,7 @@ app.get('/callback', async (req, res) => {
 });
 
 function generateRandomString(length) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
+    return crypto.randomBytes(length).toString('hex');
 }
 
 async function getBungieToken(code) {
