@@ -142,6 +142,7 @@ function updateMembershipMapping(discordId, userInfo) {
     // Read the existing file if it exists
     if (fs.existsSync(membershipFilePath)) {
         const data = fs.readFileSync(membershipFilePath, 'utf8');
+        logger.info('Read existing membership mapping file:', data);
         membershipMapping = JSON.parse(data);
     }
 
@@ -155,7 +156,7 @@ function updateMembershipMapping(discordId, userInfo) {
 
     // Write the updated membership mapping back to the file
     fs.writeFileSync(membershipFilePath, JSON.stringify(membershipMapping, null, 2), 'utf8');
-    logger.info('Updated membership mapping file.');
+    logger.info('Updated membership mapping file:', JSON.stringify(membershipMapping, null, 2));
 }
 
 // OAuth Login Route
