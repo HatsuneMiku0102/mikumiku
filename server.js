@@ -260,14 +260,15 @@ app.get('/callback', async (req, res) => {
 
         const discordId = sessionData.user_id;
 
-        const user = new User({
-            discord_id: discordId,
-            bungie_name: bungieName,
-            membership_id: membershipId,
-            platform_type: platformType
-        });
-
-        await user.save();
+        const user = await User.findOneAndUpdate(
+            { membership_id: membershipId },
+            {
+                discord_id: discordId,
+                bungie_name: bungieName,
+                platform_type: platformType
+            },
+            { upsert: true, new: true }
+        );
 
         // Send the stored data to the Discord bot
         await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId });
