@@ -37,7 +37,7 @@ app.set('trust proxy', 1); // Trust the first proxy for secure cookies
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const mongoUrl = process.env.MONGO_URL;
+const mongoUrl = 'mongodb+srv://hystoriyaallusiataylor:mtW4aUnsTIr5VVcV@mikumiku.jf47gbz.mongodb.net/myfirstdatabase?retryWrites=true&w=majority&appName=mikumiku';
 
 // Connect to MongoDB
 mongoose.connect(mongoUrl, {
@@ -133,7 +133,7 @@ const users = [
 // OAuth Configuration
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI;
+const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches the URL in your Bungie app settings
 
 const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
 
@@ -177,6 +177,11 @@ function updateMembershipMapping(discordId, userInfo) {
     } catch (err) {
         logger.error('Error reading membership mapping file after update:', err);
     }
+}
+
+async function sendUserInfoToDiscordBot(discordId, userInfo) {
+    // You can implement additional actions here if needed
+    logger.info('User info ready to be sent to Discord bot:', userInfo);
 }
 
 // OAuth Login Route
@@ -263,6 +268,9 @@ app.get('/callback', async (req, res) => {
         });
 
         await user.save();
+
+        // Send the stored data to the Discord bot
+        await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId });
 
         // Save the user info to the membership mapping JSON file
         updateMembershipMapping(discordId, { bungieName, platformType, membershipId });
