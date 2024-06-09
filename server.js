@@ -154,6 +154,7 @@ function updateMembershipMapping(discordId, userInfo) {
 
     // Write the updated membership mapping back to the file
     fs.writeFileSync(membershipFilePath, JSON.stringify(membershipMapping, null, 2), 'utf8');
+    logger.info('Updated membership mapping file.');
 }
 
 // OAuth Login Route
