@@ -11,6 +11,7 @@ const MongoStore = require('connect-mongo');
 const helmet = require('helmet');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
+const fs = require('fs');
 
 dotenv.config();
 
@@ -118,6 +119,29 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches the URL in your Bungie app settings
 
+const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
+
+function updateMembershipMapping(userInfo) {
+    let membershipMapping = {};
+
+    // Read the existing file if it exists
+    if (fs.existsSync(membershipFilePath)) {
+        const data = fs.readFileSync(membershipFilePath, 'utf8');
+        membershipMapping = JSON.parse(data);
+    }
+
+    // Update the membership mapping with new user info
+    membershipMapping[userInfo.membershipId] = {
+        "membership_id": userInfo.membershipId,
+        "platform_type": userInfo.platformType,
+        "bungie_name": userInfo.bungieName,
+        "clan_id": "4900827"
+    };
+
+    // Write the updated membership mapping back to the file
+    fs.writeFileSync(membershipFilePath, JSON.stringify(membershipMapping, null, 2), 'utf8');
+}
+
 // OAuth Login Route
 app.get('/login', async (req, res) => {
     const state = generateRandomString(16);
@@ -173,8 +197,8 @@ app.get('/callback', async (req, res) => {
             throw new Error('Failed to obtain user information');
         }
 
-        const bungieName = userInfo.Response.uniqueName;
-        const membershipId = userInfo.Response.membershipId;
+        const bungieName = userInfo.Response.bungieNetUser.displayName;
+        const membershipId = userInfo.Response.bungieNetUser.membershipId;
         const platformType = userInfo.Response.primaryMembershipType || 1;
 
         const user = await User.findOneAndUpdate(
@@ -182,6 +206,9 @@ app.get('/callback', async (req, res) => {
             { bungie_name: bungieName, platform_type: platformType },
             { new: true, upsert: true }
         );
+
+        // Save the user info to the membership mapping JSON file
+        updateMembershipMapping({ bungieName, platformType, membershipId });
 
         await Session.deleteOne({ state });
 
