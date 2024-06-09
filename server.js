@@ -246,13 +246,11 @@ app.get('/callback', async (req, res) => {
 
         const bungieName = userInfo.Response.bungieNetUser.displayName;
         const platformType = userInfo.Response.primaryMembershipType;
-        const membershipData = userInfo.Response.destinyMemberships.find(membership => membership.membershipType === platformType);
-        
-        if (!membershipData) {
+        const membershipId = userInfo.Response.primaryMembershipId;
+
+        if (!membershipId) {
             throw new Error('Failed to obtain platform-specific membership ID');
         }
-
-        const membershipId = membershipData.membershipId;
 
         logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}`);
 
