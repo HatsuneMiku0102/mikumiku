@@ -192,7 +192,7 @@ app.get('/callback', async (req, res) => {
 function generateRandomString(length) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
-    for (let i = 0; i < length; i++) {
+    for (let i = 0; length > i; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
@@ -207,9 +207,9 @@ async function getBungieToken(code) {
         client_secret: CLIENT_SECRET,
         redirect_uri: REDIRECT_URI
     });
-    const headers = { 
+    const headers = {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'X-API-Key': process.env.X_API_KEY  // Adding X-API-Key header
+        'X-API-Key': process.env.X_API_KEY // Adding X-API-Key header
     };
 
     try {
@@ -235,7 +235,7 @@ async function getBungieUserInfo(accessToken) {
     const url = 'https://www.bungie.net/Platform/User/GetCurrentBungieNetUser/';
     const headers = {
         'Authorization': `Bearer ${accessToken}`,
-        'X-API-Key': process.env.X_API_KEY,  // Adding X-API-Key header
+        'X-API-Key': process.env.X_API_KEY, // Adding X-API-Key header
         'User-Agent': 'axios/0.21.4'
     };
 
