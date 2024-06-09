@@ -183,15 +183,6 @@ app.get('/callback', async (req, res) => {
     }
 });
 
-function generateRandomString(length) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-}
-
 async function getBungieToken(code) {
     const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
     const payload = new URLSearchParams({
