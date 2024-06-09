@@ -104,7 +104,7 @@ const users = [
 // OAuth Configuration
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = 'https://mikumiku.dev/callback';
+const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches the URL in your Bungie app settings
 
 // OAuth Login Route
 app.get('/login', (req, res) => {
@@ -134,11 +134,13 @@ app.get('/callback', async (req, res) => {
     console.log(`Cookies: ${JSON.stringify(req.cookies)}`); // Log cookies
 
     if (state !== req.session.state) {
+        console.log(`State mismatch: received ${state}, expected ${req.session.state}`);
         return res.status(400).send('State mismatch. Potential CSRF attack.');
     }
 
     // Check session expiry
     if (!req.session) {
+        console.log('Session expired');
         return res.status(401).send('Session expired');
     }
 
@@ -192,7 +194,7 @@ app.get('/callback', async (req, res) => {
 function generateRandomString(length) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
-    for (let i = 0; length > i; i++) {
+    for (let i = 0; i < length; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
@@ -207,9 +209,9 @@ async function getBungieToken(code) {
         client_secret: CLIENT_SECRET,
         redirect_uri: REDIRECT_URI
     });
-    const headers = {
+    const headers = { 
         'Content-Type': 'application/x-www-form-urlencoded',
-        'X-API-Key': process.env.X_API_KEY // Adding X-API-Key header
+        'X-API-Key': process.env.X_API_KEY  // Adding X-API-Key header
     };
 
     try {
@@ -235,7 +237,7 @@ async function getBungieUserInfo(accessToken) {
     const url = 'https://www.bungie.net/Platform/User/GetCurrentBungieNetUser/';
     const headers = {
         'Authorization': `Bearer ${accessToken}`,
-        'X-API-Key': process.env.X_API_KEY, // Adding X-API-Key header
+        'X-API-Key': process.env.X_API_KEY,  // Adding X-API-Key header
         'User-Agent': 'axios/0.21.4'
     };
 
