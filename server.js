@@ -107,7 +107,8 @@ const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
     bungie_name: { type: String, required: true },
     membership_id: { type: String, unique: true, required: true },
-    platform_type: { type: Number, required: true }
+    platform_type: { type: Number, required: true },
+    last_used_authorize: { type: Date } // Add field for last used authorize command
 });
 
 const User = mongoose.model('User', userSchema);
@@ -268,7 +269,8 @@ app.get('/callback', async (req, res) => {
             {
                 discord_id: discordId,
                 bungie_name: bungieName,
-                platform_type: platformType
+                platform_type: platformType,
+                last_used_authorize: null // Initialize the last_used_authorize field
             },
             { upsert: true, new: true }
         );
