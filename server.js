@@ -22,7 +22,7 @@ app.set('trust proxy', 1); // Trust the first proxy for secure cookies
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/myfirstdatabase';
+const mongoUrl = process.env.MONGO_URL || 'mongodb+srv://hystoriyaallusiataylor:mtW4aUnsTIr5VVcV@mikumiku.jf47gbz.mongodb.net/myfirstdatabase?retryWrites=true&w=majority';
 
 // Connect to MongoDB
 mongoose.connect(mongoUrl, {
