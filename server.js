@@ -114,20 +114,20 @@ const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches the URL in your Bungie app settings
 
 // OAuth Login Route
-app.get('/login', (req, res) => {
+app.get('/login', async (req, res) => {
     const state = generateRandomString(16);
     req.session.state = state;
-    req.session.save(err => {
-        if (err) {
-            console.error('Error saving session:', err);
-            return res.status(500).send('Internal Server Error');
-        } else {
-            console.log(`Generated state: ${state}`);
-            console.log(`Session after saving state: ${JSON.stringify(req.session)}`);
-            const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
-            res.redirect(authorizeUrl);
-        }
-    });
+
+    try {
+        await req.session.save();
+        console.log(`Generated state: ${state}`);
+        console.log(`Session after saving state: ${JSON.stringify(req.session)}`);
+        const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
+        res.redirect(authorizeUrl);
+    } catch (err) {
+        console.error('Error saving session:', err);
+        res.status(500).send('Internal Server Error');
+    }
 });
 
 // OAuth Callback Route
