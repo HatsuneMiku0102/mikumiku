@@ -281,11 +281,7 @@ app.get('/callback', async (req, res) => {
 
         await Session.deleteOne({ state });
 
-        res.json({
-            bungie_name: user.bungie_name,
-            membership_id: user.membership_id,
-            platform_type: user.platform_type
-        });
+        res.redirect(`/index.html?bungie_name=${encodeURIComponent(bungieName)}&membership_id=${membershipId}&platform_type=${platformType}`);
     } catch (error) {
         logger.error('Error during callback:', error);
         if (error.response) {
@@ -300,6 +296,7 @@ app.get('/callback', async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
+
 
 function generateRandomString(length) {
     return crypto.randomBytes(length).toString('hex');
