@@ -115,10 +115,19 @@ const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches th
 
 // OAuth Login Route
 app.get('/login', (req, res) => {
-    const state = req.session.state;
-    console.log(`Using session state: ${state}`); // Logging state from session
-    const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
-    res.redirect(authorizeUrl);
+    const state = generateRandomString(16);
+    req.session.state = state;
+    req.session.save(err => {
+        if (err) {
+            console.error('Error saving session:', err);
+            return res.status(500).send('Internal Server Error');
+        } else {
+            console.log(`Generated state: ${state}`);
+            console.log(`Session after saving state: ${JSON.stringify(req.session)}`);
+            const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
+            res.redirect(authorizeUrl);
+        }
+    });
 });
 
 // OAuth Callback Route
@@ -126,19 +135,16 @@ app.get('/callback', async (req, res) => {
     const state = req.query.state;
     const code = req.query.code;
 
-    console.log(`Received state: ${state}`); // Logging received state
+    console.log(`Received state: ${state}`);
+    console.log(`Session state: ${req.session.state}`);
+    console.log(`Complete session: ${JSON.stringify(req.session)}`);
+
+    if (state !== req.session.state) {
+        console.log("State mismatch. Potential CSRF attack.");
+        return res.status(400).send('State mismatch. Potential CSRF attack.');
+    }
 
     try {
-        // Additional debug logs for MongoDB query
-        console.log(`Querying MongoDB for state: ${state}`);
-        const sessionData = await Session.findOne({ state: state }).exec();
-        console.log(`Session data from DB: ${JSON.stringify(sessionData)}`);
-
-        if (!sessionData) {
-            console.log("State mismatch. Potential CSRF attack.");
-            return res.status(400).send('State mismatch. Potential CSRF attack.');
-        }
-
         const tokenData = await getBungieToken(code);
         if (!tokenData.access_token) {
             throw new Error('Failed to obtain access token');
@@ -153,9 +159,8 @@ app.get('/callback', async (req, res) => {
 
         const bungieName = userInfo.Response.uniqueName;
         const membershipId = userInfo.Response.membershipId;
-        const platformType = userInfo.Response.primaryMembershipType || 1; // Defaulting to 1 if not provided
+        const platformType = userInfo.Response.primaryMembershipType || 1;
 
-        // Store the user information in MongoDB
         const user = await User.findOneAndUpdate(
             { membership_id: membershipId },
             { bungie_name: bungieName, platform_type: platformType },
@@ -171,8 +176,6 @@ app.get('/callback', async (req, res) => {
         });
     } catch (error) {
         console.error('Error during callback:', error);
-
-        // Detailed logging
         if (error.response) {
             console.log('Response data:', error.response.data);
             console.log('Response status:', error.response.status);
@@ -182,10 +185,18 @@ app.get('/callback', async (req, res) => {
         } else {
             console.log('Error setting up request:', error.message);
         }
-
         res.status(500).send('Internal Server Error');
     }
 });
+
+function generateRandomString(length) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
 
 async function getBungieToken(code) {
     const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
@@ -197,3 +208,126 @@ async function getBungieToken(code) {
         redirect_uri: REDIRECT_URI
     });
     const headers = { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-API-Key': process.env.X_API_KEY
+    };
+
+    try {
+        const response = await axios.post(url, payload.toString(), { headers });
+        console.log('Token Response:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching Bungie token:', error);
+        if (error.response) {
+            console.log('Response data:', error.response.data);
+            console.log('Response status:', error.response.status);
+            console.log('Response headers:', error.response.headers);
+        } else if (error.request) {
+            console.log('Request made but no response received:', error.request);
+        } else {
+            console.log('Error setting up request:', error.message);
+        }
+        throw new Error('Failed to fetch Bungie token');
+    }
+}
+
+async function getBungieUserInfo(accessToken) {
+    const url = 'https://www.bungie.net/Platform/User/GetCurrentBungieNetUser/';
+    const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-API-Key': process.env.X_API_KEY,
+        'User-Agent': 'axios/0.21.4'
+    };
+
+    try {
+        const response = await axios.get(url, { headers });
+        console.log('User Info Response:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching Bungie user info:', error);
+        if (error.response) {
+            console.log('Response data:', error.response.data);
+            console.log('Response status:', error.response.status);
+            console.log('Response headers:', error.response.headers);
+        } else if (error.request) {
+            console.log('Request made but no response received:', error.request);
+        } else {
+            console.log('Error setting up request:', error.message);
+        }
+        throw new Error('Failed to fetch Bungie user info');
+    }
+}
+
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    const user = users.find(u => u.username === username);
+    if (!user) {
+        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
+    }
+
+    const passwordIsValid = bcrypt.compareSync(password, user.password);
+    if (!passwordIsValid) {
+        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
+    }
+
+    const token = jwt.sign({ id: user.username }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
+        expiresIn: 86400 // 24 hours
+    });
+
+    res.cookie('token', token, {
+        httpOnly: true,
+        secure: true, // Set to true if using HTTPS
+        maxAge: 86400 * 1000 // 24 hours
+    });
+
+    res.status(200).send({ auth: true, token });
+});
+
+function verifyToken(req, res, next) {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).send({ redirect: '/admin-login.html' });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET || 'your-jwt-secret-key', (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ redirect: '/admin-login.html' });
+        }
+        req.userId = decoded.id;
+        next();
+    });
+}
+
+// Public route for fetching videos
+app.get('/api/videos/public', async (req, res) => {
+    try {
+        // Add your logic here for fetching video metadata from MongoDB
+        res.json([]); // Placeholder response
+    } catch (err) {
+        console.error('Error retrieving video metadata:', err);
+        res.status(500).send({ error: 'Error retrieving video metadata' });
+    }
+});
+
+// Protected route for adding videos
+app.post('/api/videos', verifyToken, async (req, res) => {
+    const videoMetadata = {
+        url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
+        title: req.body.title,
+        description: req.body.description,
+        category: req.body.category,
+        uploadedAt: new Date()
+    };
+
+    try {
+        // Add your logic here for saving video metadata to MongoDB
+        res.status(201).send({ message: 'Video added', video: videoMetadata }); // Placeholder response
+    } catch (err) {
+        console.error('Error saving video metadata:', err);
+        res.status(500).send({ error: 'Error saving video metadata' });
+    }
+});
+
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
