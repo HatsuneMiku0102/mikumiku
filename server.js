@@ -55,8 +55,8 @@ app.use(session({
     saveUninitialized: false,
     store: sessionStore,
     cookie: {
-        secure: true, // Ensure secure flag is true for HTTPS
-        sameSite: 'None', // Adjusting SameSite attribute
+        secure: process.env.NODE_ENV === 'production', // Ensure secure flag is true for HTTPS
+        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax', // Adjusting SameSite attribute
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
@@ -134,7 +134,7 @@ app.get('/callback', async (req, res) => {
     console.log(`Complete session: ${JSON.stringify(req.session)}`);
     console.log(`Cookies: ${JSON.stringify(req.cookies)}`); // Log cookies
 
-    if (state !== req.session.state) {
+    if (!req.session.state || state !== req.session.state) {
         return res.status(400).send('State mismatch. Potential CSRF attack.');
     }
 
@@ -279,7 +279,7 @@ app.post('/login', (req, res) => {
 
     res.cookie('token', token, {
         httpOnly: true,
-        secure: true, // Set to true if using HTTPS
+        secure: process.env.NODE_ENV === 'production', // Set to true if using HTTPS
         maxAge: 86400 * 1000 // 24 hours
     });
 
