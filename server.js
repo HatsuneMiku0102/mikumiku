@@ -281,7 +281,7 @@ app.get('/callback', async (req, res) => {
 
         await Session.deleteOne({ state });
 
-        res.redirect(`/index.html?bungie_name=${encodeURIComponent(bungieName)}&membership_id=${membershipId}&platform_type=${platformType}`);
+        res.redirect(`/confirmation.html?bungie_name=${encodeURIComponent(bungieName)}&membership_id=${membershipId}&platform_type=${platformType}`);
     } catch (error) {
         logger.error('Error during callback:', error);
         if (error.response) {
