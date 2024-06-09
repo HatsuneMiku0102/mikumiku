@@ -1,4 +1,3 @@
-// Import required modules
 const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
@@ -60,6 +59,14 @@ mongoose.connect(process.env.MONGO_URL || 'mongodb://localhost:27017/myfirstdata
     console.error('Error connecting to MongoDB:', err);
 });
 
+// User model
+const userSchema = new mongoose.Schema({
+    bungie_name: { type: String, required: true },
+    membership_id: { type: String, unique: true, required: true },
+    platform_type: { type: Number, required: true }
+});
+const User = mongoose.model('User', userSchema);
+
 // OAuth Configuration
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
@@ -75,6 +82,7 @@ app.get('/login', (req, res) => {
             return res.status(500).send('Internal Server Error');
         } else {
             console.log(`Generated state: ${state}`);
+            console.log(`Session after saving state: ${JSON.stringify(req.session)}`);
             const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
             res.redirect(authorizeUrl);
         }
@@ -86,7 +94,11 @@ app.get('/callback', async (req, res) => {
     const state = req.query.state;
     const code = req.query.code;
 
+    console.log(`Received state: ${state}`);
+    console.log(`Session state: ${req.session.state}`);
+
     if (state !== req.session.state) {
+        console.error('State mismatch. Potential CSRF attack.');
         return res.status(400).send('State mismatch. Potential CSRF attack.');
     }
 
@@ -96,7 +108,6 @@ app.get('/callback', async (req, res) => {
     }
 
     try {
-        // Process callback
         const tokenData = await getBungieToken(code);
         if (!tokenData.access_token) {
             throw new Error('Failed to obtain access token');
@@ -110,9 +121,8 @@ app.get('/callback', async (req, res) => {
 
         const bungieName = userInfo.Response.uniqueName;
         const membershipId = userInfo.Response.membershipId;
-        const platformType = userInfo.Response.primaryMembershipType || 1; // Defaulting to 1 if not provided
+        const platformType = userInfo.Response.primaryMembershipType || 1;
 
-        // Store or update user information in MongoDB
         const user = await User.findOneAndUpdate(
             { membership_id: membershipId },
             { bungie_name: bungieName, platform_type: platformType },
@@ -142,11 +152,45 @@ function generateRandomString(length) {
 
 // Helper functions for Bungie OAuth
 async function getBungieToken(code) {
-    // Implementation
+    const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
+    const payload = new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code,
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        redirect_uri: REDIRECT_URI
+    });
+    const headers = { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-API-Key': process.env.X_API_KEY
+    };
+
+    try {
+        const response = await axios.post(url, payload.toString(), { headers });
+        console.log('Token Response:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching Bungie token:', error);
+        throw new Error('Failed to fetch Bungie token');
+    }
 }
 
 async function getBungieUserInfo(accessToken) {
-    // Implementation
+    const url = 'https://www.bungie.net/Platform/User/GetCurrentBungieNetUser/';
+    const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-API-Key': process.env.X_API_KEY,
+        'User-Agent': 'axios/0.21.4'
+    };
+
+    try {
+        const response = await axios.get(url, { headers });
+        console.log('User Info Response:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching Bungie user info:', error);
+        throw new Error('Failed to fetch Bungie user info');
+    }
 }
 
 // Start server
