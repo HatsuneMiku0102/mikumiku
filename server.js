@@ -129,6 +129,7 @@ app.get('/callback', async (req, res) => {
     const code = req.query.code;
 
     console.log(`Received state: ${state}`); // Logging received state
+    console.log(`Session ID: ${req.session.id}`);
     console.log(`Session state: ${req.session.state}`); // Logging session state
     console.log(`Complete session: ${JSON.stringify(req.session)}`);
     console.log(`Cookies: ${JSON.stringify(req.cookies)}`); // Log cookies
