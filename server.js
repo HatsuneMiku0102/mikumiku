@@ -1,17 +1,10 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const bcrypt = require('bcryptjs');
 const session = require('express-session');
-const path = require('path');
-const dotenv = require('dotenv');
-const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const axios = require('axios');
 const MongoStore = require('connect-mongo');
-const helmet = require('helmet');
 const mongoose = require('mongoose');
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -35,16 +28,8 @@ mongoose.connect(mongoUrl, {
 const sessionStore = MongoStore.create({
     mongoUrl: mongoUrl,
     collectionName: 'sessions',
-    ttl: 14 * 24 * 60 * 60, // 14 days
+    ttl: 14 * 24 * 60 * 60,
     autoRemove: 'native'
-});
-
-sessionStore.on('connected', () => {
-    console.log('Session store connected to MongoDB');
-});
-
-sessionStore.on('error', (error) => {
-    console.error('Session store error:', error);
 });
 
 app.use(session({
@@ -53,10 +38,10 @@ app.use(session({
     saveUninitialized: false,
     store: sessionStore,
     cookie: {
-        secure: true, // Ensure secure flag is true for HTTPS
-        sameSite: 'None', // Adjusting SameSite attribute
+        secure: true,
+        sameSite: 'None',
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        maxAge: 24 * 60 * 60 * 1000
     }
 }));
 
@@ -66,41 +51,6 @@ app.use((req, res, next) => {
     console.log(`Cookies: ${JSON.stringify(req.cookies)}`);
     next();
 });
-
-app.use(helmet());
-app.use(helmet.contentSecurityPolicy({
-    directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        imgSrc: ["'self'", "data:", "https://*"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        connectSrc: ["'self'", "https://*"],
-        frameSrc: ["'self'", "https://discord.com"],
-        frameAncestors: ["'self'", "https://discord.com"]
-    }
-}));
-
-app.use(express.static(path.join(__dirname, 'public')));
-
-const userSchema = new mongoose.Schema({
-    bungie_name: { type: String, required: true },
-    membership_id: { type: String, unique: true, required: true },
-    platform_type: { type: Number, required: true }
-});
-
-const User = mongoose.model('User', userSchema);
-
-const users = [
-    {
-        username: process.env.ADMIN_USERNAME,
-        password: bcrypt.hashSync(process.env.ADMIN_PASSWORD, 8)
-    }
-];
-
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = 'https://mikumiku.dev/callback';
 
 app.get('/login', (req, res) => {
     const state = generateRandomString(16);
@@ -250,72 +200,6 @@ async function getBungieUserInfo(accessToken) {
         throw new Error('Failed to fetch Bungie user info');
     }
 }
-
-app.post('/login', (req, res) => {
-    const { username, password } = req.body;
-    const user = users.find(u => u.username === username);
-    if (!user) {
-        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
-    }
-
-    const passwordIsValid = bcrypt.compareSync(password, user.password);
-    if (!passwordIsValid) {
-        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
-    }
-
-    const token = jwt.sign({ id: user.username }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
-        expiresIn: 86400
-    });
-
-    res.cookie('token', token, {
-        httpOnly: true,
-        secure: true,
-        maxAge: 86400 * 1000
-    });
-
-    res.status(200).send({ auth: true, token });
-});
-
-function verifyToken(req, res, next) {
-    const token = req.cookies.token;
-    if (!token) {
-        return res.status(401).send({ redirect: '/admin-login.html' });
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET || 'your-jwt-secret-key', (err, decoded) => {
-        if (err) {
-            return res.status(401).send({ redirect: '/admin-login.html' });
-        }
-        req.userId = decoded.id;
-        next();
-    });
-}
-
-app.get('/api/videos/public', async (req, res) => {
-    try {
-        res.json([]);
-    } catch (err) {
-        console.error('Error retrieving video metadata:', err);
-        res.status(500).send({ error: 'Error retrieving video metadata' });
-    }
-});
-
-app.post('/api/videos', verifyToken, async (req, res) => {
-    const videoMetadata = {
-        url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
-        title: req.body.title,
-        description: req.body.description,
-        category: req.body.category,
-        uploadedAt: new Date()
-    };
-
-    try {
-        res.status(201).send({ message: 'Video added', video: videoMetadata });
-    } catch (err) {
-        console.error('Error saving video metadata:', err);
-        res.status(500).send({ error: 'Error saving video metadata' });
-    }
-});
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
