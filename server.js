@@ -21,8 +21,7 @@ app.set('trust proxy', 1); // Trust the first proxy for secure cookies
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-// Use the same MongoDB connection string as the bot
-const mongoUrl = process.env.MONGO_URL || 'mongodb+srv://hystoriyaallusiataylor:mtW4aUnsTIr5VVcV@mikumiku.jf47gbz.mongodb.net/?retryWrites=true&w=majority&appName=mikumiku';
+const mongoUrl = 'mongodb+srv://hystoriyaallusiataylor:mtW4aUnsTIr5VVcV@mikumiku.jf47gbz.mongodb.net/?retryWrites=true&w=majority&appName=mikumiku';
 
 // Connect to MongoDB
 mongoose.connect(mongoUrl, {
