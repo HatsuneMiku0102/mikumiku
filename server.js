@@ -239,22 +239,20 @@ app.get('/callback', async (req, res) => {
         const userInfo = await getBungieUserInfo(accessToken);
         logger.info('User Info Response:', userInfo);
 
-        if (!userInfo.Response || !userInfo.Response.membershipId) {
+        if (!userInfo.Response || !userInfo.Response.destinyMemberships) {
             logger.error('Incomplete user info response:', userInfo);
             throw new Error('Failed to obtain user information');
         }
 
-        const bungieName = userInfo.Response.displayName;
-        const membershipId = userInfo.Response.membershipId;
-
-        let platformType;
-        if (userInfo.Response.primaryMembershipType !== undefined) {
-            platformType = userInfo.Response.primaryMembershipType;
-        } else if (userInfo.Response.steamDisplayName) {
-            platformType = 3; // Steam
-        } else {
-            platformType = 1; // Default to 1 if nothing else matches
+        const bungieName = userInfo.Response.bungieNetUser.displayName;
+        const platformType = userInfo.Response.primaryMembershipType;
+        const membershipData = userInfo.Response.destinyMemberships.find(membership => membership.membershipType === platformType);
+        
+        if (!membershipData) {
+            throw new Error('Failed to obtain platform-specific membership ID');
         }
+
+        const membershipId = membershipData.membershipId;
 
         logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}`);
 
@@ -336,7 +334,7 @@ async function getBungieToken(code) {
 }
 
 async function getBungieUserInfo(accessToken) {
-    const url = 'https://www.bungie.net/Platform/User/GetCurrentBungieNetUser/';
+    const url = 'https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/';
     const headers = {
         'Authorization': `Bearer ${accessToken}`,
         'X-API-Key': process.env.X_API_KEY,
