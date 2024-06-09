@@ -42,7 +42,8 @@ const mongoUrl = 'mongodb+srv://hystoriyaallusiataylor:mtW4aUnsTIr5VVcV@mikumiku
 // Connect to MongoDB
 mongoose.connect(mongoUrl, {
     useNewUrlParser: true,
-    useUnifiedTopology: true
+    useUnifiedTopology: true,
+    useFindAndModify: false  // Address deprecation warning
 }).then(() => {
     logger.info('Connected to MongoDB');
 }).catch((err) => {
