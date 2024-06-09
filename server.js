@@ -12,41 +12,27 @@ const helmet = require('helmet');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 const fs = require('fs');
-const winston = require('winston');
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Create a logger with Winston
-const logger = winston.createLogger({
-    level: 'info',
-    format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.printf(({ timestamp, level, message }) => `${timestamp} [${level.toUpperCase()}]: ${message}`)
-    ),
-    transports: [
-        new winston.transports.Console(),
-        new winston.transports.File({ filename: 'server.log' })
-    ]
-});
-
 app.set('trust proxy', 1); // Trust the first proxy for secure cookies
 
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const mongoUrl = process.env.MONGO_URL || 'mongodb+srv://hystoriyaallusiataylor:mtW4aUnsTIr5VVcV@mikumiku.jf47gbz.mongodb.net/myfirstdatabase?retryWrites=true&w=majority&appName=mikumiku';
+const mongoUrl = 'mongodb+srv://hystoriyaallusiataylor:mtW4aUnsTIr5VVcV@mikumiku.jf47gbz.mongodb.net/myfirstdatabase?retryWrites=true&w=majority&appName=mikumiku';
 
 // Connect to MongoDB
 mongoose.connect(mongoUrl, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 }).then(() => {
-    logger.info('Connected to MongoDB');
+    console.log('Connected to MongoDB');
 }).catch((err) => {
-    logger.error(`Error connecting to MongoDB: ${err}`);
+    console.error('Error connecting to MongoDB:', err);
 });
 
 const sessionStore = MongoStore.create({
@@ -57,11 +43,11 @@ const sessionStore = MongoStore.create({
 });
 
 sessionStore.on('connected', () => {
-    logger.info('Session store connected to MongoDB');
+    console.log('Session store connected to MongoDB');
 });
 
 sessionStore.on('error', (error) => {
-    logger.error(`Session store error: ${error}`);
+    console.error('Session store error:', error);
 });
 
 app.use(session({
@@ -78,9 +64,9 @@ app.use(session({
 }));
 
 app.use((req, res, next) => {
-    logger.info(`Session ID: ${req.session.id}`);
-    logger.info(`Session Data before modification: ${JSON.stringify(req.session)}`);
-    logger.info(`Cookies: ${JSON.stringify(req.cookies)}`);
+    console.log(`Session ID: ${req.session.id}`);
+    console.log(`Session Data before modification: ${JSON.stringify(req.session)}`);
+    console.log(`Cookies: ${JSON.stringify(req.cookies)}`);
     next();
 });
 
@@ -154,7 +140,6 @@ function updateMembershipMapping(discordId, userInfo) {
 
     // Write the updated membership mapping back to the file
     fs.writeFileSync(membershipFilePath, JSON.stringify(membershipMapping, null, 2), 'utf8');
-    logger.info(`Updated membership mapping for user ${discordId}`);
 }
 
 // OAuth Login Route
@@ -174,12 +159,12 @@ app.get('/login', async (req, res) => {
 
     try {
         await sessionData.save();
-        logger.info(`Generated state: ${state}`);
-        logger.info(`Inserted session: ${JSON.stringify(sessionData)}`);
+        console.log(`Generated state: ${state}`);
+        console.log(`Inserted session: ${JSON.stringify(sessionData)}`);
         const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
         res.redirect(authorizeUrl);
     } catch (err) {
-        logger.error(`Error saving session to DB: ${err}`);
+        console.error('Error saving session to DB:', err);
         res.status(500).send('Internal Server Error');
     }
 });
@@ -189,20 +174,20 @@ app.get('/callback', async (req, res) => {
     const state = req.query.state;
     const code = req.query.code;
 
-    logger.info(`Received state: ${state}`);
-    logger.info(`Received code: ${code}`);
+    console.log(`Received state: ${state}`);
+    console.log(`Received code: ${code}`);
 
     try {
         const sessionData = await Session.findOne({ state });
-        logger.info(`Session data from DB: ${JSON.stringify(sessionData)}`);
+        console.log(`Session data from DB: ${JSON.stringify(sessionData)}`);
 
         if (!sessionData) {
-            logger.warn("State mismatch. Potential CSRF attack.");
+            console.log("State mismatch. Potential CSRF attack.");
             return res.status(400).send('State mismatch. Potential CSRF attack.');
         }
 
         const tokenData = await getBungieToken(code);
-        logger.info(`Token data: ${JSON.stringify(tokenData)}`);
+        console.log(`Token data: ${JSON.stringify(tokenData)}`);
 
         if (!tokenData.access_token) {
             throw new Error('Failed to obtain access token');
@@ -210,10 +195,10 @@ app.get('/callback', async (req, res) => {
 
         const accessToken = tokenData.access_token;
         const userInfo = await getBungieUserInfo(accessToken);
-        logger.info(`User Info Response: ${JSON.stringify(userInfo)}`);
+        console.log('User Info Response:', userInfo);
 
         if (!userInfo.Response || !userInfo.Response.membershipId) {
-            logger.error('Incomplete user info response:', userInfo);
+            console.error('Incomplete user info response:', userInfo);
             throw new Error('Failed to obtain user information');
         }
 
@@ -229,7 +214,7 @@ app.get('/callback', async (req, res) => {
             platformType = 1; // Default to 1 if nothing else matches
         }
 
-        logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}`);
+        console.log(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}`);
 
         const user_id = sessionData.user_id;
 
@@ -250,15 +235,15 @@ app.get('/callback', async (req, res) => {
             platform_type: user.platform_type
         });
     } catch (error) {
-        logger.error(`Error during callback: ${error}`);
+        console.error('Error during callback:', error);
         if (error.response) {
-            logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
-            logger.error(`Response status: ${error.response.status}`);
-            logger.error(`Response headers: ${JSON.stringify(error.response.headers)}`);
+            console.log('Response data:', error.response.data);
+            console.log('Response status:', error.response.status);
+            console.log('Response headers:', error.response.headers);
         } else if (error.request) {
-            logger.error(`Request made but no response received: ${error.request}`);
+            console.log('Request made but no response received:', error.request);
         } else {
-            logger.error(`Error setting up request: ${error.message}`);
+            console.log('Error setting up request:', error.message);
         }
         res.status(500).send('Internal Server Error');
     }
@@ -284,18 +269,18 @@ async function getBungieToken(code) {
 
     try {
         const response = await axios.post(url, payload.toString(), { headers });
-        logger.info(`Token Response: ${JSON.stringify(response.data)}`);
+        console.log('Token Response:', response.data);
         return response.data;
     } catch (error) {
-        logger.error(`Error fetching Bungie token: ${error}`);
+        console.error('Error fetching Bungie token:', error);
         if (error.response) {
-            logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
-            logger.error(`Response status: ${error.response.status}`);
-            logger.error(`Response headers: ${JSON.stringify(error.response.headers)}`);
+            console.log('Response data:', error.response.data);
+            console.log('Response status:', error.response.status);
+            console.log('Response headers:', error.response.headers);
         } else if (error.request) {
-            logger.error(`Request made but no response received: ${error.request}`);
+            console.log('Request made but no response received:', error.request);
         } else {
-            logger.error(`Error setting up request: ${error.message}`);
+            console.log('Error setting up request:', error.message);
         }
         throw new Error('Failed to fetch Bungie token');
     }
@@ -311,18 +296,18 @@ async function getBungieUserInfo(accessToken) {
 
     try {
         const response = await axios.get(url, { headers });
-        logger.info(`User Info Response: ${JSON.stringify(response.data)}`);
+        console.log('User Info Response:', response.data);
         return response.data;
     } catch (error) {
-        logger.error(`Error fetching Bungie user info: ${error}`);
+        console.error('Error fetching Bungie user info:', error);
         if (error.response) {
-            logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
-            logger.error(`Response status: ${error.response.status}`);
-            logger.error(`Response headers: ${JSON.stringify(error.response.headers)}`);
+            console.log('Response data:', error.response.data);
+            console.log('Response status:', error.response.status);
+            console.log('Response headers:', error.response.headers);
         } else if (error.request) {
-            logger.error(`Request made but no response received: ${error.request}`);
+            console.log('Request made but no response received:', error.request);
         } else {
-            logger.error(`Error setting up request: ${error.message}`);
+            console.log('Error setting up request:', error.message);
         }
         throw new Error('Failed to fetch Bungie user info');
     }
@@ -374,7 +359,7 @@ app.get('/api/videos/public', async (req, res) => {
         // Add your logic here for fetching video metadata from MongoDB
         res.json([]); // Placeholder response
     } catch (err) {
-        logger.error(`Error retrieving video metadata: ${err}`);
+        console.error('Error retrieving video metadata:', err);
         res.status(500).send({ error: 'Error retrieving video metadata' });
     }
 });
@@ -393,11 +378,11 @@ app.post('/api/videos', verifyToken, async (req, res) => {
         // Add your logic here for saving video metadata to MongoDB
         res.status(201).send({ message: 'Video added', video: videoMetadata }); // Placeholder response
     } catch (err) {
-        logger.error(`Error saving video metadata: ${err}`);
+        console.error('Error saving video metadata:', err);
         res.status(500).send({ error: 'Error saving video metadata' });
     }
 });
 
 app.listen(PORT, () => {
-    logger.info(`Server is running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
