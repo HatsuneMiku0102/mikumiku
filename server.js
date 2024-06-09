@@ -168,8 +168,15 @@ function updateMembershipMapping(discordId, userInfo) {
     } catch (err) {
         logger.error('Error writing to membership mapping file:', err);
     }
-}
 
+    // Read and log the file contents to confirm update
+    try {
+        const updatedData = fs.readFileSync(membershipFilePath, 'utf8');
+        logger.info('Verified membership mapping file content:', updatedData);
+    } catch (err) {
+        logger.error('Error reading membership mapping file after update:', err);
+    }
+}
 
 // OAuth Login Route
 app.get('/login', async (req, res) => {
