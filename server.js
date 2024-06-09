@@ -13,6 +13,7 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const fs = require('fs');
 const winston = require('winston');
+const WebSocket = require('ws');
 
 // Configure logging
 const logger = winston.createLogger({
@@ -102,6 +103,25 @@ app.use(helmet.contentSecurityPolicy({
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// WebSocket setup
+const wss = new WebSocket.Server({ noServer: true });
+
+wss.on('connection', (ws) => {
+    ws.on('message', (message) => {
+        logger.info(`Received message: ${message}`);
+    });
+});
+
+const server = app.listen(PORT, () => {
+    logger.info(`Server is running on port ${PORT}`);
+});
+
+server.on('upgrade', (request, socket, head) => {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+    });
+});
+
 // MongoDB Schema and Model
 const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
@@ -133,7 +153,7 @@ const users = [
 // OAuth Configuration
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI;
+const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches the URL in your Bungie app settings
 
 const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
 
@@ -177,6 +197,15 @@ function updateMembershipMapping(discordId, userInfo) {
     } catch (err) {
         logger.error('Error reading membership mapping file after update:', err);
     }
+}
+
+// Function to send data via WebSocket
+function sendUserInfoToBot(userInfo) {
+    wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(userInfo));
+        }
+    });
 }
 
 // OAuth Login Route
@@ -263,6 +292,9 @@ app.get('/callback', async (req, res) => {
         });
 
         await user.save();
+
+        // Send the stored data to the Discord bot via WebSocket
+        sendUserInfoToBot({ discord_id: discordId, bungie_name: bungieName, membership_id: membershipId, platform_type: platformType });
 
         // Save the user info to the membership mapping JSON file
         updateMembershipMapping(discordId, { bungieName, platformType, membershipId });
@@ -352,77 +384,3 @@ async function getBungieUserInfo(accessToken) {
         throw new Error('Failed to fetch Bungie user info');
     }
 }
-
-app.post('/login', (req, res) => {
-    const { username, password } = req.body;
-    const user = users.find(u => u.username === username);
-    if (!user) {
-        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
-    }
-
-    const passwordIsValid = bcrypt.compareSync(password, user.password);
-    if (!passwordIsValid) {
-        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
-    }
-
-    const token = jwt.sign({ id: user.username }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
-        expiresIn: 86400 // 24 hours
-    });
-
-    res.cookie('token', token, {
-        httpOnly: true,
-        secure: true, // Set to true if using HTTPS
-        maxAge: 86400 * 1000 // 24 hours
-    });
-
-    res.status(200).send({ auth: true, token });
-});
-
-function verifyToken(req, res, next) {
-    const token = req.cookies.token;
-    if (!token) {
-        return res.status(401).send({ redirect: '/admin-login.html' });
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET || 'your-jwt-secret-key', (err, decoded) => {
-        if (err) {
-            return res.status(401).send({ redirect: '/admin-login.html' });
-        }
-        req.userId = decoded.id;
-        next();
-    });
-}
-
-// Public route for fetching videos
-app.get('/api/videos/public', async (req, res) => {
-    try {
-        // Add your logic here for fetching video metadata from MongoDB
-        res.json([]); // Placeholder response
-    } catch (err) {
-        logger.error('Error retrieving video metadata:', err);
-        res.status(500).send({ error: 'Error retrieving video metadata' });
-    }
-});
-
-// Protected route for adding videos
-app.post('/api/videos', verifyToken, async (req, res) => {
-    const videoMetadata = {
-        url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
-        title: req.body.title,
-        description: req.body.description,
-        category: req.body.category,
-        uploadedAt: new Date()
-    };
-
-    try {
-        // Add your logic here for saving video metadata to MongoDB
-        res.status(201).send({ message: 'Video added', video: videoMetadata }); // Placeholder response
-    } catch (err) {
-        logger.error('Error saving video metadata:', err);
-        res.status(500).send({ error: 'Error saving video metadata' });
-    }
-});
-
-app.listen(PORT, () => {
-    logger.info(`Server is running on port ${PORT}`);
-});
