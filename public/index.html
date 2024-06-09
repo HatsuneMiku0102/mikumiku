@@ -43,6 +43,12 @@
         </div>
     </div>
 
+    <div class="user-info container">
+        <h2>Welcome, <span id="bungieName"></span>!</h2>
+        <p>Your membership ID is: <span id="membershipId"></span></p>
+        <p>Platform Type: <span id="platformType"></span></p>
+    </div>
+
     <div class="videos-section container">
         <div class="category-bar">
             <button data-category="all">All</button>
@@ -67,8 +73,19 @@
     <script src="/typing-effect.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Extract the query parameters from the URL
+            const params = new URLSearchParams(window.location.search);
+            const bungieName = params.get('bungie_name');
+            const membershipId = params.get('membership_id');
+            const platformType = params.get('platform_type');
+
+            // Display the user info
+            document.getElementById('bungieName').textContent = bungieName;
+            document.getElementById('membershipId').textContent = membershipId;
+            document.getElementById('platformType').textContent = platformType;
+
             let allVideos = [];
-        
+
             function fetchVideos() {
                 fetch('/api/videos/public') 
                     .then(response => {
