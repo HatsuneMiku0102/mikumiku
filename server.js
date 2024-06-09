@@ -104,6 +104,11 @@ app.get('/callback', async (req, res) => {
     console.log(`Received state: ${state}`);
     console.log(`Session state: ${req.session.state}`);
 
+    if (!req.session.state) {
+        console.error('Session state is missing.');
+        return res.status(400).send('Session state is missing.');
+    }
+
     if (state !== req.session.state) {
         console.error('State mismatch. Potential CSRF attack.');
         return res.status(400).send('State mismatch. Potential CSRF attack.');
@@ -111,7 +116,8 @@ app.get('/callback', async (req, res) => {
 
     // Check session expiry
     if (!req.session) {
-        return res.status(401).send('Session expired');
+        console.error('Session expired.');
+        return res.status(401).send('Session expired.');
     }
 
     try {
