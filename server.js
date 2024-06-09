@@ -104,6 +104,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // MongoDB Schema and Model
 const userSchema = new mongoose.Schema({
+    discord_id: { type: String, required: true },
     bungie_name: { type: String, required: true },
     membership_id: { type: String, unique: true, required: true },
     platform_type: { type: Number, required: true }
@@ -175,6 +176,20 @@ function updateMembershipMapping(discordId, userInfo) {
         logger.info('Verified membership mapping file content:', updatedData);
     } catch (err) {
         logger.error('Error reading membership mapping file after update:', err);
+    }
+}
+
+async function sendUserInfoToDiscordBot(discordId, userInfo) {
+    try {
+        const response = await axios.post(process.env.DISCORD_BOT_WEBHOOK_URL, {
+            discord_id: discordId,
+            bungie_name: userInfo.bungieName,
+            membership_id: userInfo.membershipId,
+            platform_type: userInfo.platformType
+        });
+        logger.info('Sent user info to Discord bot:', response.data);
+    } catch (error) {
+        logger.error('Error sending user info to Discord bot:', error);
     }
 }
 
@@ -252,16 +267,22 @@ app.get('/callback', async (req, res) => {
 
         logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}`);
 
-        const user_id = sessionData.user_id;
+        const discordId = sessionData.user_id;
 
-        const user = await User.findOneAndUpdate(
-            { membership_id: membershipId },
-            { bungie_name: bungieName, platform_type: platformType },
-            { new: true, upsert: true }
-        );
+        const user = new User({
+            discord_id: discordId,
+            bungie_name: bungieName,
+            membership_id: membershipId,
+            platform_type: platformType
+        });
+
+        await user.save();
+
+        // Send the stored data to the Discord bot
+        await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId });
 
         // Save the user info to the membership mapping JSON file
-        updateMembershipMapping(user_id, { bungieName, platformType, membershipId });
+        updateMembershipMapping(discordId, { bungieName, platformType, membershipId });
 
         await Session.deleteOne({ state });
 
