@@ -62,7 +62,7 @@ app.get('/login', (req, res) => {
         } else {
             console.log(`Generated state: ${state}`);
             console.log(`Session after saving state: ${JSON.stringify(req.session)}`);
-            const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
+            const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${process.env.CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${process.env.REDIRECT_URI}`;
             res.redirect(authorizeUrl);
         }
     });
@@ -144,9 +144,9 @@ async function getBungieToken(code) {
     const payload = new URLSearchParams({
         grant_type: 'authorization_code',
         code: code,
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
-        redirect_uri: REDIRECT_URI
+        client_id: process.env.CLIENT_ID,
+        client_secret: process.env.CLIENT_SECRET,
+        redirect_uri: process.env.REDIRECT_URI
     });
     const headers = { 
         'Content-Type': 'application/x-www-form-urlencoded',
