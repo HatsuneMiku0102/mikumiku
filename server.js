@@ -135,12 +135,8 @@ app.get('/callback', async (req, res) => {
     console.log(`Cookies: ${JSON.stringify(req.cookies)}`); // Log cookies
 
     if (!req.session.state || state !== req.session.state) {
+        console.log(`State mismatch: received state (${state}) does not match session state (${req.session.state})`);
         return res.status(400).send('State mismatch. Potential CSRF attack.');
-    }
-
-    // Check session expiry
-    if (!req.session) {
-        return res.status(401).send('Session expired');
     }
 
     try {
