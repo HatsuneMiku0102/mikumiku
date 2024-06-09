@@ -143,7 +143,14 @@ function updateMembershipMapping(discordId, userInfo) {
     if (fs.existsSync(membershipFilePath)) {
         const data = fs.readFileSync(membershipFilePath, 'utf8');
         logger.info('Read existing membership mapping file:', data);
-        membershipMapping = JSON.parse(data);
+        try {
+            membershipMapping = JSON.parse(data);
+        } catch (err) {
+            logger.error('Error parsing membership mapping file:', err);
+            membershipMapping = {};
+        }
+    } else {
+        logger.info('Membership mapping file does not exist. A new one will be created.');
     }
 
     // Update the membership mapping with new user info
@@ -155,9 +162,14 @@ function updateMembershipMapping(discordId, userInfo) {
     };
 
     // Write the updated membership mapping back to the file
-    fs.writeFileSync(membershipFilePath, JSON.stringify(membershipMapping, null, 2), 'utf8');
-    logger.info('Updated membership mapping file:', JSON.stringify(membershipMapping, null, 2));
+    try {
+        fs.writeFileSync(membershipFilePath, JSON.stringify(membershipMapping, null, 2), 'utf8');
+        logger.info('Updated membership mapping file:', JSON.stringify(membershipMapping, null, 2));
+    } catch (err) {
+        logger.error('Error writing to membership mapping file:', err);
+    }
 }
+
 
 // OAuth Login Route
 app.get('/login', async (req, res) => {
