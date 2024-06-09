@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
@@ -76,7 +74,7 @@ app.use(session({
         secure: true, // Ensure secure flag is true for HTTPS
         sameSite: 'None', // Adjusting SameSite attribute
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        maxAge: 60 * 60 * 1000 // 1 hour
     }
 }));
 
@@ -118,7 +116,7 @@ const sessionSchema = new mongoose.Schema({
     state: { type: String, required: true, unique: true },
     user_id: { type: String, required: true },
     session_id: { type: String, required: true },
-    created_at: { type: Date, default: Date.now, expires: 86400 }, // 24 hours
+    created_at: { type: Date, default: Date.now, expires: 120 }, // 1 hour
     ip_address: { type: String },
     user_agent: { type: String }
 });
