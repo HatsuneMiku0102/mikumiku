@@ -201,7 +201,9 @@ app.get('/callback', async (req, res) => {
 
         const bungieName = userInfo.Response.displayName;
         const membershipId = userInfo.Response.membershipId;
-        const platformType = userInfo.Response.primaryMembershipType;
+        const platformType = userInfo.Response.primaryMembershipType || 1; // Default to 1 if undefined
+
+        console.log(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}`);
 
         const user_id = sessionData.user_id;
 
