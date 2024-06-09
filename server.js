@@ -121,7 +121,7 @@ const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches th
 
 const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
 
-function updateMembershipMapping(userInfo) {
+function updateMembershipMapping(discordId, userInfo) {
     let membershipMapping = {};
 
     // Read the existing file if it exists
@@ -131,7 +131,7 @@ function updateMembershipMapping(userInfo) {
     }
 
     // Update the membership mapping with new user info
-    membershipMapping[userInfo.membershipId] = {
+    membershipMapping[discordId] = {
         "membership_id": userInfo.membershipId,
         "platform_type": userInfo.platformType,
         "bungie_name": userInfo.bungieName,
@@ -192,14 +192,18 @@ app.get('/callback', async (req, res) => {
         const accessToken = tokenData.access_token;
         const userInfo = await getBungieUserInfo(accessToken);
 
+        console.log('User Info Response:', userInfo);
+
         if (!userInfo.Response || !userInfo.Response.membershipId) {
             console.error('Incomplete user info response:', userInfo);
             throw new Error('Failed to obtain user information');
         }
 
-        const bungieName = userInfo.Response.bungieNetUser.displayName;
-        const membershipId = userInfo.Response.bungieNetUser.membershipId;
-        const platformType = userInfo.Response.primaryMembershipType || 1;
+        const bungieName = userInfo.Response.displayName;
+        const membershipId = userInfo.Response.membershipId;
+        const platformType = userInfo.Response.primaryMembershipType;
+
+        const user_id = sessionData.user_id;
 
         const user = await User.findOneAndUpdate(
             { membership_id: membershipId },
@@ -208,7 +212,7 @@ app.get('/callback', async (req, res) => {
         );
 
         // Save the user info to the membership mapping JSON file
-        updateMembershipMapping({ bungieName, platformType, membershipId });
+        updateMembershipMapping(user_id, { bungieName, platformType, membershipId });
 
         await Session.deleteOne({ state });
 
