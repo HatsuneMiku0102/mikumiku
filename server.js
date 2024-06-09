@@ -201,7 +201,15 @@ app.get('/callback', async (req, res) => {
 
         const bungieName = userInfo.Response.displayName;
         const membershipId = userInfo.Response.membershipId;
-        const platformType = userInfo.Response.primaryMembershipType || 1; // Default to 1 if undefined
+
+        let platformType;
+        if (userInfo.Response.primaryMembershipType !== undefined) {
+            platformType = userInfo.Response.primaryMembershipType;
+        } else if (userInfo.Response.steamDisplayName) {
+            platformType = 3; // Steam
+        } else {
+            platformType = 1; // Default to 1 if nothing else matches
+        }
 
         console.log(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}`);
 
