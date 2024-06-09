@@ -35,7 +35,7 @@ mongoose.connect(mongoUrl, {
 
 const sessionStore = MongoStore.create({
     mongoUrl: mongoUrl,
-    collectionName: 'sessions',
+    collectionName: 'sessions', // Ensure this matches the collection name in MongoDB
     ttl: 14 * 24 * 60 * 60, // 14 days
     autoRemove: 'native'
 });
@@ -99,7 +99,7 @@ const sessionSchema = new mongoose.Schema({
     user_id: { type: String, required: true }
 });
 
-const Session = mongoose.model('Session', sessionSchema);
+const Session = mongoose.model('Session', sessionSchema, 'sessions'); // Explicitly specify the collection name
 
 const users = [
     {
