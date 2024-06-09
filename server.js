@@ -1,3 +1,4 @@
+// Import required modules
 const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
@@ -135,6 +136,11 @@ app.get('/callback', async (req, res) => {
 
     if (state !== req.session.state) {
         return res.status(400).send('State mismatch. Potential CSRF attack.');
+    }
+
+    // Check session expiry
+    if (!req.session) {
+        return res.status(401).send('Session expired');
     }
 
     try {
