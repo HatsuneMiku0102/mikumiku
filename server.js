@@ -45,7 +45,14 @@ app.use(session({
 app.use(helmet());
 app.use(helmet.contentSecurityPolicy({
     directives: {
-        // CSP directives here
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        imgSrc: ["'self'", "data:", "https://*"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        connectSrc: ["'self'", "https://*"],
+        frameSrc: ["'self'", "https://discord.com"],
+        frameAncestors: ["'self'", "https://discord.com"]
     }
 }));
 
@@ -68,8 +75,8 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 // OAuth Configuration
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const CLIENT_ID = '46399';
+const CLIENT_SECRET = 'C7.3J-mlb6CsrnxWskNeBnYRENEARjHDELMaggh9fGs';
 const REDIRECT_URI = 'https://mikumiku.dev/callback';
 
 // OAuth Login Route
@@ -162,7 +169,7 @@ async function getBungieToken(code) {
     });
     const headers = { 
         'Content-Type': 'application/x-www-form-urlencoded',
-        'X-API-Key': process.env.X_API_KEY
+        'X-API-Key': 'Your-API-Key'
     };
 
     try {
@@ -179,7 +186,7 @@ async function getBungieUserInfo(accessToken) {
     const url = 'https://www.bungie.net/Platform/User/GetCurrentBungieNetUser/';
     const headers = {
         'Authorization': `Bearer ${accessToken}`,
-        'X-API-Key': process.env.X_API_KEY,
+        'X-API-Key': 'Your-API-Key',
         'User-Agent': 'axios/0.21.4'
     };
 
