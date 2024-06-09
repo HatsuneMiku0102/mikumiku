@@ -133,7 +133,7 @@ const users = [
 // OAuth Configuration
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches the URL in your Bungie app settings
+const REDIRECT_URI = process.env.REDIRECT_URI;
 
 const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
 
@@ -176,20 +176,6 @@ function updateMembershipMapping(discordId, userInfo) {
         logger.info('Verified membership mapping file content:', updatedData);
     } catch (err) {
         logger.error('Error reading membership mapping file after update:', err);
-    }
-}
-
-async function sendUserInfoToDiscordBot(discordId, userInfo) {
-    try {
-        const response = await axios.post(process.env.DISCORD_BOT_WEBHOOK_URL, {
-            discord_id: discordId,
-            bungie_name: userInfo.bungieName,
-            membership_id: userInfo.membershipId,
-            platform_type: userInfo.platformType
-        });
-        logger.info('Sent user info to Discord bot:', response.data);
-    } catch (error) {
-        logger.error('Error sending user info to Discord bot:', error);
     }
 }
 
@@ -277,9 +263,6 @@ app.get('/callback', async (req, res) => {
         });
 
         await user.save();
-
-        // Send the stored data to the Discord bot
-        await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId });
 
         // Save the user info to the membership mapping JSON file
         updateMembershipMapping(discordId, { bungieName, platformType, membershipId });
