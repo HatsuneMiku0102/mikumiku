@@ -1,3 +1,5 @@
+
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
@@ -37,7 +39,7 @@ app.set('trust proxy', 1); // Trust the first proxy for secure cookies
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const mongoUrl = process.env.MONGO_URL || 'your_mongo_url';
+const mongoUrl = 'mongodb+srv://hystoriyaallusiataylor:mtW4aUnsTIr5VVcV@mikumiku.jf47gbz.mongodb.net/myfirstdatabase?retryWrites=true&w=majority&appName=mikumiku';
 
 // Connect to MongoDB
 mongoose.connect(mongoUrl, {
@@ -296,6 +298,7 @@ app.get('/callback', async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
+
 
 function generateRandomString(length) {
     return crypto.randomBytes(length).toString('hex');
