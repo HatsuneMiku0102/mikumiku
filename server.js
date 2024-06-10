@@ -107,7 +107,8 @@ const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
     bungie_name: { type: String, required: true },
     membership_id: { type: String, unique: true, required: true },
-    platform_type: { type: Number, required: true }
+    platform_type: { type: Number, required: true },
+    clan_name: { type: String }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -159,7 +160,7 @@ function updateMembershipMapping(discordId, userInfo) {
         "membership_id": userInfo.membershipId,
         "platform_type": userInfo.platformType,
         "bungie_name": userInfo.bungieName,
-        "clan_id": "4900827"
+        "clan_name": userInfo.clanName
     };
 
     // Write the updated membership mapping back to the file
@@ -182,6 +183,31 @@ function updateMembershipMapping(discordId, userInfo) {
 async function sendUserInfoToDiscordBot(discordId, userInfo) {
     // You can implement additional actions here if needed
     logger.info('User info ready to be sent to Discord bot:', userInfo);
+}
+
+async function getClanInfo(membershipId, membershipType) {
+    const url = `https://www.bungie.net/Platform/GroupV2/User/${membershipType}/${membershipId}/0/1/`;
+    const headers = {
+        'X-API-Key': process.env.X_API_KEY
+    };
+
+    try {
+        const response = await axios.get(url, { headers });
+        logger.info('Clan Info Response:', response.data);
+        return response.data;
+    } catch (error) {
+        logger.error('Error fetching clan info:', error);
+        if (error.response) {
+            logger.error('Response data:', error.response.data);
+            logger.error('Response status:', error.response.status);
+            logger.error('Response headers:', error.response.headers);
+        } else if (error.request) {
+            logger.error('Request made but no response received:', error.request);
+        } else {
+            logger.error('Error setting up request:', error.message);
+        }
+        throw new Error('Failed to fetch clan info');
+    }
 }
 
 // OAuth Login Route
@@ -264,7 +290,14 @@ app.get('/callback', async (req, res) => {
         const membershipId = primaryMembership.membershipId;
         const platformType = primaryMembership.membershipType;
 
-        logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}`);
+        // Fetch clan information
+        const clanInfo = await getClanInfo(membershipId, platformType);
+        let clanName = 'None';
+        if (clanInfo.Response.results && clanInfo.Response.results.length > 0) {
+            clanName = clanInfo.Response.results[0].group.name;
+        }
+
+        logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}, clanName: ${clanName}`);
 
         const discordId = sessionData.user_id;
 
@@ -273,16 +306,17 @@ app.get('/callback', async (req, res) => {
             {
                 discord_id: discordId,
                 bungie_name: bungieName,
-                platform_type: platformType
+                platform_type: platformType,
+                clan_name: clanName
             },
             { upsert: true, new: true }
         );
 
         // Send the stored data to the Discord bot
-        await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId });
+        await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId, clanName });
 
         // Save the user info to the membership mapping JSON file
-        updateMembershipMapping(discordId, { bungieName, platformType, membershipId });
+        updateMembershipMapping(discordId, { bungieName, platformType, membershipId, clanName });
 
         await Session.deleteOne({ state });
 
@@ -313,10 +347,10 @@ app.get('/confirmation', async (req, res) => {
             return res.status(400).send('Invalid token.');
         }
 
-        const { bungie_name, membership_id, platform_type } = user;
+        const { bungie_name, membership_id, platform_type, clan_name } = user;
 
         // Render the confirmation page with user details
-        res.render('confirmation', { bungie_name, membership_id, platform_type });
+        res.render('confirmation', { bungie_name, membership_id, platform_type, clan_name });
     } catch (err) {
         logger.error('Error fetching user by token:', err);
         res.status(500).send('Internal Server Error');
