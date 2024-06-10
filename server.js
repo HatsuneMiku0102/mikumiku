@@ -107,8 +107,7 @@ const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
     bungie_name: { type: String, required: true },
     membership_id: { type: String, unique: true, required: true },
-    platform_type: { type: Number, required: true },
-    clan_name: { type: String } // Adding clan_name to store clan details
+    platform_type: { type: Number, required: true }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -160,7 +159,7 @@ function updateMembershipMapping(discordId, userInfo) {
         "membership_id": userInfo.membershipId,
         "platform_type": userInfo.platformType,
         "bungie_name": userInfo.bungieName,
-        "clan_id": userInfo.clanId
+        "clan_id": "4900827"
     };
 
     // Write the updated membership mapping back to the file
@@ -265,12 +264,7 @@ app.get('/callback', async (req, res) => {
         const membershipId = primaryMembership.membershipId;
         const platformType = primaryMembership.membershipType;
 
-        // Fetch clan details
-        const clanId = primaryMembership.groupId;
-        const clanData = await getClanDetails(clanId);
-        const clanName = clanData.Response.detail.name;
-
-        logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}, clanName: ${clanName}`);
+        logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}`);
 
         const discordId = sessionData.user_id;
 
@@ -279,17 +273,16 @@ app.get('/callback', async (req, res) => {
             {
                 discord_id: discordId,
                 bungie_name: bungieName,
-                platform_type: platformType,
-                clan_name: clanName
+                platform_type: platformType
             },
             { upsert: true, new: true }
         );
 
         // Send the stored data to the Discord bot
-        await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId, clanName });
+        await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId });
 
         // Save the user info to the membership mapping JSON file
-        updateMembershipMapping(discordId, { bungieName, platformType, membershipId, clanId });
+        updateMembershipMapping(discordId, { bungieName, platformType, membershipId });
 
         await Session.deleteOne({ state });
 
@@ -320,10 +313,10 @@ app.get('/confirmation', async (req, res) => {
             return res.status(400).send('Invalid token.');
         }
 
-        const { bungie_name, membership_id, platform_type, clan_name } = user;
+        const { bungie_name, membership_id, platform_type } = user;
 
         // Render the confirmation page with user details
-        res.render('confirmation', { bungie_name, membership_id, platform_type, clan_name });
+        res.render('confirmation', { bungie_name, membership_id, platform_type });
     } catch (err) {
         logger.error('Error fetching user by token:', err);
         res.status(500).send('Internal Server Error');
@@ -391,32 +384,6 @@ async function getBungieUserInfo(accessToken) {
             logger.error('Error setting up request:', error.message);
         }
         throw new Error('Failed to fetch Bungie user info');
-    }
-}
-
-async function getClanDetails(clanId) {
-    const url = `https://www.bungie.net/Platform/GroupV2/${clanId}/`;
-    const headers = {
-        'X-API-Key': process.env.X_API_KEY,
-        'User-Agent': 'axios/0.21.4'
-    };
-
-    try {
-        const response = await axios.get(url, { headers });
-        logger.info('Clan Details Response:', response.data);
-        return response.data;
-    } catch (error) {
-        logger.error('Error fetching clan details:', error);
-        if (error.response) {
-            logger.error('Response data:', error.response.data);
-            logger.error('Response status:', error.response.status);
-            logger.error('Response headers:', error.response.headers);
-        } else if (error.request) {
-            logger.error('Request made but no response received:', error.request);
-        } else {
-            logger.error('Error setting up request:', error.message);
-        }
-        throw new Error('Failed to fetch clan details');
     }
 }
 
