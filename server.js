@@ -124,6 +124,14 @@ const sessionSchema = new mongoose.Schema({
 
 const Session = mongoose.model('Session', sessionSchema, 'sessions'); // Explicitly specify the collection name
 
+const pendingMemberSchema = new mongoose.Schema({
+    membership_id: { type: String, required: true },
+    bungie_name: { type: String, required: true },
+    added_at: { type: Date, default: Date.now }
+});
+
+const PendingMember = mongoose.model('PendingMember', pendingMemberSchema);
+
 const users = [
     {
         username: process.env.ADMIN_USERNAME,
@@ -423,6 +431,15 @@ app.get('/api/clan/pending', async (req, res) => {
 
     try {
         const pendingMembers = await getPendingClanMembers(accessToken);
+
+        // Save pending members to MongoDB
+        const pendingMembersData = pendingMembers.Response.results.map(member => ({
+            membership_id: member.destinyUserInfo.membershipId,
+            bungie_name: member.destinyUserInfo.bungieGlobalDisplayName
+        }));
+
+        await PendingMember.insertMany(pendingMembersData, { ordered: false });
+
         res.json(pendingMembers);
     } catch (err) {
         logger.error('Error fetching pending clan members:', err);
