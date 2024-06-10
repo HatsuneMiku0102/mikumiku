@@ -107,7 +107,8 @@ const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
     bungie_name: { type: String, required: true },
     membership_id: { type: String, unique: true, required: true },
-    platform_type: { type: Number, required: true }
+    platform_type: { type: Number, required: true },
+    access_token: { type: String, required: true }  // Add access_token to store the OAuth token
 });
 
 const User = mongoose.model('User', userSchema);
@@ -273,7 +274,8 @@ app.get('/callback', async (req, res) => {
             {
                 discord_id: discordId,
                 bungie_name: bungieName,
-                platform_type: platformType
+                platform_type: platformType,
+                access_token: accessToken  // Store the access token in the database
             },
             { upsert: true, new: true }
         );
@@ -386,6 +388,47 @@ async function getBungieUserInfo(accessToken) {
         throw new Error('Failed to fetch Bungie user info');
     }
 }
+
+// Add the function to fetch pending clan members
+async function getPendingClanMembers(accessToken) {
+    const url = `https://www.bungie.net/Platform/GroupV2/4900827/Members/Pending/`;
+    const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-API-Key': process.env.X_API_KEY,
+        'User-Agent': 'axios/0.21.4'
+    };
+
+    try {
+        const response = await axios.get(url, { headers });
+        logger.info('Pending Clan Members Response:', response.data);
+        return response.data;
+    } catch (error) {
+        logger.error('Error fetching pending clan members:', error);
+        if (error.response) {
+            logger.error('Response data:', error.response.data);
+            logger.error('Response status:', error.response.status);
+            logger.error('Response headers:', error.response.headers);
+        } else if (error.request) {
+            logger.error('Request made but no response received:', error.request);
+        } else {
+            logger.error('Error setting up request:', error.message);
+        }
+        throw new Error('Failed to fetch pending clan members');
+    }
+}
+
+// Add a new route to handle the request
+app.get('/api/clan/pending', async (req, res) => {
+    const accessToken = req.query.access_token; // Ensure you pass the access token with the request
+
+    try {
+        const pendingMembers = await getPendingClanMembers(accessToken);
+        res.json(pendingMembers);
+    } catch (err) {
+        logger.error('Error fetching pending clan members:', err);
+        res.status(500).send({ error: 'Error fetching pending clan members' });
+    }
+});
 
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
