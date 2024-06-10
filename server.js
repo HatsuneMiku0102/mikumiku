@@ -248,9 +248,14 @@ app.get('/callback', async (req, res) => {
         const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode;
         const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
 
-        const primaryMembership = userInfo.Response.destinyMemberships.find(
+        let primaryMembership = userInfo.Response.destinyMemberships.find(
             membership => membership.membershipId === userInfo.Response.primaryMembershipId
         );
+
+        if (!primaryMembership) {
+            // If no primary membership is found, fallback to the first membership
+            primaryMembership = userInfo.Response.destinyMemberships[0];
+        }
 
         if (!primaryMembership) {
             throw new Error('Failed to obtain platform-specific membership ID');
@@ -455,4 +460,3 @@ app.post('/api/videos', verifyToken, async (req, res) => {
 app.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
-
