@@ -107,9 +107,7 @@ const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
     bungie_name: { type: String, required: true },
     membership_id: { type: String, unique: true, required: true },
-    platform_type: { type: Number, required: true },
-    clan_id: { type: String, required: true },
-    clan_name: { type: String, required: true }
+    platform_type: { type: Number, required: true }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -161,7 +159,7 @@ function updateMembershipMapping(discordId, userInfo) {
         "membership_id": userInfo.membershipId,
         "platform_type": userInfo.platformType,
         "bungie_name": userInfo.bungieName,
-        "clan_id": userInfo.clanId
+        "clan_id": "4900827"
     };
 
     // Write the updated membership mapping back to the file
@@ -266,10 +264,7 @@ app.get('/callback', async (req, res) => {
         const membershipId = primaryMembership.membershipId;
         const platformType = primaryMembership.membershipType;
 
-        const clanId = primaryMembership.clanId || "N/A";
-        const clanName = clanId !== "N/A" ? await getClanName(clanId) : "No Clan";
-
-        logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}, clanId: ${clanId}, clanName: ${clanName}`);
+        logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}`);
 
         const discordId = sessionData.user_id;
 
@@ -278,9 +273,7 @@ app.get('/callback', async (req, res) => {
             {
                 discord_id: discordId,
                 bungie_name: bungieName,
-                platform_type: platformType,
-                clan_id: clanId,
-                clan_name: clanName
+                platform_type: platformType
             },
             { upsert: true, new: true }
         );
@@ -289,7 +282,7 @@ app.get('/callback', async (req, res) => {
         await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId });
 
         // Save the user info to the membership mapping JSON file
-        updateMembershipMapping(discordId, { bungieName, platformType, membershipId, clanId });
+        updateMembershipMapping(discordId, { bungieName, platformType, membershipId });
 
         await Session.deleteOne({ state });
 
@@ -394,26 +387,6 @@ async function getBungieUserInfo(accessToken) {
     }
 }
 
-async function getClanName(clanId) {
-    const url = `https://www.bungie.net/Platform/GroupV2/${clanId}/`;
-    const headers = {
-        'X-API-Key': process.env.X_API_KEY
-    };
-
-    try {
-        const response = await axios.get(url, { headers });
-        logger.info('Clan Info Response:', response.data);
-        if (response.data.Response && response.data.Response.detail) {
-            return response.data.Response.detail.name;
-        } else {
-            return 'Unknown Clan';
-        }
-    } catch (error) {
-        logger.error('Error fetching Clan info:', error);
-        return 'Unknown Clan';
-    }
-}
-
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
@@ -487,3 +460,4 @@ app.post('/api/videos', verifyToken, async (req, res) => {
 app.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
+
