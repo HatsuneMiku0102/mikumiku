@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
@@ -283,7 +281,8 @@ app.get('/callback', async (req, res) => {
 
         await Session.deleteOne({ state });
 
-        res.redirect(`/confirmation.html?bungie_name=${encodeURIComponent(bungieName)}&membership_id=${membershipId}&platform_type=${platformType}`);
+        const token = generateRandomString(16);
+        res.redirect(`/confirmation.html?token=${token}`);
     } catch (error) {
         logger.error('Error during callback:', error);
         if (error.response) {
@@ -299,6 +298,25 @@ app.get('/callback', async (req, res) => {
     }
 });
 
+app.get('/confirmation', async (req, res) => {
+    const token = req.query.token;
+
+    try {
+        const user = await User.findOne({ token });
+        if (!user) {
+            logger.warn('No user found with given token.');
+            return res.status(400).send('Invalid token.');
+        }
+
+        const { bungie_name, membership_id, platform_type } = user;
+
+        // Render the confirmation page with user details
+        res.render('confirmation', { bungie_name, membership_id, platform_type });
+    } catch (err) {
+        logger.error('Error fetching user by token:', err);
+        res.status(500).send('Internal Server Error');
+    }
+});
 
 function generateRandomString(length) {
     return crypto.randomBytes(length).toString('hex');
