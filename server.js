@@ -134,6 +134,8 @@ const users = [
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches the URL in your Bungie app settings
+const BUNGIE_API_KEY = process.env.X_API_KEY; // Make sure this is set in your .env file
+const PENDING_CHANNEL_ID = process.env.PENDING_CHANNEL_ID; // Set the Discord channel ID for pending notifications
 
 const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
 
@@ -333,7 +335,7 @@ async function getBungieToken(code) {
     });
     const headers = { 
         'Content-Type': 'application/x-www-form-urlencoded',
-        'X-API-Key': process.env.X_API_KEY
+        'X-API-Key': BUNGIE_API_KEY
     };
 
     try {
@@ -359,7 +361,7 @@ async function getBungieUserInfo(accessToken) {
     const url = 'https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/';
     const headers = {
         'Authorization': `Bearer ${accessToken}`,
-        'X-API-Key': process.env.X_API_KEY,
+        'X-API-Key': BUNGIE_API_KEY,
         'User-Agent': 'axios/0.21.4'
     };
 
@@ -381,6 +383,73 @@ async function getBungieUserInfo(accessToken) {
         throw new Error('Failed to fetch Bungie user info');
     }
 }
+
+// Fetch pending clan members
+async function fetchPendingClanMembers() {
+    const url = `https://www.bungie.net/Platform/GroupV2/${process.env.CLAN_ID}/Members/Pending/`;
+    const headers = { 'X-API-Key': BUNGIE_API_KEY };
+
+    try {
+        const response = await axios.get(url, { headers });
+        if (response.status === 200) {
+            return response.data.Response.results;
+        } else {
+            throw new Error(`Failed to fetch pending members. Status code: ${response.status}`);
+        }
+    } catch (error) {
+        logger.error('Error fetching pending clan members:', error);
+        if (error.response) {
+            logger.error('Response data:', error.response.data);
+            logger.error('Response status:', error.response.status);
+            logger.error('Response headers:', error.response.headers);
+        } else if (error.request) {
+            logger.error('Request made but no response received:', error.request);
+        } else {
+            logger.error('Error setting up request:', error.message);
+        }
+        return [];
+    }
+}
+
+// Notify Discord about pending members
+async function notifyPendingMembers() {
+    const pendingMembers = await fetchPendingClanMembers();
+
+    if (pendingMembers.length === 0) {
+        logger.info('No pending members found.');
+        return;
+    }
+
+    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+
+    for (const member of pendingMembers) {
+        const embed = {
+            title: 'Pending Clan Member',
+            description: `User **${member.destinyUserInfo.displayName}** is pending for approval or decline.`,
+            color: 0xFFA500, // Orange color
+            timestamp: new Date().toISOString()
+        };
+
+        try {
+            await axios.post(webhookUrl, { embeds: [embed] });
+            logger.info(`Notification sent for pending member: ${member.destinyUserInfo.displayName}`);
+        } catch (error) {
+            logger.error('Error sending notification to Discord:', error);
+            if (error.response) {
+                logger.error('Response data:', error.response.data);
+                logger.error('Response status:', error.response.status);
+                logger.error('Response headers:', error.response.headers);
+            } else if (error.request) {
+                logger.error('Request made but no response received:', error.request);
+            } else {
+                logger.error('Error setting up request:', error.message);
+            }
+        }
+    }
+}
+
+// Schedule the task to check for pending members every 5 minutes
+setInterval(notifyPendingMembers, 5 * 60 * 1000);
 
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
