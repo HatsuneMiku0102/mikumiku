@@ -141,7 +141,7 @@ const users = [
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URI || 'https://mikumiku.dev/callback'; // Ensure this matches the URL in your Bungie app settings
-const BUNGIE_API_KEY = process.env.BUNGIE_API_KEY;
+const BUNGIE_API_KEY = process.env.X_API_KEY;
 
 function updateMembershipMapping(discordId, userInfo) {
     let membershipMapping = {};
