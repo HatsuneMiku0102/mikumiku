@@ -1,3 +1,4 @@
+// Required dependencies
 const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
@@ -37,7 +38,7 @@ app.set('trust proxy', 1); // Trust the first proxy for secure cookies
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const mongoUrl = 'mongodb+srv://hystoriyaallusiataylor:mtW4aUnsTIr5VVcV@mikumiku.jf47gbz.mongodb.net/myfirstdatabase?retryWrites=true&w=majority&appName=mikumiku';
+const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/myfirstdatabase';
 
 // Connect to MongoDB
 mongoose.connect(mongoUrl, {
@@ -122,67 +123,6 @@ const sessionSchema = new mongoose.Schema({
 });
 
 const Session = mongoose.model('Session', sessionSchema, 'sessions'); // Explicitly specify the collection name
-
-const users = [
-    {
-        username: process.env.ADMIN_USERNAME,
-        password: bcrypt.hashSync(process.env.ADMIN_PASSWORD, 8)
-    }
-];
-
-// OAuth Configuration
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches the URL in your Bungie app settings
-
-const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
-
-function updateMembershipMapping(discordId, userInfo) {
-    let membershipMapping = {};
-
-    // Read the existing file if it exists
-    if (fs.existsSync(membershipFilePath)) {
-        const data = fs.readFileSync(membershipFilePath, 'utf8');
-        logger.info('Read existing membership mapping file:', data);
-        try {
-            membershipMapping = JSON.parse(data);
-        } catch (err) {
-            logger.error('Error parsing membership mapping file:', err);
-            membershipMapping = {};
-        }
-    } else {
-        logger.info('Membership mapping file does not exist. A new one will be created.');
-    }
-
-    // Update the membership mapping with new user info
-    membershipMapping[discordId] = {
-        "membership_id": userInfo.membershipId,
-        "platform_type": userInfo.platformType,
-        "bungie_name": userInfo.bungieName,
-        "clan_id": "4900827"
-    };
-
-    // Write the updated membership mapping back to the file
-    try {
-        fs.writeFileSync(membershipFilePath, JSON.stringify(membershipMapping, null, 2), 'utf8');
-        logger.info('Updated membership mapping file:', JSON.stringify(membershipMapping, null, 2));
-    } catch (err) {
-        logger.error('Error writing to membership mapping file:', err);
-    }
-
-    // Read and log the file contents to confirm update
-    try {
-        const updatedData = fs.readFileSync(membershipFilePath, 'utf8');
-        logger.info('Verified membership mapping file content:', updatedData);
-    } catch (err) {
-        logger.error('Error reading membership mapping file after update:', err);
-    }
-}
-
-async function sendUserInfoToDiscordBot(discordId, userInfo) {
-    // You can implement additional actions here if needed
-    logger.info('User info ready to be sent to Discord bot:', userInfo);
-}
 
 // OAuth Login Route
 app.get('/login', async (req, res) => {
@@ -278,16 +218,10 @@ app.get('/callback', async (req, res) => {
             { upsert: true, new: true }
         );
 
-        // Send the stored data to the Discord bot
-        await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId });
-
-        // Save the user info to the membership mapping JSON file
-        updateMembershipMapping(discordId, { bungieName, platformType, membershipId });
-
         await Session.deleteOne({ state });
 
         const token = generateRandomString(16);
-        res.redirect(`/confirmation.html?token=${token}`);
+        res.redirect(`/confirmation?token=${token}`);
     } catch (error) {
         logger.error('Error during callback:', error);
         if (error.response) {
@@ -313,10 +247,117 @@ app.get('/confirmation', async (req, res) => {
             return res.status(400).send('Invalid token.');
         }
 
-        const { bungie_name, membership_id, platform_type } = user;
+        const { bungie_name } = user;
 
-        // Render the confirmation page with user details
-        res.render('confirmation', { bungie_name, membership_id, platform_type });
+        res.send(`
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Registration Confirmation</title>
+                <link rel="stylesheet" href="/styles.css">
+                <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+                <style>
+                    body {
+                        font-family: 'Roboto', sans-serif;
+                        margin: 0;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100vh;
+                        background: url('/confbackground.webp') no-repeat center center fixed;
+                        background-size: cover;
+                    }
+                    .confirmation-box {
+                        background: rgba(0, 0, 0, 0.7);
+                        padding: 20px 40px;
+                        border-radius: 10px;
+                        text-align: center;
+                        color: gold;
+                        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+                    }
+                    .confirmation-box h2 {
+                        margin: 0 0 10px;
+                        font-size: 2em;
+                    }
+                    .confirmation-box p {
+                        margin: 0;
+                        font-size: 1.2em;
+                    }
+                    .highlight {
+                        display: inline-block;
+                        background-color: #ffd700;
+                        color: #000;
+                        padding: 5px 10px;
+                        border-radius: 5px;
+                        font-weight: bold;
+                    }
+                    .channel-link {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin-top: 20px;
+                        padding: 10px 20px;
+                        background-color: #7289da;
+                        color: #fff;
+                        text-decoration: none;
+                        font-size: 1.2em;
+                        border-radius: 5px;
+                        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+                        transition: all 0.3s ease;
+                    }
+                    .channel-link:hover {
+                        background-color: #5a6ea6;
+                        transform: scale(1.1);
+                    }
+                    .next-steps, .support, .feedback {
+                        margin-top: 20px;
+                    }
+                    .next-steps p, .support p, .feedback p {
+                        font-size: 1em;
+                        color: #ccc;
+                    }
+                    .social-links a {
+                        margin: 0 10px;
+                        color: gold;
+                        text-decoration: none;
+                    }
+                    .social-links a:hover {
+                        color: #ffd700;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="confirmation-box">
+                    <h2>Registration Was Successful!</h2>
+                    <p>Hello, ${bungie_name}!</p>
+                    <p>Thank you for registering. Please go back to our Discord and use the <span class="highlight">/authorize</span> command to complete your registration.</p>
+                    <a href="discord://discordapp.com/channels/your-server-id/1201121345619103805" class="channel-link">
+                        Click to go back to Discord
+                    </a>
+                    <div class="next-steps">
+                        <h3>Next Steps</h3>
+                        <p>Make sure to check our #welcome channel for more information about our community and guidelines.</p>
+                    </div>
+                    <div class="support">
+                        <h3>Need Help?</h3>
+                        <p>If you encounter any issues, please contact our support team at <a href="mailto:support@example.com">support@example.com</a>.</p>
+                    </div>
+                    <div class="feedback">
+                        <h3>We Value Your Feedback</h3>
+                        <p>Let us know about your registration experience by filling out <a href="https://example.com/feedback">this short form</a>.</p>
+                    </div>
+                    <div class="social-links">
+                        <h3>Follow Us</h3>
+                        <a href="https://twitter.com/yourprofile" target="_blank">Twitter</a>
+                        <a href="https://facebook.com/yourprofile" target="_blank">Facebook</a>
+                        <a href="https://instagram.com/yourprofile" target="_blank">Instagram</a>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `);
     } catch (err) {
         logger.error('Error fetching user by token:', err);
         res.status(500).send('Internal Server Error');
@@ -386,76 +427,6 @@ async function getBungieUserInfo(accessToken) {
         throw new Error('Failed to fetch Bungie user info');
     }
 }
-
-app.post('/login', (req, res) => {
-    const { username, password } = req.body;
-    const user = users.find(u => u.username === username);
-    if (!user) {
-        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
-    }
-
-    const passwordIsValid = bcrypt.compareSync(password, user.password);
-    if (!passwordIsValid) {
-        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
-    }
-
-    const token = jwt.sign({ id: user.username }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
-        expiresIn: 86400 // 24 hours
-    });
-
-    res.cookie('token', token, {
-        httpOnly: true,
-        secure: true, // Set to true if using HTTPS
-        maxAge: 86400 * 1000 // 24 hours
-    });
-
-    res.status(200).send({ auth: true, token });
-});
-
-function verifyToken(req, res, next) {
-    const token = req.cookies.token;
-    if (!token) {
-        return res.status(401).send({ redirect: '/admin-login.html' });
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET || 'your-jwt-secret-key', (err, decoded) => {
-        if (err) {
-            return res.status(401).send({ redirect: '/admin-login.html' });
-        }
-        req.userId = decoded.id;
-        next();
-    });
-}
-
-// Public route for fetching videos
-app.get('/api/videos/public', async (req, res) => {
-    try {
-        // Add your logic here for fetching video metadata from MongoDB
-        res.json([]); // Placeholder response
-    } catch (err) {
-        logger.error('Error retrieving video metadata:', err);
-        res.status(500).send({ error: 'Error retrieving video metadata' });
-    }
-});
-
-// Protected route for adding videos
-app.post('/api/videos', verifyToken, async (req, res) => {
-    const videoMetadata = {
-        url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
-        title: req.body.title,
-        description: req.body.description,
-        category: req.body.category,
-        uploadedAt: new Date()
-    };
-
-    try {
-        // Add your logic here for saving video metadata to MongoDB
-        res.status(201).send({ message: 'Video added', video: videoMetadata }); // Placeholder response
-    } catch (err) {
-        logger.error('Error saving video metadata:', err);
-        res.status(500).send({ error: 'Error saving video metadata' });
-    }
-});
 
 app.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
