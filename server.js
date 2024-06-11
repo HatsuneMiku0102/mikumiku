@@ -108,7 +108,7 @@ const userSchema = new mongoose.Schema({
     bungie_name: { type: String, required: true },
     membership_id: { type: String, unique: true, required: true },
     platform_type: { type: Number, required: true },
-    access_token: { type: String, required: true }  // Added access_token field
+    access_token: { type: String, required: true }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -231,7 +231,14 @@ app.get('/fetch_pending_clan_members', async (req, res) => {
             return;
         }
 
+        logger.info(`Fetched user: ${JSON.stringify(user)}`);
         const accessToken = user.access_token;
+        if (!accessToken) {
+            logger.error('Access token not found for user.');
+            res.status(400).send('Access token not found.');
+            return;
+        }
+
         const pendingMembers = await fetchPendingClanMembers(accessToken);
 
         if (pendingMembers && pendingMembers.length > 0) {
