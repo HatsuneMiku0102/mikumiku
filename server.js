@@ -107,8 +107,7 @@ const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
     bungie_name: { type: String, required: true },
     membership_id: { type: String, unique: true, required: true },
-    platform_type: { type: Number, required: true },
-    access_token: { type: String, required: true }
+    platform_type: { type: Number, required: true }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -123,13 +122,6 @@ const sessionSchema = new mongoose.Schema({
 });
 
 const Session = mongoose.model('Session', sessionSchema, 'sessions'); // Explicitly specify the collection name
-
-const pendingMemberSchema = new mongoose.Schema({
-    bungieGlobalDisplayName: { type: String, required: true },
-    membershipId: { type: String, required: true }
-});
-
-const PendingMember = mongoose.model('PendingMember', pendingMemberSchema);
 
 const users = [
     {
@@ -191,86 +183,6 @@ async function sendUserInfoToDiscordBot(discordId, userInfo) {
     // You can implement additional actions here if needed
     logger.info('User info ready to be sent to Discord bot:', userInfo);
 }
-
-// Fetch pending clan members from Bungie
-async function fetchPendingClanMembers(accessToken) {
-    const url = 'https://www.bungie.net/Platform/GroupV2/5236471/Members/Pending/';
-    const headers = {
-        'Authorization': `Bearer ${accessToken}`,
-        'X-API-Key': process.env.X_API_KEY,
-        'User-Agent': 'axios/0.21.4'
-    };
-
-    try {
-        const response = await axios.get(url, { headers });
-        logger.info('Pending Clan Members Response:', response.data);
-        return response.data.Response.results;
-    } catch (error) {
-        logger.error('Error fetching pending clan members:', error);
-        if (error.response) {
-            logger.error('Response data:', error.response.data);
-            logger.error('Response status:', error.response.status);
-            logger.error('Response headers:', error.response.headers);
-        } else if (error.request) {
-            logger.error('Request made but no response received:', error.request);
-        } else {
-            logger.error('Error setting up request:', error.message);
-        }
-        throw new Error('Failed to fetch pending clan members');
-    }
-}
-
-// Route to fetch and store pending clan members
-app.get('/fetch_pending_clan_members', async (req, res) => {
-    const discordId = req.query.discord_id;  // Assume discord_id is passed in the query for simplicity
-
-    try {
-        const user = await User.findOne({ discord_id: discordId });
-        if (!user) {
-            res.status(404).send('User not found.');
-            return;
-        }
-
-        logger.info(`Fetched user: ${JSON.stringify(user)}`);
-        const accessToken = user.access_token;
-        if (!accessToken) {
-            logger.error('Access token not found for user.');
-            res.status(400).send('Access token not found.');
-            return;
-        }
-
-        const pendingMembers = await fetchPendingClanMembers(accessToken);
-
-        if (pendingMembers && pendingMembers.length > 0) {
-            await PendingMember.insertMany(pendingMembers.map(member => ({
-                bungieGlobalDisplayName: member.destinyUserInfo.bungieGlobalDisplayName,
-                membershipId: member.destinyUserInfo.membershipId
-            })));
-            logger.info('Pending clan members stored in MongoDB');
-            res.status(200).send('Pending clan members fetched and stored successfully.');
-        } else {
-            res.status(404).send('No pending clan members found.');
-        }
-    } catch (error) {
-        logger.error('Error during fetching and storing pending clan members:', error);
-        res.status(500).send('Internal Server Error');
-    }
-});
-
-// Route to retrieve pending clan members from MongoDB
-app.get('/show_pending_clan_members', async (req, res) => {
-    try {
-        const pendingMembers = await PendingMember.find({});
-        if (pendingMembers && pendingMembers.length > 0) {
-            res.status(200).json(pendingMembers);
-        } else {
-            res.status(404).send('No pending clan members found.');
-        }
-    } catch (error) {
-        logger.error('Error retrieving pending clan members from MongoDB:', error);
-        res.status(500).send('Internal Server Error');
-    }
-});
 
 // OAuth Login Route
 app.get('/login', async (req, res) => {
@@ -361,8 +273,7 @@ app.get('/callback', async (req, res) => {
             {
                 discord_id: discordId,
                 bungie_name: bungieName,
-                platform_type: platformType,
-                access_token: accessToken  // Save access token
+                platform_type: platformType
             },
             { upsert: true, new: true }
         );
