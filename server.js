@@ -108,7 +108,8 @@ const userSchema = new mongoose.Schema({
     bungie_name: { type: String, required: true },
     membership_id: { type: String, unique: true, required: true },
     platform_type: { type: Number, required: true },
-    token: { type: String, unique: true } // Added token field
+    token: { type: String, unique: true }, // Added token field
+    registration_date: { type: Date, default: Date.now } // Added registration_date field
 });
 
 const User = mongoose.model('User', userSchema);
@@ -160,6 +161,7 @@ function updateMembershipMapping(discordId, userInfo) {
         "membership_id": userInfo.membershipId,
         "platform_type": userInfo.platformType,
         "bungie_name": userInfo.bungieName,
+        "registration_date": new Date(), // Add the registration date here
         "clan_id": "4900827"
     };
 
@@ -275,7 +277,8 @@ app.get('/callback', async (req, res) => {
                 discord_id: discordId,
                 bungie_name: bungieName,
                 platform_type: platformType,
-                token: generateRandomString(16) // Generate a token for the user
+                token: generateRandomString(16), // Generate a token for the user
+                registration_date: new Date() // Set the registration date here
             },
             { upsert: true, new: true }
         );
