@@ -107,7 +107,8 @@ const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
     bungie_name: { type: String, required: true },
     membership_id: { type: String, unique: true, required: true },
-    platform_type: { type: Number, required: true }
+    platform_type: { type: Number, required: true },
+    access_token: { type: String, required: true }  // Added access_token field
 });
 
 const User = mongoose.model('User', userSchema);
@@ -221,10 +222,18 @@ async function fetchPendingClanMembers(accessToken) {
 
 // Route to fetch and store pending clan members
 app.get('/fetch_pending_clan_members', async (req, res) => {
-    const accessToken = req.query.access_token;  // Assume access_token is passed in the query for simplicity
+    const discordId = req.query.discord_id;  // Assume discord_id is passed in the query for simplicity
 
     try {
+        const user = await User.findOne({ discord_id: discordId });
+        if (!user) {
+            res.status(404).send('User not found.');
+            return;
+        }
+
+        const accessToken = user.access_token;
         const pendingMembers = await fetchPendingClanMembers(accessToken);
+
         if (pendingMembers && pendingMembers.length > 0) {
             await PendingMember.insertMany(pendingMembers.map(member => ({
                 bungieGlobalDisplayName: member.destinyUserInfo.bungieGlobalDisplayName,
@@ -255,6 +264,210 @@ app.get('/show_pending_clan_members', async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
+
+// OAuth Login Route
+app.get('/login', async (req, res) => {
+    const state = generateRandomString(16);
+    const user_id = req.query.user_id; // Assume user_id is passed in the query for simplicity
+    const ip_address = req.ip;
+    const user_agent = req.get('User-Agent');
+
+    const sessionData = new Session({
+        state,
+        user_id,
+        session_id: req.session.id,
+        ip_address,
+        user_agent
+    });
+
+    try {
+        await sessionData.save();
+        logger.info(`Generated state: ${state}`);
+        logger.info(`Inserted session: ${JSON.stringify(sessionData)}`);
+        const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
+        res.redirect(authorizeUrl);
+    } catch (err) {
+        logger.error('Error saving session to DB:', err);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+// OAuth Callback Route
+app.get('/callback', async (req, res) => {
+    const state = req.query.state;
+    const code = req.query.code;
+
+    logger.info(`Received state: ${state}`);
+    logger.info(`Received code: ${code}`);
+
+    try {
+        const sessionData = await Session.findOne({ state });
+        logger.info(`Session data from DB: ${JSON.stringify(sessionData)}`);
+
+        if (!sessionData) {
+            logger.warn("State mismatch. Potential CSRF attack.");
+            return res.status(400).send('State mismatch. Potential CSRF attack.');
+        }
+
+        const tokenData = await getBungieToken(code);
+        logger.info(`Token data: ${JSON.stringify(tokenData)}`);
+
+        if (!tokenData.access_token) {
+            throw new Error('Failed to obtain access token');
+        }
+
+        const accessToken = tokenData.access_token;
+        const userInfo = await getBungieUserInfo(accessToken);
+        logger.info('User Info Response:', userInfo);
+
+        if (!userInfo.Response || !userInfo.Response.destinyMemberships) {
+            logger.error('Incomplete user info response:', userInfo);
+            throw new Error('Failed to obtain user information');
+        }
+
+        const bungieGlobalDisplayName = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayName;
+        const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode;
+        const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
+
+        let primaryMembership = userInfo.Response.destinyMemberships.find(
+            membership => membership.membershipId === userInfo.Response.primaryMembershipId
+        );
+
+        if (!primaryMembership) {
+            // If no primary membership is found, fallback to the first membership
+            primaryMembership = userInfo.Response.destinyMemberships[0];
+        }
+
+        if (!primaryMembership) {
+            throw new Error('Failed to obtain platform-specific membership ID');
+        }
+
+        const membershipId = primaryMembership.membershipId;
+        const platformType = primaryMembership.membershipType;
+
+        logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}`);
+
+        const discordId = sessionData.user_id;
+
+        const user = await User.findOneAndUpdate(
+            { membership_id: membershipId },
+            {
+                discord_id: discordId,
+                bungie_name: bungieName,
+                platform_type: platformType,
+                access_token: accessToken  // Save access token
+            },
+            { upsert: true, new: true }
+        );
+
+        // Send the stored data to the Discord bot
+        await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId });
+
+        // Save the user info to the membership mapping JSON file
+        updateMembershipMapping(discordId, { bungieName, platformType, membershipId });
+
+        await Session.deleteOne({ state });
+
+        const token = generateRandomString(16);
+        res.redirect(`/confirmation.html?token=${token}`);
+    } catch (error) {
+        logger.error('Error during callback:', error);
+        if (error.response) {
+            logger.error('Response data:', error.response.data);
+            logger.error('Response status:', error.response.status);
+            logger.error('Response headers:', error.response.headers);
+        } else if (error.request) {
+            logger.error('Request made but no response received:', error.request);
+        } else {
+            logger.error('Error setting up request:', error.message);
+        }
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+app.get('/confirmation', async (req, res) => {
+    const token = req.query.token;
+
+    try {
+        const user = await User.findOne({ token });
+        if (!user) {
+            logger.warn('No user found with given token.');
+            return res.status(400).send('Invalid token.');
+        }
+
+        const { bungie_name, membership_id, platform_type } = user;
+
+        // Render the confirmation page with user details
+        res.render('confirmation', { bungie_name, membership_id, platform_type });
+    } catch (err) {
+        logger.error('Error fetching user by token:', err);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+function generateRandomString(length) {
+    return crypto.randomBytes(length).toString('hex');
+}
+
+async function getBungieToken(code) {
+    const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
+    const payload = new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code,
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        redirect_uri: REDIRECT_URI
+    });
+    const headers = { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-API-Key': process.env.X_API_KEY
+    };
+
+    try {
+        const response = await axios.post(url, payload.toString(), { headers });
+        logger.info('Token Response:', response.data);
+        return response.data;
+    } catch (error) {
+        logger.error('Error fetching Bungie token:', error);
+        if (error.response) {
+            logger.error('Response data:', error.response.data);
+            logger.error('Response status:', error.response.status);
+            logger.error('Response headers:', error.response.headers);
+        } else if (error.request) {
+            logger.error('Request made but no response received:', error.request);
+        } else {
+            logger.error('Error setting up request:', error.message);
+        }
+        throw new Error('Failed to fetch Bungie token');
+    }
+}
+
+async function getBungieUserInfo(accessToken) {
+    const url = 'https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/';
+    const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-API-Key': process.env.X_API_KEY,
+        'User-Agent': 'axios/0.21.4'
+    };
+
+    try {
+        const response = await axios.get(url, { headers });
+        logger.info('User Info Response:', response.data);
+        return response.data;
+    } catch (error) {
+        logger.error('Error fetching Bungie user info:', error);
+        if (error.response) {
+            logger.error('Response data:', error.response.data);
+            logger.error('Response status:', error.response.status);
+            logger.error('Response headers:', error.response.headers);
+        } else if (error.request) {
+            logger.error('Request made but no response received:', error.request);
+        } else {
+            logger.error('Error setting up request:', error.message);
+        }
+        throw new Error('Failed to fetch Bungie user info');
+    }
+}
 
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
