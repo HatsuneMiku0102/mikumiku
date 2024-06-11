@@ -59,15 +59,71 @@
             background-color: #5a6ea6;
             transform: scale(1.1);
         }
+        .next-steps, .support, .feedback {
+            margin-top: 20px;
+        }
+        .next-steps p, .support p, .feedback p {
+            font-size: 1em;
+            color: #ccc;
+        }
+        .social-links a {
+            margin: 0 10px;
+            color: gold;
+            text-decoration: none;
+        }
+        .social-links a:hover {
+            color: #ffd700;
+        }
     </style>
 </head>
 <body>
     <div class="confirmation-box">
         <h2>Registration Was Successful!</h2>
+        <p id="greeting"></p>
         <p>Thank you for registering. Please go back to our Discord and use the <span class="highlight">/authorize</span> command to complete your registration.</p>
-        <a href="discord://discordapp.com/channels/998323411304591481/1201121345619103805" class="channel-link">
+        <a href="discord://discordapp.com/channels/your-server-id/1201121345619103805" class="channel-link">
             Click to go back to Discord
         </a>
+        <div class="next-steps">
+            <h3>Next Steps</h3>
+            <p>Make sure to check our #welcome channel for more information about our community and guidelines.</p>
+        </div>
+        <div class="support">
+            <h3>Need Help?</h3>
+            <p>If you encounter any issues, please contact our support team at <a href="mailto:support@example.com">support@example.com</a>.</p>
+        </div>
+        <div class="feedback">
+            <h3>We Value Your Feedback</h3>
+            <p>Let us know about your registration experience by filling out <a href="https://example.com/feedback">this short form</a>.</p>
+        </div>
+        <div class="social-links">
+            <h3>Follow Us</h3>
+            <a href="https://twitter.com/yourprofile" target="_blank">Twitter</a>
+            <a href="https://facebook.com/yourprofile" target="_blank">Facebook</a>
+            <a href="https://instagram.com/yourprofile" target="_blank">Instagram</a>
+        </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            if (token) {
+                try {
+                    const response = await fetch(`/api/bungie-name?token=${token}`);
+                    const data = await response.json();
+                    if (data.bungie_name) {
+                        document.getElementById('greeting').textContent = `Hello, ${data.bungie_name}!`;
+                    } else {
+                        document.getElementById('greeting').textContent = 'Hello, Guardian!';
+                    }
+                } catch (error) {
+                    console.error('Error fetching Bungie name:', error);
+                    document.getElementById('greeting').textContent = 'Hello, Guardian!';
+                }
+            } else {
+                document.getElementById('greeting').textContent = 'Hello, Guardian!';
+            }
+        });
+    </script>
 </body>
 </html>
