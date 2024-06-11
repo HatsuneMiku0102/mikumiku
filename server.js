@@ -37,13 +37,13 @@ app.set('trust proxy', 1); // Trust the first proxy for secure cookies
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const mongoUrl = process.env.MONGO_URL || 'your_mongo_connection_string';
+const mongoUrl = 'mongodb+srv://hystoriyaallusiataylor:mtW4aUnsTIr5VVcV@mikumiku.jf47gbz.mongodb.net/myfirstdatabase?retryWrites=true&w=majority&appName=mikumiku';
 
 // Connect to MongoDB
 mongoose.connect(mongoUrl, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    useFindAndModify: false
+    useFindAndModify: false  // Address deprecation warning
 }).then(() => {
     logger.info('Connected to MongoDB');
 }).catch((err) => {
@@ -123,13 +123,6 @@ const sessionSchema = new mongoose.Schema({
 
 const Session = mongoose.model('Session', sessionSchema, 'sessions'); // Explicitly specify the collection name
 
-const clanSchema = new mongoose.Schema({
-    clan_id: { type: String, required: true, unique: true },
-    clan_info: { type: Object, required: true }
-});
-
-const Clan = mongoose.model('Clan', clanSchema);
-
 const users = [
     {
         username: process.env.ADMIN_USERNAME,
@@ -140,8 +133,9 @@ const users = [
 // OAuth Configuration
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI || 'https://mikumiku.dev/callback'; // Ensure this matches the URL in your Bungie app settings
-const BUNGIE_API_KEY = process.env.X_API_KEY;
+const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches the URL in your Bungie app settings
+
+const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
 
 function updateMembershipMapping(discordId, userInfo) {
     let membershipMapping = {};
@@ -329,36 +323,6 @@ app.get('/confirmation', async (req, res) => {
     }
 });
 
-app.post('/fetch_clan_info', async (req, res) => {
-    const { clan_id } = req.body;
-    try {
-        const clanInfo = await getClanInfo(clan_id);
-        await Clan.updateOne(
-            { clan_id: clan_id },
-            { $set: { clan_info: clanInfo } },
-            { upsert: true }
-        );
-        res.status(200).send({ message: `Clan info for ${clan_id} has been saved to the database.` });
-    } catch (error) {
-        logger.error('Error fetching clan info:', error);
-        res.status(500).send('Error fetching clan info.');
-    }
-});
-
-app.get('/show_clan_info/:clan_id', async (req, res) => {
-    const { clan_id } = req.params;
-    try {
-        const clan = await Clan.findOne({ clan_id: clan_id });
-        if (!clan) {
-            return res.status(404).send('Clan info not found.');
-        }
-        res.status(200).json(clan.clan_info);
-    } catch (error) {
-        logger.error('Error showing clan info:', error);
-        res.status(500).send('Error showing clan info.');
-    }
-});
-
 function generateRandomString(length) {
     return crypto.randomBytes(length).toString('hex');
 }
@@ -374,7 +338,7 @@ async function getBungieToken(code) {
     });
     const headers = { 
         'Content-Type': 'application/x-www-form-urlencoded',
-        'X-API-Key': BUNGIE_API_KEY
+        'X-API-Key': process.env.X_API_KEY
     };
 
     try {
@@ -400,7 +364,7 @@ async function getBungieUserInfo(accessToken) {
     const url = 'https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/';
     const headers = {
         'Authorization': `Bearer ${accessToken}`,
-        'X-API-Key': BUNGIE_API_KEY,
+        'X-API-Key': process.env.X_API_KEY,
         'User-Agent': 'axios/0.21.4'
     };
 
@@ -420,31 +384,6 @@ async function getBungieUserInfo(accessToken) {
             logger.error('Error setting up request:', error.message);
         }
         throw new Error('Failed to fetch Bungie user info');
-    }
-}
-
-async function getClanInfo(clanId) {
-    const url = `https://www.bungie.net/Platform/GroupV2/${clanId}/`;
-    const headers = {
-        'X-API-Key': BUNGIE_API_KEY
-    };
-
-    try {
-        const response = await axios.get(url, { headers });
-        logger.info('Clan Info Response:', response.data);
-        return response.data;
-    } catch (error) {
-        logger.error('Error fetching clan info:', error);
-        if (error.response) {
-            logger.error('Response data:', error.response.data);
-            logger.error('Response status:', error.response.status);
-            logger.error('Response headers:', error.response.headers);
-        } else if (error.request) {
-            logger.error('Request made but no response received:', error.request);
-        } else {
-            logger.error('Error setting up request:', error.message);
-        }
-        throw new Error('Failed to fetch clan info');
     }
 }
 
