@@ -13,7 +13,7 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const fs = require('fs');
 const winston = require('winston');
-const { format, parseISO } = require('date-fns');
+const { DateTime } = require('luxon'); // Import luxon for datetime handling
 
 // Configure logging
 const logger = winston.createLogger({
@@ -107,16 +107,23 @@ app.use(express.static(path.join(__dirname, 'public')));
 const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
     bungie_name: { type: String, required: true },
-    memberships: { type: Array, required: true },
+    membership_id: { type: String, unique: true, required: true },
+    platform_type: { type: Number, required: true },
     token: { type: String, unique: true }, // Added token field
     registration_date: { type: Date, default: Date.now }, // Added registration_date field
-    clan_name: { type: String }, // Added clan_name field
-    profile_picture_path: { type: String }, // Added profile_picture_path field
-    first_access: { type: Date }, // Added first_access field
-    last_update: { type: Date } // Added last_update field
+    access_token: { type: String, required: true }, // Added access_token field
+    token_expiry: { type: Date, required: true } // Added token_expiry field
 });
 
 const User = mongoose.model('User', userSchema);
+
+const pendingMemberSchema = new mongoose.Schema({
+    membershipId: { type: String, required: true },
+    displayName: { type: String, required: true },
+    joinDate: { type: Date, required: true }
+});
+
+const PendingMember = mongoose.model('PendingMember', pendingMemberSchema);
 
 const sessionSchema = new mongoose.Schema({
     state: { type: String, required: true, unique: true },
@@ -162,14 +169,11 @@ function updateMembershipMapping(discordId, userInfo) {
 
     // Update the membership mapping with new user info
     membershipMapping[discordId] = {
-        "memberships": userInfo.memberships,
+        "membership_id": userInfo.membershipId,
+        "platform_type": userInfo.platformType,
         "bungie_name": userInfo.bungieName,
         "registration_date": new Date(), // Add the registration date here
-        "clan_id": "4900827",
-        "clan_name": userInfo.clanName, // Add the clan name here
-        "profile_picture_path": userInfo.profilePicturePath,
-        "first_access": userInfo.firstAccess,
-        "last_update": userInfo.lastUpdate
+        "clan_id": "4900827"
     };
 
     // Write the updated membership mapping back to the file
@@ -246,6 +250,9 @@ app.get('/callback', async (req, res) => {
         }
 
         const accessToken = tokenData.access_token;
+        const expiresIn = tokenData.expires_in; // In seconds
+        const tokenExpiry = DateTime.now().plus({ seconds: expiresIn }).toJSDate(); // Calculate expiry date
+
         const userInfo = await getBungieUserInfo(accessToken);
         logger.info('User Info Response:', userInfo);
 
@@ -254,63 +261,49 @@ app.get('/callback', async (req, res) => {
             throw new Error('Failed to obtain user information');
         }
 
-        const bungieGlobalDisplayName = String(userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayName);
-        const bungieGlobalDisplayNameCode = String(userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode);
+        const bungieGlobalDisplayName = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayName;
+        const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode;
         const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
-        const profilePicturePath = userInfo.Response.bungieNetUser.profilePicturePath;
-        const firstAccess = parseISO(userInfo.Response.bungieNetUser.firstAccess);
-        const lastUpdate = parseISO(userInfo.Response.bungieNetUser.lastUpdate);
 
-        const primaryMembership = userInfo.Response.destinyMemberships.find(
-            m => m.membershipId === userInfo.Response.primaryMembershipId
+        let primaryMembership = userInfo.Response.destinyMemberships.find(
+            membership => membership.membershipId === userInfo.Response.primaryMembershipId
         );
 
         if (!primaryMembership) {
-            throw new Error('Primary membership not found');
+            // If no primary membership is found, fallback to the first membership
+            primaryMembership = userInfo.Response.destinyMemberships[0];
         }
 
-        const memberships = userInfo.Response.destinyMemberships.map(m => ({
-            membership_id: m.membershipId,
-            platform_type: m.membershipType,
-            display_name: m.displayName,
-            is_primary: m.membershipId === userInfo.Response.primaryMembershipId
-        }));
+        if (!primaryMembership) {
+            throw new Error('Failed to obtain platform-specific membership ID');
+        }
 
         const membershipId = primaryMembership.membershipId;
         const platformType = primaryMembership.membershipType;
 
-        if (!membershipId) {
-            throw new Error('Membership ID is null');
-        }
-
-        // Fetch clan name
-        const clanInfo = await getClanInfo(membershipId, platformType, accessToken);
-        const clanName = clanInfo && clanInfo.Response.results.length > 0 ? clanInfo.Response.results[0].group.name : 'No Clan';
-
-        logger.info(`Extracted bungieName: ${bungieName}, memberships: ${JSON.stringify(memberships)}, clanName: ${clanName}, profilePicturePath: ${profilePicturePath}, firstAccess: ${firstAccess}, lastUpdate: ${lastUpdate}`);
+        logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}`);
 
         const discordId = sessionData.user_id;
 
         const user = await User.findOneAndUpdate(
-            { discord_id: discordId },
+            { membership_id: membershipId },
             {
+                discord_id: discordId,
                 bungie_name: bungieName,
-                memberships: memberships,
-                profile_picture_path: profilePicturePath,
+                platform_type: platformType,
+                token: generateRandomString(16), // Generate a token for the user
                 registration_date: new Date(), // Set the registration date here
-                clan_name: clanName, // Save the clan name
-                first_access: firstAccess,
-                last_update: lastUpdate,
-                membership_id: membershipId // Ensure membership_id is set
+                access_token: accessToken, // Store the access token
+                token_expiry: tokenExpiry // Store the token expiry
             },
             { upsert: true, new: true }
         );
 
         // Send the stored data to the Discord bot
-        await sendUserInfoToDiscordBot(discordId, { bungieName, memberships, clanName, profilePicturePath, firstAccess, lastUpdate });
+        await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId });
 
         // Save the user info to the membership mapping JSON file
-        updateMembershipMapping(discordId, { bungieName, memberships, clanName, profilePicturePath, firstAccess, lastUpdate });
+        updateMembershipMapping(discordId, { bungieName, platformType, membershipId });
 
         await Session.deleteOne({ state });
 
@@ -330,10 +323,34 @@ app.get('/callback', async (req, res) => {
     }
 });
 
+// Serve the confirmation page
+app.get('/confirmation.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'confirmation.html'));
+});
+
+// API endpoint to fetch Bungie name
+app.get('/api/bungie-name', async (req, res) => {
+    const token = req.query.token;
+
+    try {
+        const user = await User.findOne({ token });
+        if (!user) {
+            return res.status(400).send({ error: 'Invalid token' });
+        }
+
+        res.send({ bungie_name: user.bungie_name });
+    } catch (err) {
+        logger.error('Error fetching Bungie name:', err);
+        res.status(500).send({ error: 'Internal Server Error' });
+    }
+});
+
+// Function to generate a random string
 function generateRandomString(length) {
     return crypto.randomBytes(length).toString('hex');
 }
 
+// Function to get Bungie token
 async function getBungieToken(code) {
     const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
     const payload = new URLSearchParams({
@@ -343,7 +360,7 @@ async function getBungieToken(code) {
         client_secret: CLIENT_SECRET,
         redirect_uri: REDIRECT_URI
     });
-    const headers = {
+    const headers = { 
         'Content-Type': 'application/x-www-form-urlencoded',
         'X-API-Key': process.env.X_API_KEY
     };
@@ -367,6 +384,7 @@ async function getBungieToken(code) {
     }
 }
 
+// Function to get Bungie user info
 async function getBungieUserInfo(accessToken) {
     const url = 'https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/';
     const headers = {
@@ -394,20 +412,38 @@ async function getBungieUserInfo(accessToken) {
     }
 }
 
-async function getClanInfo(membershipId, platformType, accessToken) {
-    const url = `https://www.bungie.net/Platform/GroupV2/User/${platformType}/${membershipId}/0/1/`;
+// Function to get access token for user
+async function getAccessTokenForUser(user) {
+    const now = DateTime.now();
+    const tokenExpiry = DateTime.fromJSDate(user.token_expiry);
+    
+    if (now >= tokenExpiry) {
+        // Token expired, refresh logic needed here
+        // For simplicity, let's assume we get a new token using refresh_token
+        // const newTokenData = await refreshBungieToken(user.refresh_token); // Implement this function
+        // user.access_token = newTokenData.access_token;
+        // user.token_expiry = DateTime.now().plus({ seconds: newTokenData.expires_in }).toJSDate();
+        // await user.save();
+        throw new Error('Token expired and refresh logic is not implemented.');
+    }
+    
+    return user.access_token;
+}
+
+// Function to get pending clan members
+async function getPendingClanMembers(accessToken, groupId) {
+    const url = `https://www.bungie.net/Platform/GroupV2/${groupId}/Members/Pending/`;
     const headers = {
         'Authorization': `Bearer ${accessToken}`,
-        'X-API-Key': process.env.X_API_KEY,
-        'User-Agent': 'axios/0.21.4'
+        'X-API-Key': process.env.X_API_KEY
     };
 
     try {
         const response = await axios.get(url, { headers });
-        logger.info('Clan Info Response:', response.data);
-        return response.data;
+        logger.info('Pending Clan Members Response:', response.data);
+        return response.data.Response.results;
     } catch (error) {
-        logger.error('Error fetching clan info:', error);
+        logger.error('Error fetching pending clan members:', error);
         if (error.response) {
             logger.error('Response data:', error.response.data);
             logger.error('Response status:', error.response.status);
@@ -417,46 +453,46 @@ async function getClanInfo(membershipId, platformType, accessToken) {
         } else {
             logger.error('Error setting up request:', error.message);
         }
-        throw new Error('Failed to fetch clan info');
+        throw new Error('Failed to fetch pending clan members');
     }
 }
 
-const platformTypes = {
-    1: 'Xbox',
-    2: 'PlayStation',
-    3: 'Steam',
-    4: 'Blizzard',
-    5: 'Stadia',
-    10: 'Demon',
-    254: 'Bungie Next'
-};
-
-// API endpoint to fetch Bungie account info
-app.get('/api/bungie-info', async (req, res) => {
-    const token = req.query.token;
+// Route to get pending clan members and save to the database
+app.get('/api/clan/pending', verifyToken, async (req, res) => {
+    const userId = req.userId;
 
     try {
-        const user = await User.findOne({ token });
+        const user = await User.findOne({ discord_id: userId });
         if (!user) {
-            return res.status(400).send({ error: 'Invalid token' });
+            return res.status(400).send({ error: 'User not found' });
         }
 
-        const bungieInfo = {
-            bungie_name: user.bungie_name,
-            memberships: user.memberships.map(m => ({
-                ...m,
-                platform_name: platformTypes[m.platform_type] || 'Unknown'
-            })),
-            registration_date: user.registration_date,
-            clan_name: user.clan_name,
-            profile_picture_path: user.profile_picture_path,
-            first_access: format(user.first_access, 'MMMM dd, yyyy'),
-            last_update: format(user.last_update, 'MMMM dd, yyyy')
-        };
+        const accessToken = await getAccessTokenForUser(user);
+        const pendingMembers = await getPendingClanMembers(accessToken, '5236471'); // Replace '5236471' with the actual group ID
 
-        res.send(bungieInfo);
+        // Save pending members to the database
+        await PendingMember.deleteMany(); // Clear existing entries
+        const pendingMemberDocs = pendingMembers.map(member => ({
+            membershipId: member.destinyUserInfo.membershipId,
+            displayName: member.destinyUserInfo.displayName,
+            joinDate: new Date(member.joinDate)
+        }));
+        await PendingMember.insertMany(pendingMemberDocs);
+
+        res.send({ pending_members: pendingMembers });
     } catch (err) {
-        logger.error('Error fetching Bungie info:', err);
+        logger.error('Error fetching pending clan members:', err);
+        res.status(500).send({ error: 'Internal Server Error' });
+    }
+});
+
+// Route to retrieve pending clan members from the database
+app.get('/api/clan/pending/fromdb', verifyToken, async (req, res) => {
+    try {
+        const pendingMembers = await PendingMember.find();
+        res.send({ pending_members: pendingMembers });
+    } catch (err) {
+        logger.error('Error retrieving pending clan members from DB:', err);
         res.status(500).send({ error: 'Internal Server Error' });
     }
 });
