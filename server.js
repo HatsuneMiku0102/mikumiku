@@ -466,3 +466,101 @@ app.post('/api/videos', verifyToken, async (req, res) => {
 app.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
+
+const platformTypes = {
+    1: 'Xbox',
+    2: 'PlayStation',
+    3: 'Steam',
+    4: 'Blizzard',
+    5: 'Stadia',
+    10: 'Demon',
+    254: 'Bungie Next'
+};
+
+// API endpoint to fetch Bungie account info
+app.get('/api/bungie-info', async (req, res) => {
+    const token = req.query.token;
+
+    try {
+        const user = await User.findOne({ token });
+        if (!user) {
+            return res.status(400).send({ error: 'Invalid token' });
+        }
+
+        const bungieInfo = {
+            bungie_name: user.bungie_name,
+            membership_id: user.membership_id,
+            platform_type: platformTypes[user.platform_type] || 'Unknown',
+            registration_date: user.registration_date
+        };
+
+        res.send(bungieInfo);
+    } catch (err) {
+        logger.error('Error fetching Bungie info:', err);
+        res.status(500).send({ error: 'Internal Server Error' });
+    }
+});
+
+function generateRandomString(length) {
+    return crypto.randomBytes(length).toString('hex');
+}
+
+async function getBungieToken(code) {
+    const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
+    const payload = new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code,
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        redirect_uri: REDIRECT_URI
+    });
+    const headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-API-Key': process.env.X_API_KEY
+    };
+
+    try {
+        const response = await axios.post(url, payload.toString(), { headers });
+        logger.info('Token Response:', response.data);
+        return response.data;
+    } catch (error) {
+        logger.error('Error fetching Bungie token:', error);
+        if (error.response) {
+            logger.error('Response data:', error.response.data);
+            logger.error('Response status:', error.response.status);
+            logger.error('Response headers:', error.response.headers);
+        } else if (error.request) {
+            logger.error('Request made but no response received:', error.request);
+        } else {
+            logger.error('Error setting up request:', error.message);
+        }
+        throw new Error('Failed to fetch Bungie token');
+    }
+}
+
+async function getBungieUserInfo(accessToken) {
+    const url = 'https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/';
+    const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-API-Key': process.env.X_API_KEY,
+        'User-Agent': 'axios/0.21.4'
+    };
+
+    try {
+        const response = await axios.get(url, { headers });
+        logger.info('User Info Response:', response.data);
+        return response.data;
+    } catch (error) {
+        logger.error('Error fetching Bungie user info:', error);
+        if (error.response) {
+            logger.error('Response data:', error.response.data);
+            logger.error('Response status:', error.response.status);
+            logger.error('Response headers:', error.response.headers);
+        } else if (error.request) {
+            logger.error('Request made but no response received:', error.request);
+        } else {
+            logger.error('Error setting up request:', error.message);
+        }
+        throw new Error('Failed to fetch Bungie user info');
+    }
+}
