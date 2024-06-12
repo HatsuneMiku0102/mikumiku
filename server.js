@@ -113,7 +113,6 @@ const userSchema = new mongoose.Schema({
     registration_date: { type: Date, default: Date.now }, // Added registration_date field
     clan_name: { type: String }, // Added clan_name field
     profile_picture_path: { type: String }, // Added profile_picture_path field
-    equipped_seal: { type: String }, // Added equipped_seal field
     first_access: { type: Date }, // Added first_access field
     last_update: { type: Date } // Added last_update field
 });
@@ -171,7 +170,6 @@ function updateMembershipMapping(discordId, userInfo) {
         "clan_id": "4900827",
         "clan_name": userInfo.clanName, // Add the clan name here
         "profile_picture_path": userInfo.profilePicturePath, // Add the profile picture path here
-        "equipped_seal": userInfo.equippedSeal, // Add the equipped seal here
         "first_access": userInfo.firstAccess, // Add the first access date here
         "last_update": userInfo.lastUpdate // Add the last update date here
     };
@@ -280,9 +278,7 @@ app.get('/callback', async (req, res) => {
         const clanInfo = await getClanInfo(membershipId, platformType, accessToken);
         const clanName = clanInfo && clanInfo.Response.results.length > 0 ? clanInfo.Response.results[0].group.name : 'No Clan';
 
-        const equippedSeal = await getEquippedSeal(membershipId, platformType, accessToken);
-
-        logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}, clanName: ${clanName}, profilePicturePath: ${profilePicturePath}, equippedSeal: ${equippedSeal}, firstAccess: ${firstAccess}, lastUpdate: ${lastUpdate}`);
+        logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}, clanName: ${clanName}, profilePicturePath: ${profilePicturePath}, firstAccess: ${firstAccess}, lastUpdate: ${lastUpdate}`);
 
         const discordId = sessionData.user_id;
 
@@ -296,7 +292,6 @@ app.get('/callback', async (req, res) => {
                 registration_date: new Date(), // Set the registration date here
                 clan_name: clanName, // Save the clan name
                 profile_picture_path: profilePicturePath, // Save the profile picture path
-                equipped_seal: equippedSeal, // Save the equipped seal
                 first_access: firstAccess, // Save the first access date
                 last_update: lastUpdate // Save the last update date
             },
@@ -304,10 +299,10 @@ app.get('/callback', async (req, res) => {
         );
 
         // Send the stored data to the Discord bot
-        await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId, clanName, profilePicturePath, equippedSeal, firstAccess, lastUpdate });
+        await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId, clanName, profilePicturePath, firstAccess, lastUpdate });
 
         // Save the user info to the membership mapping JSON file
-        updateMembershipMapping(discordId, { bungieName, platformType, membershipId, clanName, profilePicturePath, equippedSeal, firstAccess, lastUpdate });
+        updateMembershipMapping(discordId, { bungieName, platformType, membershipId, clanName, profilePicturePath, firstAccess, lastUpdate });
 
         await Session.deleteOne({ state });
 
@@ -440,63 +435,6 @@ async function getClanInfo(membershipId, platformType, accessToken) {
     }
 }
 
-async function getEquippedSeal(membershipId, platformType, accessToken) {
-    const url = `https://www.bungie.net/Platform/Destiny2/${platformType}/Profile/${membershipId}/?components=Profiles`;
-    const headers = {
-        'Authorization': `Bearer ${accessToken}`,
-        'X-API-Key': process.env.X_API_KEY
-    };
-
-    try {
-        const response = await axios.get(url, { headers });
-        const profileData = response.data.Response.profile.data;
-        if (profileData && profileData.characterRecords) {
-            const titleRecordHash = profileData.characterRecords[0]?.titleRecordHash;
-            if (titleRecordHash) {
-                const sealName = await getSealName(titleRecordHash);
-                return sealName;
-            }
-        }
-        throw new Error('No titleRecordHash found');
-    } catch (error) {
-        logger.error('Error fetching equipped seal:', error);
-        if (error.response) {
-            logger.error('Response data:', error.response.data);
-            logger.error('Response status:', error.response.status);
-            logger.error('Response headers:', error.response.headers);
-        } else if (error.request) {
-            logger.error('Request made but no response received:', error.request);
-        } else {
-            logger.error('Error setting up request:', error.message);
-        }
-        throw new Error('Failed to fetch equipped seal');
-    }
-}
-
-async function getSealName(sealHash) {
-    const url = `https://www.bungie.net/Platform/Destiny2/Manifest/DestinyRecordDefinition/${sealHash}/`;
-    const headers = {
-        'X-API-Key': process.env.X_API_KEY
-    };
-
-    try {
-        const response = await axios.get(url, { headers });
-        return response.data.Response.displayProperties.name;
-    } catch (error) {
-        logger.error('Error fetching seal name:', error);
-        if (error.response) {
-            logger.error('Response data:', error.response.data);
-            logger.error('Response status:', error.response.status);
-            logger.error('Response headers:', error.response.headers);
-        } else if (error.request) {
-            logger.error('Request made but no response received:', error.request);
-        } else {
-            logger.error('Error setting up request:', error.message);
-        }
-        throw new Error('Failed to fetch seal name');
-    }
-}
-
 const platformTypes = {
     1: 'Xbox',
     2: 'PlayStation',
@@ -524,7 +462,6 @@ app.get('/api/bungie-info', async (req, res) => {
             registration_date: format(user.registration_date, 'MMMM d, yyyy'),
             clan_name: user.clan_name, // Include the clan name
             profile_picture_path: user.profile_picture_path, // Include the profile picture path
-            equipped_seal: user.equipped_seal, // Include the equipped seal
             first_access: format(user.first_access, 'MMMM d, yyyy'), // Format first access date
             last_update: format(user.last_update, 'MMMM d, yyyy') // Format last update date
         };
