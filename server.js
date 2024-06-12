@@ -254,8 +254,8 @@ app.get('/callback', async (req, res) => {
             throw new Error('Failed to obtain user information');
         }
 
-        const bungieGlobalDisplayName = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayName;
-        const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode;
+        const bungieGlobalDisplayName = String(userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayName);
+        const bungieGlobalDisplayNameCode = String(userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode);
         const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
         const profilePicturePath = userInfo.Response.bungieNetUser.profilePicturePath;
         const firstAccess = parseISO(userInfo.Response.bungieNetUser.firstAccess);
@@ -442,7 +442,6 @@ async function getBungieUserInfo(accessToken) {
         throw new Error('Failed to fetch Bungie user info');
     }
 }
-
 
 async function getClanInfo(membershipId, platformType, accessToken) {
     const url = `https://www.bungie.net/Platform/GroupV2/User/${platformType}/${membershipId}/0/1/`;
