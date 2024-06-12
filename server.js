@@ -262,7 +262,7 @@ app.get('/callback', async (req, res) => {
         }
 
         const bungieGlobalDisplayName = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayName;
-        const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode;
+        const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode.toString().padStart(4, '0'); // Ensure the code is treated as a string and padded with zeros if necessary
         const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
 
         let primaryMembership = userInfo.Response.destinyMemberships.find(
