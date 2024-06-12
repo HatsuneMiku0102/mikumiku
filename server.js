@@ -109,7 +109,8 @@ const userSchema = new mongoose.Schema({
     membership_id: { type: String, unique: true, required: true },
     platform_type: { type: Number, required: true },
     token: { type: String, unique: true }, // Added token field
-    registration_date: { type: Date, default: Date.now } // Added registration_date field
+    registration_date: { type: Date, default: Date.now }, // Added registration_date field
+    access_token: { type: String, required: true } // Added access_token field
 });
 
 const User = mongoose.model('User', userSchema);
@@ -278,7 +279,8 @@ app.get('/callback', async (req, res) => {
                 bungie_name: bungieName,
                 platform_type: platformType,
                 token: generateRandomString(16), // Generate a token for the user
-                registration_date: new Date() // Set the registration date here
+                registration_date: new Date(), // Set the registration date here
+                access_token: accessToken // Store the access token
             },
             { upsert: true, new: true }
         );
@@ -398,11 +400,10 @@ async function getBungieUserInfo(accessToken) {
 
 // Function to get access token for user
 async function getAccessTokenForUser(user) {
-    // Fetch access token from Bungie or refresh if needed
-    // Assuming the user's access token is stored and has an expiry date
-    // Implement the logic here to check if the token is still valid
-    // and refresh it if necessary
-    return user.access_token; // Replace with actual logic
+    // Check if the token is expired or needs refreshing
+    // For simplicity, assuming token is valid if present
+    // Implement token refresh logic if Bungie API provides refresh tokens
+    return user.access_token; // Replace with actual logic if needed
 }
 
 // Function to get pending clan members
@@ -443,7 +444,7 @@ app.get('/api/clan/pending', verifyToken, async (req, res) => {
         }
 
         const accessToken = await getAccessTokenForUser(user);
-        const pendingMembers = await getPendingClanMembers(accessToken, '5236471'); // Replace 'your_group_id' with the actual group ID
+        const pendingMembers = await getPendingClanMembers(accessToken, '5236471'); // Replace '5236471' with the actual group ID
 
         res.send({ pending_members: pendingMembers });
     } catch (err) {
