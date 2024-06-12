@@ -254,8 +254,8 @@ app.get('/callback', async (req, res) => {
             throw new Error('Failed to obtain user information');
         }
 
-        const bungieGlobalDisplayName = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayName;
-        const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode;
+        const bungieGlobalDisplayName = String(userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayName);
+        const bungieGlobalDisplayNameCode = String(userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode);
         const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
         const profilePicturePath = userInfo.Response.bungieNetUser.profilePicturePath;
         const firstAccess = parseISO(userInfo.Response.bungieNetUser.firstAccess);
@@ -265,6 +265,10 @@ app.get('/callback', async (req, res) => {
             m => m.membershipId === userInfo.Response.primaryMembershipId
         );
 
+        if (!primaryMembership) {
+            throw new Error('Primary membership not found');
+        }
+
         const memberships = userInfo.Response.destinyMemberships.map(m => ({
             membership_id: m.membershipId,
             platform_type: m.membershipType,
@@ -272,12 +276,12 @@ app.get('/callback', async (req, res) => {
             is_primary: m.membershipId === userInfo.Response.primaryMembershipId
         }));
 
-        if (!primaryMembership) {
-            throw new Error('Primary membership not found');
-        }
-
         const membershipId = primaryMembership.membershipId;
         const platformType = primaryMembership.membershipType;
+
+        if (!membershipId) {
+            throw new Error('Membership ID is null');
+        }
 
         // Fetch clan name
         const clanInfo = await getClanInfo(membershipId, platformType, accessToken);
@@ -296,7 +300,8 @@ app.get('/callback', async (req, res) => {
                 registration_date: new Date(), // Set the registration date here
                 clan_name: clanName, // Save the clan name
                 first_access: firstAccess,
-                last_update: lastUpdate
+                last_update: lastUpdate,
+                membership_id: membershipId // Ensure membership_id is set
             },
             { upsert: true, new: true }
         );
@@ -322,28 +327,6 @@ app.get('/callback', async (req, res) => {
             logger.error('Error setting up request:', error.message);
         }
         res.status(500).send('Internal Server Error');
-    }
-});
-
-// Serve the confirmation page
-app.get('/confirmation.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'confirmation.html'));
-});
-
-// API endpoint to fetch Bungie name
-app.get('/api/bungie-name', async (req, res) => {
-    const token = req.query.token;
-
-    try {
-        const user = await User.findOne({ token });
-        if (!user) {
-            return res.status(400).send({ error: 'Invalid token' });
-        }
-
-        res.send({ bungie_name: user.bungie_name });
-    } catch (err) {
-        logger.error('Error fetching Bungie name:', err);
-        res.status(500).send({ error: 'Internal Server Error' });
     }
 });
 
