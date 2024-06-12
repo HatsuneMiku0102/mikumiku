@@ -111,7 +111,11 @@ const userSchema = new mongoose.Schema({
     token: { type: String, unique: true }, // Added token field
     registration_date: { type: Date, default: Date.now }, // Added registration_date field
     clan_name: { type: String }, // Added clan_name field
-    profile_picture_path: { type: String } // Added profile_picture_path field
+    profile_picture_path: { type: String }, // Added profile_picture_path field
+    profile_theme: { type: String }, // Added profile_theme field
+    user_title: { type: String }, // Added user_title field
+    first_access: { type: Date }, // Added first_access field
+    last_update: { type: Date } // Added last_update field
 });
 
 const User = mongoose.model('User', userSchema);
@@ -166,7 +170,11 @@ function updateMembershipMapping(discordId, userInfo) {
         "registration_date": new Date(), // Add the registration date here
         "clan_id": "4900827",
         "clan_name": userInfo.clanName, // Add the clan name here
-        "profile_picture_path": userInfo.profilePicturePath // Add the profile picture path here
+        "profile_picture_path": userInfo.profilePicturePath, // Add the profile picture path here
+        "profile_theme": userInfo.profileTheme, // Add the profile theme here
+        "user_title": userInfo.userTitle, // Add the user title here
+        "first_access": userInfo.firstAccess, // Add the first access date here
+        "last_update": userInfo.lastUpdate // Add the last update date here
     };
 
     // Write the updated membership mapping back to the file
@@ -255,6 +263,10 @@ app.get('/callback', async (req, res) => {
         const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode;
         const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
         const profilePicturePath = userInfo.Response.bungieNetUser.profilePicturePath;
+        const profileTheme = userInfo.Response.bungieNetUser.profileThemeName;
+        const userTitle = userInfo.Response.bungieNetUser.userTitleDisplay;
+        const firstAccess = userInfo.Response.bungieNetUser.firstAccess;
+        const lastUpdate = userInfo.Response.bungieNetUser.lastUpdate;
 
         let primaryMembership = userInfo.Response.destinyMemberships.find(
             membership => membership.membershipId === userInfo.Response.primaryMembershipId
@@ -278,7 +290,7 @@ app.get('/callback', async (req, res) => {
             ? clanInfo.Response.results[0].group.name 
             : 'No Clan';
 
-        logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}, clanName: ${clanName}, profilePicturePath: ${profilePicturePath}`);
+        logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}, clanName: ${clanName}, profilePicturePath: ${profilePicturePath}, profileTheme: ${profileTheme}, userTitle: ${userTitle}, firstAccess: ${firstAccess}, lastUpdate: ${lastUpdate}`);
 
         const discordId = sessionData.user_id;
 
@@ -291,16 +303,20 @@ app.get('/callback', async (req, res) => {
                 token: generateRandomString(16), // Generate a token for the user
                 registration_date: new Date(), // Set the registration date here
                 clan_name: clanName, // Save the clan name
-                profile_picture_path: profilePicturePath // Save the profile picture path
+                profile_picture_path: profilePicturePath, // Save the profile picture path
+                profile_theme: profileTheme, // Save the profile theme
+                user_title: userTitle, // Save the user title
+                first_access: firstAccess, // Save the first access date
+                last_update: lastUpdate // Save the last update date
             },
             { upsert: true, new: true }
         );
 
         // Send the stored data to the Discord bot
-        await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId, clanName, profilePicturePath });
+        await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId, clanName, profilePicturePath, profileTheme, userTitle, firstAccess, lastUpdate });
 
         // Save the user info to the membership mapping JSON file
-        updateMembershipMapping(discordId, { bungieName, platformType, membershipId, clanName, profilePicturePath });
+        updateMembershipMapping(discordId, { bungieName, platformType, membershipId, clanName, profilePicturePath, profileTheme, userTitle, firstAccess, lastUpdate });
 
         await Session.deleteOne({ state });
 
@@ -459,7 +475,11 @@ app.get('/api/bungie-info', async (req, res) => {
             platform_type: platformTypes[user.platform_type] || 'Unknown',
             registration_date: user.registration_date,
             clan_name: user.clan_name, // Include the clan name
-            profile_picture_path: user.profile_picture_path // Include the profile picture path
+            profile_picture_path: user.profile_picture_path, // Include the profile picture path
+            profile_theme: user.profile_theme, // Include the profile theme
+            user_title: user.user_title, // Include the user title
+            first_access: user.first_access, // Include the first access date
+            last_update: user.last_update // Include the last update date
         };
 
         res.send(bungieInfo);
