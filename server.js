@@ -443,7 +443,7 @@ app.get('/api/clan/pending', verifyToken, async (req, res) => {
         }
 
         const accessToken = await getAccessTokenForUser(user);
-        const pendingMembers = await getPendingClanMembers(accessToken, 'your_group_id'); // Replace 'your_group_id' with the actual group ID
+        const pendingMembers = await getPendingClanMembers(accessToken, '5236471'); // Replace 'your_group_id' with the actual group ID
 
         res.send({ pending_members: pendingMembers });
     } catch (err) {
