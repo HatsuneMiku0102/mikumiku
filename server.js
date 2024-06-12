@@ -13,7 +13,7 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const fs = require('fs');
 const winston = require('winston');
-const { format } = require('date-fns'); // For formatting dates
+const { format } = require('date-fns');
 
 // Configure logging
 const logger = winston.createLogger({
@@ -262,20 +262,15 @@ app.get('/callback', async (req, res) => {
         const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode;
         const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
         const profilePicturePath = userInfo.Response.bungieNetUser.profilePicturePath;
-        const firstAccess = parse_date(userInfo.Response.bungieNetUser.firstAccess);
-        const lastUpdate = parse_date(userInfo.Response.bungieNetUser.lastUpdate);
+        const firstAccess = new Date(userInfo.Response.bungieNetUser.firstAccess);
+        const lastUpdate = new Date(userInfo.Response.bungieNetUser.lastUpdate);
 
         let primaryMembership = userInfo.Response.destinyMemberships.find(
             membership => membership.membershipId === userInfo.Response.primaryMembershipId
         );
 
         if (!primaryMembership) {
-            // If no primary membership is found, fallback to the first membership
             primaryMembership = userInfo.Response.destinyMemberships[0];
-        }
-
-        if (!primaryMembership) {
-            throw new Error('Failed to obtain platform-specific membership ID');
         }
 
         const membershipId = primaryMembership.membershipId;
@@ -283,11 +278,8 @@ app.get('/callback', async (req, res) => {
 
         // Fetch clan name
         const clanInfo = await getClanInfo(membershipId, platformType, accessToken);
-        const clanName = clanInfo && clanInfo.Response && clanInfo.Response.results && clanInfo.Response.results.length > 0 
-            ? clanInfo.Response.results[0].group.name 
-            : 'No Clan';
+        const clanName = clanInfo && clanInfo.Response.results.length > 0 ? clanInfo.Response.results[0].group.name : 'No Clan';
 
-        // Fetch equipped seal
         const equippedSeal = await getEquippedSeal(membershipId, platformType, accessToken);
 
         logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}, clanName: ${clanName}, profilePicturePath: ${profilePicturePath}, equippedSeal: ${equippedSeal}, firstAccess: ${firstAccess}, lastUpdate: ${lastUpdate}`);
@@ -452,16 +444,13 @@ async function getEquippedSeal(membershipId, platformType, accessToken) {
     const url = `https://www.bungie.net/Platform/Destiny2/${platformType}/Profile/${membershipId}/?components=Profiles`;
     const headers = {
         'Authorization': `Bearer ${accessToken}`,
-        'X-API-Key': process.env.X_API_KEY,
-        'User-Agent': 'axios/0.21.4'
+        'X-API-Key': process.env.X_API_KEY
     };
 
     try {
         const response = await axios.get(url, { headers });
-        logger.info('Equipped Seal Response:', response.data);
-        const equippedSealHash = response.data.Response.profile.data.characterRecords[0].titleRecordHash;
-        // Fetch the seal name using the hash
-        const sealName = await getSealName(equippedSealHash);
+        const titleRecordHash = response.data.Response.profile.data.characterRecords[0].titleRecordHash;
+        const sealName = await getSealName(titleRecordHash);
         return sealName;
     } catch (error) {
         logger.error('Error fetching equipped seal:', error);
@@ -481,13 +470,11 @@ async function getEquippedSeal(membershipId, platformType, accessToken) {
 async function getSealName(sealHash) {
     const url = `https://www.bungie.net/Platform/Destiny2/Manifest/DestinyRecordDefinition/${sealHash}/`;
     const headers = {
-        'X-API-Key': process.env.X_API_KEY,
-        'User-Agent': 'axios/0.21.4'
+        'X-API-Key': process.env.X_API_KEY
     };
 
     try {
         const response = await axios.get(url, { headers });
-        logger.info('Seal Name Response:', response.data);
         return response.data.Response.displayProperties.name;
     } catch (error) {
         logger.error('Error fetching seal name:', error);
@@ -528,12 +515,12 @@ app.get('/api/bungie-info', async (req, res) => {
             bungie_name: user.bungie_name,
             membership_id: user.membership_id,
             platform_type: platformTypes[user.platform_type] || 'Unknown',
-            registration_date: format(user.registration_date, 'PPpp'), // Format the registration date
+            registration_date: format(user.registration_date, 'MMMM d, yyyy'),
             clan_name: user.clan_name, // Include the clan name
             profile_picture_path: user.profile_picture_path, // Include the profile picture path
             equipped_seal: user.equipped_seal, // Include the equipped seal
-            first_access: format(new Date(user.first_access), 'PPpp'), // Format the first access date
-            last_update: format(new Date(user.last_update), 'PPpp') // Format the last update date
+            first_access: format(user.first_access, 'MMMM d, yyyy'), // Format first access date
+            last_update: format(user.last_update, 'MMMM d, yyyy') // Format last update date
         };
 
         res.send(bungieInfo);
