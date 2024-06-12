@@ -262,8 +262,8 @@ app.get('/callback', async (req, res) => {
         const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode;
         const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
         const profilePicturePath = userInfo.Response.bungieNetUser.profilePicturePath;
-        const firstAccess = userInfo.Response.bungieNetUser.firstAccess;
-        const lastUpdate = userInfo.Response.bungieNetUser.lastUpdate;
+        const firstAccess = parse_date(userInfo.Response.bungieNetUser.firstAccess);
+        const lastUpdate = parse_date(userInfo.Response.bungieNetUser.lastUpdate);
 
         let primaryMembership = userInfo.Response.destinyMemberships.find(
             membership => membership.membershipId === userInfo.Response.primaryMembershipId
@@ -283,7 +283,7 @@ app.get('/callback', async (req, res) => {
 
         // Fetch clan name
         const clanInfo = await getClanInfo(membershipId, platformType, accessToken);
-        const clanName = (clanInfo && clanInfo.Response && clanInfo.Response.results && clanInfo.Response.results.length > 0) 
+        const clanName = clanInfo && clanInfo.Response && clanInfo.Response.results && clanInfo.Response.results.length > 0 
             ? clanInfo.Response.results[0].group.name 
             : 'No Clan';
 
@@ -459,7 +459,7 @@ async function getEquippedSeal(membershipId, platformType, accessToken) {
     try {
         const response = await axios.get(url, { headers });
         logger.info('Equipped Seal Response:', response.data);
-        const equippedSealHash = response.data.Response.profileRecords.data.activeTitlesByHash;
+        const equippedSealHash = response.data.Response.profile.data.characterRecords[0].titleRecordHash;
         // Fetch the seal name using the hash
         const sealName = await getSealName(equippedSealHash);
         return sealName;
