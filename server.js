@@ -254,8 +254,8 @@ app.get('/callback', async (req, res) => {
             throw new Error('Failed to obtain user information');
         }
 
-        const bungieGlobalDisplayName = String(userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayName);
-        const bungieGlobalDisplayNameCode = String(userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode);
+        const bungieGlobalDisplayName = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayName;
+        const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode;
         const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
         const profilePicturePath = userInfo.Response.bungieNetUser.profilePicturePath;
         const firstAccess = parseISO(userInfo.Response.bungieNetUser.firstAccess);
@@ -394,40 +394,8 @@ async function getBungieUserInfo(accessToken) {
 
     try {
         const response = await axios.get(url, { headers });
-        const userInfo = response.data;
-
-        const bungieGlobalDisplayName = String(userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayName);
-        const bungieGlobalDisplayNameCode = String(userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode);
-        const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
-        const profilePicturePath = userInfo.Response.bungieNetUser.profilePicturePath;
-        const firstAccess = parseISO(userInfo.Response.bungieNetUser.firstAccess);
-        const lastUpdate = parseISO(userInfo.Response.bungieNetUser.lastUpdate);
-
-        const primaryMembership = userInfo.Response.destinyMemberships.find(
-            m => m.membershipId === userInfo.Response.primaryMembershipId
-        );
-
-        const memberships = userInfo.Response.destinyMemberships.map(m => ({
-            membership_id: m.membershipId,
-            platform_type: m.membershipType,
-            display_name: m.displayName,
-            is_primary: m.membershipId === userInfo.Response.primaryMembershipId
-        }));
-
-        if (!primaryMembership) {
-            throw new Error('Primary membership not found');
-        }
-
-        const membershipId = primaryMembership.membershipId;
-        const platformType = primaryMembership.membershipType;
-
-        return {
-            bungieName,
-            memberships,
-            profilePicturePath,
-            firstAccess,
-            lastUpdate
-        };
+        logger.info('User Info Response:', response.data);
+        return response.data;
     } catch (error) {
         logger.error('Error fetching Bungie user info:', error);
         if (error.response) {
