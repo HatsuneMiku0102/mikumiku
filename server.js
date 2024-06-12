@@ -13,7 +13,7 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const fs = require('fs');
 const winston = require('winston');
-const { DateTime } = require('luxon'); // Import luxon for datetime handling
+const { DateTime } = require('luxon');
 
 // Configure logging
 const logger = winston.createLogger({
@@ -38,13 +38,13 @@ app.set('trust proxy', 1); // Trust the first proxy for secure cookies
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const mongoUrl = 'mongodb+srv://hystoriyaallusiataylor:mtW4aUnsTIr5VVcV@mikumiku.jf47gbz.mongodb.net/myfirstdatabase?retryWrites=true&w=majority&appName=mikumiku';
+const mongoUrl = process.env.MONGO_URL;
 
 // Connect to MongoDB
 mongoose.connect(mongoUrl, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    useFindAndModify: false  // Address deprecation warning
+    useFindAndModify: false
 }).then(() => {
     logger.info('Connected to MongoDB');
 }).catch((err) => {
@@ -72,8 +72,8 @@ app.use(session({
     saveUninitialized: false,
     store: sessionStore,
     cookie: {
-        secure: true, // Ensure secure flag is true for HTTPS
-        sameSite: 'None', // Adjusting SameSite attribute
+        secure: true,
+        sameSite: 'None',
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
@@ -109,10 +109,11 @@ const userSchema = new mongoose.Schema({
     bungie_name: { type: String, required: true },
     membership_id: { type: String, unique: true, required: true },
     platform_type: { type: Number, required: true },
-    token: { type: String, unique: true }, // Added token field
-    registration_date: { type: Date, default: Date.now }, // Added registration_date field
-    access_token: { type: String, required: true }, // Added access_token field
-    token_expiry: { type: Date, required: true } // Added token_expiry field
+    token: { type: String, unique: true },
+    registration_date: { type: Date, default: Date.now },
+    access_token: { type: String, required: true },
+    token_expiry: { type: Date, required: true },
+    refresh_token: { type: String, required: true }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -146,14 +147,13 @@ const users = [
 // OAuth Configuration
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches the URL in your Bungie app settings
+const REDIRECT_URI = 'https://mikumiku.dev/callback';
 
 const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
 
 function updateMembershipMapping(discordId, userInfo) {
     let membershipMapping = {};
 
-    // Read the existing file if it exists
     if (fs.existsSync(membershipFilePath)) {
         const data = fs.readFileSync(membershipFilePath, 'utf8');
         logger.info('Read existing membership mapping file:', data);
@@ -167,16 +167,14 @@ function updateMembershipMapping(discordId, userInfo) {
         logger.info('Membership mapping file does not exist. A new one will be created.');
     }
 
-    // Update the membership mapping with new user info
     membershipMapping[discordId] = {
         "membership_id": userInfo.membershipId,
         "platform_type": userInfo.platformType,
         "bungie_name": userInfo.bungieName,
-        "registration_date": new Date(), // Add the registration date here
+        "registration_date": new Date(),
         "clan_id": "4900827"
     };
 
-    // Write the updated membership mapping back to the file
     try {
         fs.writeFileSync(membershipFilePath, JSON.stringify(membershipMapping, null, 2), 'utf8');
         logger.info('Updated membership mapping file:', JSON.stringify(membershipMapping, null, 2));
@@ -184,7 +182,6 @@ function updateMembershipMapping(discordId, userInfo) {
         logger.error('Error writing to membership mapping file:', err);
     }
 
-    // Read and log the file contents to confirm update
     try {
         const updatedData = fs.readFileSync(membershipFilePath, 'utf8');
         logger.info('Verified membership mapping file content:', updatedData);
@@ -194,14 +191,13 @@ function updateMembershipMapping(discordId, userInfo) {
 }
 
 async function sendUserInfoToDiscordBot(discordId, userInfo) {
-    // You can implement additional actions here if needed
     logger.info('User info ready to be sent to Discord bot:', userInfo);
 }
 
 // OAuth Login Route
 app.get('/login', async (req, res) => {
     const state = generateRandomString(16);
-    const user_id = req.query.user_id; // Assume user_id is passed in the query for simplicity
+    const user_id = req.query.user_id;
     const ip_address = req.ip;
     const user_agent = req.get('User-Agent');
 
@@ -217,7 +213,7 @@ app.get('/login', async (req, res) => {
         await sessionData.save();
         logger.info(`Generated state: ${state}`);
         logger.info(`Inserted session: ${JSON.stringify(sessionData)}`);
-        const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
+        const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}&scope=AdminGroups`;
         res.redirect(authorizeUrl);
     } catch (err) {
         logger.error('Error saving session to DB:', err);
@@ -250,8 +246,9 @@ app.get('/callback', async (req, res) => {
         }
 
         const accessToken = tokenData.access_token;
-        const expiresIn = tokenData.expires_in; // In seconds
-        const tokenExpiry = DateTime.now().plus({ seconds: expiresIn }).toJSDate(); // Calculate expiry date
+        const refreshToken = tokenData.refresh_token;
+        const expiresIn = tokenData.expires_in;
+        const tokenExpiry = new Date(Date.now() + expiresIn * 1000);
 
         const userInfo = await getBungieUserInfo(accessToken);
         logger.info('User Info Response:', userInfo);
@@ -270,7 +267,6 @@ app.get('/callback', async (req, res) => {
         );
 
         if (!primaryMembership) {
-            // If no primary membership is found, fallback to the first membership
             primaryMembership = userInfo.Response.destinyMemberships[0];
         }
 
@@ -291,18 +287,17 @@ app.get('/callback', async (req, res) => {
                 discord_id: discordId,
                 bungie_name: bungieName,
                 platform_type: platformType,
-                token: generateRandomString(16), // Generate a token for the user
-                registration_date: new Date(), // Set the registration date here
-                access_token: accessToken, // Store the access token
-                token_expiry: tokenExpiry // Store the token expiry
+                token: generateRandomString(16),
+                registration_date: new Date(),
+                access_token: accessToken,
+                token_expiry: tokenExpiry,
+                refresh_token: refreshToken
             },
             { upsert: true, new: true }
         );
 
-        // Send the stored data to the Discord bot
         await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId });
 
-        // Save the user info to the membership mapping JSON file
         updateMembershipMapping(discordId, { bungieName, platformType, membershipId });
 
         await Session.deleteOne({ state });
@@ -370,17 +365,7 @@ async function getBungieToken(code) {
         logger.info('Token Response:', response.data);
         return response.data;
     } catch (error) {
-        logger.error('Error fetching Bungie token:', error);
-        if (error.response) {
-            logger.error('Response data:', error.response.data);
-            logger.error('Response status:', error.response.status);
-            logger.error('Response headers:', error.response.headers);
-        } else if (error.request) {
-            logger.error('Request made but no response received:', error.request);
-        } else {
-            logger.error('Error setting up request:', error.message);
-        }
-        throw new Error('Failed to fetch Bungie token');
+        handleAxiosError(error);
     }
 }
 
@@ -398,35 +383,48 @@ async function getBungieUserInfo(accessToken) {
         logger.info('User Info Response:', response.data);
         return response.data;
     } catch (error) {
-        logger.error('Error fetching Bungie user info:', error);
-        if (error.response) {
-            logger.error('Response data:', error.response.data);
-            logger.error('Response status:', error.response.status);
-            logger.error('Response headers:', error.response.headers);
-        } else if (error.request) {
-            logger.error('Request made but no response received:', error.request);
-        } else {
-            logger.error('Error setting up request:', error.message);
-        }
-        throw new Error('Failed to fetch Bungie user info');
+        handleAxiosError(error);
+    }
+}
+
+// Function to refresh Bungie token
+async function refreshBungieToken(refreshToken) {
+    const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
+    const payload = new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET
+    });
+    const headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-API-Key': process.env.X_API_KEY
+    };
+
+    try {
+        const response = await axios.post(url, payload.toString(), { headers });
+        logger.info('Token Refresh Response:', response.data);
+        return response.data;
+    } catch (error) {
+        handleAxiosError(error);
     }
 }
 
 // Function to get access token for user
 async function getAccessTokenForUser(user) {
-    const now = DateTime.now();
-    const tokenExpiry = DateTime.fromJSDate(user.token_expiry);
-    
-    if (now >= tokenExpiry) {
-        // Token expired, refresh logic needed here
-        // For simplicity, let's assume we get a new token using refresh_token
-        // const newTokenData = await refreshBungieToken(user.refresh_token); // Implement this function
-        // user.access_token = newTokenData.access_token;
-        // user.token_expiry = DateTime.now().plus({ seconds: newTokenData.expires_in }).toJSDate();
-        // await user.save();
-        throw new Error('Token expired and refresh logic is not implemented.');
+    const now = new Date();
+    if (now >= user.token_expiry) {
+        const newTokenData = await refreshBungieToken(user.refresh_token);
+        if (newTokenData.access_token) {
+            user.access_token = newTokenData.access_token;
+            user.token_expiry = new Date(Date.now() + newTokenData.expires_in * 1000);
+            user.refresh_token = newTokenData.refresh_token;
+            await user.save();
+            return user.access_token;
+        } else {
+            throw new Error('Failed to refresh access token');
+        }
     }
-    
     return user.access_token;
 }
 
@@ -440,20 +438,12 @@ async function getPendingClanMembers(accessToken, groupId) {
 
     try {
         const response = await axios.get(url, { headers });
-        logger.info('Pending Clan Members Response:', response.data);
         return response.data.Response.results;
     } catch (error) {
-        logger.error('Error fetching pending clan members:', error);
-        if (error.response) {
-            logger.error('Response data:', error.response.data);
-            logger.error('Response status:', error.response.status);
-            logger.error('Response headers:', error.response.headers);
-        } else if (error.request) {
-            logger.error('Request made but no response received:', error.request);
-        } else {
-            logger.error('Error setting up request:', error.message);
+        if (error.response && error.response.status === 401 && error.response.data.ErrorStatus === 'WebAuthRequired') {
+            throw new Error('WebAuthRequired');
         }
-        throw new Error('Failed to fetch pending clan members');
+        handleAxiosError(error);
     }
 }
 
@@ -464,20 +454,35 @@ app.get('/api/clan/pending', verifyToken, async (req, res) => {
     try {
         const user = await User.findOne({ discord_id: userId });
         if (!user) {
+            logger.warn('User not found:', userId);
             return res.status(400).send({ error: 'User not found' });
         }
 
-        const accessToken = await getAccessTokenForUser(user);
-        const pendingMembers = await getPendingClanMembers(accessToken, '5236471'); // Replace '5236471' with the actual group ID
+        let accessToken = await getAccessTokenForUser(user);
+
+        let pendingMembers;
+        try {
+            pendingMembers = await getPendingClanMembers(accessToken, '5236471'); // Replace '5236471' with the actual group ID
+        } catch (error) {
+            if (error.message === 'WebAuthRequired') {
+                accessToken = await getAccessTokenForUser(user); // Refresh token and retry
+                pendingMembers = await getPendingClanMembers(accessToken, '5236471');
+            } else {
+                throw error;
+            }
+        }
+
+        logger.info('Pending clan members fetched:', pendingMembers);
 
         // Save pending members to the database
-        await PendingMember.deleteMany(); // Clear existing entries
+        await PendingMember.deleteMany();
         const pendingMemberDocs = pendingMembers.map(member => ({
             membershipId: member.destinyUserInfo.membershipId,
             displayName: member.destinyUserInfo.displayName,
             joinDate: new Date(member.joinDate)
         }));
         await PendingMember.insertMany(pendingMemberDocs);
+        logger.info('Pending members saved to database:', pendingMemberDocs);
 
         res.send({ pending_members: pendingMembers });
     } catch (err) {
@@ -515,7 +520,7 @@ app.post('/login', (req, res) => {
 
     res.cookie('token', token, {
         httpOnly: true,
-        secure: true, // Set to true if using HTTPS
+        secure: true,
         maxAge: 86400 * 1000 // 24 hours
     });
 
@@ -540,7 +545,6 @@ function verifyToken(req, res, next) {
 // Public route for fetching videos
 app.get('/api/videos/public', async (req, res) => {
     try {
-        // Add your logic here for fetching video metadata from MongoDB
         res.json([]); // Placeholder response
     } catch (err) {
         logger.error('Error retrieving video metadata:', err);
@@ -559,7 +563,6 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     };
 
     try {
-        // Add your logic here for saving video metadata to MongoDB
         res.status(201).send({ message: 'Video added', video: videoMetadata }); // Placeholder response
     } catch (err) {
         logger.error('Error saving video metadata:', err);
@@ -570,3 +573,16 @@ app.post('/api/videos', verifyToken, async (req, res) => {
 app.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
+
+function handleAxiosError(error) {
+    if (error.response) {
+        logger.error('Response data:', error.response.data);
+        logger.error('Response status:', error.response.status);
+        logger.error('Response headers:', error.response.headers);
+    } else if (error.request) {
+        logger.error('Request made but no response received:', error.request);
+    } else {
+        logger.error('Error setting up request:', error.message);
+    }
+    throw new Error('Failed to fetch data');
+}
