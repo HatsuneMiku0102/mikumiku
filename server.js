@@ -329,10 +329,12 @@ app.get('/api/bungie-name', async (req, res) => {
     }
 });
 
+// Function to generate a random string
 function generateRandomString(length) {
     return crypto.randomBytes(length).toString('hex');
 }
 
+// Function to get Bungie token
 async function getBungieToken(code) {
     const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
     const payload = new URLSearchParams({
@@ -366,6 +368,7 @@ async function getBungieToken(code) {
     }
 }
 
+// Function to get Bungie user info
 async function getBungieUserInfo(accessToken) {
     const url = 'https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/';
     const headers = {
@@ -392,6 +395,62 @@ async function getBungieUserInfo(accessToken) {
         throw new Error('Failed to fetch Bungie user info');
     }
 }
+
+// Function to get access token for user
+async function getAccessTokenForUser(user) {
+    // Fetch access token from Bungie or refresh if needed
+    // Assuming the user's access token is stored and has an expiry date
+    // Implement the logic here to check if the token is still valid
+    // and refresh it if necessary
+    return user.access_token; // Replace with actual logic
+}
+
+// Function to get pending clan members
+async function getPendingClanMembers(accessToken, groupId) {
+    const url = `https://www.bungie.net/Platform/GroupV2/${groupId}/Members/Pending/`;
+    const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-API-Key': process.env.X_API_KEY
+    };
+
+    try {
+        const response = await axios.get(url, { headers });
+        logger.info('Pending Clan Members Response:', response.data);
+        return response.data.Response.results;
+    } catch (error) {
+        logger.error('Error fetching pending clan members:', error);
+        if (error.response) {
+            logger.error('Response data:', error.response.data);
+            logger.error('Response status:', error.response.status);
+            logger.error('Response headers:', error.response.headers);
+        } else if (error.request) {
+            logger.error('Request made but no response received:', error.request);
+        } else {
+            logger.error('Error setting up request:', error.message);
+        }
+        throw new Error('Failed to fetch pending clan members');
+    }
+}
+
+// Route to get pending clan members
+app.get('/api/clan/pending', verifyToken, async (req, res) => {
+    const userId = req.userId;
+
+    try {
+        const user = await User.findOne({ discord_id: userId });
+        if (!user) {
+            return res.status(400).send({ error: 'User not found' });
+        }
+
+        const accessToken = await getAccessTokenForUser(user);
+        const pendingMembers = await getPendingClanMembers(accessToken, 'your_group_id'); // Replace 'your_group_id' with the actual group ID
+
+        res.send({ pending_members: pendingMembers });
+    } catch (err) {
+        logger.error('Error fetching pending clan members:', err);
+        res.status(500).send({ error: 'Internal Server Error' });
+    }
+});
 
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
