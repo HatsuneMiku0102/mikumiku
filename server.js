@@ -271,7 +271,9 @@ app.get('/callback', async (req, res) => {
 
         // Fetch clan name
         const clanInfo = await getClanInfo(membershipId, platformType, accessToken);
-        const clanName = clanInfo && clanInfo.results.length > 0 ? clanInfo.results[0].group.name : 'No Clan';
+        const clanName = (clanInfo && clanInfo.Response && clanInfo.Response.results && clanInfo.Response.results.length > 0) 
+            ? clanInfo.Response.results[0].group.name 
+            : 'No Clan';
 
         logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}, clanName: ${clanName}`);
 
