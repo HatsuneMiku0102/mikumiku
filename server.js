@@ -13,7 +13,7 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const fs = require('fs');
 const winston = require('winston');
-const { format } = require('date-fns');
+const { format, parseISO } = require('date-fns');
 
 // Configure logging
 const logger = winston.createLogger({
@@ -107,8 +107,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
     bungie_name: { type: String, required: true },
-    membership_id: { type: String, unique: true, required: true },
-    platform_type: { type: Number, required: true },
+    memberships: { type: Array, required: true },
     token: { type: String, unique: true }, // Added token field
     registration_date: { type: Date, default: Date.now }, // Added registration_date field
     clan_name: { type: String }, // Added clan_name field
@@ -163,15 +162,14 @@ function updateMembershipMapping(discordId, userInfo) {
 
     // Update the membership mapping with new user info
     membershipMapping[discordId] = {
-        "membership_id": userInfo.membershipId,
-        "platform_type": userInfo.platformType,
+        "memberships": userInfo.memberships,
         "bungie_name": userInfo.bungieName,
         "registration_date": new Date(), // Add the registration date here
         "clan_id": "4900827",
         "clan_name": userInfo.clanName, // Add the clan name here
-        "profile_picture_path": userInfo.profilePicturePath, // Add the profile picture path here
-        "first_access": userInfo.firstAccess, // Add the first access date here
-        "last_update": userInfo.lastUpdate // Add the last update date here
+        "profile_picture_path": userInfo.profilePicturePath,
+        "first_access": userInfo.firstAccess,
+        "last_update": userInfo.lastUpdate
     };
 
     // Write the updated membership mapping back to the file
@@ -260,15 +258,22 @@ app.get('/callback', async (req, res) => {
         const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode;
         const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
         const profilePicturePath = userInfo.Response.bungieNetUser.profilePicturePath;
-        const firstAccess = new Date(userInfo.Response.bungieNetUser.firstAccess);
-        const lastUpdate = new Date(userInfo.Response.bungieNetUser.lastUpdate);
+        const firstAccess = parseISO(userInfo.Response.bungieNetUser.firstAccess);
+        const lastUpdate = parseISO(userInfo.Response.bungieNetUser.lastUpdate);
 
-        let primaryMembership = userInfo.Response.destinyMemberships.find(
-            membership => membership.membershipId === userInfo.Response.primaryMembershipId
+        const primaryMembership = userInfo.Response.destinyMemberships.find(
+            m => m.membershipId === userInfo.Response.primaryMembershipId
         );
 
+        const memberships = userInfo.Response.destinyMemberships.map(m => ({
+            membership_id: m.membershipId,
+            platform_type: m.membershipType,
+            display_name: m.displayName,
+            is_primary: m.membershipId === userInfo.Response.primaryMembershipId
+        }));
+
         if (!primaryMembership) {
-            primaryMembership = userInfo.Response.destinyMemberships[0];
+            throw new Error('Primary membership not found');
         }
 
         const membershipId = primaryMembership.membershipId;
@@ -278,31 +283,29 @@ app.get('/callback', async (req, res) => {
         const clanInfo = await getClanInfo(membershipId, platformType, accessToken);
         const clanName = clanInfo && clanInfo.Response.results.length > 0 ? clanInfo.Response.results[0].group.name : 'No Clan';
 
-        logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}, clanName: ${clanName}, profilePicturePath: ${profilePicturePath}, firstAccess: ${firstAccess}, lastUpdate: ${lastUpdate}`);
+        logger.info(`Extracted bungieName: ${bungieName}, memberships: ${JSON.stringify(memberships)}, clanName: ${clanName}, profilePicturePath: ${profilePicturePath}, firstAccess: ${firstAccess}, lastUpdate: ${lastUpdate}`);
 
         const discordId = sessionData.user_id;
 
         const user = await User.findOneAndUpdate(
-            { membership_id: membershipId },
+            { discord_id: discordId },
             {
-                discord_id: discordId,
                 bungie_name: bungieName,
-                platform_type: platformType,
-                token: generateRandomString(16), // Generate a token for the user
+                memberships: memberships,
+                profile_picture_path: profilePicturePath,
                 registration_date: new Date(), // Set the registration date here
                 clan_name: clanName, // Save the clan name
-                profile_picture_path: profilePicturePath, // Save the profile picture path
-                first_access: firstAccess, // Save the first access date
-                last_update: lastUpdate // Save the last update date
+                first_access: firstAccess,
+                last_update: lastUpdate
             },
             { upsert: true, new: true }
         );
 
         // Send the stored data to the Discord bot
-        await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId, clanName, profilePicturePath, firstAccess, lastUpdate });
+        await sendUserInfoToDiscordBot(discordId, { bungieName, memberships, clanName, profilePicturePath, firstAccess, lastUpdate });
 
         // Save the user info to the membership mapping JSON file
-        updateMembershipMapping(discordId, { bungieName, platformType, membershipId, clanName, profilePicturePath, firstAccess, lastUpdate });
+        updateMembershipMapping(discordId, { bungieName, memberships, clanName, profilePicturePath, firstAccess, lastUpdate });
 
         await Session.deleteOne({ state });
 
@@ -457,13 +460,15 @@ app.get('/api/bungie-info', async (req, res) => {
 
         const bungieInfo = {
             bungie_name: user.bungie_name,
-            membership_id: user.membership_id,
-            platform_type: platformTypes[user.platform_type] || 'Unknown',
-            registration_date: format(user.registration_date, 'MMMM d, yyyy'),
-            clan_name: user.clan_name, // Include the clan name
-            profile_picture_path: user.profile_picture_path, // Include the profile picture path
-            first_access: format(user.first_access, 'MMMM d, yyyy'), // Format first access date
-            last_update: format(user.last_update, 'MMMM d, yyyy') // Format last update date
+            memberships: user.memberships.map(m => ({
+                ...m,
+                platform_name: platformTypes[m.platform_type] || 'Unknown'
+            })),
+            registration_date: user.registration_date,
+            clan_name: user.clan_name,
+            profile_picture_path: user.profile_picture_path,
+            first_access: format(user.first_access, 'MMMM dd, yyyy'),
+            last_update: format(user.last_update, 'MMMM dd, yyyy')
         };
 
         res.send(bungieInfo);
