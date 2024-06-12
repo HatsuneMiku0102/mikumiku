@@ -394,8 +394,40 @@ async function getBungieUserInfo(accessToken) {
 
     try {
         const response = await axios.get(url, { headers });
-        logger.info('User Info Response:', response.data);
-        return response.data;
+        const userInfo = response.data;
+
+        const bungieGlobalDisplayName = String(userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayName);
+        const bungieGlobalDisplayNameCode = String(userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode);
+        const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
+        const profilePicturePath = userInfo.Response.bungieNetUser.profilePicturePath;
+        const firstAccess = parseISO(userInfo.Response.bungieNetUser.firstAccess);
+        const lastUpdate = parseISO(userInfo.Response.bungieNetUser.lastUpdate);
+
+        const primaryMembership = userInfo.Response.destinyMemberships.find(
+            m => m.membershipId === userInfo.Response.primaryMembershipId
+        );
+
+        const memberships = userInfo.Response.destinyMemberships.map(m => ({
+            membership_id: m.membershipId,
+            platform_type: m.membershipType,
+            display_name: m.displayName,
+            is_primary: m.membershipId === userInfo.Response.primaryMembershipId
+        }));
+
+        if (!primaryMembership) {
+            throw new Error('Primary membership not found');
+        }
+
+        const membershipId = primaryMembership.membershipId;
+        const platformType = primaryMembership.membershipType;
+
+        return {
+            bungieName,
+            memberships,
+            profilePicturePath,
+            firstAccess,
+            lastUpdate
+        };
     } catch (error) {
         logger.error('Error fetching Bungie user info:', error);
         if (error.response) {
@@ -410,6 +442,7 @@ async function getBungieUserInfo(accessToken) {
         throw new Error('Failed to fetch Bungie user info');
     }
 }
+
 
 async function getClanInfo(membershipId, platformType, accessToken) {
     const url = `https://www.bungie.net/Platform/GroupV2/User/${platformType}/${membershipId}/0/1/`;
