@@ -115,6 +115,14 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
+const pendingMemberSchema = new mongoose.Schema({
+    membershipId: { type: String, required: true },
+    displayName: { type: String, required: true },
+    joinDate: { type: Date, required: true }
+});
+
+const PendingMember = mongoose.model('PendingMember', pendingMemberSchema);
+
 const sessionSchema = new mongoose.Schema({
     state: { type: String, required: true, unique: true },
     user_id: { type: String, required: true },
@@ -433,7 +441,7 @@ async function getPendingClanMembers(accessToken, groupId) {
     }
 }
 
-// Route to get pending clan members
+// Route to get pending clan members and save to the database
 app.get('/api/clan/pending', verifyToken, async (req, res) => {
     const userId = req.userId;
 
@@ -446,9 +454,29 @@ app.get('/api/clan/pending', verifyToken, async (req, res) => {
         const accessToken = await getAccessTokenForUser(user);
         const pendingMembers = await getPendingClanMembers(accessToken, '5236471'); // Replace '5236471' with the actual group ID
 
+        // Save pending members to the database
+        await PendingMember.deleteMany(); // Clear existing entries
+        const pendingMemberDocs = pendingMembers.map(member => ({
+            membershipId: member.destinyUserInfo.membershipId,
+            displayName: member.destinyUserInfo.displayName,
+            joinDate: new Date(member.joinDate)
+        }));
+        await PendingMember.insertMany(pendingMemberDocs);
+
         res.send({ pending_members: pendingMembers });
     } catch (err) {
         logger.error('Error fetching pending clan members:', err);
+        res.status(500).send({ error: 'Internal Server Error' });
+    }
+});
+
+// Route to retrieve pending clan members from the database
+app.get('/api/clan/pending/fromdb', verifyToken, async (req, res) => {
+    try {
+        const pendingMembers = await PendingMember.find();
+        res.send({ pending_members: pendingMembers });
+    } catch (err) {
+        logger.error('Error retrieving pending clan members from DB:', err);
         res.status(500).send({ error: 'Internal Server Error' });
     }
 });
