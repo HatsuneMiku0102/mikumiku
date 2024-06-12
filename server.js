@@ -13,6 +13,7 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const fs = require('fs');
 const winston = require('winston');
+const { DateTime } = require('luxon'); // Import luxon for datetime handling
 
 // Configure logging
 const logger = winston.createLogger({
@@ -249,6 +250,9 @@ app.get('/callback', async (req, res) => {
         }
 
         const accessToken = tokenData.access_token;
+        const expiresIn = tokenData.expires_in; // In seconds
+        const tokenExpiry = DateTime.now().plus({ seconds: expiresIn }).toJSDate(); // Calculate expiry date
+
         const userInfo = await getBungieUserInfo(accessToken);
         logger.info('User Info Response:', userInfo);
 
@@ -276,7 +280,6 @@ app.get('/callback', async (req, res) => {
 
         const membershipId = primaryMembership.membershipId;
         const platformType = primaryMembership.membershipType;
-        const tokenExpiry = new Date(Date.now() + (tokenData.expires_in * 1000)); // Calculate token expiry
 
         logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}`);
 
@@ -291,7 +294,7 @@ app.get('/callback', async (req, res) => {
                 token: generateRandomString(16), // Generate a token for the user
                 registration_date: new Date(), // Set the registration date here
                 access_token: accessToken, // Store the access token
-                token_expiry: tokenExpiry // Store the token expiry time
+                token_expiry: tokenExpiry // Store the token expiry
             },
             { upsert: true, new: true }
         );
@@ -411,36 +414,20 @@ async function getBungieUserInfo(accessToken) {
 
 // Function to get access token for user
 async function getAccessTokenForUser(user) {
-    const now = new Date();
-    if (user.token_expiry > now) {
-        return user.access_token;
-    } else {
-        // Token is expired, refresh it
-        const refreshToken = user.refresh_token; // Assuming you have stored refresh token
-        const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
-        const payload = new URLSearchParams({
-            grant_type: 'refresh_token',
-            refresh_token: refreshToken,
-            client_id: CLIENT_ID,
-            client_secret: CLIENT_SECRET,
-        });
-        const headers = { 
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-API-Key': process.env.X_API_KEY
-        };
-
-        try {
-            const response = await axios.post(url, payload.toString(), { headers });
-            logger.info('Refresh Token Response:', response.data);
-            user.access_token = response.data.access_token;
-            user.token_expiry = new Date(Date.now() + (response.data.expires_in * 1000));
-            await user.save();
-            return response.data.access_token;
-        } catch (error) {
-            logger.error('Error refreshing Bungie token:', error);
-            throw new Error('Failed to refresh Bungie token');
-        }
+    const now = DateTime.now();
+    const tokenExpiry = DateTime.fromJSDate(user.token_expiry);
+    
+    if (now >= tokenExpiry) {
+        // Token expired, refresh logic needed here
+        // For simplicity, let's assume we get a new token using refresh_token
+        // const newTokenData = await refreshBungieToken(user.refresh_token); // Implement this function
+        // user.access_token = newTokenData.access_token;
+        // user.token_expiry = DateTime.now().plus({ seconds: newTokenData.expires_in }).toJSDate();
+        // await user.save();
+        throw new Error('Token expired and refresh logic is not implemented.');
     }
+    
+    return user.access_token;
 }
 
 // Function to get pending clan members
