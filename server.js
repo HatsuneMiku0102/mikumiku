@@ -449,9 +449,15 @@ async function getEquippedSeal(membershipId, platformType, accessToken) {
 
     try {
         const response = await axios.get(url, { headers });
-        const titleRecordHash = response.data.Response.profile.data.characterRecords[0].titleRecordHash;
-        const sealName = await getSealName(titleRecordHash);
-        return sealName;
+        const profileData = response.data.Response.profile.data;
+        if (profileData && profileData.characterRecords) {
+            const titleRecordHash = profileData.characterRecords[0]?.titleRecordHash;
+            if (titleRecordHash) {
+                const sealName = await getSealName(titleRecordHash);
+                return sealName;
+            }
+        }
+        throw new Error('No titleRecordHash found');
     } catch (error) {
         logger.error('Error fetching equipped seal:', error);
         if (error.response) {
