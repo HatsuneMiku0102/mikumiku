@@ -567,6 +567,52 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     }
 });
 
+// Route to get clan info
+app.get('/api/clan/info', verifyToken, async (req, res) => {
+    const userId = req.userId;
+
+    try {
+        const user = await User.findOne({ discord_id: userId });
+        if (!user) {
+            return res.status(400).send({ error: 'User not found' });
+        }
+
+        const accessToken = await getAccessTokenForUser(user);
+        const clanInfo = await getClanInfo(accessToken, '5236471'); // Replace '5236471' with the actual group ID
+
+        res.send({ clan_info: clanInfo });
+    } catch (err) {
+        logger.error('Error fetching clan info:', err);
+        res.status(500).send({ error: 'Internal Server Error' });
+    }
+});
+
+async function getClanInfo(accessToken, groupId) {
+    const url = `https://www.bungie.net/Platform/GroupV2/${groupId}/`;
+    const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-API-Key': process.env.X_API_KEY
+    };
+
+    try {
+        const response = await axios.get(url, { headers });
+        logger.info('Clan Info Response:', response.data);
+        return response.data.Response;
+    } catch (error) {
+        logger.error('Error fetching clan info:', error);
+        if (error.response) {
+            logger.error('Response data:', error.response.data);
+            logger.error('Response status:', error.response.status);
+            logger.error('Response headers:', error.response.headers);
+        } else if (error.request) {
+            logger.error('Request made but no response received:', error.request);
+        } else {
+            logger.error('Error setting up request:', error.message);
+        }
+        throw new Error('Failed to fetch clan info');
+    }
+}
+
 app.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
