@@ -112,6 +112,7 @@ const userSchema = new mongoose.Schema({
     token: { type: String, unique: true }, // Added token field
     registration_date: { type: Date, default: Date.now }, // Added registration_date field
     access_token: { type: String, required: true }, // Added access_token field
+    refresh_token: { type: String, required: true }, // Added refresh_token field
     token_expiry: { type: Date, required: true } // Added token_expiry field
 });
 
@@ -250,6 +251,7 @@ app.get('/callback', async (req, res) => {
         }
 
         const accessToken = tokenData.access_token;
+        const refreshToken = tokenData.refresh_token;  // Get the refresh token
         const expiresIn = tokenData.expires_in; // In seconds
         const tokenExpiry = DateTime.now().plus({ seconds: expiresIn }).toJSDate(); // Calculate expiry date
 
@@ -294,6 +296,7 @@ app.get('/callback', async (req, res) => {
                 token: generateRandomString(16), // Generate a token for the user
                 registration_date: new Date(), // Set the registration date here
                 access_token: accessToken, // Store the access token
+                refresh_token: refreshToken, // Store the refresh token
                 token_expiry: tokenExpiry // Store the token expiry
             },
             { upsert: true, new: true }
@@ -384,21 +387,26 @@ async function getBungieToken(code) {
     }
 }
 
-// Function to get Bungie user info
-async function getBungieUserInfo(accessToken) {
-    const url = 'https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/';
+// Function to refresh Bungie token
+async function refreshBungieToken(refreshToken) {
+    const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
+    const payload = new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET
+    });
     const headers = {
-        'Authorization': `Bearer ${accessToken}`,
-        'X-API-Key': process.env.X_API_KEY,
-        'User-Agent': 'axios/0.21.4'
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-API-Key': process.env.X_API_KEY
     };
 
     try {
-        const response = await axios.get(url, { headers });
-        logger.info('User Info Response:', response.data);
+        const response = await axios.post(url, payload.toString(), { headers });
+        logger.info('Refresh Token Response:', response.data);
         return response.data;
     } catch (error) {
-        logger.error('Error fetching Bungie user info:', error);
+        logger.error('Error refreshing Bungie token:', error);
         if (error.response) {
             logger.error('Response data:', error.response.data);
             logger.error('Response status:', error.response.status);
@@ -408,7 +416,7 @@ async function getBungieUserInfo(accessToken) {
         } else {
             logger.error('Error setting up request:', error.message);
         }
-        throw new Error('Failed to fetch Bungie user info');
+        throw new Error('Failed to refresh Bungie token');
     }
 }
 
@@ -416,17 +424,17 @@ async function getBungieUserInfo(accessToken) {
 async function getAccessTokenForUser(user) {
     const now = DateTime.now();
     const tokenExpiry = DateTime.fromJSDate(user.token_expiry);
-    
+
     if (now >= tokenExpiry) {
-        // Token expired, refresh logic needed here
-        // For simplicity, let's assume we get a new token using refresh_token
-        // const newTokenData = await refreshBungieToken(user.refresh_token); // Implement this function
-        // user.access_token = newTokenData.access_token;
-        // user.token_expiry = DateTime.now().plus({ seconds: newTokenData.expires_in }).toJSDate();
-        // await user.save();
-        throw new Error('Token expired and refresh logic is not implemented.');
+        // Token expired, refresh it
+        const newTokenData = await refreshBungieToken(user.refresh_token);
+        user.access_token = newTokenData.access_token;
+        user.refresh_token = newTokenData.refresh_token;
+        user.token_expiry = DateTime.now().plus({ seconds: newTokenData.expires_in }).toJSDate();
+        await user.save();
+        logger.info(`Refreshed access token for user ${user.discord_id}`);
     }
-    
+
     return user.access_token;
 }
 
