@@ -420,6 +420,34 @@ async function refreshBungieToken(refreshToken) {
     }
 }
 
+// Function to get Bungie user info
+async function getBungieUserInfo(accessToken) {
+    const url = 'https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/';
+    const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-API-Key': process.env.X_API_KEY,
+        'User-Agent': 'axios/0.21.4'
+    };
+
+    try {
+        const response = await axios.get(url, { headers });
+        logger.info('User Info Response:', response.data);
+        return response.data;
+    } catch (error) {
+        logger.error('Error fetching Bungie user info:', error);
+        if (error.response) {
+            logger.error('Response data:', error.response.data);
+            logger.error('Response status:', error.response.status);
+            logger.error('Response headers:', error.response.headers);
+        } else if (error.request) {
+            logger.error('Request made but no response received:', error.request);
+        } else {
+            logger.error('Error setting up request:', error.message);
+        }
+        throw new Error('Failed to fetch Bungie user info');
+    }
+}
+
 // Function to get access token for user
 async function getAccessTokenForUser(user) {
     const now = DateTime.now();
