@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: 'symbol4', symbol: '🍉' }
     ];
 
-   
+    
     cardArray.sort(() => 0.5 - Math.random());
 
     const gameBoard = document.getElementById('game-board');
@@ -18,19 +18,22 @@ document.addEventListener('DOMContentLoaded', () => {
     let chosenCards = [];
     let chosenCardsIds = [];
     let matchedCards = [];
+    let canClick = true; // 
 
     function createBoard() {
         for (let i = 0; i < cardArray.length; i++) {
             const card = document.createElement('div');
-            card.setAttribute('class', 'card hidden');
+            card.setAttribute('class', 'card');
             card.setAttribute('data-id', i);
-            card.innerHTML = '<span class="symbol hidden">' + cardArray[i].symbol + '</span>';
+            card.innerHTML = '<span class="symbol">' + cardArray[i].symbol + '</span>';
             card.addEventListener('click', flipCard);
             gameBoard.appendChild(card);
         }
     }
 
     function flipCard() {
+        if (!canClick) return; 
+
         let cardId = this.getAttribute('data-id');
         if (chosenCardsIds.includes(cardId) || matchedCards.includes(cardId)) {
             return;
@@ -38,9 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         chosenCards.push(cardArray[cardId].name);
         chosenCardsIds.push(cardId);
-        this.querySelector('.symbol').classList.remove('hidden');
+        this.classList.add('flipped');
 
         if (chosenCards.length === 2) {
+            canClick = false; 
             setTimeout(checkForMatch, 500);
         }
     }
@@ -55,20 +59,21 @@ document.addEventListener('DOMContentLoaded', () => {
             if (matchedCards.length === cardArray.length) {
                 gameStatus.textContent = 'Congratulations! You matched all the cards.';
                 setTimeout(() => {
-                   
+                  
                     document.getElementById('game-modal').style.display = 'none';
                     document.getElementById('main-content').style.display = 'block';
                 }, 2000);
             }
         } else {
             setTimeout(() => {
-                cards[optionOneId].querySelector('.symbol').classList.add('hidden');
-                cards[optionTwoId].querySelector('.symbol').classList.add('hidden');
+                cards[optionOneId].classList.remove('flipped');
+                cards[optionTwoId].classList.remove('flipped');
             }, 500);
         }
 
         chosenCards = [];
         chosenCardsIds = [];
+        canClick = true; 
     }
 
     createBoard();
