@@ -1,16 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
     const cardArray = [
-        { name: 'image11', img: '/images/image11.webp' },
-        { name: 'image11', img: '/images/image11.webp' },
-        { name: 'image2', img: '/images/image13.jpg' },
-        { name: 'image2', img: '/images/image13.jpg' },
-        { name: 'image3', img: '/images/image15.jpg' },
-        { name: 'image3', img: '/images/image15.jpg' },
-        { name: 'image4', img: '/images/image17.jpg' },
-        { name: 'image4', img: '/images/image17.jpg' }
+        { name: 'symbol1', symbol: '🍎' },
+        { name: 'symbol1', symbol: '🍎' },
+        { name: 'symbol2', symbol: '🍌' },
+        { name: 'symbol2', symbol: '🍌' },
+        { name: 'symbol3', symbol: '🍇' },
+        { name: 'symbol3', symbol: '🍇' },
+        { name: 'symbol4', symbol: '🍉' },
+        { name: 'symbol4', symbol: '🍉' }
     ];
 
-    // Shuffle the cards
+   
     cardArray.sort(() => 0.5 - Math.random());
 
     const gameBoard = document.getElementById('game-board');
@@ -24,10 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.setAttribute('class', 'card hidden');
             card.setAttribute('data-id', i);
-            const cardImage = document.createElement('img');
-            cardImage.setAttribute('src', cardArray[i].img);
-            cardImage.setAttribute('alt', cardArray[i].name);
-            card.appendChild(cardImage);
+            card.innerHTML = '<span class="symbol hidden">' + cardArray[i].symbol + '</span>';
             card.addEventListener('click', flipCard);
             gameBoard.appendChild(card);
         }
@@ -41,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         chosenCards.push(cardArray[cardId].name);
         chosenCardsIds.push(cardId);
-        this.classList.add('flipped');
+        this.querySelector('.symbol').classList.remove('hidden');
 
         if (chosenCards.length === 2) {
             setTimeout(checkForMatch, 500);
@@ -58,15 +55,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (matchedCards.length === cardArray.length) {
                 gameStatus.textContent = 'Congratulations! You matched all the cards.';
                 setTimeout(() => {
-                    // Hide the game modal and show the main content
+                   
                     document.getElementById('game-modal').style.display = 'none';
                     document.getElementById('main-content').style.display = 'block';
                 }, 2000);
             }
         } else {
             setTimeout(() => {
-                cards[optionOneId].classList.remove('flipped');
-                cards[optionTwoId].classList.remove('flipped');
+                cards[optionOneId].querySelector('.symbol').classList.add('hidden');
+                cards[optionTwoId].querySelector('.symbol').classList.add('hidden');
             }, 500);
         }
 
