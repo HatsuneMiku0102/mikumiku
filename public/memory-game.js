@@ -1,16 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
     const cardArray = [
-        { name: 'image1', img: '/images/image1.png' },
-        { name: 'image1', img: '/images/image1.png' },
-        { name: 'image2', img: '/images/image2.png' },
-        { name: 'image2', img: '/images/image2.png' },
-        { name: 'image3', img: '/images/image3.png' },
-        { name: 'image3', img: '/images/image3.png' },
-        { name: 'image4', img: '/images/image4.png' },
-        { name: 'image4', img: '/images/image4.png' }
+        { name: 'image1', img: 'https://raw.githubusercontent.com/<username>/<repository>/<branch>/public/images/image1.png' },
+        { name: 'image1', img: 'https://raw.githubusercontent.com/<username>/<repository>/<branch>/public/images/image1.png' },
+        { name: 'image2', img: 'https://raw.githubusercontent.com/<username>/<repository>/<branch>/public/images/image2.png' },
+        { name: 'image2', img: 'https://raw.githubusercontent.com/<username>/<repository>/<branch>/public/images/image2.png' },
+        { name: 'image3', img: 'https://raw.githubusercontent.com/<username>/<repository>/<branch>/public/images/image3.png' },
+        { name: 'image3', img: 'https://raw.githubusercontent.com/<username>/<repository>/<branch>/public/images/image3.png' },
+        { name: 'image4', img: 'https://raw.githubusercontent.com/<username>/<repository>/<branch>/public/images/image4.png' },
+        { name: 'image4', img: 'https://raw.githubusercontent.com/<username>/<repository>/<branch>/public/images/image4.png' }
     ];
 
-
+ 
     cardArray.sort(() => 0.5 - Math.random());
 
     const gameBoard = document.getElementById('game-board');
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (matchedCards.length === cardArray.length) {
                 gameStatus.textContent = 'Congratulations! You matched all the cards.';
                 setTimeout(() => {
-                    
+                 
                     document.getElementById('game-modal').style.display = 'none';
                     document.getElementById('main-content').style.display = 'block';
                 }, 2000);
