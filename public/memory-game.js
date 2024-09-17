@@ -1,16 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
     const cardArray = [
-        { name: 'A', value: 'A' },
-        { name: 'A', value: 'A' },
-        { name: 'B', value: 'B' },
-        { name: 'B', value: 'B' },
-        { name: 'C', value: 'C' },
-        { name: 'C', value: 'C' },
-        { name: 'D', value: 'D' },
-        { name: 'D', value: 'D' }
+        { name: 'image1', img: '/images/image1.png' },
+        { name: 'image1', img: '/images/image1.png' },
+        { name: 'image2', img: '/images/image2.png' },
+        { name: 'image2', img: '/images/image2.png' },
+        { name: 'image3', img: '/images/image3.png' },
+        { name: 'image3', img: '/images/image3.png' },
+        { name: 'image4', img: '/images/image4.png' },
+        { name: 'image4', img: '/images/image4.png' }
     ];
 
-    // Shuffle the cards
+
     cardArray.sort(() => 0.5 - Math.random());
 
     const gameBoard = document.getElementById('game-board');
@@ -24,6 +24,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.setAttribute('class', 'card hidden');
             card.setAttribute('data-id', i);
+            const cardImage = document.createElement('img');
+            cardImage.setAttribute('src', cardArray[i].img);
+            cardImage.setAttribute('alt', cardArray[i].name);
+            card.appendChild(cardImage);
             card.addEventListener('click', flipCard);
             gameBoard.appendChild(card);
         }
@@ -35,10 +39,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        chosenCards.push(cardArray[cardId].value);
+        chosenCards.push(cardArray[cardId].name);
         chosenCardsIds.push(cardId);
-        this.classList.remove('hidden');
-        this.textContent = cardArray[cardId].value;
+        this.classList.add('flipped');
 
         if (chosenCards.length === 2) {
             setTimeout(checkForMatch, 500);
@@ -55,16 +58,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (matchedCards.length === cardArray.length) {
                 gameStatus.textContent = 'Congratulations! You matched all the cards.';
                 setTimeout(() => {
-                    // Hide the game modal and show the main content
+                    
                     document.getElementById('game-modal').style.display = 'none';
                     document.getElementById('main-content').style.display = 'block';
                 }, 2000);
             }
         } else {
-            cards[optionOneId].classList.add('hidden');
-            cards[optionOneId].textContent = '';
-            cards[optionTwoId].classList.add('hidden');
-            cards[optionTwoId].textContent = '';
+            setTimeout(() => {
+                cards[optionOneId].classList.remove('flipped');
+                cards[optionTwoId].classList.remove('flipped');
+            }, 500);
         }
 
         chosenCards = [];
