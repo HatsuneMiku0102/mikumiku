@@ -1,16 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
     const cardArray = [
-        { name: 'image11', img: '/public/image11.webp' },
-        { name: 'image11', img: '/public/image11.webp' },
-        { name: 'image2', img: '/public/image13.jpg' },
-        { name: 'image2', img: '/public/image14.jpg' },
-        { name: 'image3', img: '/public/image15.jpg' },
-        { name: 'image3', img: '/public/image16.jpg' },
-        { name: 'image4', img: '/public/image17.jpg' },
-        { name: 'image4', img: '/public/image18.jpg' }
+        { name: 'image1', img: '/images/image11.webp' },
+        { name: 'image1', img: '/images/image11.webp' },
+        { name: 'image2', img: '/images/image13.jpg' },
+        { name: 'image2', img: '/images/image13.jpg' },
+        { name: 'image3', img: '/images/image15.jpg' },
+        { name: 'image3', img: '/images/image15.jpg' },
+        { name: 'image4', img: '/images/image17.jpg' },
+        { name: 'image4', img: '/images/image17.jpg' }
     ];
 
-
+    // Shuffle the cards
     cardArray.sort(() => 0.5 - Math.random());
 
     const gameBoard = document.getElementById('game-board');
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (matchedCards.length === cardArray.length) {
                 gameStatus.textContent = 'Congratulations! You matched all the cards.';
                 setTimeout(() => {
-                    
+                    // Hide the game modal and show the main content
                     document.getElementById('game-modal').style.display = 'none';
                     document.getElementById('main-content').style.display = 'block';
                 }, 2000);
