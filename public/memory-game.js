@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const cardArray = [
-        { name: 'image1', img: '/images/image11.webp' },
-        { name: 'image1', img: '/images/image11.webp' },
+        { name: 'image11', img: '/images/image11.webp' },
+        { name: 'image11', img: '/images/image11.webp' },
         { name: 'image2', img: '/images/image13.jpg' },
         { name: 'image2', img: '/images/image13.jpg' },
         { name: 'image3', img: '/images/image15.jpg' },
