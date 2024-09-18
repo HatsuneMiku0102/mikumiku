@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
- 
+
     <div id="game-modal" class="game-modal">
         <div class="game-container">
             <h1>Match the Cards to Enter</h1>
@@ -53,6 +53,12 @@
             </div>
         </div>
         
+        <!-- New Section for Now Playing -->
+        <div id="now-playing" class="now-playing">
+            <h2>Currently Playing on YouTube</h2>
+            <p id="videoTitle">Loading...</p>
+        </div>
+        
         <footer class="footer">
             <div class="container">
                 <p>&copy; 2024 MikuMiku. All rights reserved.</p>
@@ -61,6 +67,21 @@
         </footer>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        // Connect to the server using Socket.IO
+        const socket = io('https://mikumiku.dev'); // Replace with your server URL
+
+        socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+
+        // Listen for 'updateVideoTitle' event from the server
+        socket.on('updateVideoTitle', (title) => {
+            console.log('Received video title:', title);
+            document.getElementById('videoTitle').innerText = title;
+        });
+    </script>
     <script src="/memory-game.js"></script>
     <script src="/typing-effect.js"></script>
 </body>
