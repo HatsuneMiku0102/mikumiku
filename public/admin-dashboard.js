@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
+ 
     fetch('/api/videos')
         .then(response => {
             if (!response.ok) {
@@ -18,12 +19,16 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error loading videos:', error);
         });
 
-    document.addEventListener('DOMContentLoaded', () => {
+    
     fetch('/api/comments')
         .then(response => response.json())
         .then(comments => {
             renderComments(comments);
+        })
+        .catch(error => {
+            console.error('Error loading comments:', error);
         });
+
 
     function renderComments(comments) {
         const commentContainer = document.getElementById('comment-container');
@@ -46,6 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+
     function deleteComment(id) {
         fetch(`/api/comments/${id}`, {
             method: 'DELETE'
@@ -57,11 +63,14 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 alert('Failed to delete comment');
             }
+        })
+        .catch(error => {
+            console.error('Error deleting comment:', error);
+            alert('Failed to delete comment');
         });
     }
-});
 
-
+  
     const videoForm = document.getElementById('video-form');
     if (videoForm) {
         videoForm.addEventListener('submit', function(event) {
@@ -116,6 +125,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+
     const logoutButton = document.getElementById('logout');
     if (logoutButton) {
         logoutButton.addEventListener('click', function() {
@@ -132,6 +142,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+ 
     document.querySelector('.category-bar').addEventListener('click', function(event) {
         if (event.target.tagName === 'BUTTON') {
             const category = event.target.getAttribute('data-category');
@@ -151,6 +162,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
 
 function renderVideos(videos) {
     const videoContainer = document.getElementById('video-container');
@@ -188,6 +200,7 @@ function renderVideos(videos) {
         });
     });
 }
+
 
 function deleteVideo(videoId) {
     fetch(`/api/videos/${videoId}`, {
