@@ -18,6 +18,50 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error loading videos:', error);
         });
 
+    document.addEventListener('DOMContentLoaded', () => {
+    fetch('/api/comments')
+        .then(response => response.json())
+        .then(comments => {
+            renderComments(comments);
+        });
+
+    function renderComments(comments) {
+        const commentContainer = document.getElementById('comment-container');
+        commentContainer.innerHTML = '';
+
+        comments.forEach(comment => {
+            const commentItem = document.createElement('div');
+            commentItem.innerHTML = `
+                <strong>${comment.username}</strong>: ${comment.comment}
+                <button class="delete-comment" data-id="${comment._id}">Delete</button>
+            `;
+            commentContainer.appendChild(commentItem);
+        });
+
+        document.querySelectorAll('.delete-comment').forEach(button => {
+            button.addEventListener('click', function() {
+                const commentId = this.getAttribute('data-id');
+                deleteComment(commentId);
+            });
+        });
+    }
+
+    function deleteComment(id) {
+        fetch(`/api/comments/${id}`, {
+            method: 'DELETE'
+        })
+        .then(response => {
+            if (response.ok) {
+                alert('Comment deleted');
+                document.querySelector(`button[data-id="${id}"]`).parentElement.remove();
+            } else {
+                alert('Failed to delete comment');
+            }
+        });
+    }
+});
+
+
     const videoForm = document.getElementById('video-form');
     if (videoForm) {
         videoForm.addEventListener('submit', function(event) {
