@@ -1,4 +1,6 @@
 const express = require('express');
+const http = require('http'); // Required for setting up Socket.IO with Express
+const socketIo = require('socket.io'); // Import Socket.IO
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
@@ -31,6 +33,9 @@ const logger = winston.createLogger({
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app); // Create an HTTP server for Socket.IO
+const io = socketIo(server); // Initialize Socket.IO with the HTTP server
+
 const PORT = process.env.PORT || 3000;
 
 app.set('trust proxy', 1); // Trust the first proxy for secure cookies
@@ -651,6 +656,33 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+// Socket.IO: Handle client connections
+io.on('connection', (socket) => {
+    console.log('New client connected');
+
+    // Example: Emit data to the client
+    socket.emit('message', 'Welcome to the server');
+
+    // Listen for an event from the client
+    socket.on('clientEvent', (data) => {
+        console.log('Received data from client:', data);
+        // Broadcast to all clients
+        io.emit('serverUpdate', data);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Client disconnected');
+    });
+});
+
+// Endpoint to send real-time data to clients
+app.post('/api/update', (req, res) => {
+    const data = req.body;
+    // Emit an event to all connected clients
+    io.emit('updateData', data);
+    res.status(200).send({ message: 'Data sent to clients' });
+});
+
+server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
