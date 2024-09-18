@@ -137,6 +137,16 @@ const sessionSchema = new mongoose.Schema({
 
 const Session = mongoose.model('Session', sessionSchema, 'sessions'); // Explicitly specify the collection name
 
+// Comment Schema and Model
+const commentSchema = new mongoose.Schema({
+    username: { type: String, required: true },
+    comment: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now },
+    approved: { type: Boolean, default: true } // You can use this for moderation
+});
+
+const Comment = mongoose.model('Comment', commentSchema);
+
 const users = [
     {
         username: process.env.ADMIN_USERNAME,
@@ -345,6 +355,44 @@ app.get('/api/bungie-name', async (req, res) => {
     } catch (err) {
         logger.error('Error fetching Bungie name:', err);
         res.status(500).send({ error: 'Internal Server Error' });
+    }
+});
+
+// Comment Routes
+
+// Add a comment
+app.post('/api/comments', async (req, res) => {
+    try {
+        const { username, comment } = req.body;
+        const newComment = new Comment({ username, comment });
+        await newComment.save();
+        res.status(201).send(newComment);
+    } catch (error) {
+        logger.error('Error saving comment:', error);
+        res.status(500).send({ error: 'Error saving comment' });
+    }
+});
+
+// Fetch approved comments
+app.get('/api/comments', async (req, res) => {
+    try {
+        const comments = await Comment.find({ approved: true });
+        res.json(comments);
+    } catch (error) {
+        logger.error('Error fetching comments:', error);
+        res.status(500).send({ error: 'Error fetching comments' });
+    }
+});
+
+// Delete a comment (requires authentication)
+app.delete('/api/comments/:id', verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        await Comment.findByIdAndDelete(id);
+        res.status(200).send({ message: 'Comment deleted' });
+    } catch (error) {
+        logger.error('Error deleting comment:', error);
+        res.status(500).send({ error: 'Error deleting comment' });
     }
 });
 
