@@ -17,6 +17,19 @@ const fs = require('fs');
 const winston = require('winston');
 const { DateTime } = require('luxon'); // Import luxon for datetime handling
 
+dotenv.config();
+
+const app = express();
+const server = http.createServer(app); // Create an HTTP server for Socket.IO
+const io = socketIo(server, {
+    cors: {
+        origin: "https://mikumiku.dev", // Replace with your client domain
+        methods: ["GET", "POST"]
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+
 // Configure logging
 const logger = winston.createLogger({
     level: 'info',
@@ -30,15 +43,7 @@ const logger = winston.createLogger({
     ]
 });
 
-dotenv.config();
-
-const app = express();
-const server = http.createServer(app); // Create an HTTP server for Socket.IO
-const io = socketIo(server); // Initialize Socket.IO with the HTTP server
-
-const PORT = process.env.PORT || 3000;
-
-app.set('trust proxy', 1); // Trust the first proxy for secure cookies
+app.set('trust proxy', 1);
 
 app.use(bodyParser.json());
 app.use(cookieParser());
@@ -84,13 +89,6 @@ app.use(session({
     }
 }));
 
-app.use((req, res, next) => {
-    logger.info(`Session ID: ${req.session.id}`);
-    logger.info(`Session Data before modification: ${JSON.stringify(req.session)}`);
-    logger.info(`Cookies: ${JSON.stringify(req.cookies)}`);
-    next();
-});
-
 // Set CSP headers using helmet
 app.use(helmet());
 app.use(helmet.contentSecurityPolicy({
@@ -108,7 +106,7 @@ app.use(helmet.contentSecurityPolicy({
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// MongoDB Schema and Model
+// MongoDB Schemas and Models
 const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
     bungie_name: { type: String, required: true },
