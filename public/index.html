@@ -82,41 +82,51 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script>
       
-        document.addEventListener('DOMContentLoaded', function () {
-          
-            const socket = io('https://mikumiku.dev'); 
+    document.addEventListener('DOMContentLoaded', function () {
+        // Connect to the server using Socket.IO
+        const socket = io('https://mikumiku.dev'); // Replace with your server URL
     
-            socket.on('connect', () => {
-                console.log('Connected to server');
-            });
-    
-            
-            socket.on('nowPlayingUpdate', (data) => {
-                console.log('Received video title:', data.title);
-                console.log('Received video thumbnail URL:', data.thumbnailUrl); 
-    
-                const videoTitleElement = document.getElementById('videoTitle');
-                const videoThumbnailElement = document.getElementById('videoThumbnail');
-                if (videoTitleElement) {
-                    videoTitleElement.innerText = data.title || 'No video playing';
-                }
-                if (videoThumbnailElement) {
-                   
-                    if (data.thumbnailUrl && data.thumbnailUrl !== 'null') {
-                        videoThumbnailElement.src = data.thumbnailUrl;
-                        videoThumbnailElement.alt = data.title || 'Video Thumbnail';
-                    } else {
-                        console.warn('No valid thumbnail URL received.'); 
-                        
-                        videoThumbnailElement.src = 'https://raw.githubusercontent.com/hatsunemiku0102/mikumiku/main/public/mikua.jpg'; 
-                    }
-                }
-            });
-    
-            socket.on('disconnect', () => {
-                console.log('Disconnected from server');
-            });
+        socket.on('connect', () => {
+            console.log('Connected to server');
         });
+    
+        // Function to extract the video ID from a YouTube URL
+        function extractYouTubeVideoID(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+    
+        // Listen for 'nowPlayingUpdate' event from the server
+        socket.on('nowPlayingUpdate', (data) => {
+            console.log('Received video title:', data.title);
+            console.log('Received video URL:', data.videoUrl); // Log the video URL
+            
+            const videoTitleElement = document.getElementById('videoTitle');
+            const videoThumbnailElement = document.getElementById('videoThumbnail');
+    
+            if (videoTitleElement) {
+                videoTitleElement.innerText = data.title || 'No video playing';
+            }
+    
+            // Extract the video ID from the YouTube URL and set the thumbnail image
+            const videoID = extractYouTubeVideoID(data.videoUrl);
+            if (videoID) {
+                const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`; // Use HQ thumbnail
+                videoThumbnailElement.src = thumbnailUrl;
+                videoThumbnailElement.alt = data.title || 'Video Thumbnail';
+            } else {
+                console.warn('No valid YouTube video URL received. Using placeholder image.');
+                // Use placeholder image if video ID is not valid
+                videoThumbnailElement.src = 'https://raw.githubusercontent.com/hatsunemiku0102/mikumiku/main/public/mikua.jpg';
+            }
+        });
+    
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+        });
+    });
+
     </script>
     <script src="/memory-game.js"></script>
     <script src="/typing-effect.js"></script>
