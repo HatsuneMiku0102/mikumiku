@@ -663,7 +663,7 @@ io.on('connection', (socket) => {
     console.log('New client connected');
 
     // Emit the current video title to the new client
-    socket.emit('nowPlayingUpdate', { title: currentVideoTitle });
+    socket.emit('nowPlayingUpdate', { title: videoTitle, videoUrl: videoUrl });
 
     // Listen for 'updateVideoTitle' from the client
     socket.on('updateVideoTitle', ({ title }) => {
