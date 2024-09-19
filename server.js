@@ -23,10 +23,8 @@ const app = express();
 const server = http.createServer(app); // Create an HTTP server for Socket.IO
 const io = socketIo(server, {
     cors: {
-        origin: "chrome-extension://<ealgoodedcojbceodddhbpcklnpneocp>", // Replace with your extension ID
-        methods: ["GET", "POST"],
-        allowedHeaders: ["my-custom-header"],
-        credentials: true
+        origin: "https://mikumiku.dev", // Replace with your client domain
+        methods: ["GET", "POST"]
     }
 });
 
