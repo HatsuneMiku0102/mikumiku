@@ -25,32 +25,37 @@
             </div>
         </div>
         
+        <!-- Banner Section -->
         <div class="banner">
             <img src="/banner.webp" alt="Banner Image" class="banner-img">
         </div>
 
         <div class="content-wrapper">
-            <div id="now-playing" class="now-playing">
-                <div class="now-playing-content">
-                    <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
-                    <div class="video-title-container">
-                        <h2>Currently Playing on YouTube</h2>
-                        <p id="videoTitle">Loading...</p>
-                        <div id="progress-bar-container">
-                            <div id="progress-bar"></div>
+            <div class="now-playing-about-wrapper">
+                <!-- Now Playing Section -->
+                <div id="now-playing" class="now-playing">
+                    <div class="now-playing-content">
+                        <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
+                        <div class="video-title-container">
+                            <h2>Currently Playing on YouTube</h2>
+                            <p id="videoTitle">Loading...</p>
+                            <div id="progress-bar-container">
+                                <div id="progress-bar"></div>
+                            </div>
+                            <p id="time-remaining">Time Remaining: --:--</p>
                         </div>
-                        <p id="time-remaining">Time Remaining: --:--</p>
+                    </div>
+                </div>
+
+                <!-- About Me Section -->
+                <div class="about">
+                    <div class="container">
+                        <h2>About Me</h2>
+                        <p>Hey there, I'm Hystoriya, a 24-year-old developer and tetragametic chimera...</p>
                     </div>
                 </div>
             </div>
-
-            <div class="about">
-                <div class="container">
-                    <h2>About Me</h2>
-                    <p>Hey there, I'm Hystoriya, a 24-year-old developer and tetragametic chimera...</p>
-                </div>
-            </div>
-        </div>
+        </div> <!-- End of content-wrapper -->
 
         <footer class="footer">
             <div class="container">
@@ -61,34 +66,31 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script> <!-- Moment.js for duration parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="/memory-game.js"></script> <!-- Ensure your card game script is still linked -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const socket = io('https://mikumiku.dev'); // Replace with your server URL
-            let videoDuration = 0; // In seconds
+            let videoDuration = 0;
             let videoStartTime = Date.now();
 
             // Your YouTube API key
             const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // YouTube API key
 
-            // Function to extract the video ID from a YouTube URL
             function extractYouTubeVideoID(url) {
                 const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
                 const match = url.match(regExp);
                 return (match && match[2].length === 11) ? match[2] : null;
             }
 
-            // Function to format seconds to MM:SS format
             function formatTime(seconds) {
                 const minutes = Math.floor(seconds / 60);
                 const secs = Math.floor(seconds % 60);
                 return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
             }
 
-            // Update the progress bar based on elapsed time
             function updateProgressBar() {
-                const elapsed = (Date.now() - videoStartTime) / 1000; // Elapsed time in seconds
+                const elapsed = (Date.now() - videoStartTime) / 1000;
                 const remainingTime = videoDuration - elapsed;
                 if (remainingTime > 0) {
                     const progressPercent = (elapsed / videoDuration) * 100;
@@ -100,7 +102,6 @@
                 }
             }
 
-            // Fetch video details using YouTube API
             async function fetchYouTubeVideoDuration(videoID) {
                 const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
                 
@@ -109,17 +110,16 @@
                     const data = await response.json();
                     if (data.items.length > 0) {
                         const durationISO = data.items[0].contentDetails.duration;
-                        const durationInSeconds = moment.duration(durationISO).asSeconds(); // Parse ISO 8601 duration
+                        const durationInSeconds = moment.duration(durationISO).asSeconds();
                         videoDuration = durationInSeconds;
-                        videoStartTime = Date.now(); // Reset the start time
-                        setInterval(updateProgressBar, 1000); // Update every second
+                        videoStartTime = Date.now();
+                        setInterval(updateProgressBar, 1000);
                     }
                 } catch (error) {
                     console.error('Error fetching YouTube video duration:', error);
                 }
             }
 
-            // Listen for 'nowPlayingUpdate' event from the server
             socket.on('nowPlayingUpdate', (data) => {
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
@@ -134,7 +134,6 @@
                     videoThumbnailElement.src = thumbnailUrl;
                     videoThumbnailElement.alt = data.title || 'Video Thumbnail';
 
-                    // Fetch video duration and start progress bar update
                     fetchYouTubeVideoDuration(videoID);
                 } else {
                     videoThumbnailElement.src = '/path/to/placeholder.jpg';
@@ -145,20 +144,14 @@
                 console.log('Disconnected from server');
             });
 
-            // Check if the game modal should be shown
             const gameModal = document.getElementById('game-modal');
             const mainContent = document.getElementById('main-content');
             if (gameModal) {
-                // Initialize card game logic
                 initCardGame();
-
-                // Once game is won, hide modal and show content
                 function onGameWin() {
                     gameModal.style.display = 'none';
                     mainContent.style.display = 'block';
                 }
-
-                // Assuming this is in your memory-game.js
                 window.onGameWin = onGameWin;
             }
         });
