@@ -663,19 +663,19 @@ let currentVideoUrl = ''; // New variable for the video URL
 io.on('connection', (socket) => {
     console.log('New client connected');
 
-    // Emit the current video title and video URL to the new client
+    // Emit the current video title and URL to the new client
     socket.emit('nowPlayingUpdate', { title: currentVideoTitle, videoUrl: currentVideoUrl });
 
     // Listen for 'updateVideoTitle' from the client
     socket.on('updateVideoTitle', ({ title, videoUrl }) => {
         console.log('Received video title:', title);
-        console.log('Received video URL:', videoUrl); // Log the URL
+        console.log('Received video URL:', videoUrl);  // Log the received video URL
 
-        // Update the global variables
+        // Update global variables
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
 
-        // Broadcast the update to all clients
+        // Broadcast the updated video title and URL to all clients
         io.emit('nowPlayingUpdate', { title, videoUrl });
     });
 
