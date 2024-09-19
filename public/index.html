@@ -72,7 +72,6 @@
     document.addEventListener('DOMContentLoaded', function () {
         let player; // YouTube player instance
         let videoDuration = 0; // Video duration in seconds
-        let elapsedPausedTime = 0; // Time spent paused
         let isPaused = false;
         let intervalID = null;
         const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // YouTube API key
@@ -91,14 +90,14 @@
             return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
         }
     
-        // Function to update the progress bar
+        // Function to update the progress bar and time display
         function updateProgressBar() {
             if (!player || isPaused) return; // Skip if paused or no player available
     
             const currentTime = player.getCurrentTime(); // Get current time from player
             const remainingTime = videoDuration - currentTime;
     
-            if (remainingTime > 0) {
+            if (remainingTime >= 0) {
                 const progressPercent = (currentTime / videoDuration) * 100;
                 document.getElementById('progress-bar').style.width = `${progressPercent}%`;
                 document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(remainingTime)}`;
@@ -119,7 +118,7 @@
                 if (data.items.length > 0) {
                     const durationISO = data.items[0].contentDetails.duration;
                     videoDuration = moment.duration(durationISO).asSeconds(); // Parse ISO duration to seconds
-                    setInterval(updateProgressBar, 1000); // Update progress bar every second
+                    document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(videoDuration)}`;
                 }
             } catch (error) {
                 console.error('Error fetching YouTube video duration:', error);
@@ -201,6 +200,7 @@
             window.onGameWin = onGameWin;
         }
     });
+
 
     </script>
 </body>
