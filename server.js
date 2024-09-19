@@ -662,25 +662,31 @@ app.post('/api/videos', verifyToken, async (req, res) => {
 io.on('connection', (socket) => {
     console.log('New client connected');
 
-    // Emit the current video title to the new client
-    socket.emit('nowPlayingUpdate', { title: videoTitle, videoUrl: videoUrl });
+    // Check if videoTitle and videoUrl are defined
+    if (typeof currentVideoTitle !== 'undefined' && typeof currentVideoUrl !== 'undefined') {
+        socket.emit('nowPlayingUpdate', { title: currentVideoTitle, videoUrl: currentVideoUrl });
+    } else {
+        socket.emit('nowPlayingUpdate', { title: 'No video playing', videoUrl: '' });
+    }
 
     // Listen for 'updateVideoTitle' from the client
-    socket.on('updateVideoTitle', ({ title }) => {
+    socket.on('updateVideoTitle', ({ title, videoUrl }) => {
         console.log('Received video title:', title);
-        // Broadcast to all clients
-        io.emit('nowPlayingUpdate', { title });
-    });
+        console.log('Received video URL:', videoUrl);
 
-    // Handle requests for the current video title
-    socket.on('getCurrentVideoTitle', () => {
-        socket.emit('nowPlayingUpdate', { title: currentVideoTitle });
+        // Set these globally to be used later
+        currentVideoTitle = title;
+        currentVideoUrl = videoUrl;
+
+        // Broadcast to all clients
+        io.emit('nowPlayingUpdate', { title, videoUrl });
     });
 
     socket.on('disconnect', () => {
         console.log('Client disconnected');
     });
 });
+
 
 // Endpoint to send real-time data to clients
 app.post('/api/update', (req, res) => {
