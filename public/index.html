@@ -30,11 +30,18 @@
             <img src="/banner.webp" alt="Banner Image" class="banner-img">
         </div>
 
-        <div class="content-wrapper"> <!-- New flex container -->
+        <div class="content-wrapper">
             <!-- Now Playing Section -->
             <div id="now-playing" class="now-playing">
-                <h2>Currently Playing on YouTube</h2>
-                <p id="videoTitle">Loading...</p>
+                <div class="now-playing-content">
+                    <!-- Image element for the video thumbnail -->
+                    <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
+                    <!-- Paragraph element for the video title -->
+                    <div class="video-title-container">
+                        <h2>Currently Playing on YouTube</h2>
+                        <p id="videoTitle">Loading...</p>
+                    </div>
+                </div>
             </div>
 
             <!-- About Me Section -->
@@ -87,8 +94,13 @@
             socket.on('nowPlayingUpdate', (data) => {
                 console.log('Received video title:', data.title);
                 const videoTitleElement = document.getElementById('videoTitle');
+                const videoThumbnailElement = document.getElementById('videoThumbnail');
                 if (videoTitleElement) {
                     videoTitleElement.innerText = data.title || 'No video playing';
+                }
+                if (videoThumbnailElement) {
+                    videoThumbnailElement.src = data.thumbnailUrl || ''; // Set the thumbnail URL
+                    videoThumbnailElement.alt = data.title || 'Video Thumbnail'; // Set alt text
                 }
             });
 
