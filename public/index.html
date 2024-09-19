@@ -6,19 +6,10 @@
     <title>MikuMiku | Home</title>
     <link rel="stylesheet" href="/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://www.youtube.com/iframe_api"></script> <!-- YouTube IFrame API -->
 </head>
 <body>
 
-    <div id="game-modal" class="game-modal">
-        <div class="game-container">
-            <h1>Match the Cards to Enter</h1>
-            <div id="game-board" class="game-board"></div>
-            <div id="game-status"></div>
-        </div>
-    </div>
-
-    <div id="main-content" style="display: none;">
+    <div id="main-content">
         <div class="title-bar">
             <div class="container">
                 <img src="/logo.webp" alt="Logo" class="logo">
@@ -26,16 +17,14 @@
             </div>
         </div>
         
-        <div class="banner">
-            <img src="/banner.webp" alt="Banner Image" class="banner-img">
-        </div>
-
+        <!-- Now Playing Section -->
         <div class="content-wrapper">
             <div class="now-playing-about-wrapper">
-                
                 <div id="now-playing" class="now-playing">
                     <div class="now-playing-content">
-                        <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
+                        <!-- Video player element (custom) -->
+                        <video id="custom-video-player" width="600" height="350" controls></video>
+                        
                         <div class="video-title-container">
                             <h2>Currently Playing on YouTube</h2>
                             <p id="videoTitle">Loading...</p>
@@ -43,16 +32,15 @@
                                 <div id="progress-bar"></div>
                             </div>
                             <p id="time-remaining">Time Remaining: --:--</p>
-                            <!-- Pause icon display -->
-                            <div id="pause-icon" style="display:none; font-size: 2em; color: red;">⏸️ Paused</div>
                         </div>
                     </div>
                 </div>
 
+                <!-- About Me Section -->
                 <div class="about">
                     <div class="container">
                         <h2>About Me</h2>
-                        <p>Hey there, I'm Hystoriya, a 24-year-old developer and hermaphrodite, This is my personal website that I made for no apparent reason. If you find yourself here randomly then hi :).</p>
+                        <p>Hey there, I'm Hystoriya, a 24-year-old developer and hermaphrodite. Welcome to my personal website!</p>
                     </div>
                 </div>
             </div>
@@ -61,58 +49,56 @@
         <footer class="footer">
             <div class="container">
                 <p>&copy; 2024 MikuMiku. All rights reserved.</p>
-                <p><a href="/admin-login.html">Admin Login</a></p>
             </div>
         </footer>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-    <script src="/memory-game.js"></script> 
     <script>
     document.addEventListener('DOMContentLoaded', function () {
-        let player; // YouTube player instance
+        let videoPlayer = document.getElementById('custom-video-player');
         let videoDuration = 0; // Video duration in seconds
-        let intervalID = null;
         let isPaused = false;
-        const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Your YouTube API key
-
+        let intervalID = null;
+        const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Replace with your YouTube API key
+    
         // Function to extract YouTube Video ID from the URL
         function extractYouTubeVideoID(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
             const match = url.match(regExp);
             return (match && match[2].length === 11) ? match[2] : null;
         }
-
+    
         // Function to format seconds into MM:SS
         function formatTime(seconds) {
             const minutes = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
             return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
         }
-
+    
         // Function to update the progress bar and time display
         function updateProgressBar() {
-            if (!player || isPaused) return; // Skip if paused or no player available
-
-            const currentTime = player.getCurrentTime(); // Get current time from player
+            if (!videoPlayer || isPaused) return; // Skip if paused or no player available
+    
+            const currentTime = videoPlayer.currentTime; // Get current time from player
             const remainingTime = videoDuration - currentTime;
-
+    
             if (remainingTime >= 0) {
                 const progressPercent = (currentTime / videoDuration) * 100;
                 document.getElementById('progress-bar').style.width = `${progressPercent}%`;
                 document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(remainingTime)}`;
             } else {
-                clearInterval(intervalID); // Stop updating progress when video ends
+                clearInterval(intervalID);
                 document.getElementById('progress-bar').style.width = '100%';
                 document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
             }
         }
-
+    
         // Fetch YouTube video duration
         async function fetchYouTubeVideoDuration(videoID) {
             const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
-
+    
             try {
                 const response = await fetch(apiUrl);
                 const data = await response.json();
@@ -126,100 +112,57 @@
                 console.error('Error fetching YouTube video duration:', error);
             }
         }
-
-        // Function to toggle pause icon visibility
-        function togglePauseIcon(show) {
-            const pauseIcon = document.getElementById('pause-icon');
-            if (show) {
-                pauseIcon.style.display = 'block';
-            } else {
-                pauseIcon.style.display = 'none';
+    
+        // Handle video pause and play
+        videoPlayer.addEventListener('play', () => {
+            console.log('Video is playing');
+            isPaused = false;
+            if (!intervalID) {
+                intervalID = setInterval(updateProgressBar, 1000); // Start updating progress every second
             }
-        }
+        });
 
-        // YouTube API: Create a YouTube player and manage playback state
-        window.onYouTubeIframeAPIReady = function () {
-            const videoThumbnailElement = document.getElementById('videoThumbnail');
-            player = new YT.Player('videoThumbnail', {
-                events: {
-                    'onStateChange': onPlayerStateChange,
-                    'onReady': onPlayerReady
-                }
-            });
-        };
+        videoPlayer.addEventListener('pause', () => {
+            console.log('Video is paused');
+            isPaused = true;
+            clearInterval(intervalID); // Stop updating progress when paused
+            intervalID = null;
+        });
 
-        // Handle player state changes (play, pause)
-        function onPlayerStateChange(event) {
-            if (event.data === YT.PlayerState.PLAYING) {
-                console.log('Video is playing');
-                isPaused = false;
-                togglePauseIcon(false); // Hide pause icon
-                if (!intervalID) {
-                    intervalID = setInterval(updateProgressBar, 1000); // Start updating progress every second
-                }
-            } else if (event.data === YT.PlayerState.PAUSED) {
-                console.log('Video is paused');
-                isPaused = true;
-                togglePauseIcon(true); // Show pause icon
-                clearInterval(intervalID); // Stop updating progress when paused
-                intervalID = null; // Reset intervalID
-            } else if (event.data === YT.PlayerState.ENDED) {
-                clearInterval(intervalID); // Stop updating progress when video ends
-            }
-        }
-
-        // Handle player ready event
-        function onPlayerReady(event) {
-            console.log('YouTube Player is ready');
-            event.target.playVideo(); // Optionally auto-play the video when ready
-        }
+        videoPlayer.addEventListener('ended', () => {
+            clearInterval(intervalID); // Stop progress when video ends
+        });
 
         // Socket.IO connection to the server
         const socket = io('https://mikumiku.dev'); // Replace with your server URL
-
+    
         socket.on('connect', () => {
             console.log('Connected to server');
         });
-
+    
         // Handle the nowPlayingUpdate event
         socket.on('nowPlayingUpdate', (data) => {
             console.log('Received video title:', data.title);
             console.log('Received video URL:', data.videoUrl);
-
+    
             const videoTitleElement = document.getElementById('videoTitle');
-            const videoThumbnailElement = document.getElementById('videoThumbnail');
-
+    
             if (videoTitleElement) {
                 videoTitleElement.innerText = data.title || 'No video playing';
             }
-
+    
             const videoID = extractYouTubeVideoID(data.videoUrl);
             if (videoID) {
-                const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`; // Use YouTube HQ thumbnail
-                videoThumbnailElement.src = thumbnailUrl;
-                videoThumbnailElement.alt = data.title || 'Video Thumbnail';
-
                 fetchYouTubeVideoDuration(videoID); // Fetch video duration from YouTube API
+                videoPlayer.src = `https://www.youtube.com/embed/${videoID}?autoplay=1`; // Load the video in the player
             } else {
-                videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Fallback image if no video ID
+                console.warn('No valid video ID found.');
             }
         });
-
+    
         socket.on('disconnect', () => {
             console.log('Disconnected from server');
         });
-
-        // Game modal logic (if you have a card game or similar)
-        const gameModal = document.getElementById('game-modal');
-        const mainContent = document.getElementById('main-content');
-        if (gameModal) {
-            initCardGame();
-            function onGameWin() {
-                gameModal.style.display = 'none';
-                mainContent.style.display = 'block';
-            }
-            window.onGameWin = onGameWin;
-        }
     });
     </script>
 </body>
