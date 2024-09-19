@@ -69,92 +69,139 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="/memory-game.js"></script> 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const socket = io('https://mikumiku.dev'); 
-            let videoDuration = 0;
-            let videoStartTime = Date.now();
-
-          
-            const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; 
-
-            function extractYouTubeVideoID(url) {
-                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
-                const match = url.match(regExp);
-                return (match && match[2].length === 11) ? match[2] : null;
+    document.addEventListener('DOMContentLoaded', function () {
+        let player; // YouTube player instance
+        let videoDuration = 0; // Video duration in seconds
+        let elapsedPausedTime = 0; // Time spent paused
+        let isPaused = false;
+        let intervalID = null;
+        const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // YouTube API key
+    
+        // Function to extract YouTube Video ID from the URL
+        function extractYouTubeVideoID(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+    
+        // Function to format seconds into MM:SS
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+    
+        // Function to update the progress bar
+        function updateProgressBar() {
+            if (!player || isPaused) return; // Skip if paused or no player available
+    
+            const currentTime = player.getCurrentTime(); // Get current time from player
+            const remainingTime = videoDuration - currentTime;
+    
+            if (remainingTime > 0) {
+                const progressPercent = (currentTime / videoDuration) * 100;
+                document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+                document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(remainingTime)}`;
+            } else {
+                clearInterval(intervalID);
+                document.getElementById('progress-bar').style.width = '100%';
+                document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
             }
-
-            function formatTime(seconds) {
-                const minutes = Math.floor(seconds / 60);
-                const secs = Math.floor(seconds % 60);
-                return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
-            }
-
-            function updateProgressBar() {
-                const elapsed = (Date.now() - videoStartTime) / 1000;
-                const remainingTime = videoDuration - elapsed;
-                if (remainingTime > 0) {
-                    const progressPercent = (elapsed / videoDuration) * 100;
-                    document.getElementById('progress-bar').style.width = `${progressPercent}%`;
-                    document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(remainingTime)}`;
-                } else {
-                    document.getElementById('progress-bar').style.width = '100%';
-                    document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
+        }
+    
+        // Fetch YouTube video duration
+        async function fetchYouTubeVideoDuration(videoID) {
+            const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
+    
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                if (data.items.length > 0) {
+                    const durationISO = data.items[0].contentDetails.duration;
+                    videoDuration = moment.duration(durationISO).asSeconds(); // Parse ISO duration to seconds
+                    setInterval(updateProgressBar, 1000); // Update progress bar every second
                 }
+            } catch (error) {
+                console.error('Error fetching YouTube video duration:', error);
             }
-
-            async function fetchYouTubeVideoDuration(videoID) {
-                const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
-                
-                try {
-                    const response = await fetch(apiUrl);
-                    const data = await response.json();
-                    if (data.items.length > 0) {
-                        const durationISO = data.items[0].contentDetails.duration;
-                        const durationInSeconds = moment.duration(durationISO).asSeconds();
-                        videoDuration = durationInSeconds;
-                        videoStartTime = Date.now();
-                        setInterval(updateProgressBar, 1000);
+        }
+    
+        // Initialize YouTube IFrame API
+        window.onYouTubeIframeAPIReady = function () {
+            const playerElement = document.getElementById('videoThumbnail');
+            if (playerElement) {
+                player = new YT.Player(playerElement, {
+                    events: {
+                        'onStateChange': onPlayerStateChange,
                     }
-                } catch (error) {
-                    console.error('Error fetching YouTube video duration:', error);
-                }
+                });
             }
-
-            socket.on('nowPlayingUpdate', (data) => {
-                const videoTitleElement = document.getElementById('videoTitle');
-                const videoThumbnailElement = document.getElementById('videoThumbnail');
-
-                if (videoTitleElement) {
-                    videoTitleElement.innerText = data.title || 'No video playing';
+        };
+    
+        // Handle player state changes (play, pause)
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.PLAYING) {
+                console.log('Video is playing');
+                isPaused = false;
+                if (!intervalID) {
+                    intervalID = setInterval(updateProgressBar, 1000); // Start updating progress
                 }
-
-                const videoID = extractYouTubeVideoID(data.videoUrl);
-                if (videoID) {
-                    const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
-                    videoThumbnailElement.src = thumbnailUrl;
-                    videoThumbnailElement.alt = data.title || 'Video Thumbnail';
-
-                    fetchYouTubeVideoDuration(videoID);
-                } else {
-                    videoThumbnailElement.src = '/path/to/placeholder.jpg';
-                }
-            });
-
-            socket.on('disconnect', () => {
-                console.log('Disconnected from server');
-            });
-
-            const gameModal = document.getElementById('game-modal');
-            const mainContent = document.getElementById('main-content');
-            if (gameModal) {
-                initCardGame();
-                function onGameWin() {
-                    gameModal.style.display = 'none';
-                    mainContent.style.display = 'block';
-                }
-                window.onGameWin = onGameWin;
+            } else if (event.data === YT.PlayerState.PAUSED) {
+                console.log('Video is paused');
+                isPaused = true;
+                clearInterval(intervalID); // Stop updating progress when paused
+                intervalID = null; // Reset the interval ID
+            }
+        }
+    
+        // Socket.IO connection to the server
+        const socket = io('https://mikumiku.dev'); // Replace with your server URL
+    
+        socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+    
+        // Handle the nowPlayingUpdate event
+        socket.on('nowPlayingUpdate', (data) => {
+            console.log('Received video title:', data.title);
+            console.log('Received video URL:', data.videoUrl);
+    
+            const videoTitleElement = document.getElementById('videoTitle');
+            const videoThumbnailElement = document.getElementById('videoThumbnail');
+    
+            if (videoTitleElement) {
+                videoTitleElement.innerText = data.title || 'No video playing';
+            }
+    
+            const videoID = extractYouTubeVideoID(data.videoUrl);
+            if (videoID) {
+                const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`; // Use YouTube HQ thumbnail
+                videoThumbnailElement.src = thumbnailUrl;
+                videoThumbnailElement.alt = data.title || 'Video Thumbnail';
+    
+                fetchYouTubeVideoDuration(videoID); // Fetch video duration from YouTube API
+            } else {
+                videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Fallback image if no video ID
             }
         });
+    
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+        });
+    
+        // Game modal logic (if you have a card game or similar)
+        const gameModal = document.getElementById('game-modal');
+        const mainContent = document.getElementById('main-content');
+        if (gameModal) {
+            initCardGame();
+            function onGameWin() {
+                gameModal.style.display = 'none';
+                mainContent.style.display = 'block';
+            }
+            window.onGameWin = onGameWin;
+        }
+    });
+
     </script>
 </body>
 </html>
