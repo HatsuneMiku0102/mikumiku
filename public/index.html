@@ -6,7 +6,6 @@
     <title>MikuMiku | Home</title>
     <link rel="stylesheet" href="/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://www.youtube.com/iframe_api"></script> <!-- YouTube IFrame API -->
 </head>
 <body>
 
@@ -35,7 +34,8 @@
                 
                 <div id="now-playing" class="now-playing">
                     <div class="now-playing-content">
-                        <div id="videoPlayer"></div> <!-- YouTube player will be here -->
+                        <!-- Keep the thumbnail for display purposes -->
+                        <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
                         <div class="video-title-container">
                             <h2>Currently Playing on YouTube</h2>
                             <p id="videoTitle">Loading...</p>
@@ -69,7 +69,6 @@
     <script src="/memory-game.js"></script> 
     <script>
     document.addEventListener('DOMContentLoaded', function () {
-        let player; // YouTube player instance
         let videoDuration = 0; // Video duration in seconds
         let isPaused = false;
         let intervalID = null;
@@ -90,10 +89,10 @@
         }
     
         // Function to update the progress bar and time display
-        function updateProgressBar() {
-            if (!player || isPaused) return; // Skip if paused or no player available
+        function updateProgressBar(startTime) {
+            if (isPaused) return; // Skip if paused
     
-            const currentTime = player.getCurrentTime(); // Get current time from player
+            const currentTime = (Date.now() - startTime) / 1000; // Calculate the elapsed time in seconds
             const remainingTime = videoDuration - currentTime;
     
             if (remainingTime >= 0) {
@@ -125,42 +124,6 @@
             }
         }
     
-        // Initialize YouTube IFrame API
-        window.onYouTubeIframeAPIReady = function () {
-            player = new YT.Player('videoPlayer', {
-                height: '360',
-                width: '640',
-                videoId: '', // Leave it empty; we will load the video dynamically
-                events: {
-                    'onStateChange': onPlayerStateChange,
-                    'onReady': onPlayerReady
-                }
-            });
-        };
-    
-        // Handle player state changes (play, pause)
-        function onPlayerStateChange(event) {
-            if (event.data === YT.PlayerState.PLAYING) {
-                console.log('Video is playing');
-                isPaused = false;
-                if (!intervalID) {
-                    intervalID = setInterval(updateProgressBar, 1000); // Start updating progress every second
-                }
-            } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.BUFFERING) {
-                console.log('Video is paused or buffering');
-                isPaused = true;
-                clearInterval(intervalID); // Stop updating progress when paused or buffering
-                intervalID = null; // Reset the interval ID
-            } else if (event.data === YT.PlayerState.ENDED) {
-                clearInterval(intervalID); // Stop progress when video ends
-            }
-        }
-    
-        // Handle player ready event to start video
-        function onPlayerReady(event) {
-            console.log('YouTube Player is ready');
-        }
-    
         // Socket.IO connection to the server
         const socket = io('https://mikumiku.dev'); // Replace with your server URL
     
@@ -174,15 +137,25 @@
             console.log('Received video URL:', data.videoUrl);
     
             const videoTitleElement = document.getElementById('videoTitle');
+            const videoThumbnailElement = document.getElementById('videoThumbnail');
     
             if (videoTitleElement) {
                 videoTitleElement.innerText = data.title || 'No video playing';
             }
     
             const videoID = extractYouTubeVideoID(data.videoUrl);
-            if (videoID && player) {
-                player.loadVideoById(videoID); // Load video in the iframe player
+            if (videoID) {
+                const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`; // Use YouTube HQ thumbnail
+                videoThumbnailElement.src = thumbnailUrl;
+                videoThumbnailElement.alt = data.title || 'Video Thumbnail';
+    
                 fetchYouTubeVideoDuration(videoID); // Fetch video duration from YouTube API
+    
+                // Start the timer
+                const startTime = Date.now();
+                intervalID = setInterval(() => updateProgressBar(startTime), 1000);
+            } else {
+                videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Fallback image if no video ID
             }
         });
     
