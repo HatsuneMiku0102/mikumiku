@@ -119,6 +119,7 @@
                     const durationISO = data.items[0].contentDetails.duration;
                     videoDuration = moment.duration(durationISO).asSeconds(); // Parse ISO duration to seconds
                     document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(videoDuration)}`;
+                    console.log('Fetched video duration:', videoDuration);
                 }
             } catch (error) {
                 console.error('Error fetching YouTube video duration:', error);
@@ -132,6 +133,7 @@
                 player = new YT.Player(playerElement, {
                     events: {
                         'onStateChange': onPlayerStateChange,
+                        'onReady': onPlayerReady
                     }
                 });
             }
@@ -143,14 +145,22 @@
                 console.log('Video is playing');
                 isPaused = false;
                 if (!intervalID) {
-                    intervalID = setInterval(updateProgressBar, 1000); // Start updating progress
+                    intervalID = setInterval(updateProgressBar, 1000); // Start updating progress every second
                 }
-            } else if (event.data === YT.PlayerState.PAUSED) {
-                console.log('Video is paused');
+            } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.BUFFERING) {
+                console.log('Video is paused or buffering');
                 isPaused = true;
-                clearInterval(intervalID); // Stop updating progress when paused
+                clearInterval(intervalID); // Stop updating progress when paused or buffering
                 intervalID = null; // Reset the interval ID
+            } else if (event.data === YT.PlayerState.ENDED) {
+                clearInterval(intervalID); // Stop progress when video ends
             }
+        }
+    
+        // Handle player ready event to start video
+        function onPlayerReady(event) {
+            console.log('YouTube Player is ready');
+            event.target.playVideo(); // Auto-play the video
         }
     
         // Socket.IO connection to the server
@@ -200,6 +210,7 @@
             window.onGameWin = onGameWin;
         }
     });
+
 
 
     </script>
