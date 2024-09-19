@@ -30,48 +30,27 @@
         </div>
 
         <div class="content-wrapper">
-            
-        <div id="now-playing" class="now-playing">
-            <div class="now-playing-content">
-                <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
-                <div class="video-title-container">
-                    <h2>Currently Playing on YouTube</h2>
-                    <p id="videoTitle">Loading...</p>
-                    <div id="progress-bar-container">
-                        <div id="progress-bar"></div>
+            <div id="now-playing" class="now-playing">
+                <div class="now-playing-content">
+                    <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
+                    <div class="video-title-container">
+                        <h2>Currently Playing on YouTube</h2>
+                        <p id="videoTitle">Loading...</p>
+                        <div id="progress-bar-container">
+                            <div id="progress-bar"></div>
+                        </div>
+                        <p id="time-remaining">Time Remaining: --:--</p>
                     </div>
-                    <p id="time-remaining">Time Remaining: --:--</p>
                 </div>
             </div>
-        </div>
 
-
-           
             <div class="about">
                 <div class="container">
                     <h2>About Me</h2>
-                    <p>Hey there, I'm Hystoriya, a 24-year-old developer and tetragametic chimera. If you are looking for 24/7 Discord bot hosting or Minecraft servers, then you should totally check out <a href="https://pylexnodes.net/" target="_blank">Pylexnodes</a>.</p>
-                    <div class="community-section">
-                        If you're looking for a Destiny 2 clan or a chill community to hang out in, join us below.
-                        <div class="arrow-down"></div>
-                    </div>
-                    <div class="discord-widget fancy-discord-widget">
-                        <div class="discord-widget-header">
-                            <img src="/discord-logo.png" alt="Discord Logo" class="discord-logo">
-                            <h3>Join Our Discord Community</h3>
-                        </div>
-                        <div class="discord-widget-body">
-                            <div class="iframe-container">
-                                <iframe src="https://discord.com/widget?id=998323411304591481&theme=dark" allowtransparency="true" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
-                            </div>
-                        </div>
-                        <div class="discord-widget-footer">
-                            <a href="https://discord.gg/i-a" target="_blank" class="join-button">Join Us</a>
-                        </div>
-                    </div>
+                    <p>Hey there, I'm Hystoriya, a 24-year-old developer and tetragametic chimera...</p>
                 </div>
             </div>
-        </div> 
+        </div>
 
         <footer class="footer">
             <div class="container">
@@ -82,60 +61,89 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script> <!-- Moment.js for duration parsing -->
     <script>
-      
-    document.addEventListener('DOMContentLoaded', function () {
-        
-        const socket = io('https://mikumiku.dev'); 
-    
-        socket.on('connect', () => {
-            console.log('Connected to server');
-        });
-    
-      
-        function extractYouTubeVideoID(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
-        }
-    
-      
-        socket.on('nowPlayingUpdate', (data) => {
-            console.log('Received nowPlayingUpdate event:', data); 
+        document.addEventListener('DOMContentLoaded', function () {
+            const socket = io('https://mikumiku.dev'); // Replace with your server URL
+            let videoDuration = 0; // In seconds
+            let videoStartTime = Date.now();
 
-            const videoTitleElement = document.getElementById('videoTitle');
-            const videoThumbnailElement = document.getElementById('videoThumbnail');
-    
-            if (videoTitleElement) {
-                videoTitleElement.innerText = data.title || 'No video playing';
-            } else {
-                console.warn('Video title element not found.');
+            // Your YouTube API key
+            const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Add your YouTube API key here
+
+            // Function to extract the video ID from a YouTube URL
+            function extractYouTubeVideoID(url) {
+                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
+                const match = url.match(regExp);
+                return (match && match[2].length === 11) ? match[2] : null;
             }
-    
-            if (data.videoUrl) {
+
+            // Function to format seconds to MM:SS format
+            function formatTime(seconds) {
+                const minutes = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+            }
+
+            // Update the progress bar based on elapsed time
+            function updateProgressBar() {
+                const elapsed = (Date.now() - videoStartTime) / 1000; // Elapsed time in seconds
+                const remainingTime = videoDuration - elapsed;
+                if (remainingTime > 0) {
+                    const progressPercent = (elapsed / videoDuration) * 100;
+                    document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+                    document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(remainingTime)}`;
+                } else {
+                    document.getElementById('progress-bar').style.width = '100%';
+                    document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
+                }
+            }
+
+            // Fetch video details using YouTube API
+            async function fetchYouTubeVideoDuration(videoID) {
+                const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
+                
+                try {
+                    const response = await fetch(apiUrl);
+                    const data = await response.json();
+                    if (data.items.length > 0) {
+                        const durationISO = data.items[0].contentDetails.duration;
+                        const durationInSeconds = moment.duration(durationISO).asSeconds(); // Parse ISO 8601 duration
+                        videoDuration = durationInSeconds;
+                        videoStartTime = Date.now(); // Reset the start time
+                        setInterval(updateProgressBar, 1000); // Update every second
+                    }
+                } catch (error) {
+                    console.error('Error fetching YouTube video duration:', error);
+                }
+            }
+
+            // Listen for 'nowPlayingUpdate' event from the server
+            socket.on('nowPlayingUpdate', (data) => {
+                const videoTitleElement = document.getElementById('videoTitle');
+                const videoThumbnailElement = document.getElementById('videoThumbnail');
+
+                if (videoTitleElement) {
+                    videoTitleElement.innerText = data.title || 'No video playing';
+                }
+
                 const videoID = extractYouTubeVideoID(data.videoUrl);
                 if (videoID) {
-                    const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`; 
+                    const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
                     videoThumbnailElement.src = thumbnailUrl;
                     videoThumbnailElement.alt = data.title || 'Video Thumbnail';
-                    console.log('Thumbnail URL set to:', thumbnailUrl);
-                } else {
-                    console.warn('No valid YouTube video URL received. Using placeholder image.');
-                    videoThumbnailElement.src = 'https://raw.githubusercontent.com/hatsunemiku0102/mikumiku/main/public/mikua.jpg';
-                }
-            } else {
-                console.warn('No video URL received in the data.');
-                videoThumbnailElement.src = 'https://raw.githubusercontent.com/hatsunemiku0102/mikumiku/main/public/mikua.jpg';
-            }
-        });
-    
-        socket.on('disconnect', () => {
-            console.log('Disconnected from server');
-        });
-    });
 
+                    // Fetch video duration and start progress bar update
+                    fetchYouTubeVideoDuration(videoID);
+                } else {
+                    videoThumbnailElement.src = '/path/to/placeholder.jpg';
+                }
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnected from server');
+            });
+        });
     </script>
-    <script src="/memory-game.js"></script>
-    <script src="/typing-effect.js"></script>
 </body>
 </html>
