@@ -669,7 +669,7 @@ io.on('connection', (socket) => {
     // Listen for 'updateVideoTitle' from the client
     socket.on('updateVideoTitle', ({ title, videoUrl }) => {
         console.log('Received video title:', title);
-        console.log('Received video URL:', videoUrl);
+        console.log('Received video URL:', videoUrl); // Log the URL
 
         // Update the global variables
         currentVideoTitle = title;
