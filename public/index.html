@@ -76,31 +76,31 @@
         let intervalID = null;
         let isPaused = false;
         const YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY'; // Replace with your YouTube API key
-    
+
         // Function to extract YouTube Video ID from the URL
         function extractYouTubeVideoID(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
             const match = url.match(regExp);
             return (match && match[2].length === 11) ? match[2] : null;
         }
-    
+
         // Function to format seconds into MM:SS
         function formatTime(seconds) {
             const minutes = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
             return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
         }
-    
+
         // Function to update the progress bar and time display
         function updateProgressBar() {
             if (!player || isPaused) return; // Skip if paused or no player available
-    
+
             const currentTime = player.getCurrentTime(); // Get current time from player
             const remainingTime = videoDuration - currentTime;
-    
+
             console.log("Current Time:", currentTime); // Debugging log
             console.log("Remaining Time:", remainingTime); // Debugging log
-    
+
             if (remainingTime >= 0) {
                 const progressPercent = (currentTime / videoDuration) * 100;
                 document.getElementById('progress-bar').style.width = `${progressPercent}%`;
@@ -111,11 +111,11 @@
                 document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
             }
         }
-    
+
         // Fetch YouTube video duration
         async function fetchYouTubeVideoDuration(videoID) {
             const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
-    
+
             try {
                 const response = await fetch(apiUrl);
                 const data = await response.json();
@@ -129,7 +129,7 @@
                 console.error('Error fetching YouTube video duration:', error);
             }
         }
-    
+
         // Function to toggle pause icon visibility
         function togglePauseIcon(show) {
             const pauseIcon = document.getElementById('pause-icon');
@@ -139,7 +139,7 @@
                 pauseIcon.style.display = 'none';
             }
         }
-    
+
         // YouTube API: Create a YouTube player and manage playback state
         window.onYouTubeIframeAPIReady = function () {
             const videoThumbnailElement = document.getElementById('videoThumbnail');
@@ -150,7 +150,7 @@
                 }
             });
         };
-    
+
         // Handle player state changes (play, pause)
         function onPlayerStateChange(event) {
             if (event.data === YT.PlayerState.PLAYING) {
@@ -170,41 +170,41 @@
                 clearInterval(intervalID); // Stop updating progress when video ends
             }
         }
-    
+
         // Handle player ready event
         function onPlayerReady(event) {
             console.log('YouTube Player is ready');
             event.target.playVideo(); // Optionally auto-play the video when ready
         }
-    
+
         // Socket.IO connection to the server
         const socket = io('https://mikumiku.dev'); // Replace with your server URL
-    
+
         socket.on('connect', () => {
             console.log('Connected to server');
         });
-    
+
         // Handle the nowPlayingUpdate event
         socket.on('nowPlayingUpdate', (data) => {
             console.log('Received video title:', data.title);
             console.log('Received video URL:', data.videoUrl);
-    
+
             const videoTitleElement = document.getElementById('videoTitle');
             const videoThumbnailElement = document.getElementById('videoThumbnail');
-    
+
             if (videoTitleElement) {
                 videoTitleElement.innerText = data.title || 'No video playing';
             }
-    
+
             const videoID = extractYouTubeVideoID(data.videoUrl);
             if (videoID) {
                 const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`; // Use YouTube HQ thumbnail
                 videoThumbnailElement.src = thumbnailUrl;
                 videoThumbnailElement.alt = data.title || 'Video Thumbnail';
-    
+
                 // Fetch video duration from YouTube API
                 fetchYouTubeVideoDuration(videoID);
-    
+
                 // Reset the interval when a new video starts
                 clearInterval(intervalID);
                 intervalID = setInterval(updateProgressBar, 1000);
@@ -212,7 +212,7 @@
                 videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Fallback image if no video ID
             }
         });
-    
+
         socket.on('disconnect', () => {
             console.log('Disconnected from server');
         });
