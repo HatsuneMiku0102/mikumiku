@@ -9,7 +9,15 @@
 </head>
 <body>
 
-    <div id="main-content">
+    <div id="game-modal" class="game-modal">
+        <div class="game-container">
+            <h1>Match the Cards to Enter</h1>
+            <div id="game-board" class="game-board"></div>
+            <div id="game-status"></div>
+        </div>
+    </div>
+
+    <div id="main-content" style="display: none;">
         <div class="title-bar">
             <div class="container">
                 <img src="/logo.webp" alt="Logo" class="logo">
@@ -17,14 +25,17 @@
             </div>
         </div>
         
-        <!-- Now Playing Section -->
+        <div class="banner">
+            <img src="/banner.webp" alt="Banner Image" class="banner-img">
+        </div>
+
         <div class="content-wrapper">
             <div class="now-playing-about-wrapper">
+                
                 <div id="now-playing" class="now-playing">
                     <div class="now-playing-content">
-                        <!-- Video player element (custom) -->
-                        <video id="custom-video-player" width="600" height="350" controls></video>
-                        
+                        <!-- Keep the thumbnail for display purposes -->
+                        <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
                         <div class="video-title-container">
                             <h2>Currently Playing on YouTube</h2>
                             <p id="videoTitle">Loading...</p>
@@ -36,11 +47,10 @@
                     </div>
                 </div>
 
-                <!-- About Me Section -->
                 <div class="about">
                     <div class="container">
                         <h2>About Me</h2>
-                        <p>Hey there, I'm Hystoriya, a 24-year-old developer and hermaphrodite. Welcome to my personal website!</p>
+                        <p>Hey there, I'm Hystoriya, a 24-year-old developer and hermaphrodite, This is my personal website that I made for no apparent reason. If you find yourself here randomly then hi :).</p>
                     </div>
                 </div>
             </div>
@@ -49,19 +59,19 @@
         <footer class="footer">
             <div class="container">
                 <p>&copy; 2024 MikuMiku. All rights reserved.</p>
+                <p><a href="/admin-login.html">Admin Login</a></p>
             </div>
         </footer>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="/memory-game.js"></script> 
     <script>
     document.addEventListener('DOMContentLoaded', function () {
-        let videoPlayer = document.getElementById('custom-video-player');
         let videoDuration = 0; // Video duration in seconds
-        let isPaused = false;
-        let intervalID = null;
-        const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Replace with your YouTube API key
+        let intervalID = null;  // Store the interval ID to clear it later
+        const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // YouTube API key
     
         // Function to extract YouTube Video ID from the URL
         function extractYouTubeVideoID(url) {
@@ -78,10 +88,8 @@
         }
     
         // Function to update the progress bar and time display
-        function updateProgressBar() {
-            if (!videoPlayer || isPaused) return; // Skip if paused or no player available
-    
-            const currentTime = videoPlayer.currentTime; // Get current time from player
+        function updateProgressBar(startTime) {
+            const currentTime = (Date.now() - startTime) / 1000; // Calculate the elapsed time in seconds
             const remainingTime = videoDuration - currentTime;
     
             if (remainingTime >= 0) {
@@ -89,7 +97,7 @@
                 document.getElementById('progress-bar').style.width = `${progressPercent}%`;
                 document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(remainingTime)}`;
             } else {
-                clearInterval(intervalID);
+                clearInterval(intervalID); // Stop updating if video ends
                 document.getElementById('progress-bar').style.width = '100%';
                 document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
             }
@@ -113,26 +121,6 @@
             }
         }
     
-        // Handle video pause and play
-        videoPlayer.addEventListener('play', () => {
-            console.log('Video is playing');
-            isPaused = false;
-            if (!intervalID) {
-                intervalID = setInterval(updateProgressBar, 1000); // Start updating progress every second
-            }
-        });
-
-        videoPlayer.addEventListener('pause', () => {
-            console.log('Video is paused');
-            isPaused = true;
-            clearInterval(intervalID); // Stop updating progress when paused
-            intervalID = null;
-        });
-
-        videoPlayer.addEventListener('ended', () => {
-            clearInterval(intervalID); // Stop progress when video ends
-        });
-
         // Socket.IO connection to the server
         const socket = io('https://mikumiku.dev'); // Replace with your server URL
     
@@ -145,7 +133,18 @@
             console.log('Received video title:', data.title);
             console.log('Received video URL:', data.videoUrl);
     
+            // Clear previous interval if any
+            if (intervalID) {
+                clearInterval(intervalID);
+                intervalID = null;
+            }
+    
+            // Reset the progress bar
+            document.getElementById('progress-bar').style.width = '0%';
+            document.getElementById('time-remaining').innerText = `Time Remaining: --:--`;
+    
             const videoTitleElement = document.getElementById('videoTitle');
+            const videoThumbnailElement = document.getElementById('videoThumbnail');
     
             if (videoTitleElement) {
                 videoTitleElement.innerText = data.title || 'No video playing';
@@ -153,16 +152,35 @@
     
             const videoID = extractYouTubeVideoID(data.videoUrl);
             if (videoID) {
+                const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`; // Use YouTube HQ thumbnail
+                videoThumbnailElement.src = thumbnailUrl;
+                videoThumbnailElement.alt = data.title || 'Video Thumbnail';
+    
                 fetchYouTubeVideoDuration(videoID); // Fetch video duration from YouTube API
-                videoPlayer.src = `https://www.youtube.com/embed/${videoID}?autoplay=1`; // Load the video in the player
+    
+                // Start the timer for the new video
+                const startTime = Date.now();
+                intervalID = setInterval(() => updateProgressBar(startTime), 1000);
             } else {
-                console.warn('No valid video ID found.');
+                videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Fallback image if no video ID
             }
         });
     
         socket.on('disconnect', () => {
             console.log('Disconnected from server');
         });
+    
+        // Game modal logic (if you have a card game or similar)
+        const gameModal = document.getElementById('game-modal');
+        const mainContent = document.getElementById('main-content');
+        if (gameModal) {
+            initCardGame();
+            function onGameWin() {
+                gameModal.style.display = 'none';
+                mainContent.style.display = 'block';
+            }
+            window.onGameWin = onGameWin;
+        }
     });
     </script>
 </body>
