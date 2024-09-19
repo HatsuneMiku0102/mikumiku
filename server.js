@@ -95,11 +95,10 @@ app.use(session({
 }));
 
 // Set CSP headers using helmet
-app.use(helmet());
 app.use(helmet.contentSecurityPolicy({
     directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"], // Add 'https://cdnjs.cloudflare.com'
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         imgSrc: ["'self'", "data:", "https://*"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
@@ -108,6 +107,7 @@ app.use(helmet.contentSecurityPolicy({
         frameAncestors: ["'self'", "https://discord.com"]
     }
 }));
+
 
 app.use(express.static(path.join(__dirname, 'public')));
 
