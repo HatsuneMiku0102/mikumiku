@@ -658,10 +658,16 @@ app.post('/api/videos', verifyToken, async (req, res) => {
 io.on('connection', (socket) => {
     console.log('New client connected');
 
-    // Example: Emit data to the client
+    // Emit data to the client
     socket.emit('message', 'Welcome to the server');
 
-    // Listen for an event from the client
+    // Listen for 'updateVideoTitle' from the client
+    socket.on('updateVideoTitle', (title) => {
+        console.log('Received video title:', title);
+        // Broadcast to all clients
+        io.emit('nowPlayingUpdate', { title });
+    });
+
     socket.on('clientEvent', (data) => {
         console.log('Received data from client:', data);
         // Broadcast to all clients
