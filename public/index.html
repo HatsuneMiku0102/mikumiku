@@ -70,8 +70,7 @@
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         let videoDuration = 0; // Video duration in seconds
-        let isPaused = false;
-        let intervalID = null;
+        let intervalID = null;  // Store the interval ID to clear it later
         const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // YouTube API key
     
         // Function to extract YouTube Video ID from the URL
@@ -90,8 +89,6 @@
     
         // Function to update the progress bar and time display
         function updateProgressBar(startTime) {
-            if (isPaused) return; // Skip if paused
-    
             const currentTime = (Date.now() - startTime) / 1000; // Calculate the elapsed time in seconds
             const remainingTime = videoDuration - currentTime;
     
@@ -100,7 +97,7 @@
                 document.getElementById('progress-bar').style.width = `${progressPercent}%`;
                 document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(remainingTime)}`;
             } else {
-                clearInterval(intervalID);
+                clearInterval(intervalID); // Stop updating if video ends
                 document.getElementById('progress-bar').style.width = '100%';
                 document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
             }
@@ -136,6 +133,16 @@
             console.log('Received video title:', data.title);
             console.log('Received video URL:', data.videoUrl);
     
+            // Clear previous interval if any
+            if (intervalID) {
+                clearInterval(intervalID);
+                intervalID = null;
+            }
+    
+            // Reset the progress bar
+            document.getElementById('progress-bar').style.width = '0%';
+            document.getElementById('time-remaining').innerText = `Time Remaining: --:--`;
+    
             const videoTitleElement = document.getElementById('videoTitle');
             const videoThumbnailElement = document.getElementById('videoThumbnail');
     
@@ -151,7 +158,7 @@
     
                 fetchYouTubeVideoDuration(videoID); // Fetch video duration from YouTube API
     
-                // Start the timer
+                // Start the timer for the new video
                 const startTime = Date.now();
                 intervalID = setInterval(() => updateProgressBar(startTime), 1000);
             } else {
