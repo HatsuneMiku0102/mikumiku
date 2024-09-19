@@ -666,11 +666,10 @@ io.on('connection', (socket) => {
     socket.emit('nowPlayingUpdate', { title: currentVideoTitle });
 
     // Listen for 'updateVideoTitle' from the client
-    socket.on('updateVideoTitle', (data) => {
-        console.log('Received video title:', data.title);
-        currentVideoTitle = data.title; // Update the current video title
+    socket.on('updateVideoTitle', ({ title }) => {
+        console.log('Received video title:', title);
         // Broadcast to all clients
-        io.emit('nowPlayingUpdate', { title: currentVideoTitle });
+        io.emit('nowPlayingUpdate', { title });
     });
 
     // Handle requests for the current video title
