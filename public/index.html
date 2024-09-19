@@ -25,18 +25,15 @@
             </div>
         </div>
         
-
         <div class="banner">
             <img src="/banner.webp" alt="Banner Image" class="banner-img">
         </div>
 
         <div class="content-wrapper">
-    
+            <!-- Now Playing Section -->
             <div id="now-playing" class="now-playing">
                 <div class="now-playing-content">
-               
                     <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
-                   
                     <div class="video-title-container">
                         <h2>Currently Playing on YouTube</h2>
                         <p id="videoTitle">Loading...</p>
@@ -44,7 +41,7 @@
                 </div>
             </div>
 
-          
+            <!-- About Me Section -->
             <div class="about">
                 <div class="container">
                     <h2>About Me</h2>
@@ -99,25 +96,30 @@
     
         // Listen for 'nowPlayingUpdate' event from the server
         socket.on('nowPlayingUpdate', (data) => {
-            console.log('Received video title:', data.title);
-            console.log('Received video URL:', data.videoUrl); // Log the video URL
-            
+            console.log('Received nowPlayingUpdate event:', data); // Log the entire event data
+
             const videoTitleElement = document.getElementById('videoTitle');
             const videoThumbnailElement = document.getElementById('videoThumbnail');
     
             if (videoTitleElement) {
                 videoTitleElement.innerText = data.title || 'No video playing';
+            } else {
+                console.warn('Video title element not found.');
             }
     
-            // Extract the video ID from the YouTube URL and set the thumbnail image
-            const videoID = extractYouTubeVideoID(data.videoUrl);
-            if (videoID) {
-                const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`; // Use HQ thumbnail
-                videoThumbnailElement.src = thumbnailUrl;
-                videoThumbnailElement.alt = data.title || 'Video Thumbnail';
+            if (data.videoUrl) {
+                const videoID = extractYouTubeVideoID(data.videoUrl);
+                if (videoID) {
+                    const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`; // Use HQ thumbnail
+                    videoThumbnailElement.src = thumbnailUrl;
+                    videoThumbnailElement.alt = data.title || 'Video Thumbnail';
+                    console.log('Thumbnail URL set to:', thumbnailUrl);
+                } else {
+                    console.warn('No valid YouTube video URL received. Using placeholder image.');
+                    videoThumbnailElement.src = 'https://raw.githubusercontent.com/hatsunemiku0102/mikumiku/main/public/mikua.jpg';
+                }
             } else {
-                console.warn('No valid YouTube video URL received. Using placeholder image.');
-                // Use placeholder image if video ID is not valid
+                console.warn('No video URL received in the data.');
                 videoThumbnailElement.src = 'https://raw.githubusercontent.com/hatsunemiku0102/mikumiku/main/public/mikua.jpg';
             }
         });
