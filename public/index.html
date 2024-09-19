@@ -30,7 +30,7 @@
         </div>
 
         <div class="content-wrapper">
-            <!-- Now Playing Section -->
+            
             <div id="now-playing" class="now-playing">
                 <div class="now-playing-content">
                     <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
@@ -41,7 +41,7 @@
                 </div>
             </div>
 
-            <!-- About Me Section -->
+           
             <div class="about">
                 <div class="container">
                     <h2>About Me</h2>
@@ -80,23 +80,23 @@
     <script>
       
     document.addEventListener('DOMContentLoaded', function () {
-        // Connect to the server using Socket.IO
-        const socket = io('https://mikumiku.dev'); // Replace with your server URL
+        
+        const socket = io('https://mikumiku.dev'); 
     
         socket.on('connect', () => {
             console.log('Connected to server');
         });
     
-        // Function to extract the video ID from a YouTube URL
+      
         function extractYouTubeVideoID(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
             const match = url.match(regExp);
             return (match && match[2].length === 11) ? match[2] : null;
         }
     
-        // Listen for 'nowPlayingUpdate' event from the server
+      
         socket.on('nowPlayingUpdate', (data) => {
-            console.log('Received nowPlayingUpdate event:', data); // Log the entire event data
+            console.log('Received nowPlayingUpdate event:', data); 
 
             const videoTitleElement = document.getElementById('videoTitle');
             const videoThumbnailElement = document.getElementById('videoThumbnail');
@@ -110,7 +110,7 @@
             if (data.videoUrl) {
                 const videoID = extractYouTubeVideoID(data.videoUrl);
                 if (videoID) {
-                    const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`; // Use HQ thumbnail
+                    const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`; 
                     videoThumbnailElement.src = thumbnailUrl;
                     videoThumbnailElement.alt = data.title || 'Video Thumbnail';
                     console.log('Thumbnail URL set to:', thumbnailUrl);
