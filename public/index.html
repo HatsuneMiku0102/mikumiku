@@ -52,7 +52,7 @@
                 <div class="about">
                     <div class="container">
                         <h2>About Me</h2>
-                        <p>Hey there, I'm Hystoriya, a 24-year-old developer and hermaphrodite. This is my personal website that I made for no apparent reason. If you find yourself here randomly then hi :).</p>
+                        <p>Hey there, I'm Hystoriya, a 24-year-old developer and hermaphrodite, This is my personal website that I made for no apparent reason. If you find yourself here randomly then hi :).</p>
                     </div>
                 </div>
             </div>
@@ -75,7 +75,7 @@
         let videoDuration = 0; // Video duration in seconds
         let intervalID = null;
         let isPaused = false;
-        const YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY'; // Replace with your YouTube API key
+        const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Your YouTube API key
 
         // Function to extract YouTube Video ID from the URL
         function extractYouTubeVideoID(url) {
@@ -88,7 +88,7 @@
         function formatTime(seconds) {
             const minutes = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
-            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+            return ${minutes}:${secs < 10 ? '0' : ''}${secs};
         }
 
         // Function to update the progress bar and time display
@@ -98,23 +98,20 @@
             const currentTime = player.getCurrentTime(); // Get current time from player
             const remainingTime = videoDuration - currentTime;
 
-            console.log("Current Time:", currentTime); // Debugging log
-            console.log("Remaining Time:", remainingTime); // Debugging log
-
             if (remainingTime >= 0) {
                 const progressPercent = (currentTime / videoDuration) * 100;
-                document.getElementById('progress-bar').style.width = `${progressPercent}%`;
-                document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(remainingTime)}`;
+                document.getElementById('progress-bar').style.width = ${progressPercent}%;
+                document.getElementById('time-remaining').innerText = Time Remaining: ${formatTime(remainingTime)};
             } else {
                 clearInterval(intervalID); // Stop updating progress when video ends
                 document.getElementById('progress-bar').style.width = '100%';
-                document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
+                document.getElementById('time-remaining').innerText = Time Remaining: 0:00;
             }
         }
 
         // Fetch YouTube video duration
         async function fetchYouTubeVideoDuration(videoID) {
-            const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
+            const apiUrl = https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY};
 
             try {
                 const response = await fetch(apiUrl);
@@ -122,7 +119,7 @@
                 if (data.items.length > 0) {
                     const durationISO = data.items[0].contentDetails.duration;
                     videoDuration = moment.duration(durationISO).asSeconds(); // Parse ISO duration to seconds
-                    document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(videoDuration)}`;
+                    document.getElementById('time-remaining').innerText = Time Remaining: ${formatTime(videoDuration)};
                     console.log('Fetched video duration:', videoDuration);
                 }
             } catch (error) {
@@ -198,16 +195,11 @@
 
             const videoID = extractYouTubeVideoID(data.videoUrl);
             if (videoID) {
-                const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`; // Use YouTube HQ thumbnail
+                const thumbnailUrl = https://img.youtube.com/vi/${videoID}/hqdefault.jpg; // Use YouTube HQ thumbnail
                 videoThumbnailElement.src = thumbnailUrl;
                 videoThumbnailElement.alt = data.title || 'Video Thumbnail';
 
-                // Fetch video duration from YouTube API
-                fetchYouTubeVideoDuration(videoID);
-
-                // Reset the interval when a new video starts
-                clearInterval(intervalID);
-                intervalID = setInterval(updateProgressBar, 1000);
+                fetchYouTubeVideoDuration(videoID); // Fetch video duration from YouTube API
             } else {
                 videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Fallback image if no video ID
             }
@@ -216,8 +208,6 @@
         socket.on('disconnect', () => {
             console.log('Disconnected from server');
         });
-    });
-
 
         // Game modal logic (if you have a card game or similar)
         const gameModal = document.getElementById('game-modal');
@@ -234,3 +224,4 @@
     </script>
 </body>
 </html>
+
