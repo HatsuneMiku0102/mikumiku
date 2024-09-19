@@ -85,14 +85,16 @@
         document.addEventListener('DOMContentLoaded', function () {
             // Connect to the server using Socket.IO
             const socket = io('https://mikumiku.dev'); // Replace with your server URL
-
+    
             socket.on('connect', () => {
                 console.log('Connected to server');
             });
-
+    
             // Listen for 'nowPlayingUpdate' event from the server
             socket.on('nowPlayingUpdate', (data) => {
                 console.log('Received video title:', data.title);
+                console.log('Received video thumbnail URL:', data.thumbnailUrl); // Log the thumbnail URL
+    
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 if (videoTitleElement) {
@@ -103,12 +105,13 @@
                     videoThumbnailElement.alt = data.title || 'Video Thumbnail'; // Set alt text
                 }
             });
-
+    
             socket.on('disconnect', () => {
                 console.log('Disconnected from server');
             });
         });
     </script>
+
     <script src="/memory-game.js"></script>
     <script src="/typing-effect.js"></script>
 </body>
