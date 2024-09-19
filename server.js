@@ -33,7 +33,7 @@ const io = socketIo(server, {
 const PORT = process.env.PORT || 3000;
 
 // Store the current video title
-let currentVideoTitle = '';
+let currentVideoTitle = 'Loading...';
 
 // Configure logging
 const logger = winston.createLogger({
@@ -659,7 +659,6 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     }
 });
 
-// Socket.IO: Handle client connections
 io.on('connection', (socket) => {
     console.log('New client connected');
 
@@ -674,10 +673,9 @@ io.on('connection', (socket) => {
         io.emit('nowPlayingUpdate', { title: currentVideoTitle });
     });
 
-    socket.on('clientEvent', (data) => {
-        console.log('Received data from client:', data);
-        // Broadcast to all clients
-        io.emit('serverUpdate', data);
+    // Handle requests for the current video title
+    socket.on('getCurrentVideoTitle', () => {
+        socket.emit('nowPlayingUpdate', { title: currentVideoTitle });
     });
 
     socket.on('disconnect', () => {
