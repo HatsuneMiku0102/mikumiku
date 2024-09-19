@@ -6,6 +6,7 @@
     <title>MikuMiku | Home</title>
     <link rel="stylesheet" href="/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://www.youtube.com/iframe_api"></script> <!-- YouTube IFrame API -->
 </head>
 <body>
 
@@ -25,7 +26,6 @@
             </div>
         </div>
         
-        
         <div class="banner">
             <img src="/banner.webp" alt="Banner Image" class="banner-img">
         </div>
@@ -35,7 +35,7 @@
                 
                 <div id="now-playing" class="now-playing">
                     <div class="now-playing-content">
-                        <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
+                        <div id="videoPlayer"></div> <!-- YouTube player will be here -->
                         <div class="video-title-container">
                             <h2>Currently Playing on YouTube</h2>
                             <p id="videoTitle">Loading...</p>
@@ -47,7 +47,6 @@
                     </div>
                 </div>
 
-              
                 <div class="about">
                     <div class="container">
                         <h2>About Me</h2>
@@ -128,15 +127,15 @@
     
         // Initialize YouTube IFrame API
         window.onYouTubeIframeAPIReady = function () {
-            const playerElement = document.getElementById('videoThumbnail');
-            if (playerElement) {
-                player = new YT.Player(playerElement, {
-                    events: {
-                        'onStateChange': onPlayerStateChange,
-                        'onReady': onPlayerReady
-                    }
-                });
-            }
+            player = new YT.Player('videoPlayer', {
+                height: '360',
+                width: '640',
+                videoId: '', // Leave it empty; we will load the video dynamically
+                events: {
+                    'onStateChange': onPlayerStateChange,
+                    'onReady': onPlayerReady
+                }
+            });
         };
     
         // Handle player state changes (play, pause)
@@ -160,7 +159,6 @@
         // Handle player ready event to start video
         function onPlayerReady(event) {
             console.log('YouTube Player is ready');
-            event.target.playVideo(); // Auto-play the video
         }
     
         // Socket.IO connection to the server
@@ -176,21 +174,15 @@
             console.log('Received video URL:', data.videoUrl);
     
             const videoTitleElement = document.getElementById('videoTitle');
-            const videoThumbnailElement = document.getElementById('videoThumbnail');
     
             if (videoTitleElement) {
                 videoTitleElement.innerText = data.title || 'No video playing';
             }
     
             const videoID = extractYouTubeVideoID(data.videoUrl);
-            if (videoID) {
-                const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`; // Use YouTube HQ thumbnail
-                videoThumbnailElement.src = thumbnailUrl;
-                videoThumbnailElement.alt = data.title || 'Video Thumbnail';
-    
+            if (videoID && player) {
+                player.loadVideoById(videoID); // Load video in the iframe player
                 fetchYouTubeVideoDuration(videoID); // Fetch video duration from YouTube API
-            } else {
-                videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Fallback image if no video ID
             }
         });
     
@@ -210,9 +202,6 @@
             window.onGameWin = onGameWin;
         }
     });
-
-
-
     </script>
 </body>
 </html>
