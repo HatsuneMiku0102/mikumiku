@@ -96,12 +96,13 @@ app.use(session({
 app.use(helmet.contentSecurityPolicy({
     directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"], // Add 'https://cdnjs.cloudflare.com'
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com", "https://www.youtube.com", "https://www.youtube.com/iframe_api"], // Add YouTube script sources
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        imgSrc: ["'self'", "data:", "https://*"],
+        imgSrc: ["'self'", "data:", "https://i.ytimg.com", "https://img.youtube.com"], // Allow YouTube images and thumbnails
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        connectSrc: ["'self'", "https://*"],
-        frameSrc: ["'self'", "https://discord.com"],
+        connectSrc: ["'self'", "https://www.googleapis.com", "https://*.youtube.com"], // Allow YouTube API calls
+        frameSrc: ["'self'", "https://discord.com", "https://www.youtube.com"], // Allow embedding YouTube videos in iframes
+        mediaSrc: ["'self'", "https://www.youtube.com"], // Allow media from YouTube
         frameAncestors: ["'self'", "https://discord.com"]
     }
 }));
