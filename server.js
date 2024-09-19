@@ -32,8 +32,6 @@ const io = socketIo(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// Store the current video title
-let currentVideoTitle = 'Loading...';
 
 // Configure logging
 const logger = winston.createLogger({
