@@ -85,19 +85,18 @@
 
         // Function to update the progress bar and time display
         function updateProgressBar() {
-            if (!isVideoPaused && videoDuration > 0) {
-                const elapsedTime = (Date.now() - videoStartTime) / 1000; // Calculate the elapsed time in seconds
-                const remainingTime = videoDuration - elapsedTime;
+            const currentTimestamp = Date.now();
+            const elapsedTime = (currentTimestamp - videoStartTime) / 1000; // Calculate the elapsed time in seconds
+            const remainingTime = videoDuration - elapsedTime;
 
-                if (remainingTime >= 0) {
-                    const progressPercent = (elapsedTime / videoDuration) * 100;
-                    document.getElementById('progress-bar').style.width = `${progressPercent}%`;
-                    document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(remainingTime)}`;
-                } else {
-                    clearInterval(intervalID); // Stop updating if video ends
-                    document.getElementById('progress-bar').style.width = '100%';
-                    document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
-                }
+            if (remainingTime >= 0) {
+                const progressPercent = (elapsedTime / videoDuration) * 100;
+                document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+                document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(remainingTime)}`;
+            } else {
+                clearInterval(intervalID); // Stop updating if video ends
+                document.getElementById('progress-bar').style.width = '100%';
+                document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
             }
         }
 
