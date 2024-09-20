@@ -1,5 +1,3 @@
-index.html
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -87,7 +85,7 @@ index.html
         function formatTime(seconds) {
             const minutes = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
-            return ${minutes}:${secs < 10 ? '0' : ''}${secs};
+            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
         }
 
         // Function to update the progress bar and time display
@@ -97,18 +95,18 @@ index.html
 
             if (remainingTime >= 0) {
                 const progressPercent = (elapsedTime / videoDuration) * 100;
-                document.getElementById('progress-bar').style.width = ${progressPercent}%;
-                document.getElementById('time-remaining').innerText = Time Remaining: ${formatTime(remainingTime)};
+                document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+                document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(remainingTime)}`;
             } else {
                 clearInterval(intervalID); // Stop updating if video ends
                 document.getElementById('progress-bar').style.width = '100%';
-                document.getElementById('time-remaining').innerText = Time Remaining: 0:00;
+                document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
             }
         }
 
         // Fetch YouTube video duration
         async function fetchYouTubeVideoDuration(videoID) {
-            const apiUrl = https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY};
+            const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
 
             try {
                 const response = await fetch(apiUrl);
@@ -116,7 +114,7 @@ index.html
                 if (data.items.length > 0) {
                     const durationISO = data.items[0].contentDetails.duration;
                     videoDuration = moment.duration(durationISO).asSeconds(); // Parse ISO duration to seconds
-                    document.getElementById('time-remaining').innerText = Time Remaining: ${formatTime(videoDuration)};
+                    document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(videoDuration)}`;
                     console.log('Fetched video duration:', videoDuration);
                 }
             } catch (error) {
@@ -145,7 +143,7 @@ index.html
 
             // Reset the progress bar
             document.getElementById('progress-bar').style.width = '0%';
-            document.getElementById('time-remaining').innerText = Time Remaining: --:--;
+            document.getElementById('time-remaining').innerText = `Time Remaining: --:--`;
 
             const videoTitleElement = document.getElementById('videoTitle');
             const videoThumbnailElement = document.getElementById('videoThumbnail');
@@ -156,7 +154,7 @@ index.html
 
             const videoID = extractYouTubeVideoID(data.videoUrl);
             if (videoID) {
-                const thumbnailUrl = https://img.youtube.com/vi/${videoID}/hqdefault.jpg; // Use YouTube HQ thumbnail
+                const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`; // Use YouTube HQ thumbnail
                 videoThumbnailElement.src = thumbnailUrl;
                 videoThumbnailElement.alt = data.title || 'Video Thumbnail';
 
