@@ -144,6 +144,16 @@
                 }
                 return 0;
             }
+
+            // Extract song title from the URL
+            function extractSongTitle(url) {
+                const regExp = /(?:v=|\/)([0-9A-Za-z_-]{11})(?:\?|&|$)/;
+                const match = url.match(regExp);
+                if (match) {
+                    return match[1]; // Video ID extracted
+                }
+                return 'Unknown Song'; // Fallback if title extraction fails
+            }
     
             function updateRecentVideosUI(recentVideos) {
                 const recentVideosContainer = document.getElementById('recent-videos-container');
@@ -152,13 +162,13 @@
                 recentVideos.forEach((video, index) => {
                     const videoElement = document.createElement('div');
                     videoElement.className = 'recent-video-item advanced-video-card';
-                    videoElement.style.animationDelay = `${index * 0.1}s`; // Stagger the animations
+                    videoElement.style.animationDelay = `${index * 0.1}s`; 
                     
                     videoElement.innerHTML = `
                         <a href="${video.url}" target="_blank">
                             <div class="card-content">
                                 <img src="${video.thumbnail}" class="recent-video-thumbnail" alt="Thumbnail of ${video.title}">
-                                <p class="recent-video-title">${video.title}</p>
+                                <p class="recent-video-title">${extractSongTitle(video.url)}</p>
                             </div>
                         </a>
                     `;
@@ -213,10 +223,13 @@
             socket.on('nowPlayingUpdate', (data) => {
                 console.log('Now Playing Data:', data);
     
+                // Store previous video data BEFORE updating to the new one
                 if (previousVideoData && previousVideoData.url) {
+                    // Add the last played video to the recent videos
                     addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
                 }
     
+                // Now proceed with updating the currently playing section
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 const progressBarContainer = document.getElementById('progress-bar-container');
@@ -287,7 +300,5 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
     </script>
-
-
 </body>
 </html>
