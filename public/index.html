@@ -71,6 +71,7 @@
     let intervalID = null;  // Store the interval ID to clear it later
     let videoStartTime = null; // Store the start timestamp
     let videoDuration = 0; // Video duration in seconds
+    let isVideoPaused = true; // Track if video is paused
     
     const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Replace with your YouTube API key
 
@@ -84,17 +85,19 @@
 
         // Function to update the progress bar and time display
         function updateProgressBar() {
-            const elapsedTime = (Date.now() - videoStartTime) / 1000; // Calculate the elapsed time in seconds
-            const remainingTime = videoDuration - elapsedTime;
+            if (!isVideoPaused) {
+                const elapsedTime = (Date.now() - videoStartTime) / 1000; // Calculate the elapsed time in seconds
+                const remainingTime = videoDuration - elapsedTime;
 
-            if (remainingTime >= 0) {
-                const progressPercent = (elapsedTime / videoDuration) * 100;
-                document.getElementById('progress-bar').style.width = `${progressPercent}%`;
-                document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(remainingTime)}`;
-            } else {
-                clearInterval(intervalID); // Stop updating if video ends
-                document.getElementById('progress-bar').style.width = '100%';
-                document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
+                if (remainingTime >= 0) {
+                    const progressPercent = (elapsedTime / videoDuration) * 100;
+                    document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+                    document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(remainingTime)}`;
+                } else {
+                    clearInterval(intervalID); // Stop updating if video ends
+                    document.getElementById('progress-bar').style.width = '100%';
+                    document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
+                }
             }
         }
 
@@ -114,6 +117,26 @@
                 console.error('Error fetching video duration from YouTube API:', error);
             }
             return 0;
+        }
+
+        // Detect if the video is paused or played
+        if (videoPlayer) {
+            videoPlayer.addEventListener('play', () => {
+                isVideoPaused = false; // Video is playing
+                clearInterval(intervalID); // Clear previous interval
+                intervalID = setInterval(updateProgressBar, 1000); // Resume progress bar update
+            });
+
+            videoPlayer.addEventListener('pause', () => {
+                isVideoPaused = true; // Video is paused
+                clearInterval(intervalID); // Stop updating the progress bar
+            });
+
+            videoPlayer.addEventListener('timeupdate', () => {
+                if (!isVideoPaused) {
+                    updateProgressBar(); // Update progress bar while video plays
+                }
+            });
         }
 
         // Socket.IO connection to the server
