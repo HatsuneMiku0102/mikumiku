@@ -233,9 +233,9 @@ app.get('/login', async (req, res) => {
 
     try {
         await sessionData.save();
-        logger.info(Generated state: ${state});
-        logger.info(Inserted session: ${JSON.stringify(sessionData)});
-        const authorizeUrl = https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI};
+        logger.info(`Generated state: ${state}`);
+        logger.info(`Inserted session: ${JSON.stringify(sessionData)}`);
+        const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
         res.redirect(authorizeUrl);
     } catch (err) {
         logger.error('Error saving session to DB:', err);
@@ -248,12 +248,12 @@ app.get('/callback', async (req, res) => {
     const state = req.query.state;
     const code = req.query.code;
 
-    logger.info(Received state: ${state});
-    logger.info(Received code: ${code});
+    logger.info(`Received state: ${state}`);
+    logger.info(`Received code: ${code}`);
 
     try {
         const sessionData = await Session.findOne({ state });
-        logger.info(Session data from DB: ${JSON.stringify(sessionData)});
+        logger.info(`Session data from DB: ${JSON.stringify(sessionData)}`);
 
         if (!sessionData) {
             logger.warn("State mismatch. Potential CSRF attack.");
@@ -261,7 +261,7 @@ app.get('/callback', async (req, res) => {
         }
 
         const tokenData = await getBungieToken(code);
-        logger.info(Token data: ${JSON.stringify(tokenData)});
+        logger.info(`Token data: ${JSON.stringify(tokenData)}`);
 
         if (!tokenData.access_token) {
             throw new Error('Failed to obtain access token');
@@ -282,7 +282,7 @@ app.get('/callback', async (req, res) => {
 
         const bungieGlobalDisplayName = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayName;
         const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode.toString().padStart(4, '0'); // Ensure the code is treated as a string and padded with zeros if necessary
-        const bungieName = ${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode};
+        const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
 
         let primaryMembership = userInfo.Response.destinyMemberships.find(
             membership => membership.membershipId === userInfo.Response.primaryMembershipId
@@ -300,7 +300,7 @@ app.get('/callback', async (req, res) => {
         const membershipId = primaryMembership.membershipId;
         const platformType = primaryMembership.membershipType;
 
-        logger.info(Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType});
+        logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}`);
 
         const discordId = sessionData.user_id;
 
@@ -327,7 +327,7 @@ app.get('/callback', async (req, res) => {
 
         await Session.deleteOne({ state });
 
-        res.redirect(/confirmation.html?token=${user.token});
+        res.redirect(`/confirmation.html?token=${user.token}`);
     } catch (error) {
         logger.error('Error during callback:', error);
         if (error.response) {
@@ -479,7 +479,7 @@ async function refreshBungieToken(refreshToken) {
 async function getBungieUserInfo(accessToken) {
     const url = 'https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/';
     const headers = {
-        'Authorization': Bearer ${accessToken},
+        'Authorization': `Bearer ${accessToken}`,
         'X-API-Key': process.env.X_API_KEY,
         'User-Agent': 'axios/0.21.4'
     };
@@ -515,7 +515,7 @@ async function getAccessTokenForUser(user) {
         user.refresh_token = newTokenData.refresh_token;
         user.token_expiry = DateTime.now().plus({ seconds: newTokenData.expires_in }).toJSDate();
         await user.save();
-        logger.info(Refreshed access token for user ${user.discord_id});
+        logger.info(`Refreshed access token for user ${user.discord_id}`);
     }
 
     return user.access_token;
@@ -523,9 +523,9 @@ async function getAccessTokenForUser(user) {
 
 // Function to get pending clan members
 async function getPendingClanMembers(accessToken, groupId) {
-    const url = https://www.bungie.net/Platform/GroupV2/${groupId}/Members/Pending/;
+    const url = `https://www.bungie.net/Platform/GroupV2/${groupId}/Members/Pending/`;
     const headers = {
-        'Authorization': Bearer ${accessToken},
+        'Authorization': `Bearer ${accessToken}`,
         'X-API-Key': process.env.X_API_KEY
     };
 
@@ -703,5 +703,5 @@ app.post('/api/update', (req, res) => {
 });
 
 server.listen(PORT, () => {
-    logger.info(Server is running on port ${PORT});
+    logger.info(`Server is running on port ${PORT}`);
 });
