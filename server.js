@@ -666,22 +666,31 @@ let videoStartTimestamp = Date.now(); // Set the initial timestamp
 io.on('connection', (socket) => {
     console.log('New client connected');
 
-    // Handle updates to the video information
-    socket.on('nowPlayingUpdate', ({ title, videoUrl, currentTime, duration }) => {
-        console.log('Received nowPlayingUpdate:', { title, videoUrl, currentTime, duration });
+    // Emit the current video title, URL, and current playback time to the new client
+    socket.emit('nowPlayingUpdate', { 
+        title: currentVideoTitle, 
+        videoUrl: currentVideoUrl, 
+        startTimestamp: videoStartTimestamp, 
+        currentTime: (Date.now() - videoStartTimestamp) / 1000 // Send the current playback time in seconds
+    });
+
+    // Handle updates to the video title and URL
+    socket.on('updateVideoTitle', ({ title, videoUrl, currentTime }) => {
+        console.log('Received video title:', title);
+        console.log('Received video URL:', videoUrl);
+        console.log('Received current time:', currentTime);
 
         // Update the global variables
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
-        currentVideoDuration = duration;
-        videoStartTimestamp = Date.now() - (currentTime * 1000);
+        videoStartTimestamp = Date.now() - (currentTime * 1000); // Adjust the start timestamp based on the provided currentTime
 
         // Broadcast the updated video information to all clients
-        io.emit('nowPlayingUpdate', {
-            title,
-            videoUrl,
-            duration,
-            currentTime
+        io.emit('nowPlayingUpdate', { 
+            title, 
+            videoUrl, 
+            startTimestamp: videoStartTimestamp,
+            currentTime: currentTime // Broadcast the updated current time
         });
     });
 
@@ -689,7 +698,6 @@ io.on('connection', (socket) => {
         console.log('Client disconnected');
     });
 });
-
 
 // Endpoint to send real-time data to clients
 app.post('/api/update', (req, res) => {
@@ -703,3 +711,5 @@ app.post('/api/update', (req, res) => {
 server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
+
+can you make this work with it 
