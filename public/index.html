@@ -34,7 +34,6 @@
                 
                 <div id="now-playing" class="now-playing">
                     <div class="now-playing-content">
-                        <!-- Keep the thumbnail for display purposes -->
                         <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
                         <div class="video-title-container">
                             <h2>Currently Playing on YouTube</h2>
@@ -64,16 +63,34 @@
         </footer>
     </div>
 
+    <!-- YouTube Iframe API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="/memory-game.js"></script> 
     <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        let videoDuration = 0; // Video duration in seconds
-        let intervalID = null;  // Store the interval ID to clear it later
-        const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // YouTube API key
-        let videoStartTime = null; // Store the start timestamp
+    let videoPlayer = null;
+    let intervalID = null;  // Store the interval ID to clear it later
+    let videoStartTime = null; // Store the start timestamp
+    let videoDuration = 0; // Video duration in seconds
+    
+    const YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY_HERE'; // Replace with your YouTube API key
+    
+    // YouTube Iframe API initialization
+    function onYouTubeIframeAPIReady() {
+        videoPlayer = new YT.Player('youtube-iframe-id', {
+            events: {
+                'onReady': onPlayerReady
+            }
+        });
+    }
+    
+    function onPlayerReady(event) {
+        console.log('YouTube Player Ready');
+        // Do any actions you want when the player is ready
+    }
 
+    document.addEventListener('DOMContentLoaded', function () {
         // Function to extract YouTube Video ID from the URL
         function extractYouTubeVideoID(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
@@ -130,7 +147,6 @@
         });
 
         // Handle the nowPlayingUpdate event
-        // Listen for 'nowPlayingUpdate' event from the server
         socket.on('nowPlayingUpdate', (data) => {
             console.log('Now Playing Data:', data);
         
@@ -153,9 +169,9 @@
                     // Sync playback to the currentTime sent by the server
                     videoStartTime = Date.now() - (data.currentTime * 1000); // Adjust based on currentTime
         
-                    // Set video player to the correct time if applicable
                     if (videoPlayer) {
-                        videoPlayer.currentTime = data.currentTime; // Sync playback time
+                        // Sync with YouTube iframe if applicable
+                        videoPlayer.seekTo(data.currentTime, true);
                     }
         
                     clearInterval(intervalID); // Clear any existing interval
@@ -165,8 +181,6 @@
                 videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Default fallback image
             }
         });
-
-
 
         socket.on('disconnect', () => {
             console.log('Disconnected from server');
