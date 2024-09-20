@@ -76,12 +76,12 @@
     <script src="/memory-game.js"></script> 
     <script>
         let videoPlayer = document.querySelector('video');
-        let intervalID = null;
-        let videoStartTime = null;
-        let videoDuration = 0;
+        let intervalID = null;  
+        let videoStartTime = null; 
+        let videoDuration = 0; 
         let isVideoPaused = true;
-        let browseStartTime = null;
-        let isBrowsing = false;
+        let browseStartTime = null; 
+        let isBrowsing = false; 
         let MAX_RECENT_VIDEOS = 5;
         let previousVideoData = {}; // Store previous video details
     
@@ -153,7 +153,7 @@
                     videoElement.innerHTML = `
                         <a href="${video.url}" target="_blank">
                             <img src="${video.thumbnail}" class="recent-video-thumbnail" alt="Thumbnail of ${video.title}">
-                            <p class="recent-video-title">${video.title}</p>
+                            <p class="recent-video-title">${video.url}</p>
                         </a>
                     `;
                     recentVideosContainer.appendChild(videoElement);
@@ -212,8 +212,9 @@
             socket.on('nowPlayingUpdate', (data) => {
                 console.log('Now Playing Data:', data);
     
-                // Ensure to store previous video info BEFORE updating new video info
-                if (previousVideoData && previousVideoData.title && previousVideoData.url && previousVideoData.thumbnail) {
+                // Store previous video data BEFORE updating to the new one
+                if (previousVideoData && previousVideoData.url) {
+                    // Add the last played video to the recent videos
                     addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
                 }
     
@@ -243,13 +244,14 @@
                     if (videoID) {
                         const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
     
-                        // Store the current song info before updating UI for the new song
+                        // Store current song info before updating to the new song
                         previousVideoData = {
                             title: data.title,
                             url: data.videoUrl,
                             thumbnail: thumbnailUrl
                         };
     
+                        // Then fetch the video duration and update the progress bar
                         fetchYouTubeVideoDuration(videoID).then((duration) => {
                             if (duration) {
                                 videoDuration = duration;
@@ -271,6 +273,7 @@
                             }
                         });
     
+                        // Update the current video thumbnail
                         videoThumbnailElement.src = thumbnailUrl;
                         videoThumbnailElement.alt = data.title || 'Video Thumbnail';
                     } else {
@@ -290,6 +293,7 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
     </script>
+
 
 
 
