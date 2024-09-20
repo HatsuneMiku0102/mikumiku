@@ -106,6 +106,10 @@
                 if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
                     const currentTimestamp = Date.now();
                     const elapsedTime = (currentTimestamp - videoStartTime) / 1000;
+                    
+                    // Debugging Logs
+                    console.log(`Video Duration: ${videoDuration} seconds`);
+                    console.log(`Elapsed Time: ${elapsedTime} seconds`);
     
                     if (elapsedTime >= 0 && elapsedTime <= videoDuration) {
                         const progressPercent = (elapsedTime / videoDuration) * 100;
@@ -135,6 +139,7 @@
                     if (data.items.length > 0) {
                         const durationISO = data.items[0].contentDetails.duration;
                         videoDuration = moment.duration(durationISO).asSeconds();
+                        console.log(`Fetched Video Duration: ${videoDuration} seconds`); // Debugging log
                         return videoDuration;
                     }
                 } catch (error) {
@@ -256,6 +261,7 @@
                             if (duration) {
                                 videoDuration = duration;
                                 videoStartTime = Date.now() - (data.currentTime * 1000);
+                                console.log(`Video Start Time: ${videoStartTime}, Current Time: ${data.currentTime}`);
     
                                 clearExistingInterval();
                                 intervalID = setInterval(updateProgressBar, 1000);
@@ -293,6 +299,7 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
     </script>
+
 
 </body>
 </html>
