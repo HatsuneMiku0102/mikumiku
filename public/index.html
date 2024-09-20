@@ -130,11 +130,14 @@
         });
 
         // Handle the nowPlayingUpdate event
+        // Listen for 'nowPlayingUpdate' event from the server
         socket.on('nowPlayingUpdate', (data) => {
+            console.log('Now Playing Data:', data);
+        
+            // Set video title and thumbnail
             const videoTitleElement = document.getElementById('videoTitle');
             const videoThumbnailElement = document.getElementById('videoThumbnail');
-            
-            // Display the new title
+        
             if (videoTitleElement) {
                 videoTitleElement.innerText = data.title || 'No video playing';
             }
@@ -145,10 +148,16 @@
                 videoThumbnailElement.src = thumbnailUrl;
                 videoThumbnailElement.alt = data.title || 'Video Thumbnail';
         
-                // Set the correct video duration and start time
+                // Fetch video duration and update the progress bar
                 fetchYouTubeVideoDuration(videoID).then(() => {
-                    // Adjust videoStartTime based on the current time received from the server
-                    videoStartTime = Date.now() - (data.currentTime * 1000); // Set based on server data
+                    // Sync playback to the currentTime sent by the server
+                    videoStartTime = Date.now() - (data.currentTime * 1000); // Adjust based on currentTime
+        
+                    // Set video player to the correct time if applicable
+                    if (videoPlayer) {
+                        videoPlayer.currentTime = data.currentTime; // Sync playback time
+                    }
+        
                     clearInterval(intervalID); // Clear any existing interval
                     intervalID = setInterval(updateProgressBar, 1000); // Update progress bar every second
                 });
@@ -156,6 +165,7 @@
                 videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Default fallback image
             }
         });
+
 
 
         socket.on('disconnect', () => {
