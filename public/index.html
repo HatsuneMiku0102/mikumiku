@@ -155,15 +155,19 @@
                 // Set video title and thumbnail
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
+                const progressBarContainer = document.getElementById('progress-bar-container');
+                const timeRemainingElement = document.getElementById('time-remaining');
             
                 // Check if the user is on the YouTube homepage (no /watch in the URL)
                 if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
                     // User is on YouTube home
-                    videoTitleElement.innerText = 'YouTube Home';
+                    videoTitleElement.innerText = 'Browsing Videos';
                     videoThumbnailElement.src = YOUTUBE_HOME_THUMBNAIL;
                     videoThumbnailElement.alt = 'YouTube Home';
-                    document.getElementById('progress-bar').style.width = '0%'; // Reset progress bar
-                    document.getElementById('time-remaining').innerText = '--:--'; // No time tracking on home page
+                    
+                    // Hide the progress bar and replace it with "Browsing Videos"
+                    progressBarContainer.style.display = 'none';
+                    timeRemainingElement.innerText = 'Browsing Videos';
                 } else {
                     if (videoTitleElement) {
                         videoTitleElement.innerText = data.title || 'No video playing';
@@ -193,6 +197,10 @@
                                     isVideoPaused = false;
                                     intervalID = setInterval(updateProgressBar, 1000); // Start updating if playing
                                 }
+    
+                                // Show the progress bar again
+                                progressBarContainer.style.display = 'block';
+                                timeRemainingElement.innerText = `Time Remaining: ${formatTime(videoDuration)}`;
                             } else {
                                 console.warn('Unable to retrieve video duration');
                             }
@@ -227,6 +235,7 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
     </script>
+
 
 </body>
 </html>
