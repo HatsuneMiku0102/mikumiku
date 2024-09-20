@@ -73,9 +73,10 @@
         let videoDuration = 0; // Video duration in seconds
         let isVideoPaused = true; // Track if video is paused
         let browseStartTime = null; // Start time for browsing mode timer
+        let isBrowsing = false; // Track if the user is browsing the homepage
     
         const YOUTUBE_HOME_THUMBNAIL = 'https://upload.wikimedia.org/wikipedia/commons/7/75/YouTube_social_white_circle_%282017%29.svg'; // YouTube icon
-        const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Replace with your YouTube API key
+        const YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY'; // Replace with your YouTube API key
     
         document.addEventListener('DOMContentLoaded', function () {
             // Function to format seconds into MM:SS
@@ -85,9 +86,17 @@
                 return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
             }
     
+            // Function to clear any existing intervals
+            function clearExistingInterval() {
+                if (intervalID) {
+                    clearInterval(intervalID); // Clear previous interval
+                    intervalID = null; // Reset intervalID
+                }
+            }
+    
             // Function to update the progress bar and time display for video playback
             function updateProgressBar() {
-                if (!isVideoPaused) {
+                if (!isVideoPaused && !isBrowsing) { // Only update if video is playing and not browsing
                     const currentTimestamp = Date.now();
                     const elapsedTime = (currentTimestamp - videoStartTime) / 1000; // Calculate the elapsed time in seconds
     
@@ -96,7 +105,7 @@
                         document.getElementById('progress-bar').style.width = `${progressPercent}%`;
                         document.getElementById('time-remaining').innerText = `Time Elapsed: ${formatTime(elapsedTime)}`;
                     } else {
-                        clearInterval(intervalID); // Stop updating if video ends
+                        clearExistingInterval(); // Stop updating if video ends
                         document.getElementById('progress-bar').style.width = '100%';
                         document.getElementById('time-remaining').innerText = `Time Elapsed: 0:00`;
                     }
@@ -105,9 +114,11 @@
     
             // Function to update the timer when browsing YouTube homepage
             function updateBrowseTimer() {
-                const currentTimestamp = Date.now();
-                const elapsedBrowseTime = (currentTimestamp - browseStartTime) / 1000; // Elapsed time in seconds
-                document.getElementById('time-remaining').innerText = `Youtube Home ${formatTime(elapsedBrowseTime)}`;
+                if (isBrowsing) {
+                    const currentTimestamp = Date.now();
+                    const elapsedBrowseTime = (currentTimestamp - browseStartTime) / 1000; // Elapsed time in seconds
+                    document.getElementById('time-remaining').innerText = `Browsing Videos ${formatTime(elapsedBrowseTime)}`;
+                }
             }
     
             // Function to fetch YouTube video duration using YouTube API
@@ -132,17 +143,17 @@
             if (videoPlayer) {
                 videoPlayer.addEventListener('play', () => {
                     isVideoPaused = false; // Video is playing
-                    clearInterval(intervalID); // Clear previous interval
+                    clearExistingInterval(); // Clear previous interval
                     intervalID = setInterval(updateProgressBar, 1000); // Resume progress bar update
                 });
     
                 videoPlayer.addEventListener('pause', () => {
                     isVideoPaused = true; // Video is paused
-                    clearInterval(intervalID); // Stop updating the progress bar
+                    clearExistingInterval(); // Stop updating the progress bar
                 });
     
                 videoPlayer.addEventListener('timeupdate', () => {
-                    if (!isVideoPaused) {
+                    if (!isVideoPaused && !isBrowsing) {
                         updateProgressBar(); // Update progress bar while video plays
                     }
                 });
@@ -164,20 +175,23 @@
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 const progressBarContainer = document.getElementById('progress-bar-container');
                 const timeRemainingElement = document.getElementById('time-remaining');
-            
+    
                 // Check if the user is on the YouTube homepage (no /watch in the URL)
                 if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
                     // User is on YouTube home
                     videoTitleElement.innerText = 'Browsing Videos';
                     videoThumbnailElement.src = YOUTUBE_HOME_THUMBNAIL;
                     videoThumbnailElement.alt = 'YouTube Home';
-                    
+    
                     // Hide the progress bar and show browsing time
                     progressBarContainer.style.display = 'none';
                     browseStartTime = Date.now(); // Set start time for browsing timer
-                    clearInterval(intervalID); // Clear previous intervals
+                    clearExistingInterval(); // Clear previous intervals
+                    isBrowsing = true; // Set browsing mode
                     intervalID = setInterval(updateBrowseTimer, 1000); // Start browse timer
                 } else {
+                    isBrowsing = false; // Not browsing, playing a video
+    
                     if (videoTitleElement) {
                         videoTitleElement.innerText = data.title || 'No video playing';
                     }
@@ -195,21 +209,20 @@
                                 videoDuration = duration;
                                 videoStartTime = Date.now() - (data.currentTime * 1000); // Sync playback time from server
     
-                                clearInterval(intervalID); // Clear any existing interval
+                                clearExistingInterval(); // Clear any existing interval
                                 intervalID = setInterval(updateProgressBar, 1000); // Update progress bar every second
+    
+                                // Show the progress bar and reset timer
+                                progressBarContainer.style.display = 'block';
     
                                 // Pause or play based on server data
                                 if (data.isPaused) {
                                     isVideoPaused = true;
-                                    clearInterval(intervalID); // Stop updating the progress bar if paused
+                                    clearExistingInterval(); // Stop updating the progress bar if paused
                                 } else {
                                     isVideoPaused = false;
                                     intervalID = setInterval(updateProgressBar, 1000); // Start updating if playing
                                 }
-    
-                                // Show the progress bar again
-                                progressBarContainer.style.display = 'block';
-                                timeRemainingElement.innerText = `Time Elapsed: ${formatTime(videoDuration)}`;
                             } else {
                                 console.warn('Unable to retrieve video duration');
                             }
@@ -244,6 +257,7 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
     </script>
+
 
 </body>
 </html>
