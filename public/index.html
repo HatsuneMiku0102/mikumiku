@@ -67,7 +67,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="/memory-game.js"></script> 
     <script>
-    let videoPlayer = document.querySelector('video'); // Make sure there's a <video> element in your HTML
+    let videoPlayer = document.querySelector('video'); // HTML5 video element selector
     let intervalID = null;  // Store the interval ID to clear it later
     let videoStartTime = null; // Store the start timestamp
     let videoDuration = 0; // Video duration in seconds
@@ -125,6 +125,16 @@
                 videoTitleElement.innerText = data.title || 'No video playing';
             }
 
+            // Update thumbnail
+            const videoID = extractYouTubeVideoID(data.videoUrl);
+            if (videoID) {
+                const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
+                videoThumbnailElement.src = thumbnailUrl;
+                videoThumbnailElement.alt = data.title || 'Video Thumbnail';
+            } else {
+                videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Default fallback image
+            }
+
             // Wait for video metadata before setting the current time
             if (videoPlayer) {
                 videoPlayer.addEventListener('loadedmetadata', () => {
@@ -154,6 +164,13 @@
             window.onGameWin = onGameWin;
         }
     });
+    
+    // Function to extract YouTube Video ID from the URL
+    function extractYouTubeVideoID(url) {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    }
     </script>
 </body>
 </html>
