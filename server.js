@@ -660,32 +660,37 @@ app.post('/api/videos', verifyToken, async (req, res) => {
 
 let currentVideoTitle = 'Loading...';
 let currentVideoUrl = ''; // New variable for the video URL
+let videoStartTimestamp = Date.now(); // Set the initial timestamp
 
+// Socket.IO connection handling
 io.on('connection', (socket) => {
     console.log('New client connected');
 
-    // Emit the current video title, URL, and current playback time
+    // Emit the current video title, URL, and current playback time to the new client
     socket.emit('nowPlayingUpdate', { 
         title: currentVideoTitle, 
         videoUrl: currentVideoUrl, 
         startTimestamp: videoStartTimestamp, 
-        currentTime: (Date.now() - videoStartTimestamp) / 1000 // Send the current playback time
+        currentTime: (Date.now() - videoStartTimestamp) / 1000 // Send the current playback time in seconds
     });
 
+    // Handle updates to the video title and URL
     socket.on('updateVideoTitle', ({ title, videoUrl, currentTime }) => {
         console.log('Received video title:', title);
         console.log('Received video URL:', videoUrl);
         console.log('Received current time:', currentTime);
 
+        // Update the global variables
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
-        videoStartTimestamp = Date.now() - (currentTime * 1000); // Adjust start timestamp based on the current time
+        videoStartTimestamp = Date.now() - (currentTime * 1000); // Adjust the start timestamp based on the provided currentTime
 
+        // Broadcast the updated video information to all clients
         io.emit('nowPlayingUpdate', { 
             title, 
             videoUrl, 
             startTimestamp: videoStartTimestamp,
-            currentTime: currentTime // Broadcast current time
+            currentTime: currentTime // Broadcast the updated current time
         });
     });
 
@@ -693,10 +698,6 @@ io.on('connection', (socket) => {
         console.log('Client disconnected');
     });
 });
-
-
-
-
 
 // Endpoint to send real-time data to clients
 app.post('/api/update', (req, res) => {
@@ -706,6 +707,7 @@ app.post('/api/update', (req, res) => {
     res.status(200).send({ message: 'Data sent to clients' });
 });
 
+// Start the server
 server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
