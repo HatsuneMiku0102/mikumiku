@@ -212,12 +212,13 @@
             socket.on('nowPlayingUpdate', (data) => {
                 console.log('Now Playing Data:', data);
     
-                // Add the previous video to recent videos list before updating the currently playing section
-                if (previousVideoData && previousVideoData.title && previousVideoData.url) {
+                // Ensure to store previous video info BEFORE updating new video info
+                if (previousVideoData && previousVideoData.title && previousVideoData.url && previousVideoData.thumbnail) {
+                    // Add the last played video to the recent videos
                     addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
                 }
     
-                // Now update the currently playing video
+                // Now proceed with updating the currently playing section
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 const progressBarContainer = document.getElementById('progress-bar-container');
@@ -242,9 +243,8 @@
                     const videoID = extractYouTubeVideoID(data.videoUrl);
                     if (videoID) {
                         const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
-                        videoThumbnailElement.src = thumbnailUrl;
-                        videoThumbnailElement.alt = data.title || 'Video Thumbnail';
     
+                        // Fetch the video duration and update the progress bar
                         fetchYouTubeVideoDuration(videoID).then((duration) => {
                             if (duration) {
                                 videoDuration = duration;
@@ -254,11 +254,11 @@
                                 intervalID = setInterval(updateProgressBar, 1000);
                                 progressBarContainer.style.display = 'block';
     
-                                // Update previous video data after successfully updating the new video
+                                // Update previous video data after new video data is set
                                 previousVideoData = {
                                     title: data.title,
                                     url: data.videoUrl,
-                                    thumbnail: thumbnailUrl
+                                    thumbnail: thumbnailUrl // Capture thumbnail for the new video
                                 };
     
                                 if (data.isPaused) {
@@ -272,6 +272,10 @@
                                 console.warn('Unable to retrieve video duration');
                             }
                         });
+    
+                        // Update the current video thumbnail here after the previous is stored
+                        videoThumbnailElement.src = thumbnailUrl;
+                        videoThumbnailElement.alt = data.title || 'Video Thumbnail';
                     } else {
                         videoThumbnailElement.src = '/path/to/placeholder.jpg';
                     }
@@ -289,6 +293,7 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
     </script>
+
 
 
 </body>
