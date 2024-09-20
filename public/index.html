@@ -73,7 +73,8 @@
         let videoDuration = 0; // Video duration in seconds
         let isVideoPaused = true; // Track if video is paused
         
-        const YOUTUBE_HOME_THUMBNAIL = 'https://upload.wikimedia.org/wikipedia/commons/7/75/YouTube_social_white_circle_%282017%29.svg'; // YouTube Icon
+        const YOUTUBE_HOME_THUMBNAIL = 'https://upload.wikimedia.org/wikipedia/commons/7/75/YouTube_social_white_circle_%282017%29.svg'; // YouTube icon
+        const YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY'; // Replace with your YouTube API key
     
         document.addEventListener('DOMContentLoaded', function () {
             // Function to format seconds into MM:SS
@@ -103,20 +104,19 @@
             }
     
             // Function to fetch YouTube video duration using YouTube API
-            async function fetchYouTubeVideoInfo(videoID) {
-                const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=YOUR_YOUTUBE_API_KEY`;
+            async function fetchYouTubeVideoDuration(videoID) {
+                const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
                 try {
                     const response = await fetch(apiUrl);
                     const data = await response.json();
                     if (data.items.length > 0) {
-                        const details = data.items[0];
-                        const durationISO = details.contentDetails.duration;
+                        const durationISO = data.items[0].contentDetails.duration;
                         videoDuration = moment.duration(durationISO).asSeconds(); // Parse ISO duration to seconds
                         console.log('Fetched video duration from YouTube:', videoDuration);
                         return videoDuration;
                     }
                 } catch (error) {
-                    console.error('Error fetching video information from YouTube API:', error);
+                    console.error('Error fetching video duration from YouTube API:', error);
                 }
                 return 0;
             }
@@ -155,21 +155,21 @@
                 // Set video title and thumbnail
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
-    
-                // Check if we're on YouTube Home or watching a video
+            
+                // Check if the user is on the YouTube homepage (no /watch in the URL)
                 if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
-                    // User is on the YouTube homepage
+                    // User is on YouTube home
                     videoTitleElement.innerText = 'YouTube Home';
                     videoThumbnailElement.src = YOUTUBE_HOME_THUMBNAIL;
                     videoThumbnailElement.alt = 'YouTube Home';
                     document.getElementById('progress-bar').style.width = '0%'; // Reset progress bar
-                    document.getElementById('time-remaining').innerText = '--:--'; // No time for home
+                    document.getElementById('time-remaining').innerText = '--:--'; // No time tracking on home page
                 } else {
                     if (videoTitleElement) {
                         videoTitleElement.innerText = data.title || 'No video playing';
                     }
     
-                    // Update thumbnail
+                    // Update thumbnail for video
                     const videoID = extractYouTubeVideoID(data.videoUrl);
                     if (videoID) {
                         const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
@@ -177,13 +177,15 @@
                         videoThumbnailElement.alt = data.title || 'Video Thumbnail';
     
                         // Fetch the video duration and start updating progress bar
-                        fetchYouTubeVideoInfo(videoID).then((duration) => {
+                        fetchYouTubeVideoDuration(videoID).then((duration) => {
                             if (duration) {
+                                videoDuration = duration;
                                 videoStartTime = Date.now() - (data.currentTime * 1000); // Sync playback time from server
+    
                                 clearInterval(intervalID); // Clear any existing interval
                                 intervalID = setInterval(updateProgressBar, 1000); // Update progress bar every second
     
-                                // Handle paused state
+                                // Pause or play based on server data
                                 if (data.isPaused) {
                                     isVideoPaused = true;
                                     clearInterval(intervalID); // Stop updating the progress bar if paused
@@ -192,7 +194,7 @@
                                     intervalID = setInterval(updateProgressBar, 1000); // Start updating if playing
                                 }
                             } else {
-                                console.warn('Unable to retrieve video information');
+                                console.warn('Unable to retrieve video duration');
                             }
                         });
                     } else {
