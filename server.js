@@ -32,7 +32,6 @@ const io = socketIo(server, {
 
 const PORT = process.env.PORT || 3000;
 
-
 // Configure logging
 const logger = winston.createLogger({
     level: 'info',
@@ -107,8 +106,8 @@ app.use(helmet.contentSecurityPolicy({
     }
 }));
 
-
 app.use(express.static(path.join(__dirname, 'public')));
+
 
 // MongoDB Schemas and Models
 const userSchema = new mongoose.Schema({
@@ -658,41 +657,48 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     }
 });
 
+
+// Define global variables for video status
 let currentVideoTitle = 'Loading...';
 let currentVideoUrl = ''; // New variable for the video URL
+let videoStartTimestamp = Date.now(); // Set the initial timestamp
 
+// Socket.IO connection handling
 io.on('connection', (socket) => {
     console.log('New client connected');
 
-    // Global variables for video title, URL, and start time
-    let currentVideoTitle = 'Your Video Title'; // Replace with default title if needed
-    let currentVideoUrl = 'https://www.youtube.com/watch?v=YourVideoID'; // Replace with default URL if needed
-    let videoStartTimestamp = Date.now(); // The timestamp for when the video started
+    // Emit the current video title, URL, and current playback time to the new client
+    socket.emit('nowPlayingUpdate', { 
+        title: currentVideoTitle, 
+        videoUrl: currentVideoUrl, 
+        startTimestamp: videoStartTimestamp, 
+        currentTime: (Date.now() - videoStartTimestamp) / 1000 // Send the current playback time in seconds
+    });
 
-    // Emit the current video title, URL, and start timestamp to the new client
-    socket.emit('nowPlayingUpdate', { title: currentVideoTitle, videoUrl: currentVideoUrl, startTimestamp: videoStartTimestamp });
-
-    // Listen for 'updateVideoTitle' from the client
-    socket.on('updateVideoTitle', ({ title, videoUrl }) => {
+    // Handle updates to the video title and URL
+    socket.on('updateVideoTitle', ({ title, videoUrl, currentTime }) => {
         console.log('Received video title:', title);
-        console.log('Received video URL:', videoUrl);  // Log the received video URL
+        console.log('Received video URL:', videoUrl);
+        console.log('Received current time:', currentTime);
 
-        // Update global variables
+        // Update the global variables
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
-        videoStartTimestamp = Date.now(); // Update timestamp when the video changes
+        videoStartTimestamp = Date.now() - (currentTime * 1000); // Adjust the start timestamp based on the provided currentTime
 
-        // Broadcast the updated video title, URL, and start time to all clients
-        io.emit('nowPlayingUpdate', { title, videoUrl, startTimestamp: videoStartTimestamp });
+        // Broadcast the updated video information to all clients
+        io.emit('nowPlayingUpdate', { 
+            title, 
+            videoUrl, 
+            startTimestamp: videoStartTimestamp,
+            currentTime: currentTime // Broadcast the updated current time
+        });
     });
 
     socket.on('disconnect', () => {
         console.log('Client disconnected');
     });
 });
-
-
-
 
 // Endpoint to send real-time data to clients
 app.post('/api/update', (req, res) => {
@@ -702,6 +708,7 @@ app.post('/api/update', (req, res) => {
     res.status(200).send({ message: 'Data sent to clients' });
 });
 
+// Start the server
 server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
