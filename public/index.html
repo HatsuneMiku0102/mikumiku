@@ -63,41 +63,18 @@
         </footer>
     </div>
 
-    <!-- YouTube Iframe API -->
-    <script src="https://www.youtube.com/iframe_api"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="/memory-game.js"></script> 
     <script>
-    let videoPlayer = null;
+    let videoPlayer = document.querySelector('video'); // Make sure there's a <video> element in your HTML
     let intervalID = null;  // Store the interval ID to clear it later
     let videoStartTime = null; // Store the start timestamp
     let videoDuration = 0; // Video duration in seconds
     
     const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Replace with your YouTube API key
-    
-    // YouTube Iframe API initialization
-    function onYouTubeIframeAPIReady() {
-        videoPlayer = new YT.Player('youtube-iframe-id', {
-            events: {
-                'onReady': onPlayerReady
-            }
-        });
-    }
-    
-    function onPlayerReady(event) {
-        console.log('YouTube Player Ready');
-        // Do any actions you want when the player is ready
-    }
 
     document.addEventListener('DOMContentLoaded', function () {
-        // Function to extract YouTube Video ID from the URL
-        function extractYouTubeVideoID(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
-        }
-
         // Function to format seconds into MM:SS
         function formatTime(seconds) {
             const minutes = Math.floor(seconds / 60);
@@ -121,22 +98,12 @@
             }
         }
 
-        // Fetch YouTube video duration
-        async function fetchYouTubeVideoDuration(videoID) {
-            const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
-
-            try {
-                const response = await fetch(apiUrl);
-                const data = await response.json();
-                if (data.items.length > 0) {
-                    const durationISO = data.items[0].contentDetails.duration;
-                    videoDuration = moment.duration(durationISO).asSeconds(); // Parse ISO duration to seconds
-                    document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(videoDuration)}`;
-                    console.log('Fetched video duration:', videoDuration);
-                }
-            } catch (error) {
-                console.error('Error fetching YouTube video duration:', error);
-            }
+        // Wait until the video metadata is loaded
+        if (videoPlayer) {
+            videoPlayer.addEventListener('loadedmetadata', () => {
+                console.log('HTML5 video metadata loaded, video duration:', videoPlayer.duration);
+                videoDuration = videoPlayer.duration; // Set the video duration based on metadata
+            });
         }
 
         // Socket.IO connection to the server
@@ -157,28 +124,17 @@
             if (videoTitleElement) {
                 videoTitleElement.innerText = data.title || 'No video playing';
             }
-        
-            const videoID = extractYouTubeVideoID(data.videoUrl);
-            if (videoID) {
-                const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
-                videoThumbnailElement.src = thumbnailUrl;
-                videoThumbnailElement.alt = data.title || 'Video Thumbnail';
-        
-                // Fetch video duration and update the progress bar
-                fetchYouTubeVideoDuration(videoID).then(() => {
-                    // Sync playback to the currentTime sent by the server
+
+            // Wait for video metadata before setting the current time
+            if (videoPlayer) {
+                videoPlayer.addEventListener('loadedmetadata', () => {
+                    console.log('HTML5 video metadata loaded, setting currentTime');
+                    videoPlayer.currentTime = data.currentTime || 0; // Sync playback time from server
                     videoStartTime = Date.now() - (data.currentTime * 1000); // Adjust based on currentTime
-        
-                    if (videoPlayer) {
-                        // Sync with YouTube iframe if applicable
-                        videoPlayer.seekTo(data.currentTime, true);
-                    }
         
                     clearInterval(intervalID); // Clear any existing interval
                     intervalID = setInterval(updateProgressBar, 1000); // Update progress bar every second
                 });
-            } else {
-                videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Default fallback image
             }
         });
 
