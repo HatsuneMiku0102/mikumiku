@@ -233,9 +233,9 @@ app.get('/login', async (req, res) => {
 
     try {
         await sessionData.save();
-        logger.info(`Generated state: ${state}`);
-        logger.info(`Inserted session: ${JSON.stringify(sessionData)}`);
-        const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
+        logger.info(Generated state: ${state});
+        logger.info(Inserted session: ${JSON.stringify(sessionData)});
+        const authorizeUrl = https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI};
         res.redirect(authorizeUrl);
     } catch (err) {
         logger.error('Error saving session to DB:', err);
@@ -248,12 +248,12 @@ app.get('/callback', async (req, res) => {
     const state = req.query.state;
     const code = req.query.code;
 
-    logger.info(`Received state: ${state}`);
-    logger.info(`Received code: ${code}`);
+    logger.info(Received state: ${state});
+    logger.info(Received code: ${code});
 
     try {
         const sessionData = await Session.findOne({ state });
-        logger.info(`Session data from DB: ${JSON.stringify(sessionData)}`);
+        logger.info(Session data from DB: ${JSON.stringify(sessionData)});
 
         if (!sessionData) {
             logger.warn("State mismatch. Potential CSRF attack.");
@@ -261,7 +261,7 @@ app.get('/callback', async (req, res) => {
         }
 
         const tokenData = await getBungieToken(code);
-        logger.info(`Token data: ${JSON.stringify(tokenData)}`);
+        logger.info(Token data: ${JSON.stringify(tokenData)});
 
         if (!tokenData.access_token) {
             throw new Error('Failed to obtain access token');
@@ -282,7 +282,7 @@ app.get('/callback', async (req, res) => {
 
         const bungieGlobalDisplayName = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayName;
         const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode.toString().padStart(4, '0'); // Ensure the code is treated as a string and padded with zeros if necessary
-        const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
+        const bungieName = ${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode};
 
         let primaryMembership = userInfo.Response.destinyMemberships.find(
             membership => membership.membershipId === userInfo.Response.primaryMembershipId
@@ -300,7 +300,7 @@ app.get('/callback', async (req, res) => {
         const membershipId = primaryMembership.membershipId;
         const platformType = primaryMembership.membershipType;
 
-        logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}`);
+        logger.info(Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType});
 
         const discordId = sessionData.user_id;
 
@@ -327,7 +327,7 @@ app.get('/callback', async (req, res) => {
 
         await Session.deleteOne({ state });
 
-        res.redirect(`/confirmation.html?token=${user.token}`);
+        res.redirect(/confirmation.html?token=${user.token});
     } catch (error) {
         logger.error('Error during callback:', error);
         if (error.response) {
@@ -479,7 +479,7 @@ async function refreshBungieToken(refreshToken) {
 async function getBungieUserInfo(accessToken) {
     const url = 'https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/';
     const headers = {
-        'Authorization': `Bearer ${accessToken}`,
+        'Authorization': Bearer ${accessToken},
         'X-API-Key': process.env.X_API_KEY,
         'User-Agent': 'axios/0.21.4'
     };
@@ -515,7 +515,7 @@ async function getAccessTokenForUser(user) {
         user.refresh_token = newTokenData.refresh_token;
         user.token_expiry = DateTime.now().plus({ seconds: newTokenData.expires_in }).toJSDate();
         await user.save();
-        logger.info(`Refreshed access token for user ${user.discord_id}`);
+        logger.info(Refreshed access token for user ${user.discord_id});
     }
 
     return user.access_token;
@@ -523,9 +523,9 @@ async function getAccessTokenForUser(user) {
 
 // Function to get pending clan members
 async function getPendingClanMembers(accessToken, groupId) {
-    const url = `https://www.bungie.net/Platform/GroupV2/${groupId}/Members/Pending/`;
+    const url = https://www.bungie.net/Platform/GroupV2/${groupId}/Members/Pending/;
     const headers = {
-        'Authorization': `Bearer ${accessToken}`,
+        'Authorization': Bearer ${accessToken},
         'X-API-Key': process.env.X_API_KEY
     };
 
@@ -660,44 +660,39 @@ app.post('/api/videos', verifyToken, async (req, res) => {
 
 let currentVideoTitle = 'Loading...';
 let currentVideoUrl = ''; // New variable for the video URL
-let videoStartTimestamp = Date.now(); // Set the initial timestamp
 
-// Socket.IO connection handling
 io.on('connection', (socket) => {
     console.log('New client connected');
 
-    // Emit the current video title, URL, and current playback time to the new client
-    socket.emit('nowPlayingUpdate', { 
-        title: currentVideoTitle, 
-        videoUrl: currentVideoUrl, 
-        startTimestamp: videoStartTimestamp, 
-        currentTime: (Date.now() - videoStartTimestamp) / 1000 // Send the current playback time in seconds
-    });
+    // Global variables for video title, URL, and start time
+    let currentVideoTitle = 'Your Video Title'; // Replace with default title if needed
+    let currentVideoUrl = 'https://www.youtube.com/watch?v=YourVideoID'; // Replace with default URL if needed
+    let videoStartTimestamp = Date.now(); // The timestamp for when the video started
 
-    // Handle updates to the video title and URL
-    socket.on('updateVideoTitle', ({ title, videoUrl, currentTime }) => {
+    // Emit the current video title, URL, and start timestamp to the new client
+    socket.emit('nowPlayingUpdate', { title: currentVideoTitle, videoUrl: currentVideoUrl, startTimestamp: videoStartTimestamp });
+
+    // Listen for 'updateVideoTitle' from the client
+    socket.on('updateVideoTitle', ({ title, videoUrl }) => {
         console.log('Received video title:', title);
-        console.log('Received video URL:', videoUrl);
-        console.log('Received current time:', currentTime);
+        console.log('Received video URL:', videoUrl);  // Log the received video URL
 
-        // Update the global variables
+        // Update global variables
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
-        videoStartTimestamp = Date.now() - (currentTime * 1000); // Adjust the start timestamp based on the provided currentTime
+        videoStartTimestamp = Date.now(); // Update timestamp when the video changes
 
-        // Broadcast the updated video information to all clients
-        io.emit('nowPlayingUpdate', { 
-            title, 
-            videoUrl, 
-            startTimestamp: videoStartTimestamp,
-            currentTime: currentTime // Broadcast the updated current time
-        });
+        // Broadcast the updated video title, URL, and start time to all clients
+        io.emit('nowPlayingUpdate', { title, videoUrl, startTimestamp: videoStartTimestamp });
     });
 
     socket.on('disconnect', () => {
         console.log('Client disconnected');
     });
 });
+
+
+
 
 // Endpoint to send real-time data to clients
 app.post('/api/update', (req, res) => {
@@ -707,9 +702,6 @@ app.post('/api/update', (req, res) => {
     res.status(200).send({ message: 'Data sent to clients' });
 });
 
-// Start the server
 server.listen(PORT, () => {
-    logger.info(`Server is running on port ${PORT}`);
+    logger.info(Server is running on port ${PORT});
 });
-
-
