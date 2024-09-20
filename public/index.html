@@ -72,7 +72,8 @@
         let videoStartTime = null; // Store the start timestamp
         let videoDuration = 0; // Video duration in seconds
         let isVideoPaused = true; // Track if video is paused
-        
+        let browseStartTime = null; // Start time for browsing mode timer
+    
         const YOUTUBE_HOME_THUMBNAIL = 'https://upload.wikimedia.org/wikipedia/commons/7/75/YouTube_social_white_circle_%282017%29.svg'; // YouTube icon
         const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Replace with your YouTube API key
     
@@ -84,23 +85,29 @@
                 return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
             }
     
-            // Function to update the progress bar and time display
+            // Function to update the progress bar and time display for video playback
             function updateProgressBar() {
                 if (!isVideoPaused) {
                     const currentTimestamp = Date.now();
                     const elapsedTime = (currentTimestamp - videoStartTime) / 1000; // Calculate the elapsed time in seconds
-                    const remainingTime = videoDuration - elapsedTime;
     
-                    if (remainingTime >= 0) {
+                    if (elapsedTime >= 0) {
                         const progressPercent = (elapsedTime / videoDuration) * 100;
                         document.getElementById('progress-bar').style.width = `${progressPercent}%`;
-                        document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(remainingTime)}`;
+                        document.getElementById('time-remaining').innerText = `Time Elapsed: ${formatTime(elapsedTime)}`;
                     } else {
                         clearInterval(intervalID); // Stop updating if video ends
                         document.getElementById('progress-bar').style.width = '100%';
-                        document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
+                        document.getElementById('time-remaining').innerText = `Time Elapsed: 0:00`;
                     }
                 }
+            }
+    
+            // Function to update the timer when browsing YouTube homepage
+            function updateBrowseTimer() {
+                const currentTimestamp = Date.now();
+                const elapsedBrowseTime = (currentTimestamp - browseStartTime) / 1000; // Elapsed time in seconds
+                document.getElementById('time-remaining').innerText = `Browsing Videos ${formatTime(elapsedBrowseTime)}`;
             }
     
             // Function to fetch YouTube video duration using YouTube API
@@ -165,9 +172,11 @@
                     videoThumbnailElement.src = YOUTUBE_HOME_THUMBNAIL;
                     videoThumbnailElement.alt = 'YouTube Home';
                     
-                    // Hide the progress bar and replace it with "Browsing Videos"
+                    // Hide the progress bar and show browsing time
                     progressBarContainer.style.display = 'none';
-                    timeRemainingElement.innerText = 'Browsing Videos';
+                    browseStartTime = Date.now(); // Set start time for browsing timer
+                    clearInterval(intervalID); // Clear previous intervals
+                    intervalID = setInterval(updateBrowseTimer, 1000); // Start browse timer
                 } else {
                     if (videoTitleElement) {
                         videoTitleElement.innerText = data.title || 'No video playing';
@@ -200,7 +209,7 @@
     
                                 // Show the progress bar again
                                 progressBarContainer.style.display = 'block';
-                                timeRemainingElement.innerText = `Time Remaining: ${formatTime(videoDuration)}`;
+                                timeRemainingElement.innerText = `Time Elapsed: ${formatTime(videoDuration)}`;
                             } else {
                                 console.warn('Unable to retrieve video duration');
                             }
@@ -235,7 +244,6 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
     </script>
-
 
 </body>
 </html>
