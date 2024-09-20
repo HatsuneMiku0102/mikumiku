@@ -664,32 +664,36 @@ let currentVideoUrl = ''; // New variable for the video URL
 io.on('connection', (socket) => {
     console.log('New client connected');
 
-    // Global variables for video title, URL, and start time
-    let currentVideoTitle = 'Your Video Title'; // Replace with default title if needed
-    let currentVideoUrl = 'https://www.youtube.com/watch?v=YourVideoID'; // Replace with default URL if needed
-    let videoStartTimestamp = Date.now(); // The timestamp for when the video started
+    // Emit the current video title, URL, and current playback time
+    socket.emit('nowPlayingUpdate', { 
+        title: currentVideoTitle, 
+        videoUrl: currentVideoUrl, 
+        startTimestamp: videoStartTimestamp, 
+        currentTime: (Date.now() - videoStartTimestamp) / 1000 // Send the current playback time
+    });
 
-    // Emit the current video title, URL, and start timestamp to the new client
-    socket.emit('nowPlayingUpdate', { title: currentVideoTitle, videoUrl: currentVideoUrl, startTimestamp: videoStartTimestamp });
-
-    // Listen for 'updateVideoTitle' from the client
-    socket.on('updateVideoTitle', ({ title, videoUrl }) => {
+    socket.on('updateVideoTitle', ({ title, videoUrl, currentTime }) => {
         console.log('Received video title:', title);
-        console.log('Received video URL:', videoUrl);  // Log the received video URL
+        console.log('Received video URL:', videoUrl);
+        console.log('Received current time:', currentTime);
 
-        // Update global variables
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
-        videoStartTimestamp = Date.now(); // Update timestamp when the video changes
+        videoStartTimestamp = Date.now() - (currentTime * 1000); // Adjust start timestamp based on the current time
 
-        // Broadcast the updated video title, URL, and start time to all clients
-        io.emit('nowPlayingUpdate', { title, videoUrl, startTimestamp: videoStartTimestamp });
+        io.emit('nowPlayingUpdate', { 
+            title, 
+            videoUrl, 
+            startTimestamp: videoStartTimestamp,
+            currentTime: currentTime // Broadcast current time
+        });
     });
 
     socket.on('disconnect', () => {
         console.log('Client disconnected');
     });
 });
+
 
 
 
