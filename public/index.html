@@ -72,8 +72,10 @@
         let videoStartTime = null; // Store the start timestamp
         let videoDuration = 0; // Video duration in seconds
         let isVideoPaused = true; // Track if video is paused
+        let isLiveVideo = false;  // Track if the video is a live stream
         
-        const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Replace with your YouTube API key
+        const YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY'; // Replace with your YouTube API key
+        const YOUTUBE_HOME_THUMBNAIL = 'https://upload.wikimedia.org/wikipedia/commons/7/75/YouTube_social_white_circle_%282017%29.svg'; // YouTube Icon
     
         document.addEventListener('DOMContentLoaded', function () {
             // Function to format seconds into MM:SS
@@ -85,7 +87,7 @@
     
             // Function to update the progress bar and time display
             function updateProgressBar() {
-                if (!isVideoPaused) {
+                if (!isVideoPaused && !isLiveVideo) {  // Don't update for live streams
                     const currentTimestamp = Date.now();
                     const elapsedTime = (currentTimestamp - videoStartTime) / 1000; // Calculate the elapsed time in seconds
                     const remainingTime = videoDuration - elapsedTime;
@@ -99,23 +101,35 @@
                         document.getElementById('progress-bar').style.width = '100%';
                         document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
                     }
+                } else if (isLiveVideo) {
+                    // Live video: just show a "Live" label
+                    document.getElementById('time-remaining').innerText = 'Live Now';
                 }
             }
     
             // Function to fetch YouTube video duration using YouTube API
-            async function fetchYouTubeVideoDuration(videoID) {
-                const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
+            async function fetchYouTubeVideoInfo(videoID) {
+                const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails,liveStreamingDetails&key=${YOUTUBE_API_KEY}`;
                 try {
                     const response = await fetch(apiUrl);
                     const data = await response.json();
                     if (data.items.length > 0) {
-                        const durationISO = data.items[0].contentDetails.duration;
-                        videoDuration = moment.duration(durationISO).asSeconds(); // Parse ISO duration to seconds
-                        console.log('Fetched video duration from YouTube:', videoDuration);
+                        const details = data.items[0];
+    
+                        // Check if the video is live
+                        if (details.liveStreamingDetails) {
+                            isLiveVideo = true; // Mark it as live
+                            console.log('This is a live stream');
+                        } else {
+                            isLiveVideo = false; // Not live
+                            const durationISO = details.contentDetails.duration;
+                            videoDuration = moment.duration(durationISO).asSeconds(); // Parse ISO duration to seconds
+                            console.log('Fetched video duration from YouTube:', videoDuration);
+                        }
                         return videoDuration;
                     }
                 } catch (error) {
-                    console.error('Error fetching video duration from YouTube API:', error);
+                    console.error('Error fetching video information from YouTube API:', error);
                 }
                 return 0;
             }
@@ -134,7 +148,7 @@
                 });
     
                 videoPlayer.addEventListener('timeupdate', () => {
-                    if (!isVideoPaused) {
+                    if (!isVideoPaused && !isLiveVideo) {
                         updateProgressBar(); // Update progress bar while video plays
                     }
                 });
@@ -154,41 +168,49 @@
                 // Set video title and thumbnail
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
-            
-                if (videoTitleElement) {
-                    videoTitleElement.innerText = data.title || 'No video playing';
-                }
     
-                // Update thumbnail
-                const videoID = extractYouTubeVideoID(data.videoUrl);
-                if (videoID) {
-                    const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
-                    videoThumbnailElement.src = thumbnailUrl;
-                    videoThumbnailElement.alt = data.title || 'Video Thumbnail';
-    
-                    // Fetch the video duration and start updating progress bar
-                    fetchYouTubeVideoDuration(videoID).then((duration) => {
-                        if (duration) {
-                            videoDuration = duration;
-                            videoStartTime = Date.now() - (data.currentTime * 1000); // Sync playback time from server
-    
-                            clearInterval(intervalID); // Clear any existing interval
-                            intervalID = setInterval(updateProgressBar, 1000); // Update progress bar every second
-    
-                            // Pause or play based on server data
-                            if (data.isPaused) {
-                                isVideoPaused = true;
-                                clearInterval(intervalID); // Stop updating the progress bar if paused
-                            } else {
-                                isVideoPaused = false;
-                                intervalID = setInterval(updateProgressBar, 1000); // Start updating if playing
-                            }
-                        } else {
-                            console.warn('Unable to retrieve video duration');
-                        }
-                    });
+                // Check if we're on YouTube Home or watching a video
+                if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
+                    // User is on the YouTube homepage
+                    videoTitleElement.innerText = 'YouTube Home';
+                    videoThumbnailElement.src = YOUTUBE_HOME_THUMBNAIL;
+                    videoThumbnailElement.alt = 'YouTube Home';
+                    document.getElementById('progress-bar').style.width = '0%'; // Reset progress bar
+                    document.getElementById('time-remaining').innerText = '--:--'; // No time for home
                 } else {
-                    videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Default fallback image
+                    if (videoTitleElement) {
+                        videoTitleElement.innerText = data.title || 'No video playing';
+                    }
+    
+                    // Update thumbnail
+                    const videoID = extractYouTubeVideoID(data.videoUrl);
+                    if (videoID) {
+                        const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
+                        videoThumbnailElement.src = thumbnailUrl;
+                        videoThumbnailElement.alt = data.title || 'Video Thumbnail';
+    
+                        // Fetch the video duration and start updating progress bar
+                        fetchYouTubeVideoInfo(videoID).then((duration) => {
+                            if (duration || isLiveVideo) {
+                                videoStartTime = Date.now() - (data.currentTime * 1000); // Sync playback time from server
+                                clearInterval(intervalID); // Clear any existing interval
+                                intervalID = setInterval(updateProgressBar, 1000); // Update progress bar every second
+    
+                                // Handle live or paused state
+                                if (data.isPaused) {
+                                    isVideoPaused = true;
+                                    clearInterval(intervalID); // Stop updating the progress bar if paused
+                                } else {
+                                    isVideoPaused = false;
+                                    intervalID = setInterval(updateProgressBar, 1000); // Start updating if playing
+                                }
+                            } else {
+                                console.warn('Unable to retrieve video information');
+                            }
+                        });
+                    } else {
+                        videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Default fallback image
+                    }
                 }
             });
     
@@ -216,6 +238,5 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
     </script>
-
 </body>
 </html>
