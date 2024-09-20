@@ -72,9 +72,7 @@
         let videoStartTime = null; // Store the start timestamp
         let videoDuration = 0; // Video duration in seconds
         let isVideoPaused = true; // Track if video is paused
-        let isLiveVideo = false;  // Track if the video is a live stream
         
-        const YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY'; // Replace with your YouTube API key
         const YOUTUBE_HOME_THUMBNAIL = 'https://upload.wikimedia.org/wikipedia/commons/7/75/YouTube_social_white_circle_%282017%29.svg'; // YouTube Icon
     
         document.addEventListener('DOMContentLoaded', function () {
@@ -87,7 +85,7 @@
     
             // Function to update the progress bar and time display
             function updateProgressBar() {
-                if (!isVideoPaused && !isLiveVideo) {  // Don't update for live streams
+                if (!isVideoPaused) {
                     const currentTimestamp = Date.now();
                     const elapsedTime = (currentTimestamp - videoStartTime) / 1000; // Calculate the elapsed time in seconds
                     const remainingTime = videoDuration - elapsedTime;
@@ -101,31 +99,20 @@
                         document.getElementById('progress-bar').style.width = '100%';
                         document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
                     }
-                } else if (isLiveVideo) {
-                    // Live video: just show a "Live" label
-                    document.getElementById('time-remaining').innerText = 'Live Now';
                 }
             }
     
             // Function to fetch YouTube video duration using YouTube API
             async function fetchYouTubeVideoInfo(videoID) {
-                const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails,liveStreamingDetails&key=${YOUTUBE_API_KEY}`;
+                const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=YOUR_YOUTUBE_API_KEY`;
                 try {
                     const response = await fetch(apiUrl);
                     const data = await response.json();
                     if (data.items.length > 0) {
                         const details = data.items[0];
-    
-                        // Check if the video is live
-                        if (details.liveStreamingDetails) {
-                            isLiveVideo = true; // Mark it as live
-                            console.log('This is a live stream');
-                        } else {
-                            isLiveVideo = false; // Not live
-                            const durationISO = details.contentDetails.duration;
-                            videoDuration = moment.duration(durationISO).asSeconds(); // Parse ISO duration to seconds
-                            console.log('Fetched video duration from YouTube:', videoDuration);
-                        }
+                        const durationISO = details.contentDetails.duration;
+                        videoDuration = moment.duration(durationISO).asSeconds(); // Parse ISO duration to seconds
+                        console.log('Fetched video duration from YouTube:', videoDuration);
                         return videoDuration;
                     }
                 } catch (error) {
@@ -148,7 +135,7 @@
                 });
     
                 videoPlayer.addEventListener('timeupdate', () => {
-                    if (!isVideoPaused && !isLiveVideo) {
+                    if (!isVideoPaused) {
                         updateProgressBar(); // Update progress bar while video plays
                     }
                 });
@@ -191,12 +178,12 @@
     
                         // Fetch the video duration and start updating progress bar
                         fetchYouTubeVideoInfo(videoID).then((duration) => {
-                            if (duration || isLiveVideo) {
+                            if (duration) {
                                 videoStartTime = Date.now() - (data.currentTime * 1000); // Sync playback time from server
                                 clearInterval(intervalID); // Clear any existing interval
                                 intervalID = setInterval(updateProgressBar, 1000); // Update progress bar every second
     
-                                // Handle live or paused state
+                                // Handle paused state
                                 if (data.isPaused) {
                                     isVideoPaused = true;
                                     clearInterval(intervalID); // Stop updating the progress bar if paused
@@ -238,5 +225,6 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
     </script>
+
 </body>
 </html>
