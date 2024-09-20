@@ -98,12 +98,22 @@
             }
         }
 
-        // Wait until the video metadata is loaded
-        if (videoPlayer) {
-            videoPlayer.addEventListener('loadedmetadata', () => {
-                console.log('HTML5 video metadata loaded, video duration:', videoPlayer.duration);
-                videoDuration = videoPlayer.duration; // Set the video duration based on metadata
-            });
+        // Function to fetch YouTube video duration using YouTube API
+        async function fetchYouTubeVideoDuration(videoID) {
+            const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                if (data.items.length > 0) {
+                    const durationISO = data.items[0].contentDetails.duration;
+                    videoDuration = moment.duration(durationISO).asSeconds(); // Parse ISO duration to seconds
+                    console.log('Fetched video duration from YouTube:', videoDuration);
+                    return videoDuration;
+                }
+            } catch (error) {
+                console.error('Error fetching video duration from YouTube API:', error);
+            }
+            return 0;
         }
 
         // Socket.IO connection to the server
@@ -131,20 +141,21 @@
                 const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
                 videoThumbnailElement.src = thumbnailUrl;
                 videoThumbnailElement.alt = data.title || 'Video Thumbnail';
+
+                // Fetch the video duration and start updating progress bar
+                fetchYouTubeVideoDuration(videoID).then((duration) => {
+                    if (duration) {
+                        videoDuration = duration;
+                        videoStartTime = Date.now() - (data.currentTime * 1000); // Sync playback time from server
+
+                        clearInterval(intervalID); // Clear any existing interval
+                        intervalID = setInterval(updateProgressBar, 1000); // Update progress bar every second
+                    } else {
+                        console.warn('Unable to retrieve video duration');
+                    }
+                });
             } else {
                 videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Default fallback image
-            }
-
-            // Wait for video metadata before setting the current time
-            if (videoPlayer) {
-                videoPlayer.addEventListener('loadedmetadata', () => {
-                    console.log('HTML5 video metadata loaded, setting currentTime');
-                    videoPlayer.currentTime = data.currentTime || 0; // Sync playback time from server
-                    videoStartTime = Date.now() - (data.currentTime * 1000); // Adjust based on currentTime
-        
-                    clearInterval(intervalID); // Clear any existing interval
-                    intervalID = setInterval(updateProgressBar, 1000); // Update progress bar every second
-                });
             }
         });
 
