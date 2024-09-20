@@ -83,6 +83,7 @@
         let browseStartTime = null; 
         let isBrowsing = false; 
         let MAX_RECENT_VIDEOS = 5;
+        let currentVideoData = {}; // Store current video details
     
         const YOUTUBE_HOME_THUMBNAIL = './youtube.png';
         const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY';
@@ -211,6 +212,12 @@
             socket.on('nowPlayingUpdate', (data) => {
                 console.log('Now Playing Data:', data);
     
+                // Before updating, add the currently playing video to the recent list
+                if (currentVideoData && currentVideoData.title && currentVideoData.url) {
+                    addVideoToRecent(currentVideoData.title, currentVideoData.url, currentVideoData.thumbnail);
+                }
+    
+                // Now update with the new video details
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 const progressBarContainer = document.getElementById('progress-bar-container');
@@ -255,11 +262,12 @@
                                     intervalID = setInterval(updateProgressBar, 1000);
                                 }
     
-                                // Add current video to the recent list here, right after starting the video
-                                const videoTitle = data.title;
-                                const videoUrl = data.videoUrl;
-                                const videoThumbnail = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
-                                addVideoToRecent(videoTitle, videoUrl, videoThumbnail);
+                                // Update the current video details for future reference
+                                currentVideoData = {
+                                    title: data.title,
+                                    url: data.videoUrl,
+                                    thumbnail: `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`
+                                };
                             } else {
                                 console.warn('Unable to retrieve video duration');
                             }
@@ -281,6 +289,7 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
     </script>
+
 
 
 
