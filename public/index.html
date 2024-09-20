@@ -63,16 +63,15 @@
         </footer>
     </div>
 
+    <!-- Include Socket.IO and Moment.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="/memory-game.js"></script> 
+
     <script>
-    let videoPlayer = document.querySelector('video'); // HTML5 video element selector
-    let intervalID = null;  // Store the interval ID to clear it later
-    let videoStartTime = null; // Store the start timestamp
-    let videoDuration = 0; // Video duration in seconds
-    
-    const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Replace with your YouTube API key
+    let intervalID = null;      // Store the interval ID to clear it later
+    let videoStartTime = null;  // Store the start timestamp
+    let videoDuration = 0;      // Video duration in seconds
 
     document.addEventListener('DOMContentLoaded', function () {
         // Function to format seconds into MM:SS
@@ -96,15 +95,6 @@
                 document.getElementById('progress-bar').style.width = '100%';
                 document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
             }
-        }
-
-
-        // Wait until the video metadata is loaded
-        if (videoPlayer) {
-            videoPlayer.addEventListener('loadedmetadata', () => {
-                console.log('HTML5 video metadata loaded, video duration:', videoPlayer.duration);
-                videoDuration = videoPlayer.duration; // Set the video duration based on metadata
-            });
         }
 
         // Socket.IO connection to the server
@@ -136,16 +126,15 @@
                 videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Default fallback image
             }
 
-            // Wait for video metadata before setting the current time
-            if (videoPlayer) {
-                videoPlayer.addEventListener('loadedmetadata', () => {
-                    console.log('HTML5 video metadata loaded, setting currentTime');
-                    videoPlayer.currentTime = data.currentTime || 0; // Sync playback time from server
-                    videoStartTime = Date.now() - (data.currentTime * 1000); // Adjust based on currentTime
-        
-                    clearInterval(intervalID); // Clear any existing interval
-                    intervalID = setInterval(updateProgressBar, 1000); // Update progress bar every second
-                });
+            // Set video duration and start time
+            if (data.duration && data.currentTime !== undefined) {
+                videoDuration = data.duration;
+                videoStartTime = Date.now() - (data.currentTime * 1000); // Adjust based on currentTime
+
+                clearInterval(intervalID); // Clear any existing interval
+                intervalID = setInterval(updateProgressBar, 1000); // Update progress bar every second
+            } else {
+                console.warn('Duration or currentTime not received');
             }
         });
 
@@ -168,7 +157,7 @@
     
     // Function to extract YouTube Video ID from the URL
     function extractYouTubeVideoID(url) {
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|youtube.com\/shorts\/)([^#&?]*).*/;
         const match = url.match(regExp);
         return (match && match[2].length === 11) ? match[2] : null;
     }
