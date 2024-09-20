@@ -76,17 +76,17 @@
     <script src="/memory-game.js"></script> 
     <script>
         let videoPlayer = document.querySelector('video');
-        let intervalID = null;  
-        let videoStartTime = null; 
-        let videoDuration = 0; 
+        let intervalID = null;
+        let videoStartTime = null;
+        let videoDuration = 0;
         let isVideoPaused = true;
-        let browseStartTime = null; 
-        let isBrowsing = false; 
+        let browseStartTime = null;
+        let isBrowsing = false;
         let MAX_RECENT_VIDEOS = 5;
         let previousVideoData = {}; // Store previous video details
     
         const YOUTUBE_HOME_THUMBNAIL = './youtube.png';
-        const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY';
+        const YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY';
     
         document.addEventListener('DOMContentLoaded', function () {
             function formatTime(seconds) {
@@ -214,7 +214,6 @@
     
                 // Ensure to store previous video info BEFORE updating new video info
                 if (previousVideoData && previousVideoData.title && previousVideoData.url && previousVideoData.thumbnail) {
-                    // Add the last played video to the recent videos
                     addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
                 }
     
@@ -244,7 +243,13 @@
                     if (videoID) {
                         const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
     
-                        // Fetch the video duration and update the progress bar
+                        // Store the current song info before updating UI for the new song
+                        previousVideoData = {
+                            title: data.title,
+                            url: data.videoUrl,
+                            thumbnail: thumbnailUrl
+                        };
+    
                         fetchYouTubeVideoDuration(videoID).then((duration) => {
                             if (duration) {
                                 videoDuration = duration;
@@ -253,13 +258,6 @@
                                 clearExistingInterval();
                                 intervalID = setInterval(updateProgressBar, 1000);
                                 progressBarContainer.style.display = 'block';
-    
-                                // Update previous video data after new video data is set
-                                previousVideoData = {
-                                    title: data.title,
-                                    url: data.videoUrl,
-                                    thumbnail: thumbnailUrl // Capture thumbnail for the new video
-                                };
     
                                 if (data.isPaused) {
                                     isVideoPaused = true;
@@ -273,7 +271,6 @@
                             }
                         });
     
-                        // Update the current video thumbnail here after the previous is stored
                         videoThumbnailElement.src = thumbnailUrl;
                         videoThumbnailElement.alt = data.title || 'Video Thumbnail';
                     } else {
@@ -293,6 +290,7 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
     </script>
+
 
 
 
