@@ -72,50 +72,59 @@
     let intervalID = null;      // Store the interval ID to clear it later
     let videoStartTime = null;  // Store the start timestamp
     let videoDuration = 0;      // Video duration in seconds
-
+    
     document.addEventListener('DOMContentLoaded', function () {
         // Function to format seconds into MM:SS
         function formatTime(seconds) {
+            if (isNaN(seconds) || seconds < 0) return '--:--';
             const minutes = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
             return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
         }
-
+    
         // Function to update the progress bar and time display
         function updateProgressBar() {
             const elapsedTime = (Date.now() - videoStartTime) / 1000; // Calculate the elapsed time in seconds
             const remainingTime = videoDuration - elapsedTime;
-        
-            if (remainingTime >= 0) {
+    
+            console.log('Video Duration:', videoDuration);
+            console.log('Elapsed Time:', elapsedTime);
+            console.log('Remaining Time:', remainingTime);
+    
+            if (videoDuration > 0 && remainingTime >= 0) {
                 const progressPercent = (elapsedTime / videoDuration) * 100;
                 document.getElementById('progress-bar').style.width = `${progressPercent}%`;
                 document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(remainingTime)}`;
-            } else {
+            } else if (remainingTime < 0) {
                 clearInterval(intervalID); // Stop updating if video ends
                 document.getElementById('progress-bar').style.width = '100%';
                 document.getElementById('time-remaining').innerText = `Time Remaining: 0:00`;
+            } else {
+                console.warn('Invalid video duration or elapsed time.');
+                document.getElementById('progress-bar').style.width = '0%';
+                document.getElementById('time-remaining').innerText = `Time Remaining: --:--`;
             }
         }
-
+    
         // Socket.IO connection to the server
         const socket = io('https://mikumiku.dev'); // Replace with your server URL
-
+    
         socket.on('connect', () => {
             console.log('Connected to server');
         });
-
+    
         // Handle the nowPlayingUpdate event
         socket.on('nowPlayingUpdate', (data) => {
             console.log('Now Playing Data:', data);
-        
+    
             // Set video title and thumbnail
             const videoTitleElement = document.getElementById('videoTitle');
             const videoThumbnailElement = document.getElementById('videoThumbnail');
-        
+    
             if (videoTitleElement) {
                 videoTitleElement.innerText = data.title || 'No video playing';
             }
-
+    
             // Update thumbnail
             const videoID = extractYouTubeVideoID(data.videoUrl);
             if (videoID) {
@@ -125,23 +134,25 @@
             } else {
                 videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Default fallback image
             }
-
+    
             // Set video duration and start time
             if (data.duration && data.currentTime !== undefined) {
-                videoDuration = data.duration;
-                videoStartTime = Date.now() - (data.currentTime * 1000); // Adjust based on currentTime
-
+                videoDuration = Number(data.duration);
+                videoStartTime = Date.now() - (Number(data.currentTime) * 1000); // Adjust based on currentTime
+    
                 clearInterval(intervalID); // Clear any existing interval
                 intervalID = setInterval(updateProgressBar, 1000); // Update progress bar every second
             } else {
                 console.warn('Duration or currentTime not received');
+                document.getElementById('progress-bar').style.width = '0%';
+                document.getElementById('time-remaining').innerText = `Time Remaining: --:--`;
             }
         });
-
+    
         socket.on('disconnect', () => {
             console.log('Disconnected from server');
         });
-
+    
         // Game modal logic (if you have a card game or similar)
         const gameModal = document.getElementById('game-modal');
         const mainContent = document.getElementById('main-content');
@@ -157,9 +168,9 @@
     
     // Function to extract YouTube Video ID from the URL
     function extractYouTubeVideoID(url) {
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|youtube.com\/shorts\/)([^#&?]*).*/;
+        const regExp = /^.*(?:youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|youtube.com\/shorts\/)([^#&?]*).*/;
         const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
+        return (match && match[1].length === 11) ? match[1] : null;
     }
     </script>
 </body>
