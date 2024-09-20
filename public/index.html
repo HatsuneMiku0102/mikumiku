@@ -83,7 +83,7 @@
         let browseStartTime = null; 
         let isBrowsing = false; 
         let MAX_RECENT_VIDEOS = 5;
-        let currentVideoData = {}; // Store current video details
+        let previousVideoData = {}; // Store previous video details
     
         const YOUTUBE_HOME_THUMBNAIL = './youtube.png';
         const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY';
@@ -212,9 +212,9 @@
             socket.on('nowPlayingUpdate', (data) => {
                 console.log('Now Playing Data:', data);
     
-                // Save the correct previous song's data immediately before updating the now playing section
-                if (currentVideoData && currentVideoData.title && currentVideoData.url) {
-                    addVideoToRecent(currentVideoData.title, currentVideoData.url, currentVideoData.thumbnail);
+                // Add the previous video to recent videos list before updating the currently playing section
+                if (previousVideoData && previousVideoData.title && previousVideoData.url) {
+                    addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
                 }
     
                 // Now update the currently playing video
@@ -254,11 +254,11 @@
                                 intervalID = setInterval(updateProgressBar, 1000);
                                 progressBarContainer.style.display = 'block';
     
-                                // Add video to recent videos list after ensuring all info is updated
-                                currentVideoData = {
+                                // Update previous video data after successfully updating the new video
+                                previousVideoData = {
                                     title: data.title,
                                     url: data.videoUrl,
-                                    thumbnail: thumbnailUrl // Use the updated thumbnail
+                                    thumbnail: thumbnailUrl
                                 };
     
                                 if (data.isPaused) {
@@ -289,9 +289,6 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
     </script>
-
-
-
 
 
 </body>
