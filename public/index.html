@@ -177,25 +177,23 @@
             function addVideoToRecent(title, url, thumbnail) {
                 let recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
 
-                // Check if the video already exists in the recent videos list
-                const videoExists = recentVideos.some(video => video.url === url);
+                // Prevent duplication by checking if the video already exists
+                const existingVideo = recentVideos.find(video => video.url === url);
+                if (existingVideo) return; // Do nothing if the video is already in the list
 
-                // If the video doesn't exist, add it
-                if (!videoExists) {
-                    // Add the new video to the beginning of the list
-                    recentVideos.unshift({ title, url, thumbnail });
+                // Add the new video to the beginning of the list
+                recentVideos.unshift({ title, url, thumbnail });
 
-                    // Ensure the list doesn't exceed the maximum allowed length
-                    if (recentVideos.length > MAX_RECENT_VIDEOS) {
-                        recentVideos = recentVideos.slice(0, MAX_RECENT_VIDEOS);
-                    }
-
-                    // Save the updated list to localStorage
-                    localStorage.setItem('recentVideos', JSON.stringify(recentVideos));
-
-                    // Update the UI with the new list
-                    updateRecentVideosUI(recentVideos);
+                // Ensure the list doesn't exceed the maximum allowed length
+                if (recentVideos.length > MAX_RECENT_VIDEOS) {
+                    recentVideos = recentVideos.slice(0, MAX_RECENT_VIDEOS);
                 }
+
+                // Save the updated list to localStorage
+                localStorage.setItem('recentVideos', JSON.stringify(recentVideos));
+
+                // Update the UI with the new list
+                updateRecentVideosUI(recentVideos);
             }
 
             // On page load, update the UI with the saved recent videos
