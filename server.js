@@ -678,24 +678,21 @@ io.on('connection', (socket) => {
     socket.on('updateVideoTitle', ({ title, videoUrl, currentTime }) => {
         console.log('Received video title:', title);
         console.log('Received video URL:', videoUrl);
-        console.log('Received current time:', currentTime || 0); // Log the current time, fallback to 0 if undefined
-    
-        // Default to 0 if currentTime is undefined
-        currentTime = currentTime || 0;
-    
+        console.log('Received current time:', currentTime);
+
+        // Update the global variables
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
-        videoStartTimestamp = Date.now() - (currentTime * 1000); // Adjust start timestamp based on the current time
-    
-        // Broadcast the updated video title, URL, and start time to all clients
+        videoStartTimestamp = Date.now() - (currentTime * 1000); // Adjust the start timestamp based on the provided currentTime
+
+        // Broadcast the updated video information to all clients
         io.emit('nowPlayingUpdate', { 
             title, 
             videoUrl, 
             startTimestamp: videoStartTimestamp,
-            currentTime: currentTime // Broadcast current time
+            currentTime: currentTime // Broadcast the updated current time
         });
     });
-
 
     socket.on('disconnect', () => {
         console.log('Client disconnected');
