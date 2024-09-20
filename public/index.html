@@ -131,42 +131,32 @@
 
         // Handle the nowPlayingUpdate event
         socket.on('nowPlayingUpdate', (data) => {
-            console.log('Received video title:', data.title);
-            console.log('Received video URL:', data.videoUrl);
-            console.log('Received start timestamp:', data.startTimestamp);  // Log the startTimestamp
-
-            // Clear previous interval if any
-            if (intervalID) {
-                clearInterval(intervalID);
-                intervalID = null;
-            }
-
-            // Reset the progress bar
-            document.getElementById('progress-bar').style.width = '0%';
-            document.getElementById('time-remaining').innerText = `Time Remaining: --:--`;
-
             const videoTitleElement = document.getElementById('videoTitle');
             const videoThumbnailElement = document.getElementById('videoThumbnail');
-
+            
+            // Display the new title
             if (videoTitleElement) {
                 videoTitleElement.innerText = data.title || 'No video playing';
             }
-
+        
             const videoID = extractYouTubeVideoID(data.videoUrl);
             if (videoID) {
-                const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`; // Use YouTube HQ thumbnail
+                const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
                 videoThumbnailElement.src = thumbnailUrl;
                 videoThumbnailElement.alt = data.title || 'Video Thumbnail';
-
-                fetchYouTubeVideoDuration(videoID); // Fetch video duration from YouTube API
-
-                // Start the timer based on server-provided timestamp
-                videoStartTime = new Date(data.startTimestamp).getTime(); // Convert timestamp to milliseconds
-                intervalID = setInterval(updateProgressBar, 1000); // Update every second
+        
+                // Set the correct video duration and start time
+                fetchYouTubeVideoDuration(videoID).then(() => {
+                    // Adjust videoStartTime based on the current time received from the server
+                    videoStartTime = Date.now() - (data.currentTime * 1000); // Set based on server data
+                    clearInterval(intervalID); // Clear any existing interval
+                    intervalID = setInterval(updateProgressBar, 1000); // Update progress bar every second
+                });
             } else {
-                videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Fallback image if no video ID
+                videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Default fallback image
             }
         });
+
 
         socket.on('disconnect', () => {
             console.log('Disconnected from server');
