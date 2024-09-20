@@ -34,7 +34,6 @@
                 
                 <div id="now-playing" class="now-playing">
                     <div class="now-playing-content">
-                        <!-- Keep the thumbnail for display purposes -->
                         <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
                         <div class="video-title-container">
                             <h2>Currently Playing on YouTube</h2>
@@ -68,19 +67,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="/memory-game.js"></script> 
     <script>
+    let videoPlayer = document.querySelector('video'); // HTML5 video element selector
+    let intervalID = null;  // Store the interval ID to clear it later
+    let videoStartTime = null; // Store the start timestamp
+    let videoDuration = 0; // Video duration in seconds
+    
+    const YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY_HERE'; // Replace with your YouTube API key
+
     document.addEventListener('DOMContentLoaded', function () {
-        let videoDuration = 0; // Video duration in seconds
-        let intervalID = null;  // Store the interval ID to clear it later
-        const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // YouTube API key
-        let videoStartTime = null; // Store the start timestamp
-
-        // Function to extract YouTube Video ID from the URL
-        function extractYouTubeVideoID(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
-        }
-
         // Function to format seconds into MM:SS
         function formatTime(seconds) {
             const minutes = Math.floor(seconds / 60);
@@ -104,22 +98,12 @@
             }
         }
 
-        // Fetch YouTube video duration
-        async function fetchYouTubeVideoDuration(videoID) {
-            const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
-
-            try {
-                const response = await fetch(apiUrl);
-                const data = await response.json();
-                if (data.items.length > 0) {
-                    const durationISO = data.items[0].contentDetails.duration;
-                    videoDuration = moment.duration(durationISO).asSeconds(); // Parse ISO duration to seconds
-                    document.getElementById('time-remaining').innerText = `Time Remaining: ${formatTime(videoDuration)}`;
-                    console.log('Fetched video duration:', videoDuration);
-                }
-            } catch (error) {
-                console.error('Error fetching YouTube video duration:', error);
-            }
+        // Wait until the video metadata is loaded
+        if (videoPlayer) {
+            videoPlayer.addEventListener('loadedmetadata', () => {
+                console.log('HTML5 video metadata loaded, video duration:', videoPlayer.duration);
+                videoDuration = videoPlayer.duration; // Set the video duration based on metadata
+            });
         }
 
         // Socket.IO connection to the server
@@ -131,40 +115,36 @@
 
         // Handle the nowPlayingUpdate event
         socket.on('nowPlayingUpdate', (data) => {
-            console.log('Received video title:', data.title);
-            console.log('Received video URL:', data.videoUrl);
-            console.log('Received start timestamp:', data.startTimestamp);  // Log the startTimestamp
-
-            // Clear previous interval if any
-            if (intervalID) {
-                clearInterval(intervalID);
-                intervalID = null;
-            }
-
-            // Reset the progress bar
-            document.getElementById('progress-bar').style.width = '0%';
-            document.getElementById('time-remaining').innerText = `Time Remaining: --:--`;
-
+            console.log('Now Playing Data:', data);
+        
+            // Set video title and thumbnail
             const videoTitleElement = document.getElementById('videoTitle');
             const videoThumbnailElement = document.getElementById('videoThumbnail');
-
+        
             if (videoTitleElement) {
                 videoTitleElement.innerText = data.title || 'No video playing';
             }
 
+            // Update thumbnail
             const videoID = extractYouTubeVideoID(data.videoUrl);
             if (videoID) {
-                const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`; // Use YouTube HQ thumbnail
+                const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
                 videoThumbnailElement.src = thumbnailUrl;
                 videoThumbnailElement.alt = data.title || 'Video Thumbnail';
-
-                fetchYouTubeVideoDuration(videoID); // Fetch video duration from YouTube API
-
-                // Start the timer based on server-provided timestamp
-                videoStartTime = new Date(data.startTimestamp).getTime(); // Convert timestamp to milliseconds
-                intervalID = setInterval(updateProgressBar, 1000); // Update every second
             } else {
-                videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Fallback image if no video ID
+                videoThumbnailElement.src = '/path/to/placeholder.jpg'; // Default fallback image
+            }
+
+            // Wait for video metadata before setting the current time
+            if (videoPlayer) {
+                videoPlayer.addEventListener('loadedmetadata', () => {
+                    console.log('HTML5 video metadata loaded, setting currentTime');
+                    videoPlayer.currentTime = data.currentTime || 0; // Sync playback time from server
+                    videoStartTime = Date.now() - (data.currentTime * 1000); // Adjust based on currentTime
+        
+                    clearInterval(intervalID); // Clear any existing interval
+                    intervalID = setInterval(updateProgressBar, 1000); // Update progress bar every second
+                });
             }
         });
 
@@ -184,6 +164,13 @@
             window.onGameWin = onGameWin;
         }
     });
+    
+    // Function to extract YouTube Video ID from the URL
+    function extractYouTubeVideoID(url) {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    }
     </script>
 </body>
 </html>
