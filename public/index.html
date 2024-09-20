@@ -49,7 +49,7 @@
                 <!-- Recently Watched Videos Section -->
                 <div class="recent-videos-wrapper">
                     <h3>Recently Watched Videos</h3>
-                    <div id="recent-videos-container" class="recent-videos-container">
+                    <div id="recent-videos-wheel" class="recent-videos-wheel">
                         <!-- Recent videos will be dynamically added here -->
                     </div>
                 </div>
@@ -106,10 +106,6 @@
                 if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
                     const currentTimestamp = Date.now();
                     const elapsedTime = (currentTimestamp - videoStartTime) / 1000;
-                    
-                    // Debugging Logs
-                    console.log(`Video Duration: ${videoDuration} seconds`);
-                    console.log(`Elapsed Time: ${elapsedTime} seconds`);
     
                     if (elapsedTime >= 0 && elapsedTime <= videoDuration) {
                         const progressPercent = (elapsedTime / videoDuration) * 100;
@@ -139,7 +135,6 @@
                     if (data.items.length > 0) {
                         const durationISO = data.items[0].contentDetails.duration;
                         videoDuration = moment.duration(durationISO).asSeconds();
-                        console.log(`Fetched Video Duration: ${videoDuration} seconds`); // Debugging log
                         return videoDuration;
                     }
                 } catch (error) {
@@ -149,25 +144,7 @@
             }
     
             function updateRecentVideosUI(recentVideos) {
-                const recentVideosContainer = document.getElementById('recent-videos-container');
-                recentVideosContainer.innerHTML = '';
-    
-                recentVideos.forEach(video => {
-                    const videoElement = document.createElement('div');
-                    videoElement.className = 'recent-video-item';
-                    videoElement.innerHTML = `
-                        <a href="${video.url}" target="_blank">
-                            <img src="${video.thumbnail}" class="recent-video-thumbnail" alt="Thumbnail of ${video.title}">
-                            <p class="recent-video-title">${video.url}</p>
-                        </a>
-                    `;
-                    recentVideosContainer.appendChild(videoElement);
-                });
-    
-                recentVideosContainer.scrollTo({
-                    top: recentVideosContainer.scrollHeight,
-                    behavior: 'smooth',
-                });
+                positionVideosInWheel(recentVideos);
             }
     
             function addVideoToRecent(title, url, thumbnail) {
@@ -256,12 +233,10 @@
                             thumbnail: thumbnailUrl
                         };
     
-                        // Fetch the video duration and ensure it's set correctly
                         fetchYouTubeVideoDuration(videoID).then((duration) => {
                             if (duration) {
                                 videoDuration = duration;
                                 videoStartTime = Date.now() - (data.currentTime * 1000);
-                                console.log(`Video Start Time: ${videoStartTime}, Current Time: ${data.currentTime}`);
     
                                 clearExistingInterval();
                                 intervalID = setInterval(updateProgressBar, 1000);
@@ -279,7 +254,6 @@
                             }
                         });
     
-                        // Update the current video thumbnail
                         videoThumbnailElement.src = thumbnailUrl;
                         videoThumbnailElement.alt = data.title || 'Video Thumbnail';
                     } else {
@@ -297,6 +271,34 @@
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
             const match = url.match(regExp);
             return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        // Function to position videos in a rotating wheel layout
+        function positionVideosInWheel(recentVideos) {
+            const recentVideosWheel = document.getElementById('recent-videos-wheel');
+            recentVideosWheel.innerHTML = ''; // Clear previous content
+
+            const numVideos = recentVideos.length;
+            const radius = 120; // Radius of the wheel
+
+            recentVideos.forEach((video, index) => {
+                const angle = (index / numVideos) * 2 * Math.PI; // Calculate angle for each video
+                const x = radius * Math.cos(angle);
+                const y = radius * Math.sin(angle);
+
+                const videoElement = document.createElement('div');
+                videoElement.className = 'recent-video-item';
+                videoElement.style.transform = `translate(${x}px, ${y}px)`; // Position around the wheel
+
+                videoElement.innerHTML = `
+                    <a href="${video.url}" target="_blank">
+                        <img src="${video.thumbnail}" class="recent-video-thumbnail" alt="Thumbnail of ${video.url}">
+                        <p class="recent-video-title">${video.url}</p>
+                    </a>
+                `;
+
+                recentVideosWheel.appendChild(videoElement);
+            });
         }
     </script>
 
