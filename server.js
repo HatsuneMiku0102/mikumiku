@@ -664,8 +664,13 @@ let currentVideoUrl = ''; // New variable for the video URL
 io.on('connection', (socket) => {
     console.log('New client connected');
 
-    // Emit the current video title and URL to the new client
-    socket.emit('nowPlayingUpdate', { title: currentVideoTitle, videoUrl: currentVideoUrl });
+    // Global variables for video title, URL, and start time
+    let currentVideoTitle = 'Your Video Title'; // Replace with default title if needed
+    let currentVideoUrl = 'https://www.youtube.com/watch?v=YourVideoID'; // Replace with default URL if needed
+    let videoStartTimestamp = Date.now(); // The timestamp for when the video started
+
+    // Emit the current video title, URL, and start timestamp to the new client
+    socket.emit('nowPlayingUpdate', { title: currentVideoTitle, videoUrl: currentVideoUrl, startTimestamp: videoStartTimestamp });
 
     // Listen for 'updateVideoTitle' from the client
     socket.on('updateVideoTitle', ({ title, videoUrl }) => {
@@ -675,15 +680,17 @@ io.on('connection', (socket) => {
         // Update global variables
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
+        videoStartTimestamp = Date.now(); // Update timestamp when the video changes
 
-        // Broadcast the updated video title and URL to all clients
-        io.emit('nowPlayingUpdate', { title, videoUrl });
+        // Broadcast the updated video title, URL, and start time to all clients
+        io.emit('nowPlayingUpdate', { title, videoUrl, startTimestamp: videoStartTimestamp });
     });
 
     socket.on('disconnect', () => {
         console.log('Client disconnected');
     });
 });
+
 
 
 
