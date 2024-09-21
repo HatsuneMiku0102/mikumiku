@@ -693,6 +693,16 @@ io.on('connection', (socket) => {
             startTimestamp: videoStartTimestamp,
             currentTime: currentTime // Broadcast the updated current time
         });
+
+        // If the video title is 'Offline', send an offline status to all clients
+        if (title === 'Offline') {
+            io.emit('nowPlayingUpdate', {
+                title: 'Offline',
+                videoUrl: '',
+                startTimestamp: 0,
+                currentTime: 0
+            });
+        }
     });
 
     socket.on('disconnect', () => {
@@ -712,3 +722,4 @@ app.post('/api/update', (req, res) => {
 server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
+
