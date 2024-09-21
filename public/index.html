@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Head content remains the same -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MikuMiku | Home</title>
@@ -24,25 +25,26 @@
 
     <!-- Main content container -->
     <div id="main-content">
+        <!-- Now Playing Section -->
+        <div id="now-playing" class="now-playing">
+            <div class="now-playing-content">
+                <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
+                <div class="video-title-container">
+                    <h2>Currently Playing on YouTube</h2>
+                    <p id="videoTitle">Loading...</p>
+                    <div id="progress-bar-container">
+                        <div id="progress-bar"></div>
+                    </div>
+                    <p id="time-remaining">Time Elapsed: --:--</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Content Wrapper (centers content and overlaps banner) -->
         <div class="content-wrapper">
             <!-- Now Playing and About Wrapper -->
             <div class="now-playing-about-wrapper">
-
-                <!-- Now Playing Section -->
-                <div id="now-playing" class="now-playing">
-                    <div class="now-playing-content">
-                        <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
-                        <div class="video-title-container">
-                            <h2>Currently Playing on YouTube</h2>
-                            <p id="videoTitle">Loading...</p>
-                            <div id="progress-bar-container">
-                                <div id="progress-bar"></div>
-                            </div>
-                            <p id="time-remaining">Time Elapsed: --:--</p>
-                        </div>
-                    </div>
-                </div>
+                <!-- Removed Now Playing section from here -->
 
                 <!-- Recently Watched Videos Section -->
                 <div class="recent-videos-wrapper">
@@ -87,7 +89,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="/memory-game.js"></script> 
     <script>
-        // Your script logic as it was
+        // Updated script logic
         let videoPlayer = document.querySelector('video');
         let intervalID = null;  
         let videoStartTime = null; 
@@ -95,8 +97,8 @@
         let isVideoPaused = true;
         let browseStartTime = null; 
         let isBrowsing = false; 
-        let MAX_RECENT_VIDEOS = 5;
-        let previousVideoData = {}; 
+        const MAX_RECENT_VIDEOS = 5;
+        let previousVideoData = null; 
     
         const YOUTUBE_HOME_THUMBNAIL = './youtube.png';
         const YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY';
@@ -196,25 +198,6 @@
             const recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
             updateRecentVideosUI(recentVideos);
     
-            if (videoPlayer) {
-                videoPlayer.addEventListener('play', () => {
-                    isVideoPaused = false;
-                    clearExistingInterval();
-                    intervalID = setInterval(updateProgressBar, 1000);
-                });
-    
-                videoPlayer.addEventListener('pause', () => {
-                    isVideoPaused = true;
-                    clearExistingInterval();
-                });
-    
-                videoPlayer.addEventListener('timeupdate', () => {
-                    if (!isVideoPaused && !isBrowsing) {
-                        updateProgressBar();
-                    }
-                });
-            }
-    
             const socket = io('https://mikumiku.dev');
     
             socket.on('connect', () => {
@@ -228,66 +211,56 @@
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 const progressBarContainer = document.getElementById('progress-bar-container');
         
-                if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
-                    // Handle YouTube home page
-                    videoTitleElement.innerText = 'YouTube Home';
-                    videoThumbnailElement.src = YOUTUBE_HOME_THUMBNAIL;
-                    videoThumbnailElement.alt = 'YouTube Home';
+                // Check if the current video URL is different from the previous one
+                if (previousVideoData && previousVideoData.url !== data.videoUrl) {
+                    // Add the previous video to the recent videos list
+                    addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
+                }
         
+                // Update previousVideoData with the current video's data
+                const videoID = extractYouTubeVideoID(data.videoUrl);
+                let thumbnailUrl = '/path/to/placeholder.jpg';
+                if (videoID) {
+                    thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
+                }
+        
+                previousVideoData = {
+                    title: data.title || 'No video playing',
+                    url: data.videoUrl,
+                    thumbnail: thumbnailUrl
+                };
+        
+                // Update the Now Playing section
+                videoTitleElement.innerText = data.title || 'No video playing';
+                videoThumbnailElement.src = thumbnailUrl;
+                videoThumbnailElement.alt = data.title || 'Video Thumbnail';
+        
+                if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
+                    // User is on YouTube home page
                     progressBarContainer.style.display = 'none';
                     browseStartTime = Date.now();
                     clearExistingInterval();
                     isBrowsing = true;
                     intervalID = setInterval(updateBrowseTimer, 1000);
-        
-                    // **No need to update previousVideoData here**
                 } else {
                     isBrowsing = false;
                     progressBarContainer.style.display = 'block';
-        
-                    if (videoTitleElement) {
-                        videoTitleElement.innerText = data.title || 'No video playing';
-                    }
-        
-                    const videoID = extractYouTubeVideoID(data.videoUrl);
-                    if (videoID) {
-                        const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
-        
-                        // **Add the current video to recent videos before updating previousVideoData**
-                        if (previousVideoData && previousVideoData.url !== data.videoUrl) {
-                            addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
-                        }
-        
-                        // Update previousVideoData AFTER adding to recent videos
-                        previousVideoData = {
-                            title: data.title,
-                            url: data.videoUrl,
-                            thumbnail: thumbnailUrl
-                        };
-        
-                        fetchYouTubeVideoDuration(videoID).then((duration) => {
-                            if (duration) {
-                                videoDuration = duration;
-                                videoStartTime = Date.now() - (data.currentTime * 1000);
-                                clearExistingInterval();
-                                isVideoPaused = data.isPaused;
-                                if (!isVideoPaused) {
-                                    intervalID = setInterval(updateProgressBar, 1000);
-                                }
-                            } else {
-                                console.warn('Unable to retrieve video duration');
+                    fetchYouTubeVideoDuration(videoID).then((duration) => {
+                        if (duration) {
+                            videoDuration = duration;
+                            videoStartTime = Date.now() - (data.currentTime * 1000);
+                            clearExistingInterval();
+                            isVideoPaused = data.isPaused;
+                            if (!isVideoPaused) {
+                                intervalID = setInterval(updateProgressBar, 1000);
                             }
-                        });
-        
-                        videoThumbnailElement.src = thumbnailUrl;
-                        videoThumbnailElement.alt = data.title || 'Video Thumbnail';
-                    } else {
-                        videoThumbnailElement.src = '/path/to/placeholder.jpg';
-                        videoThumbnailElement.alt = 'Unknown Video';
-                    }
+                        } else {
+                            console.warn('Unable to retrieve video duration');
+                        }
+                    });
                 }
             });
-        
+    
             socket.on('disconnect', () => {
                 console.log('Disconnected from server');
             });
