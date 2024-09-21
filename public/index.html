@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
     <!-- Link to external CSS file -->
     <link rel="stylesheet" href="/styles.css">
 </head>
+
 <body>
     <!-- Main container -->
     <div class="page-container">
@@ -90,21 +92,19 @@
     </div>
 
     <!-- Scripts -->
-    <!-- Include Socket.IO before your custom scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-    <!-- Include your custom scripts -->
     <script src="/memory-game.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            let intervalID = null;  
-            let videoStartTime = null; 
-            let videoDuration = 0; 
+            let intervalID = null;
+            let videoStartTime = null;
+            let videoDuration = 0;
             let isVideoPaused = true;
-            let isBrowsing = false; 
+            let isBrowsing = false;
             const MAX_RECENT_VIDEOS = 3;
-            let previousVideoData = null; 
-
+            let previousVideoData = null;
+            const liveIndicator = document.getElementById('live-indicator');
             const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Replace with your API key
 
             function formatTime(seconds) {
@@ -168,8 +168,8 @@
                 recentVideos.forEach((video, index) => {
                     const videoElement = document.createElement('div');
                     videoElement.className = 'recent-video-item advanced-video-card';
-                    videoElement.style.animationDelay = `${index * 0.1}s`; 
-                    
+                    videoElement.style.animationDelay = `${index * 0.1}s`;
+
                     videoElement.innerHTML = `
                         <a href="${video.url}" target="_blank">
                             <div class="card-content">
@@ -201,42 +201,43 @@
             const recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
             updateRecentVideosUI(recentVideos);
 
-            const liveIndicator = document.getElementById('live-indicator');
-
             if (!liveIndicator) {
                 console.error('Live indicator element not found.');
             }
 
             const socket = io('https://mikumiku.dev');
 
+            function handleLiveIndicator(isLive) {
+                if (liveIndicator) {
+                    liveIndicator.innerText = isLive ? 'Live' : 'Offline';
+                    liveIndicator.classList.toggle('live', isLive);
+                }
+            }
+
+            // Function to check if user is on a YouTube page
+            function checkYouTubeConnection() {
+                const youtubeCheck = document.querySelector('ytd-app') !== null;
+                handleLiveIndicator(youtubeCheck);
+            }
+
             socket.on('connect', () => {
                 console.log('Connected to server');
-                if (liveIndicator) {
-                    liveIndicator.innerText = 'Live';
-                    liveIndicator.classList.add('live');
-                }
+                checkYouTubeConnection();
             });
 
             socket.on('nowPlayingUpdate', (data) => {
                 console.log('Now Playing Data:', data);
-        
+
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 const progressBarContainer = document.getElementById('progress-bar-container');
 
-                // Update the live indicator
-                if (liveIndicator) {
-                    liveIndicator.innerText = 'Live';
-                    liveIndicator.classList.add('live');
-                }
+                handleLiveIndicator(true);
 
-                // Check if the current video URL is different from the previous one
                 if (previousVideoData && previousVideoData.url !== data.videoUrl) {
-                    // Add the previous video to the recent videos list
                     addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
                 }
 
-                // Update previousVideoData with the current video's data
                 const videoID = extractYouTubeVideoID(data.videoUrl);
                 let thumbnailUrl = '/path/to/placeholder.jpg';
                 if (videoID) {
@@ -249,7 +250,6 @@
                     thumbnail: thumbnailUrl
                 };
 
-                // Update the Now Playing section
                 if (videoTitleElement) {
                     videoTitleElement.innerText = data.title || 'No video playing';
                 }
@@ -259,7 +259,6 @@
                 }
 
                 if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
-                    // User is on YouTube home page
                     if (progressBarContainer) {
                         progressBarContainer.style.display = 'none';
                     }
@@ -289,26 +288,20 @@
 
             socket.on('disconnect', () => {
                 console.log('Disconnected from server');
-                if (liveIndicator) {
-                    liveIndicator.innerText = 'Offline';
-                    liveIndicator.classList.remove('live');
-                }
+                handleLiveIndicator(false);
             });
 
             socket.on('connect_error', () => {
                 console.log('Connection error');
-                if (liveIndicator) {
-                    liveIndicator.innerText = 'Offline';
-                    liveIndicator.classList.remove('live');
-                }
+                handleLiveIndicator(false);
             });
 
             socket.on('extensionClosed', () => {
-                if (liveIndicator) {
-                    liveIndicator.innerText = 'Offline';
-                    liveIndicator.classList.remove('live');
-                }
+                handleLiveIndicator(false);
             });
+
+            // Check initial YouTube status on load
+            checkYouTubeConnection();
         });
 
         function extractYouTubeVideoID(url) {
@@ -318,4 +311,5 @@
         }
     </script>
 </body>
+
 </html>
