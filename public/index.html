@@ -96,15 +96,19 @@
     <!-- Include your custom scripts -->
     <script src="/memory-game.js"></script>
     <script>
-        const YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY'; // Replace with your API key
-        const MAX_RECENT_VIDEOS = 3;
-        let intervalID = null;
-        let videoStartTime = null;
-        let videoDuration = 0;
+        // Your existing JavaScript code remains unchanged
+        let videoPlayer = document.querySelector('video');
+        let intervalID = null;  
+        let videoStartTime = null; 
+        let videoDuration = 0; 
         let isVideoPaused = true;
-        let browseStartTime = null;
-        let isBrowsing = false;
-        let previousVideoData = null;
+        let browseStartTime = null; 
+        let isBrowsing = false; 
+        const MAX_RECENT_VIDEOS = 3;
+        let previousVideoData = null; 
+
+        const YOUTUBE_HOME_THUMBNAIL = './youtube.png';
+        const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Replace with your API key
 
         document.addEventListener('DOMContentLoaded', function () {
             function formatTime(seconds) {
@@ -168,8 +172,8 @@
                 recentVideos.forEach((video, index) => {
                     const videoElement = document.createElement('div');
                     videoElement.className = 'recent-video-item advanced-video-card';
-                    videoElement.style.animationDelay = `${index * 0.1}s`;
-
+                    videoElement.style.animationDelay = `${index * 0.1}s`; 
+                    
                     videoElement.innerHTML = `
                         <a href="${video.url}" target="_blank">
                             <div class="card-content">
@@ -213,7 +217,7 @@
 
             socket.on('nowPlayingUpdate', (data) => {
                 console.log('Now Playing Data:', data);
-
+        
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 const progressBarContainer = document.getElementById('progress-bar-container');
@@ -264,11 +268,6 @@
                             isVideoPaused = data.isPaused;
                             if (!isVideoPaused) {
                                 intervalID = setInterval(updateProgressBar, 1000);
-                            } else {
-                                clearExistingInterval();
-                                const progressPercent = (data.currentTime / videoDuration) * 100;
-                                document.getElementById('progress-bar').style.width = `${progressPercent}%`;
-                                document.getElementById('time-remaining').innerText = `Time Elapsed: ${formatTime(data.currentTime)}`;
                             }
                         } else {
                             console.warn('Unable to retrieve video duration');
@@ -297,7 +296,7 @@
         });
 
         function extractYouTubeVideoID(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|youtube.com\/shorts\/)([^#&?]*).*/;
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
             const match = url.match(regExp);
             return (match && match[2].length === 11) ? match[2] : null;
         }
