@@ -202,9 +202,10 @@
             updateRecentVideosUI(recentVideos);
     
             const liveIndicator = document.getElementById('live-indicator');
+            const topRightLiveIndicator = document.getElementById('top-right-live-indicator');
     
-            if (!liveIndicator) {
-                console.error('Live indicator element not found.');
+            if (!liveIndicator || !topRightLiveIndicator) {
+                console.error('Live indicators not found.');
             }
     
             const socket = io('https://mikumiku.dev');
@@ -215,6 +216,10 @@
                     liveIndicator.innerText = 'Live';
                     liveIndicator.classList.add('live');
                 }
+                if (topRightLiveIndicator) {
+                    topRightLiveIndicator.innerText = 'Live';
+                    topRightLiveIndicator.classList.remove('offline');
+                }
             });
     
             socket.on('nowPlayingUpdate', (data) => {
@@ -224,10 +229,14 @@
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 const progressBarContainer = document.getElementById('progress-bar-container');
     
-                // Update the live indicator
+                // Update the live indicators
                 if (liveIndicator) {
                     liveIndicator.innerText = 'Live';
                     liveIndicator.classList.add('live');
+                }
+                if (topRightLiveIndicator) {
+                    topRightLiveIndicator.innerText = 'Live';
+                    topRightLiveIndicator.classList.remove('offline');
                 }
     
                 // Check if the current video URL is different from the previous one
@@ -287,11 +296,14 @@
                 }
             });
     
-            // Handle when YouTube tab is closed or extension is disabled
             socket.on('extensionClosed', () => {
                 if (liveIndicator) {
                     liveIndicator.innerText = 'Offline';
                     liveIndicator.classList.remove('live');
+                }
+                if (topRightLiveIndicator) {
+                    topRightLiveIndicator.innerText = 'Offline';
+                    topRightLiveIndicator.classList.add('offline');
                 }
             });
     
@@ -301,6 +313,10 @@
                     liveIndicator.innerText = 'Offline';
                     liveIndicator.classList.remove('live');
                 }
+                if (topRightLiveIndicator) {
+                    topRightLiveIndicator.innerText = 'Offline';
+                    topRightLiveIndicator.classList.add('offline');
+                }
             });
     
             socket.on('connect_error', () => {
@@ -308,6 +324,10 @@
                 if (liveIndicator) {
                     liveIndicator.innerText = 'Offline';
                     liveIndicator.classList.remove('live');
+                }
+                if (topRightLiveIndicator) {
+                    topRightLiveIndicator.innerText = 'Offline';
+                    topRightLiveIndicator.classList.add('offline');
                 }
             });
     
