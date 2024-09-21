@@ -4,19 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MikuMiku | Home</title>
-    <!-- Include Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Link to external CSS file -->
     <link rel="stylesheet" href="/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Main container -->
-    <div class="page-container">
-        <!-- Banner Section (covers the entire background) -->
-        <div class="banner">
-            <img src="/banner.webp" alt="Banner Image" class="banner-img">
-        </div>
 
+    <!-- Game Modal (remains as is) -->
+    <div id="game-modal" class="game-modal">
+        <div class="game-container">
+            <h1>Match the Cards to Enter</h1>
+            <div id="game-board" class="game-board"></div>
+            <div id="game-status"></div>
+        </div>
+    </div>
+
+    <!-- Main content container -->
+    <div id="main-content">
+        
         <!-- Title Bar (remains fixed at top) -->
         <div class="title-bar">
             <div class="container">
@@ -24,52 +28,50 @@
                 <h1 class="site-title">MikuMiku</h1>
             </div>
         </div>
-
-        <!-- Main content container -->
-        <div id="main-content">
-            <!-- Now Playing Section -->
-            <div id="now-playing" class="now-playing">
-                <div class="now-playing-content">
-                    <!-- Video Thumbnail and Info -->
-                    <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
-                    <div class="video-title-container">
-                        <div class="title-and-indicator">
-                            <h2>Currently Playing on YouTube</h2>
-                            <div id="live-indicator" class="live-indicator">Offline</div>
-                        </div>
-                        <p id="videoTitle">Loading...</p>
-                        <div id="progress-bar-container">
-                            <div id="progress-bar"></div>
-                        </div>
-                        <p id="time-remaining">Time Elapsed: --:--</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Content Wrapper (centers content and overlaps banner) -->
-            <div class="content-wrapper">
-                <!-- Now Playing and About Wrapper -->
-                <div class="now-playing-about-wrapper">
-                    <!-- Recently Watched Videos Section -->
-                    <div class="recent-videos-wrapper">
-                        <div class="recent-videos-title">
-                            <h3>Recently Watched Videos</h3>
-                        </div>
-                        <div id="recent-videos-container" class="recent-videos-container">
-                            <!-- Recent videos will be dynamically added here -->
-                        </div>
-                    </div>
-
-                    <!-- About Section -->
-                    <div class="about">
-                        <div class="container">
-                            <h2>About Me</h2>
-                            <p>Hey there, I'm Hystoriya, a 24-year-old developer. This is my personal website that I made for no apparent reason. If you find yourself here randomly, then hi :)</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        
+        <!-- Banner Section (flex-grow applied to this) -->
+        <div class="banner">
+            <img src="/banner.webp" alt="Banner Image" class="banner-img">
         </div>
+
+        <!-- Main Content Wrapper (Adjusted for Flexbox) -->
+        <div class="content-wrapper">
+            <div class="now-playing-about-wrapper">
+                
+                <!-- Now Playing Section -->
+                <div id="now-playing" class="now-playing">
+                    <div class="now-playing-content">
+                        <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
+                        <div class="video-title-container">
+                            <h2>Currently Playing on YouTube</h2>
+                            <p id="videoTitle">Loading...</p>
+                            <div id="progress-bar-container">
+                                <div id="progress-bar"></div>
+                            </div>
+                            <p id="time-remaining">Time Elapsed: --:--</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recently Watched Videos Section -->
+                <div class="recent-videos-wrapper">
+                    <div class="recent-videos-title">
+                        <h3>Recently Watched Videos</h3>
+                    </div>
+                    <div id="recent-videos-container" class="recent-videos-container">
+                        <!-- Recent videos will be dynamically added here -->
+                    </div>
+                </div>
+
+                <!-- About Section -->
+                <div class="about">
+                    <div class="container">
+                        <h2>About Me</h2>
+                        <p>Hey there, I'm Hystoriya, a 24-year-old developer and hermaphrodite. This is my personal website that I made for no apparent reason. If you find yourself here randomly then hi :).</p>
+                    </div>
+                </div>
+            </div>
+        </div> 
 
         <!-- Footer (stays at the bottom) -->
         <footer class="footer">
@@ -80,23 +82,12 @@
         </footer>
     </div>
 
-    <!-- Game Modal (remains as is, placed at the end for proper stacking) -->
-    <div id="game-modal" class="game-modal">
-        <div class="game-container">
-            <h1>Match the Cards to Enter</h1>
-            <div id="game-board" class="game-board"></div>
-            <div id="game-status"></div>
-        </div>
-    </div>
-
     <!-- Scripts -->
-    <!-- Include Socket.IO and Moment.js libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-    <!-- Include your custom scripts -->
-    <script src="/memory-game.js"></script>
+    <script src="/memory-game.js"></script> 
     <script>
-        // Your existing JavaScript code remains unchanged
+        // Your script logic as it was
         let videoPlayer = document.querySelector('video');
         let intervalID = null;  
         let videoStartTime = null; 
@@ -104,31 +95,31 @@
         let isVideoPaused = true;
         let browseStartTime = null; 
         let isBrowsing = false; 
-        const MAX_RECENT_VIDEOS = 3;
-        let previousVideoData = null; 
-
+        let MAX_RECENT_VIDEOS = 5;
+        let previousVideoData = {}; 
+    
         const YOUTUBE_HOME_THUMBNAIL = './youtube.png';
-        const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Replace with your API key
-
+        const YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY';
+    
         document.addEventListener('DOMContentLoaded', function () {
             function formatTime(seconds) {
                 const minutes = Math.floor(seconds / 60);
                 const secs = Math.floor(seconds % 60);
                 return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
             }
-
+    
             function clearExistingInterval() {
                 if (intervalID) {
                     clearInterval(intervalID);
                     intervalID = null;
                 }
             }
-
+    
             function updateProgressBar() {
                 if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
                     const currentTimestamp = Date.now();
                     const elapsedTime = (currentTimestamp - videoStartTime) / 1000;
-
+    
                     if (elapsedTime >= 0 && elapsedTime <= videoDuration) {
                         const progressPercent = (elapsedTime / videoDuration) * 100;
                         document.getElementById('progress-bar').style.width = `${progressPercent}%`;
@@ -140,7 +131,7 @@
                     }
                 }
             }
-
+    
             function updateBrowseTimer() {
                 if (isBrowsing) {
                     const currentTimestamp = Date.now();
@@ -148,7 +139,7 @@
                     document.getElementById('time-remaining').innerText = `Browsing Videos ${formatTime(elapsedBrowseTime)}`;
                 }
             }
-
+    
             async function fetchYouTubeVideoDuration(videoID) {
                 const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
                 try {
@@ -164,11 +155,11 @@
                 }
                 return 0;
             }
-
+    
             function updateRecentVideosUI(recentVideos) {
                 const recentVideosContainer = document.getElementById('recent-videos-container');
                 recentVideosContainer.innerHTML = '';
-
+    
                 recentVideos.forEach((video, index) => {
                     const videoElement = document.createElement('div');
                     videoElement.className = 'recent-video-item advanced-video-card';
@@ -185,73 +176,68 @@
                     recentVideosContainer.appendChild(videoElement);
                 });
             }
-
+    
             function addVideoToRecent(title, url, thumbnail) {
                 let recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
-
+    
                 const existingVideo = recentVideos.find(video => video.url === url);
                 if (existingVideo) return;
-
+    
                 recentVideos.unshift({ title, url, thumbnail });
-
+    
                 if (recentVideos.length > MAX_RECENT_VIDEOS) {
                     recentVideos = recentVideos.slice(0, MAX_RECENT_VIDEOS);
                 }
-
+    
                 localStorage.setItem('recentVideos', JSON.stringify(recentVideos));
                 updateRecentVideosUI(recentVideos);
             }
-
+    
             const recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
             updateRecentVideosUI(recentVideos);
-
-            const liveIndicator = document.getElementById('live-indicator');
-
+    
+            if (videoPlayer) {
+                videoPlayer.addEventListener('play', () => {
+                    isVideoPaused = false;
+                    clearExistingInterval();
+                    intervalID = setInterval(updateProgressBar, 1000);
+                });
+    
+                videoPlayer.addEventListener('pause', () => {
+                    isVideoPaused = true;
+                    clearExistingInterval();
+                });
+    
+                videoPlayer.addEventListener('timeupdate', () => {
+                    if (!isVideoPaused && !isBrowsing) {
+                        updateProgressBar();
+                    }
+                });
+            }
+    
             const socket = io('https://mikumiku.dev');
-
+    
             socket.on('connect', () => {
                 console.log('Connected to server');
-                liveIndicator.innerText = 'Live';
-                liveIndicator.classList.add('live');
             });
-
+    
             socket.on('nowPlayingUpdate', (data) => {
                 console.log('Now Playing Data:', data);
-        
+    
+                // Store previous video data BEFORE updating to the new one
+                if (previousVideoData && previousVideoData.url) {
+                    addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
+                }
+    
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 const progressBarContainer = document.getElementById('progress-bar-container');
-
-                // Update the live indicator
-                liveIndicator.innerText = 'Live';
-                liveIndicator.classList.add('live');
-
-                // Check if the current video URL is different from the previous one
-                if (previousVideoData && previousVideoData.url !== data.videoUrl) {
-                    // Add the previous video to the recent videos list
-                    addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
-                }
-
-                // Update previousVideoData with the current video's data
-                const videoID = extractYouTubeVideoID(data.videoUrl);
-                let thumbnailUrl = '/path/to/placeholder.jpg';
-                if (videoID) {
-                    thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
-                }
-
-                previousVideoData = {
-                    title: data.title || 'No video playing',
-                    url: data.videoUrl,
-                    thumbnail: thumbnailUrl
-                };
-
-                // Update the Now Playing section
-                videoTitleElement.innerText = data.title || 'No video playing';
-                videoThumbnailElement.src = thumbnailUrl;
-                videoThumbnailElement.alt = data.title || 'Video Thumbnail';
-
+    
                 if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
-                    // User is on YouTube home page
+                    videoTitleElement.innerText = 'Youtube Home';
+                    videoThumbnailElement.src = YOUTUBE_HOME_THUMBNAIL;
+                    videoThumbnailElement.alt = 'YouTube Home';
+    
                     progressBarContainer.style.display = 'none';
                     browseStartTime = Date.now();
                     clearExistingInterval();
@@ -259,42 +245,54 @@
                     intervalID = setInterval(updateBrowseTimer, 1000);
                 } else {
                     isBrowsing = false;
-                    progressBarContainer.style.display = 'block';
-                    fetchYouTubeVideoDuration(videoID).then((duration) => {
-                        if (duration) {
-                            videoDuration = duration;
-                            videoStartTime = Date.now() - (data.currentTime * 1000);
-                            clearExistingInterval();
-                            isVideoPaused = data.isPaused;
-                            if (!isVideoPaused) {
+    
+                    if (videoTitleElement) {
+                        videoTitleElement.innerText = data.title || 'No video playing';
+                    }
+    
+                    const videoID = extractYouTubeVideoID(data.videoUrl);
+                    if (videoID) {
+                        const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
+    
+                        previousVideoData = {
+                            title: data.title,
+                            url: data.videoUrl,
+                            thumbnail: thumbnailUrl
+                        };
+    
+                        fetchYouTubeVideoDuration(videoID).then((duration) => {
+                            if (duration) {
+                                videoDuration = duration;
+                                videoStartTime = Date.now() - (data.currentTime * 1000);
+                                clearExistingInterval();
                                 intervalID = setInterval(updateProgressBar, 1000);
+                                progressBarContainer.style.display = 'block';
+    
+                                if (data.isPaused) {
+                                    isVideoPaused = true;
+                                    clearExistingInterval();
+                                } else {
+                                    isVideoPaused = false;
+                                    intervalID = setInterval(updateProgressBar, 1000);
+                                }
+                            } else {
+                                console.warn('Unable to retrieve video duration');
                             }
-                        } else {
-                            console.warn('Unable to retrieve video duration');
-                        }
-                    });
+                        });
+    
+                        videoThumbnailElement.src = thumbnailUrl;
+                        videoThumbnailElement.alt = data.title || 'Video Thumbnail';
+                    } else {
+                        videoThumbnailElement.src = '/path/to/placeholder.jpg';
+                    }
                 }
             });
-
+    
             socket.on('disconnect', () => {
                 console.log('Disconnected from server');
-                liveIndicator.innerText = 'Offline';
-                liveIndicator.classList.remove('live');
-            });
-
-            socket.on('connect_error', () => {
-                console.log('Connection error');
-                liveIndicator.innerText = 'Offline';
-                liveIndicator.classList.remove('live');
-            });
-
-            // Optionally handle custom event
-            socket.on('extensionClosed', () => {
-                liveIndicator.innerText = 'Offline';
-                liveIndicator.classList.remove('live');
             });
         });
-
+    
         function extractYouTubeVideoID(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
             const match = url.match(regExp);
