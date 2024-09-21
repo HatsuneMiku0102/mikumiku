@@ -680,12 +680,12 @@ io.on('connection', (socket) => {
         console.log('Received video title:', title);
         console.log('Received video URL:', videoUrl);
         console.log('Received current time:', currentTime);
-
+    
         // Update the global variables
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
         videoStartTimestamp = Date.now() - (currentTime * 1000); // Adjust the start timestamp based on the provided currentTime
-
+    
         // Broadcast the updated video information to all clients
         io.emit('nowPlayingUpdate', { 
             title, 
