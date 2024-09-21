@@ -208,17 +208,28 @@
                 console.error('Live indicators not found.');
             }
     
-            const socket = io('https://mikumiku.dev');
-    
-            socket.on('connect', () => {
-                console.log('Connected to server');
-                if (liveIndicator) {
-                    liveIndicator.innerText = 'Live';
-                    liveIndicator.classList.add('live');
-                }
-                if (topRightLiveIndicator) {
-                    topRightLiveIndicator.innerText = 'Live';
-                    topRightLiveIndicator.classList.remove('offline');
+            // Message listener for YouTube connection state (from background.js)
+            chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+                if (message.type === 'youtubeStatus') {
+                    if (message.status === 'live') {
+                        if (topRightLiveIndicator) {
+                            topRightLiveIndicator.innerText = 'Live';
+                            topRightLiveIndicator.classList.remove('offline');
+                        }
+                        if (liveIndicator) {
+                            liveIndicator.innerText = 'Live';
+                            liveIndicator.classList.add('live');
+                        }
+                    } else {
+                        if (topRightLiveIndicator) {
+                            topRightLiveIndicator.innerText = 'Offline';
+                            topRightLiveIndicator.classList.add('offline');
+                        }
+                        if (liveIndicator) {
+                            liveIndicator.innerText = 'Offline';
+                            liveIndicator.classList.remove('live');
+                        }
+                    }
                 }
             });
     
@@ -228,16 +239,6 @@
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 const progressBarContainer = document.getElementById('progress-bar-container');
-    
-                // Update the live indicators
-                if (liveIndicator) {
-                    liveIndicator.innerText = 'Live';
-                    liveIndicator.classList.add('live');
-                }
-                if (topRightLiveIndicator) {
-                    topRightLiveIndicator.innerText = 'Live';
-                    topRightLiveIndicator.classList.remove('offline');
-                }
     
                 // Check if the current video URL is different from the previous one
                 if (previousVideoData && previousVideoData.url !== data.videoUrl) {
@@ -334,7 +335,7 @@
         });
     
         function extractYouTubeVideoID(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
+            const regExp = /^.*(youtu.be\/|v\/u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
             const match = url.match(regExp);
             return (match && match[2].length === 11) ? match[2] : null;
         }
