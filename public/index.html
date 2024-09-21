@@ -96,236 +96,207 @@
     <!-- Include your custom scripts -->
     <script src="/memory-game.js"></script>
     <script>
-        // Make sure io is defined and available after the Socket.IO script is loaded
-        if (typeof io !== 'undefined') {
-            let videoPlayer = document.querySelector('video');
-            let intervalID = null;  
-            let videoStartTime = null; 
-            let videoDuration = 0; 
-            let isVideoPaused = true;
-            let browseStartTime = null; 
-            let isBrowsing = false; 
-            const MAX_RECENT_VIDEOS = 3;
-            let previousVideoData = null; 
-
-            const YOUTUBE_HOME_THUMBNAIL = './youtube.png';
-            const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Replace with your API key
-
-            document.addEventListener('DOMContentLoaded', function () {
-
-                function formatTime(seconds) {
-                    const minutes = Math.floor(seconds / 60);
-                    const secs = Math.floor(seconds % 60);
-                    return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
-                }
-
-                function clearExistingInterval() {
-                    if (intervalID) {
-                        clearInterval(intervalID);
-                        intervalID = null;
-                    }
-                }
-
-                function updateProgressBar() {
-                    if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
-                        const currentTimestamp = Date.now();
-                        const elapsedTime = (currentTimestamp - videoStartTime) / 1000;
-
-                        if (elapsedTime >= 0 && elapsedTime <= videoDuration) {
-                            const progressPercent = (elapsedTime / videoDuration) * 100;
-                            document.getElementById('progress-bar').style.width = `${progressPercent}%`;
-                            document.getElementById('time-remaining').innerText = `Time Elapsed: ${formatTime(elapsedTime)}`;
-                        } else {
-                            clearExistingInterval();
-                            document.getElementById('progress-bar').style.width = '100%';
-                            document.getElementById('time-remaining').innerText = `Time Elapsed: ${formatTime(videoDuration)}`;
-                        }
-                    }
-                }
-
-                function updateBrowseTimer() {
-                    if (isBrowsing) {
-                        const currentTimestamp = Date.now();
-                        const elapsedBrowseTime = (currentTimestamp - browseStartTime) / 1000;
-                        document.getElementById('time-remaining').innerText = `Browsing Videos ${formatTime(elapsedBrowseTime)}`;
-                    }
-                }
-
-                async function fetchYouTubeVideoDuration(videoID) {
-                    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
-                    try {
-                        const response = await fetch(apiUrl);
-                        const data = await response.json();
-                        if (data.items.length > 0) {
-                            const durationISO = data.items[0].contentDetails.duration;
-                            videoDuration = moment.duration(durationISO).asSeconds();
-                            return videoDuration;
-                        }
-                    } catch (error) {
-                        console.error('Error fetching video duration from YouTube API:', error);
-                    }
-                    return 0;
-                }
-
-                function updateRecentVideosUI(recentVideos) {
-                    const recentVideosContainer = document.getElementById('recent-videos-container');
-                    recentVideosContainer.innerHTML = '';
-
-                    recentVideos.forEach((video, index) => {
-                        const videoElement = document.createElement('div');
-                        videoElement.className = 'recent-video-item advanced-video-card';
-                        videoElement.style.animationDelay = `${index * 0.1}s`; 
-                        
-                        videoElement.innerHTML = `
-                            <a href="${video.url}" target="_blank">
-                                <div class="card-content">
-                                    <img src="${video.thumbnail}" class="recent-video-thumbnail" alt="Thumbnail of ${video.title}">
-                                    <p class="recent-video-title">${video.title}</p>
-                                </div>
-                            </a>
-                        `;
-                        recentVideosContainer.appendChild(videoElement);
-                    });
-                }
-
-                function addVideoToRecent(title, url, thumbnail) {
-                    let recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
-
-                    const existingVideo = recentVideos.find(video => video.url === url);
-                    if (existingVideo) return;
-
-                    recentVideos.unshift({ title, url, thumbnail });
-
-                    if (recentVideos.length > MAX_RECENT_VIDEOS) {
-                        recentVideos = recentVideos.slice(0, MAX_RECENT_VIDEOS);
-                    }
-
-                    localStorage.setItem('recentVideos', JSON.stringify(recentVideos));
-                    updateRecentVideosUI(recentVideos);
-                }
-
-                const recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
-                updateRecentVideosUI(recentVideos);
-
-                const liveIndicator = document.getElementById('live-indicator');
-
-                if (!liveIndicator) {
-                    console.error('Live indicator element not found.');
-                }
-
-                const socket = io('https://mikumiku.dev');
-
-                socket.on('connect', () => {
-                    console.log('Connected to server');
-                    if (liveIndicator) {
-                        liveIndicator.innerText = 'Live';
-                        liveIndicator.classList.add('live');
-                    }
-                });
-
-                socket.on('nowPlayingUpdate', (data) => {
-                    console.log('Now Playing Data:', data);
-            
-                    const videoTitleElement = document.getElementById('videoTitle');
-                    const videoThumbnailElement = document.getElementById('videoThumbnail');
-                    const progressBarContainer = document.getElementById('progress-bar-container');
-
-                    // Update the live indicator
-                    if (liveIndicator) {
-                        liveIndicator.innerText = 'Live';
-                        liveIndicator.classList.add('live');
-                    }
-
-                    // Check if the current video URL is different from the previous one
-                    if (previousVideoData && previousVideoData.url !== data.videoUrl) {
-                        // Add the previous video to the recent videos list
-                        addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
-                    }
-
-                    // Update previousVideoData with the current video's data
-                    const videoID = extractYouTubeVideoID(data.videoUrl);
-                    let thumbnailUrl = '/path/to/placeholder.jpg';
-                    if (videoID) {
-                        thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
-                    }
-
-                    previousVideoData = {
-                        title: data.title || 'No video playing',
-                        url: data.videoUrl,
-                        thumbnail: thumbnailUrl
-                    };
-
-                    // Update the Now Playing section
-                    if (videoTitleElement) {
-                        videoTitleElement.innerText = data.title || 'No video playing';
-                    }
-                    if (videoThumbnailElement) {
-                        videoThumbnailElement.src = thumbnailUrl;
-                        videoThumbnailElement.alt = data.title || 'Video Thumbnail';
-                    }
-
-                    if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
-                        // User is on YouTube home page
-                        if (progressBarContainer) {
-                            progressBarContainer.style.display = 'none';
-                        }
-                        browseStartTime = Date.now();
-                        clearExistingInterval();
-                        isBrowsing = true;
-                        intervalID = setInterval(updateBrowseTimer, 1000);
-                    } else {
-                        isBrowsing = false;
-                        if (progressBarContainer) {
-                            progressBarContainer.style.display = 'block';
-                        }
-                        fetchYouTubeVideoDuration(videoID).then((duration) => {
-                            if (duration) {
-                                videoDuration = duration;
-                                videoStartTime = Date.now() - (data.currentTime * 1000);
-                                clearExistingInterval();
-                                isVideoPaused = data.isPaused;
-                                if (!isVideoPaused) {
-                                    intervalID = setInterval(updateProgressBar, 1000);
-                                }
-                            } else {
-                                console.warn('Unable to retrieve video duration');
-                            }
-                        });
-                    }
-                });
-
-                socket.on('disconnect', () => {
-                    console.log('Disconnected from server');
-                    if (liveIndicator) {
-                        liveIndicator.innerText = 'Offline';
-                        liveIndicator.classList.remove('live');
-                    }
-                });
-
-                socket.on('connect_error', () => {
-                    console.log('Connection error');
-                    if (liveIndicator) {
-                        liveIndicator.innerText = 'Offline';
-                        liveIndicator.classList.remove('live');
-                    }
-                });
-
-                socket.on('extensionClosed', () => {
-                    if (liveIndicator) {
-                        liveIndicator.innerText = 'Offline';
-                        liveIndicator.classList.remove('live');
-                    }
-                });
-            });
-
-            function extractYouTubeVideoID(url) {
-                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
-                const match = url.match(regExp);
-                return (match && match[2].length === 11) ? match[2] : null;
-            }
-        } else {
-            console.error("Socket.IO library not found. Please check the script URL.");
+    document.addEventListener('DOMContentLoaded', function () {
+        let videoPlayer = document.querySelector('video');
+        let intervalID = null;
+        let videoStartTime = null;
+        let videoDuration = 0;
+        let isVideoPaused = true;
+        let browseStartTime = null;
+        let isBrowsing = false;
+        const MAX_RECENT_VIDEOS = 3;
+        let previousVideoData = null;
+    
+        const YOUTUBE_HOME_THUMBNAIL = './youtube.png';
+        const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Replace with your API key
+    
+        // Ensure live-indicator is always checked
+        function getLiveIndicator() {
+            return document.getElementById('live-indicator');
         }
+    
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+    
+        function clearExistingInterval() {
+            if (intervalID) {
+                clearInterval(intervalID);
+                intervalID = null;
+            }
+        }
+    
+        function updateProgressBar() {
+            if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
+                const currentTimestamp = Date.now();
+                const elapsedTime = (currentTimestamp - videoStartTime) / 1000;
+    
+                if (elapsedTime >= 0 && elapsedTime <= videoDuration) {
+                    const progressPercent = (elapsedTime / videoDuration) * 100;
+                    document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+                    document.getElementById('time-remaining').innerText = `Time Elapsed: ${formatTime(elapsedTime)}`;
+                } else {
+                    clearExistingInterval();
+                    document.getElementById('progress-bar').style.width = '100%';
+                    document.getElementById('time-remaining').innerText = `Time Elapsed: ${formatTime(videoDuration)}`;
+                }
+            }
+        }
+    
+        function updateBrowseTimer() {
+            if (isBrowsing) {
+                const currentTimestamp = Date.now();
+                const elapsedBrowseTime = (currentTimestamp - browseStartTime) / 1000;
+                document.getElementById('time-remaining').innerText = `Browsing Videos ${formatTime(elapsedBrowseTime)}`;
+            }
+        }
+    
+        async function fetchYouTubeVideoDuration(videoID) {
+            const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                if (data.items.length > 0) {
+                    const durationISO = data.items[0].contentDetails.duration;
+                    videoDuration = moment.duration(durationISO).asSeconds();
+                    return videoDuration;
+                }
+            } catch (error) {
+                console.error('Error fetching video duration from YouTube API:', error);
+            }
+            return 0;
+        }
+    
+        function updateRecentVideosUI(recentVideos) {
+            const recentVideosContainer = document.getElementById('recent-videos-container');
+            recentVideosContainer.innerHTML = '';
+    
+            recentVideos.forEach((video, index) => {
+                const videoElement = document.createElement('div');
+                videoElement.className = 'recent-video-item advanced-video-card';
+                videoElement.style.animationDelay = `${index * 0.1}s`;
+    
+                videoElement.innerHTML = `
+                    <a href="${video.url}" target="_blank">
+                        <div class="card-content">
+                            <img src="${video.thumbnail}" class="recent-video-thumbnail" alt="Thumbnail of ${video.title}">
+                            <p class="recent-video-title">${video.title}</p>
+                        </div>
+                    </a>
+                `;
+                recentVideosContainer.appendChild(videoElement);
+            });
+        }
+    
+        function addVideoToRecent(title, url, thumbnail) {
+            let recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
+    
+            const existingVideo = recentVideos.find(video => video.url === url);
+            if (existingVideo) return;
+    
+            recentVideos.unshift({ title, url, thumbnail });
+    
+            if (recentVideos.length > MAX_RECENT_VIDEOS) {
+                recentVideos = recentVideos.slice(0, MAX_RECENT_VIDEOS);
+            }
+    
+            localStorage.setItem('recentVideos', JSON.stringify(recentVideos));
+            updateRecentVideosUI(recentVideos);
+        }
+    
+        const recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
+        updateRecentVideosUI(recentVideos);
+    
+        // Observer to track URL changes (YouTube's dynamic behavior)
+        let lastUrl = location.href;
+        const urlObserver = new MutationObserver(() => {
+            if (location.href !== lastUrl) {
+                lastUrl = location.href;
+                console.log('URL changed:', location.href);
+                handleVideoUpdate(); // Handle video update when URL changes
+            }
+        });
+    
+        urlObserver.observe(document, { childList: true, subtree: true });
+    
+        // Helper to handle video updates
+        function handleVideoUpdate() {
+            const liveIndicator = getLiveIndicator();
+            if (!liveIndicator) {
+                console.error('Live indicator element not found.');
+                return;
+            }
+    
+            const videoTitleElement = document.getElementById('videoTitle');
+            const videoThumbnailElement = document.getElementById('videoThumbnail');
+            const progressBarContainer = document.getElementById('progress-bar-container');
+    
+            // Fetch and update video details dynamically when a new video starts
+            const videoID = extractYouTubeVideoID(location.href);
+            if (videoID) {
+                fetchYouTubeVideoDuration(videoID).then((duration) => {
+                    if (duration) {
+                        videoDuration = duration;
+                        videoStartTime = Date.now();
+                        clearExistingInterval();
+                        intervalID = setInterval(updateProgressBar, 1000);
+    
+                        // Set live status
+                        liveIndicator.innerText = 'Live';
+                        liveIndicator.classList.add('live');
+                    } else {
+                        console.warn('Unable to retrieve video duration');
+                    }
+                });
+            }
+    
+            // Reset live status if on homepage or playlist
+            if (location.href.includes("youtube.com/") && !location.href.includes("/watch")) {
+                liveIndicator.innerText = 'Offline';
+                liveIndicator.classList.remove('live');
+                clearExistingInterval();
+            }
+        }
+    
+        // Initialize the first call
+        handleVideoUpdate();
+    
+        // Set up Socket.IO connection
+        const socket = io('https://mikumiku.dev');
+        
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            const liveIndicator = getLiveIndicator();
+            if (liveIndicator) {
+                liveIndicator.innerText = 'Live';
+                liveIndicator.classList.add('live');
+            }
+        });
+    
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+            const liveIndicator = getLiveIndicator();
+            if (liveIndicator) {
+                liveIndicator.innerText = 'Offline';
+                liveIndicator.classList.remove('live');
+            }
+        });
+    
+        socket.on('connect_error', () => {
+            console.log('Connection error');
+            const liveIndicator = getLiveIndicator();
+            if (liveIndicator) {
+                liveIndicator.innerText = 'Offline';
+                liveIndicator.classList.remove('live');
+            }
+        });
+    
+        function extractYouTubeVideoID(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+    });
     </script>
-</body>
-</html>
