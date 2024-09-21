@@ -101,8 +101,6 @@
         let videoStartTime = null;
         let intervalID = null;
         let isVideoPaused = true;
-        let isBrowsing = false;
-        const MAX_RECENT_VIDEOS = 3;
         const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Replace with your API key
     
         const socket = io('https://mikumiku.dev');
@@ -170,8 +168,8 @@
             const videoThumbnailElement = document.getElementById('videoThumbnail');
             const progressBarContainer = document.getElementById('progress-bar-container');
     
-            if (!liveIndicator) {
-                console.error('Live indicator element not found.');
+            if (!liveIndicator || !videoTitleElement || !videoThumbnailElement) {
+                console.error('Some required elements not found. Retrying...');
                 return;
             }
     
@@ -183,6 +181,10 @@
                         videoStartTime = Date.now();
                         clearExistingInterval();
                         intervalID = setInterval(updateProgressBar, 1000);
+    
+                        // Update video title and thumbnail
+                        videoTitleElement.innerText = document.title || 'No Title';
+                        videoThumbnailElement.src = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
                         liveIndicator.innerText = 'Live';
                         liveIndicator.classList.add('live');
                     } else {
@@ -190,7 +192,7 @@
                     }
                 });
             } else {
-                // If on a non-video page (e.g., homepage), set the indicator to offline
+                // If not on a video page, set to offline
                 liveIndicator.innerText = 'Offline';
                 liveIndicator.classList.remove('live');
                 clearExistingInterval();
