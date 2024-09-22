@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -40,7 +39,7 @@
                             <div id="live-indicator" class="live-indicator">Offline</div>
                         </div>
                         <p id="videoTitle">Loading...</p>
-                        <div id="progress-bar-container">
+                        <div id="progress-bar-container" style="display:none">
                             <div id="progress-bar"></div>
                         </div>
                         <p id="time-remaining">Time Elapsed: --:--</p>
@@ -105,6 +104,8 @@
             const MAX_RECENT_VIDEOS = 3;
             let previousVideoData = null;
             const liveIndicator = document.getElementById('live-indicator');
+            const progressBarContainer = document.getElementById('progress-bar-container');
+            const timeRemainingElement = document.getElementById('time-remaining');
             const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Replace with your API key
 
             function formatTime(seconds) {
@@ -128,11 +129,11 @@
                     if (elapsedTime >= 0 && elapsedTime <= videoDuration) {
                         const progressPercent = (elapsedTime / videoDuration) * 100;
                         document.getElementById('progress-bar').style.width = `${progressPercent}%`;
-                        document.getElementById('time-remaining').innerText = `Time Elapsed: ${formatTime(elapsedTime)}`;
+                        timeRemainingElement.innerText = `Time Elapsed: ${formatTime(elapsedTime)}`;
                     } else {
                         clearExistingInterval();
                         document.getElementById('progress-bar').style.width = '100%';
-                        document.getElementById('time-remaining').innerText = `Time Elapsed: ${formatTime(videoDuration)}`;
+                        timeRemainingElement.innerText = `Time Elapsed: ${formatTime(videoDuration)}`;
                     }
                 }
             }
@@ -141,7 +142,17 @@
                 if (isBrowsing) {
                     const currentTimestamp = Date.now();
                     const elapsedBrowseTime = (currentTimestamp - videoStartTime) / 1000;
-                    document.getElementById('time-remaining').innerText = `Browsing Videos ${formatTime(elapsedBrowseTime)}`;
+                    timeRemainingElement.innerText = `Browsing Videos ${formatTime(elapsedBrowseTime)}`;
+                }
+            }
+
+            function toggleProgressBar(show) {
+                if (show) {
+                    progressBarContainer.style.display = 'block';
+                    timeRemainingElement.style.display = 'block';
+                } else {
+                    progressBarContainer.style.display = 'none';
+                    timeRemainingElement.style.display = 'none';
                 }
             }
 
@@ -214,10 +225,13 @@
                 }
             }
 
-            // Function to check if user is on a YouTube page
             function checkYouTubeConnection() {
-                const youtubeCheck = document.querySelector('ytd-app') !== null;
+                const youtubeCheck = window.location.href.includes('youtube.com');
                 handleLiveIndicator(youtubeCheck);
+                if (!youtubeCheck) {
+                    toggleProgressBar(false);
+                    document.getElementById('videoTitle').innerText = 'Not on YouTube';
+                }
             }
 
             socket.on('connect', () => {
@@ -230,7 +244,6 @@
 
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
-                const progressBarContainer = document.getElementById('progress-bar-container');
 
                 handleLiveIndicator(true);
 
@@ -259,17 +272,13 @@
                 }
 
                 if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
-                    if (progressBarContainer) {
-                        progressBarContainer.style.display = 'none';
-                    }
                     clearExistingInterval();
                     isBrowsing = true;
+                    toggleProgressBar(false);
                     intervalID = setInterval(updateBrowseTimer, 1000);
                 } else {
                     isBrowsing = false;
-                    if (progressBarContainer) {
-                        progressBarContainer.style.display = 'block';
-                    }
+                    toggleProgressBar(true);
                     fetchYouTubeVideoDuration(videoID).then((duration) => {
                         if (duration) {
                             videoDuration = duration;
@@ -300,7 +309,6 @@
                 handleLiveIndicator(false);
             });
 
-            // Check initial YouTube status on load
             checkYouTubeConnection();
         });
 
