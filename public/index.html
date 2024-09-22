@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MikuMiku | Home</title>
-    <!-- Include Google Fonts -->
+
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Link to external CSS file -->
+
     <link rel="stylesheet" href="/styles.css">
 </head>
 
 <body>
-    <!-- Main container -->
+
     <div class="page-container">
-        <!-- Title Bar (fixed at top) -->
+
         <div class="title-bar">
             <div class="container">
                 <img src="/logo.webp" alt="Logo" class="logo">
@@ -21,22 +21,22 @@
             </div>
         </div>
 
-        <!-- Main content container -->
+
         <div id="main-content" class="main-content">
-            <!-- Now Playing Section -->
+
             <div id="now-playing" class="now-playing">
               <div class="now-playing-content">
-                <!-- Video Thumbnail and Info -->
+
                 <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
                 <div class="video-title-container">
                   <h2>Currently Playing on YouTube</h2>
                   <div id="live-indicator" class="live-indicator">Offline</div>
                   <p id="videoTitle">Loading...</p>
-                  <p id="channelName"></p> <!-- Channel name will go here -->
-                  <p id="publishedDate"></p> <!-- Published date will go here -->
-                  <p id="viewCount"></p> <!-- View count will go here -->
+                  <p id="channelName"></p> 
+                  <p id="publishedDate"></p> 
+                  <p id="viewCount"></p> 
                   
-                  <!-- Progress bar with time elapsed and total duration -->
+
                   <div id="progress-bar-container" style="display:none">
                     <div id="progress-bar"></div>
                   </div>
@@ -48,20 +48,20 @@
               </div>
             </div>
 
-            <!-- Content Wrapper -->
+        
             <div class="content-wrapper">
                 <div class="now-playing-about-wrapper">
-                    <!-- Recently Watched Videos Section -->
+              
                     <div class="recent-videos-wrapper">
                         <div class="recent-videos-title">
                             <h3>Recently Watched Videos</h3>
                         </div>
                         <div id="recent-videos-container" class="recent-videos-container">
-                            <!-- Recent videos will be dynamically added here -->
+                          
                         </div>
                     </div>
 
-                    <!-- About Section -->
+                  
                     <div class="about">
                         <div class="container">
                             <h2>About Me</h2>
@@ -72,7 +72,7 @@
             </div>
         </div>
 
-        <!-- Footer -->
+
         <footer class="footer">
             <div class="container">
                 <p>&copy; 2024 MikuMiku. All rights reserved.</p>
@@ -81,7 +81,7 @@
         </footer>
     </div>
 
-    <!-- Scripts -->
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="/memory-game.js"></script>
@@ -99,14 +99,14 @@
             const timeRemainingElement = document.getElementById('time-remaining');
             const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; 
     
-            // Function to format time
+        
             function formatTime(seconds) {
                 const minutes = Math.floor(seconds / 60);
                 const secs = Math.floor(seconds % 60);
                 return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
             }
 
-            // Clear existing interval
+          
             function clearExistingInterval() {
                 if (intervalID) {
                     clearInterval(intervalID);
@@ -114,7 +114,7 @@
                 }
             }
 
-            // Update the progress bar
+        
             function updateProgressBar() {
                 if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
                     const currentTimestamp = Date.now();
@@ -132,7 +132,7 @@
                 }
             }
 
-            // Update browsing timer
+          
             function updateBrowseTimer() {
                 if (isBrowsing) {
                     const currentTimestamp = Date.now();
@@ -141,7 +141,7 @@
                 }
             }
 
-            // Toggle progress bar visibility
+        
             function toggleProgressBar(show) {
                 if (show) {
                     progressBarContainer.style.display = 'block';
@@ -154,7 +154,7 @@
                 }
             }
 
-            // Fetch YouTube video duration using the API
+         
             async function fetchYouTubeVideoDuration(videoID) {
                 const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
                 try {
@@ -164,7 +164,7 @@
                         const durationISO = data.items[0].contentDetails.duration;
                         videoDuration = moment.duration(durationISO).asSeconds();
                         
-                        // Set the total duration in the UI
+                      
                         const formattedDuration = formatTime(videoDuration);
                         document.getElementById('total-duration').innerText = `Total Duration: ${formattedDuration}`;
 
@@ -176,7 +176,7 @@
                 return 0;
             }
 
-            // Update recent videos in the UI
+          
             function updateRecentVideosUI(recentVideos) {
                 const recentVideosContainer = document.getElementById('recent-videos-container');
                 recentVideosContainer.innerHTML = '';
@@ -198,7 +198,7 @@
                 });
             }
 
-            // Add video to recent videos
+         
             function addVideoToRecent(title, url, thumbnail) {
                 let recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
 
@@ -217,13 +217,13 @@
 
             const socket = io('https://mikumiku.dev');
 
-            // Handle live indicator
+          
             function handleLiveIndicator(isLive) {
                 liveIndicator.innerText = isLive ? 'Live' : 'Offline';
                 liveIndicator.classList.toggle('live', isLive);
             }
 
-            // Check if the user is connected to YouTube
+          
             function checkYouTubeConnection() {
                 const onYouTube = window.location.href.includes('youtube.com');
                 handleLiveIndicator(onYouTube);
@@ -233,7 +233,7 @@
                 }
             }
 
-            // Socket event listeners
+          
             socket.on('connect', checkYouTubeConnection);
 
             socket.on('nowPlayingUpdate', (data) => {
@@ -291,7 +291,7 @@
             checkYouTubeConnection();
         });
 
-        // Extract YouTube video ID from URL
+       
         function extractYouTubeVideoID(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
             const match = url.match(regExp);
