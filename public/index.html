@@ -107,25 +107,28 @@
             const progressBarContainer = document.getElementById('progress-bar-container');
             const timeRemainingElement = document.getElementById('time-remaining');
             const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Replace with your API key
-
+    
+            // Function to format time
             function formatTime(seconds) {
                 const minutes = Math.floor(seconds / 60);
                 const secs = Math.floor(seconds % 60);
                 return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
             }
-
+    
+            // Function to clear the existing interval
             function clearExistingInterval() {
                 if (intervalID) {
                     clearInterval(intervalID);
                     intervalID = null;
                 }
             }
-
+    
+            // Function to update the progress bar
             function updateProgressBar() {
                 if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
                     const currentTimestamp = Date.now();
                     const elapsedTime = (currentTimestamp - videoStartTime) / 1000;
-
+    
                     if (elapsedTime >= 0 && elapsedTime <= videoDuration) {
                         const progressPercent = (elapsedTime / videoDuration) * 100;
                         document.getElementById('progress-bar').style.width = `${progressPercent}%`;
@@ -137,7 +140,8 @@
                     }
                 }
             }
-
+    
+            // Function to update browsing timer
             function updateBrowseTimer() {
                 if (isBrowsing) {
                     const currentTimestamp = Date.now();
@@ -145,7 +149,8 @@
                     timeRemainingElement.innerText = `Browsing Videos ${formatTime(elapsedBrowseTime)}`;
                 }
             }
-
+    
+            // Function to toggle the progress bar visibility
             function toggleProgressBar(show) {
                 if (show) {
                     progressBarContainer.style.display = 'block';
@@ -155,7 +160,8 @@
                     timeRemainingElement.style.display = 'none';
                 }
             }
-
+    
+            // Fetch YouTube video duration using the API
             async function fetchYouTubeVideoDuration(videoID) {
                 const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
                 try {
@@ -171,16 +177,17 @@
                 }
                 return 0;
             }
-
+    
+            // Function to update recent videos in the UI
             function updateRecentVideosUI(recentVideos) {
                 const recentVideosContainer = document.getElementById('recent-videos-container');
                 recentVideosContainer.innerHTML = '';
-
+    
                 recentVideos.forEach((video, index) => {
                     const videoElement = document.createElement('div');
                     videoElement.className = 'recent-video-item advanced-video-card';
                     videoElement.style.animationDelay = `${index * 0.1}s`;
-
+    
                     videoElement.innerHTML = `
                         <a href="${video.url}" target="_blank">
                             <div class="card-content">
@@ -192,39 +199,42 @@
                     recentVideosContainer.appendChild(videoElement);
                 });
             }
-
+    
+            // Add video to the recent videos list
             function addVideoToRecent(title, url, thumbnail) {
                 let recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
-
+    
                 const existingVideo = recentVideos.find(video => video.url === url);
                 if (existingVideo) return;
-
+    
                 recentVideos.unshift({ title, url, thumbnail });
-
+    
                 if (recentVideos.length > MAX_RECENT_VIDEOS) {
                     recentVideos = recentVideos.slice(0, MAX_RECENT_VIDEOS);
                 }
-
+    
                 localStorage.setItem('recentVideos', JSON.stringify(recentVideos));
                 updateRecentVideosUI(recentVideos);
             }
-
+    
             const recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
             updateRecentVideosUI(recentVideos);
-
+    
             if (!liveIndicator) {
                 console.error('Live indicator element not found.');
             }
-
+    
             const socket = io('https://mikumiku.dev');
-
+    
+            // Handle live indicator state
             function handleLiveIndicator(isLive) {
                 if (liveIndicator) {
                     liveIndicator.innerText = isLive ? 'Live' : 'Offline';
                     liveIndicator.classList.toggle('live', isLive);
                 }
             }
-
+    
+            // Check if the user is connected to YouTube
             function checkYouTubeConnection() {
                 const youtubeCheck = window.location.href.includes('youtube.com');
                 handleLiveIndicator(youtubeCheck);
@@ -233,36 +243,37 @@
                     document.getElementById('videoTitle').innerText = 'Not on YouTube';
                 }
             }
-
+    
+            // Listen for socket events
             socket.on('connect', () => {
                 console.log('Connected to server');
                 checkYouTubeConnection();
             });
-
+    
             socket.on('nowPlayingUpdate', (data) => {
                 console.log('Now Playing Data:', data);
-
+    
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
-
+    
                 handleLiveIndicator(true);
-
+    
                 if (previousVideoData && previousVideoData.url !== data.videoUrl) {
                     addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
                 }
-
+    
                 const videoID = extractYouTubeVideoID(data.videoUrl);
                 let thumbnailUrl = '/path/to/placeholder.jpg';
                 if (videoID) {
                     thumbnailUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
                 }
-
+    
                 previousVideoData = {
                     title: data.title || 'No video playing',
                     url: data.videoUrl,
                     thumbnail: thumbnailUrl
                 };
-
+    
                 if (videoTitleElement) {
                     videoTitleElement.innerText = data.title || 'No video playing';
                 }
@@ -270,7 +281,7 @@
                     videoThumbnailElement.src = thumbnailUrl;
                     videoThumbnailElement.alt = data.title || 'Video Thumbnail';
                 }
-
+    
                 if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
                     clearExistingInterval();
                     isBrowsing = true;
@@ -294,30 +305,38 @@
                     });
                 }
             });
-
+    
             socket.on('disconnect', () => {
                 console.log('Disconnected from server');
                 handleLiveIndicator(false);
             });
-
+    
             socket.on('connect_error', () => {
                 console.log('Connection error');
                 handleLiveIndicator(false);
             });
-
+    
             socket.on('extensionClosed', () => {
                 handleLiveIndicator(false);
             });
-
+    
+            // Monitor for YouTube tab closure or navigation changes
+            socket.on('youtubeClosed', () => {
+                handleLiveIndicator(false);
+                toggleProgressBar(false);
+                document.getElementById('videoTitle').innerText = 'YouTube Tab Closed';
+            });
+    
             checkYouTubeConnection();
         });
-
+    
         function extractYouTubeVideoID(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
             const match = url.match(regExp);
             return (match && match[2].length === 11) ? match[2] : null;
         }
     </script>
+
 </body>
 
 </html>
