@@ -21,7 +21,7 @@
 
         <div id="main-content" class="main-content">
             <div id="now-playing" class="now-playing">
-               
+                <!-- Sidebar for Channel Info -->
                 <div class="now-playing-sidebar">
                     <div class="sidebar-item">
                         <span>Channel:</span> <span id="channelName">Loading...</span>
@@ -34,7 +34,7 @@
                     </div>
                 </div>
 
-              
+                <!-- Currently Playing Content -->
                 <div class="now-playing-content">
                     <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
                     <div class="video-title-container">
@@ -94,7 +94,7 @@
             let previousVideoData = null;
             const liveIndicator = document.getElementById('live-indicator');
             const progressBarContainer = document.getElementById('progress-bar-container');
-            const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY';
+            const YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY'; // Insert your YouTube API key
 
             function formatTime(seconds) {
                 const minutes = Math.floor(seconds / 60);
@@ -145,20 +145,31 @@
                 }
             }
 
-            async function fetchYouTubeVideoDuration(videoID) {
-                const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
+            async function fetchYouTubeVideoDetails(videoID) {
+                const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=snippet,contentDetails,statistics&key=${YOUTUBE_API_KEY}`;
                 try {
                     const response = await fetch(apiUrl);
                     const data = await response.json();
                     if (data.items.length > 0) {
-                        const durationISO = data.items[0].contentDetails.duration;
+                        const videoData = data.items[0];
+                        const snippet = videoData.snippet;
+                        const stats = videoData.statistics;
+                        const durationISO = videoData.contentDetails.duration;
+
                         videoDuration = moment.duration(durationISO).asSeconds();
                         const formattedDuration = formatTime(videoDuration);
+                        
+                        document.getElementById('videoTitle').innerText = snippet.title;
+                        document.getElementById('channelName').innerText = snippet.channelTitle;
+                        document.getElementById('publishedDate').innerText = new Date(snippet.publishedAt).toLocaleDateString();
+                        document.getElementById('viewCount').innerText = `${stats.viewCount} views`;
+                        document.getElementById('videoThumbnail').src = snippet.thumbnails.high.url;
                         document.getElementById('total-duration').innerText = `Total Duration: ${formattedDuration}`;
+
                         return videoDuration;
                     }
                 } catch (error) {
-                    console.error('Error fetching video duration:', error);
+                    console.error('Error fetching video details:', error);
                 }
                 return 0;
             }
@@ -222,15 +233,15 @@
                     addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
                 }
                 const videoID = extractYouTubeVideoID(data.videoUrl);
-                const thumbnailUrl = videoID ? `https://img.youtube.com/vi/${videoID}/hqdefault.jpg` : '/path/to/placeholder.jpg';
                 previousVideoData = {
                     title: data.title || 'No video playing',
                     url: data.videoUrl,
-                    thumbnail: thumbnailUrl
+                    thumbnail: `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`
                 };
                 videoTitleElement.innerText = previousVideoData.title;
-                videoThumbnailElement.src = thumbnailUrl;
+                videoThumbnailElement.src = previousVideoData.thumbnail;
                 videoThumbnailElement.alt = previousVideoData.title;
+
                 if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
                     clearExistingInterval();
                     isBrowsing = true;
@@ -239,7 +250,7 @@
                 } else {
                     isBrowsing = false;
                     toggleProgressBar(true);
-                    fetchYouTubeVideoDuration(videoID).then((duration) => {
+                    fetchYouTubeVideoDetails(videoID).then((duration) => {
                         if (duration) {
                             videoDuration = duration;
                             videoStartTime = Date.now() - (data.currentTime * 1000);
