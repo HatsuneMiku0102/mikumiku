@@ -14,6 +14,7 @@
 
     <div class="page-container">
 
+      
         <div class="title-bar">
             <div class="container">
                 <img src="/logo.webp" alt="Logo" class="logo">
@@ -21,47 +22,47 @@
             </div>
         </div>
 
-
+     
         <div id="main-content" class="main-content">
-
+       
             <div id="now-playing" class="now-playing">
-              <div class="now-playing-content">
+                <div class="now-playing-content">
+                    <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
+                    <div class="video-title-container">
+                        <h2>Currently Playing on YouTube</h2>
+                        <div id="live-indicator" class="live-indicator">Offline</div>
+                        <p id="videoTitle">Loading...</p>
+                        <p id="channelName"></p> 
+                        <p id="publishedDate"></p> 
+                        <p id="viewCount"></p> 
 
-                <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
-                <div class="video-title-container">
-                  <h2>Currently Playing on YouTube</h2>
-                  <div id="live-indicator" class="live-indicator">Offline</div>
-                  <p id="videoTitle">Loading...</p>
-                  <p id="channelName"></p> 
-                  <p id="publishedDate"></p> 
-                  <p id="viewCount"></p> 
-                  
+                   
+                        <div id="progress-bar-container" style="display:none">
+                            <div id="progress-bar"></div>
+                        </div>
 
-                  <div id="progress-bar-container" style="display:none">
-                    <div id="progress-bar"></div>
-                  </div>
-                  <div class="progress-times-container">
-                      <p id="time-elapsed" class="progress-time">Time Elapsed: --:--</p>
-                      <p id="total-duration" class="progress-time">Total Duration: --:--</p>
-                  </div>
+                   
+                        <div class="progress-times-container">
+                            <p id="time-elapsed" class="progress-time">Time Elapsed: --:--</p>
+                            <p id="total-duration" class="progress-time">Total Duration: --:--</p>
+                        </div>
+                    </div>
                 </div>
-              </div>
             </div>
 
-        
+           
             <div class="content-wrapper">
                 <div class="now-playing-about-wrapper">
-              
                     <div class="recent-videos-wrapper">
                         <div class="recent-videos-title">
                             <h3>Recently Watched Videos</h3>
                         </div>
                         <div id="recent-videos-container" class="recent-videos-container">
-                          
+                            
                         </div>
                     </div>
 
-                  
+                
                     <div class="about">
                         <div class="container">
                             <h2>About Me</h2>
@@ -72,7 +73,7 @@
             </div>
         </div>
 
-
+      
         <footer class="footer">
             <div class="container">
                 <p>&copy; 2024 MikuMiku. All rights reserved.</p>
@@ -85,6 +86,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="/memory-game.js"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             let intervalID = null;
@@ -96,17 +98,16 @@
             let previousVideoData = null;
             const liveIndicator = document.getElementById('live-indicator');
             const progressBarContainer = document.getElementById('progress-bar-container');
-            const timeRemainingElement = document.getElementById('time-remaining');
-            const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; 
-    
-        
+            const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY';
+
+            
             function formatTime(seconds) {
                 const minutes = Math.floor(seconds / 60);
                 const secs = Math.floor(seconds % 60);
                 return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
             }
 
-          
+            
             function clearExistingInterval() {
                 if (intervalID) {
                     clearInterval(intervalID);
@@ -114,7 +115,7 @@
                 }
             }
 
-        
+          
             function updateProgressBar() {
                 if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
                     const currentTimestamp = Date.now();
@@ -141,7 +142,7 @@
                 }
             }
 
-        
+         
             function toggleProgressBar(show) {
                 if (show) {
                     progressBarContainer.style.display = 'block';
@@ -154,7 +155,7 @@
                 }
             }
 
-         
+            
             async function fetchYouTubeVideoDuration(videoID) {
                 const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
                 try {
@@ -163,11 +164,9 @@
                     if (data.items.length > 0) {
                         const durationISO = data.items[0].contentDetails.duration;
                         videoDuration = moment.duration(durationISO).asSeconds();
-                        
-                      
+
                         const formattedDuration = formatTime(videoDuration);
                         document.getElementById('total-duration').innerText = `Total Duration: ${formattedDuration}`;
-
                         return videoDuration;
                     }
                 } catch (error) {
@@ -198,7 +197,7 @@
                 });
             }
 
-         
+          
             function addVideoToRecent(title, url, thumbnail) {
                 let recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
 
@@ -223,7 +222,7 @@
                 liveIndicator.classList.toggle('live', isLive);
             }
 
-          
+           
             function checkYouTubeConnection() {
                 const onYouTube = window.location.href.includes('youtube.com');
                 handleLiveIndicator(onYouTube);
@@ -233,9 +232,9 @@
                 }
             }
 
-          
             socket.on('connect', checkYouTubeConnection);
 
+            
             socket.on('nowPlayingUpdate', (data) => {
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
@@ -291,7 +290,7 @@
             checkYouTubeConnection();
         });
 
-       
+  
         function extractYouTubeVideoID(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
             const match = url.match(regExp);
