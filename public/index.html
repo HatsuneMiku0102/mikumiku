@@ -10,7 +10,6 @@
 </head>
 
 <body>
-
     <div class="page-container">
 
         <div class="title-bar">
@@ -28,9 +27,9 @@
                         <h2>Currently Playing on YouTube</h2>
                         <div id="live-indicator" class="live-indicator">Offline</div>
                         <p id="videoTitle">Loading...</p>
-                        <p id="channelName"></p> 
-                        <p id="publishedDate"></p> 
-                        <p id="viewCount"></p> 
+                        <p id="channelName"></p>
+                        <p id="publishedDate"></p>
+                        <p id="viewCount"></p>
                         <div id="progress-bar-container" style="display:none">
                             <div id="progress-bar"></div>
                         </div>
@@ -103,7 +102,6 @@
                 if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
                     const currentTimestamp = Date.now();
                     const elapsedTime = (currentTimestamp - videoStartTime) / 1000;
-
                     if (elapsedTime >= 0 && elapsedTime <= videoDuration) {
                         const progressPercent = (elapsedTime / videoDuration) * 100;
                         document.getElementById('progress-bar').style.width = `${progressPercent}%`;
@@ -144,7 +142,6 @@
                     if (data.items.length > 0) {
                         const durationISO = data.items[0].contentDetails.duration;
                         videoDuration = moment.duration(durationISO).asSeconds();
-
                         const formattedDuration = formatTime(videoDuration);
                         document.getElementById('total-duration').innerText = `Total Duration: ${formattedDuration}`;
                         return videoDuration;
@@ -158,27 +155,23 @@
             function updateRecentVideosUI(recentVideos) {
                 const recentVideosContainer = document.getElementById('recent-videos-container');
                 recentVideosContainer.innerHTML = '';
-
                 recentVideos.forEach((video, index) => {
                     const videoElement = document.createElement('div');
                     videoElement.className = 'recent-video-item advanced-video-card';
                     videoElement.style.animationDelay = `${index * 0.1}s`;
-
                     videoElement.innerHTML = `
                         <a href="${video.url}" target="_blank">
                             <div class="card-content">
                                 <img src="${video.thumbnail}" class="recent-video-thumbnail" alt="Thumbnail of ${video.title}">
                                 <p class="recent-video-title">${video.title}</p>
                             </div>
-                        </a>
-                    `;
+                        </a>`;
                     recentVideosContainer.appendChild(videoElement);
                 });
             }
 
             function addVideoToRecent(title, url, thumbnail) {
                 let recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
-
                 if (!recentVideos.find(video => video.url === url)) {
                     recentVideos.unshift({ title, url, thumbnail });
                     if (recentVideos.length > MAX_RECENT_VIDEOS) {
@@ -213,26 +206,20 @@
             socket.on('nowPlayingUpdate', (data) => {
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
-
                 handleLiveIndicator(true);
-
                 if (previousVideoData && previousVideoData.url !== data.videoUrl) {
                     addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
                 }
-
                 const videoID = extractYouTubeVideoID(data.videoUrl);
                 const thumbnailUrl = videoID ? `https://img.youtube.com/vi/${videoID}/hqdefault.jpg` : '/path/to/placeholder.jpg';
-
                 previousVideoData = {
                     title: data.title || 'No video playing',
                     url: data.videoUrl,
                     thumbnail: thumbnailUrl
                 };
-
                 videoTitleElement.innerText = previousVideoData.title;
                 videoThumbnailElement.src = thumbnailUrl;
                 videoThumbnailElement.alt = previousVideoData.title;
-
                 if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
                     clearExistingInterval();
                     isBrowsing = true;
@@ -271,6 +258,5 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
     </script>
-
 </body>
 </html>
