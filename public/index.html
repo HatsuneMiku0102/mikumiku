@@ -32,9 +32,9 @@
                   <h2>Currently Playing on YouTube</h2>
                   <div id="live-indicator" class="live-indicator">Offline</div>
                   <p id="videoTitle">Loading...</p>
-                  <p id="channelName"></p> <!-- Channel name will go here -->
-                  <p id="publishedDate"></p> <!-- Published date will go here -->
-                  <p id="viewCount"></p> <!-- View count will go here -->
+                  <p id="channelName">Channel: Loading...</p> <!-- Channel name will go here -->
+                  <p id="publishedDate">Published: Loading...</p> <!-- Published date will go here -->
+                  <p id="viewCount">Views: Loading...</p> <!-- View count will go here -->
                   <div id="progress-bar-container" style="display:none">
                     <div id="progress-bar"></div>
                   </div>
@@ -42,7 +42,6 @@
                 </div>
               </div>
             </div>
-
 
             <!-- Content Wrapper -->
             <div class="content-wrapper">
@@ -93,7 +92,7 @@
             const liveIndicator = document.getElementById('live-indicator');
             const progressBarContainer = document.getElementById('progress-bar-container');
             const timeRemainingElement = document.getElementById('time-remaining');
-            const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; // Replace with your YouTube API key
+            const YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY'; // Replace with your YouTube API key
     
             // Function to format time
             function formatTime(seconds) {
@@ -128,39 +127,27 @@
                 }
             }
     
-            // Update browsing timer
-            function updateBrowseTimer() {
-                if (isBrowsing) {
-                    const currentTimestamp = Date.now();
-                    const elapsedBrowseTime = (currentTimestamp - videoStartTime) / 1000;
-                    timeRemainingElement.innerText = `Browsing Videos: ${formatTime(elapsedBrowseTime)}`;
-                }
-            }
-    
-            // Toggle progress bar visibility
-            function toggleProgressBar(show) {
-                if (show) {
-                    progressBarContainer.style.display = 'block';
-                    timeRemainingElement.style.display = 'block';
-                } else {
-                    progressBarContainer.style.display = 'none';
-                    timeRemainingElement.style.display = 'none';
-                }
-            }
-    
-            // Fetch YouTube video duration using the API
-            async function fetchYouTubeVideoDuration(videoID) {
-                const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=contentDetails&key=${YOUTUBE_API_KEY}`;
+            // Fetch YouTube video details using the API
+            async function fetchYouTubeVideoDetails(videoID) {
+                const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=snippet,statistics,contentDetails&key=${YOUTUBE_API_KEY}`;
                 try {
                     const response = await fetch(apiUrl);
                     const data = await response.json();
                     if (data.items.length > 0) {
-                        const durationISO = data.items[0].contentDetails.duration;
+                        const videoData = data.items[0];
+                        const durationISO = videoData.contentDetails.duration;
                         videoDuration = moment.duration(durationISO).asSeconds();
+                        
+                        // Update the DOM with the video details
+                        document.getElementById('videoTitle').innerText = videoData.snippet.title;
+                        document.getElementById('channelName').innerText = `Channel: ${videoData.snippet.channelTitle}`;
+                        document.getElementById('publishedDate').innerText = `Published: ${new Date(videoData.snippet.publishedAt).toLocaleDateString()}`;
+                        document.getElementById('viewCount').innerText = `Views: ${Number(videoData.statistics.viewCount).toLocaleString()}`;
+    
                         return videoDuration;
                     }
                 } catch (error) {
-                    console.error('Error fetching video duration:', error);
+                    console.error('Error fetching video details:', error);
                 }
                 return 0;
             }
@@ -217,7 +204,6 @@
                 const onYouTube = window.location.href.includes('youtube.com');
                 handleLiveIndicator(onYouTube);
                 if (!onYouTube) {
-                    toggleProgressBar(false);
                     document.getElementById('videoTitle').innerText = 'Not on YouTube';
                 }
             }
@@ -248,32 +234,21 @@
                 videoThumbnailElement.src = thumbnailUrl;
                 videoThumbnailElement.alt = previousVideoData.title;
     
-                if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
-                    clearExistingInterval();
-                    isBrowsing = true;
-                    toggleProgressBar(false);
-                    intervalID = setInterval(updateBrowseTimer, 1000);
-                } else {
-                    isBrowsing = false;
-                    toggleProgressBar(true);
-                    fetchYouTubeVideoDuration(videoID).then((duration) => {
-                        if (duration) {
-                            videoDuration = duration;
-                            videoStartTime = Date.now() - (data.currentTime * 1000);
-                            clearExistingInterval();
-                            isVideoPaused = data.isPaused;
-                            if (!isVideoPaused) {
-                                intervalID = setInterval(updateProgressBar, 1000);
-                            }
+                fetchYouTubeVideoDetails(videoID).then((duration) => {
+                    if (duration) {
+                        videoStartTime = Date.now() - (data.currentTime * 1000);
+                        clearExistingInterval();
+                        isVideoPaused = data.isPaused;
+                        if (!isVideoPaused) {
+                            intervalID = setInterval(updateProgressBar, 1000);
                         }
-                    });
-                }
+                    }
+                });
             });
     
             socket.on('disconnect', () => handleLiveIndicator(false));
             socket.on('youtubeClosed', () => {
                 handleLiveIndicator(false);
-                toggleProgressBar(false);
                 document.getElementById('videoTitle').innerText = 'YouTube Tab Closed';
             });
     
