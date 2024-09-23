@@ -1,10 +1,20 @@
 document.addEventListener('DOMContentLoaded', function () {
-    document.getElementById('login-form').addEventListener('submit', function (event) {
+    const loginForm = document.getElementById('login-form');
+    const errorMessage = document.getElementById('error-message');
+
+    if (!loginForm) {
+        console.error('Login form not found!');
+        return;
+    }
+
+    loginForm.addEventListener('submit', function (event) {
         event.preventDefault();
-        const errorMessage = document.getElementById('error-message');
         errorMessage.textContent = '';
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
+        errorMessage.classList.remove('active');
+
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
+
         if (!username || !password) {
             errorMessage.textContent = 'Please fill in both fields';
             errorMessage.classList.add('active');
@@ -13,8 +23,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }, 3000);
             return;
         }
+
         errorMessage.textContent = 'Logging in...';
         errorMessage.classList.add('active');
+
         fetch('/login', {
             method: 'POST',
             headers: {
