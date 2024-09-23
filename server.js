@@ -608,17 +608,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 function verifyToken(req, res, next) {
     const token = req.cookies.token;
     if (!token) {
-        return res.status(401).json({ redirect: '/admin-login.html' });
+        return res.redirect('/admin-login.html'); // This sends a real redirect
     }
 
-    jwt.verify(token, process.env.JWT_SECRET || 'your-jwt-secret-key', (err, decoded) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
-            return res.status(401).json({ redirect: '/admin-login.html' });
+            return res.redirect('/admin-login.html'); // This sends a real redirect
         }
         req.userId = decoded.id;
         next();
     });
 }
+
 
 // POST route for login
 app.post('/login', (req, res) => {
