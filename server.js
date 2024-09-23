@@ -652,16 +652,18 @@ app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
     const adminUsername = process.env.ADMIN_USERNAME;
-    const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH; // Use a hashed password
+    const adminPasswordHash = process.env.ADMIN_PASSWORD;
+    const salt = 'random_salt';
 
     if (username !== adminUsername) {
         return res.status(401).json({ auth: false, message: 'Invalid username or password' });
     }
 
-    // Compare the submitted password with the stored hashed password
-    const passwordIsValid = comparePassword(password, adminPasswordHash);
+    // Hash the submitted password with the same salt
+    const hashedInputPassword = hashPassword(password, salt);
 
-    if (!passwordIsValid) {
+    // Compare the hashed input password with the stored hash
+    if (hashedInputPassword !== adminPasswordHash) {
         return res.status(401).json({ auth: false, message: 'Invalid username or password' });
     }
 
@@ -693,6 +695,7 @@ app.post('/login', (req, res) => {
         res.status(200).json({ auth: true, redirect: dashboardURL });
     });
 });
+
 
 
 
