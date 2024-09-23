@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin | Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .admin-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #2c2c2c;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        h2, h3 {
+            color: #00bcd4;
+        }
+        button {
+            background-color: #00bcd4;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0097a7;
+        }
+        .api-status {
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .api-status.working {
+            background-color: #4caf50;
+        }
+        .api-status.unavailable {
+            background-color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <h2>Admin Dashboard</h2>
+        <button id="logout">Logout</button>
+
+        <h3>Real-time Active Users</h3>
+        <p id="active-users-count">Loading...</p>
+
+        <div id="location-data">
+            <h3>Visitor Location</h3>
+            <div id="location">Loading location data...</div>
+        </div>
+
+        <h3>API Status</h3>
+        <div id="youtube-status" class="api-status">Checking YouTube API...</div>
+        <div id="bungie-status" class="api-status">Checking Bungie API...</div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+
+        socket.on('activeUsersUpdate', (data) => {
+            const activeUsersCount = data.users.length;
+            document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
+
+            const locationDiv = document.getElementById('location');
+            locationDiv.innerHTML = '';  
+
+            data.users.forEach(user => {
+                const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
+                const locationElement = document.createElement('p');
+                locationElement.innerText = locationInfo;
+                locationDiv.appendChild(locationElement);
+            });
+        });
+
+   
+        fetch('/api/location')
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else if (response.status === 401) {
+                 
+                    return response.json().then(data => {
+                        if (data.redirect) {
+                            window.location.href = data.redirect;
+                        }
+                    });
+                } else {
+                    throw new Error('Error fetching location data');
+                }
+            })
+            .then(data => {
+                if (data) {
+                    const locationDiv = document.getElementById('location');
+                    locationDiv.innerHTML = '';  
+
+                    data.forEach(user => {
+                        const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
+                        const locationElement = document.createElement('p');
+                        locationElement.innerText = locationInfo;
+                        locationDiv.appendChild(locationElement);
+                    });
+                }
+            })
+            .catch(error => {
+                document.getElementById('location').innerText = 'Error loading location data';
+                console.error(error);
+            });
+
+  
+        const logoutButton = document.getElementById('logout');
+        logoutButton.addEventListener('click', () => {
+            fetch('/logout', { method: 'POST' })
+                .then(() => {
+                    
+                    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                    window.location.href = '/admin-login.html';
+                })
+                .catch(error => console.error('Error:', error));
+        });
+
+     
+        fetch('/api/check-youtube')
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else if (response.status === 401) {
+                   
+                    return response.json().then(data => {
+                        if (data.redirect) {
+                            window.location.href = data.redirect;
+                        }
+                    });
+                } else {
+                    throw new Error('Error checking YouTube API');
+                }
+            })
+            .then(data => {
+                if (data) {
+                    const youtubeStatus = document.getElementById('youtube-status');
+                    youtubeStatus.innerText = data.status;
+                    youtubeStatus.classList.add(data.available ? 'working' : 'unavailable');
+                }
+            })
+            .catch(error => {
+                console.error('Error checking YouTube API:', error);
+            });
+
+  
+        fetch('/api/check-bungie')
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else if (response.status === 401) {
+                   
+                    return response.json().then(data => {
+                        if (data.redirect) {
+                            window.location.href = data.redirect;
+                        }
+                    });
+                } else {
+                    throw new Error('Error checking Bungie API');
+                }
+            })
+            .then(data => {
+                if (data) {
+                    const bungieStatus = document.getElementById('bungie-status');
+                    bungieStatus.innerText = data.status;
+                    bungieStatus.classList.add(data.available ? 'working' : 'unavailable');
+                }
+            })
+            .catch(error => {
+                console.error('Error checking Bungie API:', error);
+            });
+    </script>
+</body>
+</html>
