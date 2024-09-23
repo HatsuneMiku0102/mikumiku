@@ -723,3 +723,21 @@ server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
 
+let activeUsers = 0;
+
+// When a client connects
+io.on('connection', (socket) => {
+    activeUsers++;  
+    io.emit('activeUsersUpdate', { count: activeUsers }); 
+
+    console.log(`New connection. Active users: ${activeUsers}`);
+
+    // When a client disconnects
+    socket.on('disconnect', () => {
+        activeUsers--;  // Decrement the active users count
+        io.emit('activeUsersUpdate', { count: activeUsers }); // Broadcast the updated count to all clients
+
+        console.log(`User disconnected. Active users: ${activeUsers}`);
+    });
+});
+
