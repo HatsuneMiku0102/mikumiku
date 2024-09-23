@@ -721,7 +721,7 @@ app.post('/api/update', (req, res) => {
 });
 
 let activeUsers = [];
-const activeUsers = {};
+
 
 async function fetchLocationData(ip) {
     try {
