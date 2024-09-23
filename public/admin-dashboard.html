@@ -57,7 +57,7 @@
 
         <div id="location-data">
             <h3>Visitor Location</h3>
-            <p id="location">Loading location data...</p>
+            <div id="location">Loading location data...</div>
         </div>
 
         <h3>API Status</h3>
@@ -66,20 +66,40 @@
     </div>
     
     <script src="/socket.io/socket.io.js"></script>
-    <script src="admin-dashboard.js"></script>
     <script>
         const socket = io();
 
         socket.on('activeUsersUpdate', (data) => {
             console.log('Real-time active users data:', data); // Debugging log
-            document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.count}`;
+
+            // Update the active users count
+            const activeUsersCount = data.users.length;
+            document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
+
+            // Update the location data for all active users
+            const locationDiv = document.getElementById('location');
+            locationDiv.innerHTML = '';  // Clear previous data
+
+            data.users.forEach(user => {
+                const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
+                const locationElement = document.createElement('p');
+                locationElement.innerText = locationInfo;
+                locationDiv.appendChild(locationElement);
+            });
         });
 
         fetch('/api/location')
             .then(response => response.json())
             .then(data => {
-                document.getElementById('location').innerText = 
-                    `IP: ${data.ip}, City: ${data.city}, Region: ${data.region}, Country: ${data.country}`;
+                const locationDiv = document.getElementById('location');
+                locationDiv.innerHTML = '';  // Clear previous data
+
+                data.forEach(user => {
+                    const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
+                    const locationElement = document.createElement('p');
+                    locationElement.innerText = locationInfo;
+                    locationDiv.appendChild(locationElement);
+                });
             })
             .catch(error => {
                 document.getElementById('location').innerText = 'Error loading location data';
@@ -96,32 +116,27 @@
                 .catch(error => console.error('Error:', error));
         });
 
-        // Delaying API status checks to ensure no interference with real-time data
-        setTimeout(() => {
-            fetch('/api/check-youtube')
-                .then(response => response.json())
-                .then(data => {
-                    const youtubeStatus = document.getElementById('youtube-status');
-                    youtubeStatus.innerText = data.status;
-                    youtubeStatus.classList.add(data.available ? 'working' : 'unavailable');
-                })
-                .catch(error => {
-                    console.error('Error checking YouTube API:', error);
-                });
-        }, 2000);
+        fetch('/api/check-youtube')
+            .then(response => response.json())
+            .then(data => {
+                const youtubeStatus = document.getElementById('youtube-status');
+                youtubeStatus.innerText = data.status;
+                youtubeStatus.classList.add(data.available ? 'working' : 'unavailable');
+            })
+            .catch(error => {
+                console.error('Error checking YouTube API:', error);
+            });
 
-        setTimeout(() => {
-            fetch('/api/check-bungie')
-                .then(response => response.json())
-                .then(data => {
-                    const bungieStatus = document.getElementById('bungie-status');
-                    bungieStatus.innerText = data.status;
-                    bungieStatus.classList.add(data.available ? 'working' : 'unavailable');
-                })
-                .catch(error => {
-                    console.error('Error checking Bungie API:', error);
-                });
-        }, 3000);
+        fetch('/api/check-bungie')
+            .then(response => response.json())
+            .then(data => {
+                const bungieStatus = document.getElementById('bungie-status');
+                bungieStatus.innerText = data.status;
+                bungieStatus.classList.add(data.available ? 'working' : 'unavailable');
+            })
+            .catch(error => {
+                console.error('Error checking Bungie API:', error);
+            });
     </script>
 </body>
 </html>
