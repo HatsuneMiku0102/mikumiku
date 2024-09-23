@@ -608,6 +608,7 @@ app.use(session({
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Middleware to verify JWT token and session
+// JWT Verification Middleware
 function verifyToken(req, res, next) {
     const token = req.cookies.token;
     console.log('Token from cookie:', token);
