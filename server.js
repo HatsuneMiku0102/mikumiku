@@ -625,16 +625,16 @@ function verifyToken(req, res, next) {
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
-    const plainPassword = 'Aria01'; // Replace this with your actual password
-    const hashedPassword = bcrypt.hashSync(plainPassword, 8);
+    const adminUsername = process.env.ADMIN_USERNAME;  // Ensure this is set correctly in your Heroku config
+    const adminPasswordHash = process.env.ADMIN_PASSWORD;  // This is the hashed password from the environment variable
 
     // Check if the username is correct
     if (username !== adminUsername) {
         return res.status(401).json({ auth: false, message: 'Invalid username or password' });
     }
 
-    // Check if the password matches
-    const passwordIsValid = bcrypt.compareSync(password, adminPasswordHash);
+    // Check if the password matches the hashed password stored in the environment
+    const passwordIsValid = bcrypt.compareSync(password, adminPasswordHash); // Compare plaintext password with hash
     if (!passwordIsValid) {
         return res.status(401).json({ auth: false, message: 'Invalid username or password' });
     }
@@ -644,6 +644,7 @@ app.post('/login', (req, res) => {
         expiresIn: 86400 // 24 hours
     });
 
+    // Set the token as a secure cookie
     res.cookie('token', token, {
         httpOnly: true,
         secure: true,  // Use secure cookies
@@ -652,6 +653,7 @@ app.post('/login', (req, res) => {
 
     res.status(200).json({ auth: true, redirect: `/admin-dashboard-${generateRandomString()}.html` });
 });
+
 
 // Serve the dynamic dashboard URL after successful login
 app.get('/:dashboardURL', verifyToken, (req, res) => {
