@@ -607,18 +607,24 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Middleware to verify JWT token and session
 function verifyToken(req, res, next) {
     const token = req.cookies.token;
+    console.log('Token from cookie:', token);
+
     if (!token) {
-        return res.redirect('/admin-login.html'); // This sends a real redirect
+        console.log('Token not found. Redirecting to login.');
+        return res.redirect('/admin-login.html');  // Redirect if no token
     }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
-            return res.redirect('/admin-login.html'); // This sends a real redirect
+            console.log('Token verification failed:', err.message);
+            return res.redirect('/admin-login.html');  // Redirect if token is invalid
         }
+        console.log('Token successfully verified. User ID:', decoded.id);
         req.userId = decoded.id;
         next();
     });
 }
+
 
 
 function hashPassword(password, salt) {
