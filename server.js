@@ -21,7 +21,7 @@ const app = express();
 
 dotenv.config();
 
-const plainPassword = 'Aria'; // Your real password
+const plainPassword = 'Aria'; // Your actual plain text password
 const hashedPassword = bcrypt.hashSync(plainPassword, 8);
 console.log('Hashed Password:', hashedPassword);
 
