@@ -743,6 +743,7 @@ function normalizeIp(ip) {
         return ip.replace('::ffff:', '');  // Normalize IPv6-mapped IPv4 to IPv4
     }
     return ip;
+}
 
 io.on('connection', async (socket) => {  
     let ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
