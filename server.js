@@ -85,14 +85,14 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret-key',
     resave: false,
     saveUninitialized: false,
-    store: sessionStore,
+    store: sessionStore,  // Ensure your session store is properly managing sessions
     cookie: {
-        secure: process.env.NODE_ENV === 'production',  // Ensure secure only in production
-        sameSite: 'None',  // To allow cross-site cookies
+        secure: true,  // Only use cookies over HTTPS
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000  // 24 hours
+        maxAge: 24 * 60 * 60 * 1000 // 24-hour expiration for sessions
     }
 }));
+
 
 // Set CSP headers using helmet
 app.use(helmet.contentSecurityPolicy({
