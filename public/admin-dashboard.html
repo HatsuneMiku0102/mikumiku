@@ -69,15 +69,30 @@
     <script>
         const socket = io();
 
+        // Check if the response requires redirection
+        function handleRedirect(response) {
+            if (response.redirect) {
+                window.location.href = response.redirect;
+            }
+        }
+
+        // Fetch wrapper that checks for JSON redirects
+        async function fetchWithRedirectCheck(url) {
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.redirect) {
+                window.location.href = data.redirect;
+            } else {
+                return data;
+            }
+        }
+
         // Update real-time active users and their location data
         socket.on('activeUsersUpdate', (data) => {
-            console.log('Real-time active users data:', data); // Debugging log
-
-            // Update the active users count
             const activeUsersCount = data.users.length;
             document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
 
-            // Update the location data for all active users
             const locationDiv = document.getElementById('location');
             locationDiv.innerHTML = '';  // Clear previous data
 
@@ -89,9 +104,8 @@
             });
         });
 
-        // Fetch initial location data
-        fetch('/api/location')
-            .then(response => response.json())
+        // Fetch initial location data with auto-redirect if unauthorized
+        fetchWithRedirectCheck('/api/location')
             .then(data => {
                 const locationDiv = document.getElementById('location');
                 locationDiv.innerHTML = '';  // Clear previous data
@@ -121,8 +135,7 @@
         });
 
         // Check the status of the YouTube API
-        fetch('/api/check-youtube')
-            .then(response => response.json())
+        fetchWithRedirectCheck('/api/check-youtube')
             .then(data => {
                 const youtubeStatus = document.getElementById('youtube-status');
                 youtubeStatus.innerText = data.status;
@@ -133,8 +146,7 @@
             });
 
         // Check the status of the Bungie API
-        fetch('/api/check-bungie')
-            .then(response => response.json())
+        fetchWithRedirectCheck('/api/check-bungie')
             .then(data => {
                 const bungieStatus = document.getElementById('bungie-status');
                 bungieStatus.innerText = data.status;
