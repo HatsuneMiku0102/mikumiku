@@ -27,7 +27,8 @@ document.addEventListener('DOMContentLoaded', function () {
         errorMessage.textContent = 'Logging in...';
         errorMessage.classList.add('active');
 
-        fetch('/login', {
+        // Update the fetch URL to match the form's action
+        fetch('/admin-login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
