@@ -99,6 +99,7 @@ app.use(helmet.contentSecurityPolicy({
         scriptSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com", "https://www.youtube.com", "https://www.youtube.com/iframe_api"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         imgSrc: ["'self'", "data:", "https://i.ytimg.com", "https://img.youtube.com"],
+        imgSrc: ["'self'", "data:", "https://openweathermap.org"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         connectSrc: ["'self'", "https://www.googleapis.com", "https://*.youtube.com"],
         frameSrc: ["'self'", "https://discord.com", "https://www.youtube.com"],
