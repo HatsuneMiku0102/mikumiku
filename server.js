@@ -720,39 +720,57 @@ app.post('/api/update', (req, res) => {
     res.status(200).send({ message: 'Data sent to clients' });
 });
 
+let activeUsers = [];
+
+// Helper function to fetch location data using IPinfo
+async function fetchLocationData(ip) {
+    try {
+        const response = await axios.get(`https://ipinfo.io/${ip}?token=14eb346301d8b9`);
+        const { ip: userIP, city, region, country } = response.data;
+        return { ip: userIP, city, region, country };
+    } catch (error) {
+        console.error('Error fetching location data:', error);
+        return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
+    }
+}
+
+// Middleware to add each visitor's location info to the activeUsers list
+app.use(async (req, res, next) => {
+    const ip = req.ip === '::1' ? '127.0.0.1' : req.ip; // Handle localhost IPs
+
+    if (!activeUsers.find(user => user.ip === ip)) {
+        const locationData = await fetchLocationData(ip);
+        activeUsers.push(locationData);
+    }
+
+    // Remove disconnected users after a session expires
+    setTimeout(() => {
+        activeUsers = activeUsers.filter(user => user.ip !== ip);
+    }, 10 * 60 * 1000); // Remove user after 10 minutes of inactivity
+
+    next();
+});
+
+// Route to get the list of active users and their locations
+app.get('/api/location', (req, res) => {
+    res.json(activeUsers);
+});
+
+// Socket.IO for real-time active user count and details
+io.on('connection', (socket) => {
+    // Emit active users to the newly connected client
+    io.emit('activeUsersUpdate', { users: activeUsers });
+
+    socket.on('disconnect', () => {
+        // You can handle user disconnection here if needed
+    });
+});
+
 // Start the server
 server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
 
-let activeUsers = 0;
 
-// When a client connects
-io.on('connection', (socket) => {
-    activeUsers++;  
-    io.emit('activeUsersUpdate', { count: activeUsers }); 
-
-    console.log(`New connection. Active users: ${activeUsers}`);
-
-    // When a client disconnects
-    socket.on('disconnect', () => {
-        activeUsers--;  // Decrement the active users count
-        io.emit('activeUsersUpdate', { count: activeUsers }); // Broadcast the updated count to all clients
-
-        console.log(`User disconnected. Active users: ${activeUsers}`);
-    });
-});
-
-
-app.get('/api/location', async (req, res) => {
-    try {
-        const response = await axios.get('https://ipinfo.io?token=14eb346301d8b9');
-        const locationData = response.data;
-        res.json(locationData);
-    } catch (error) {
-        console.error('Error fetching location data:', error);
-        res.status(500).send('Error fetching location data');
-    }
-});
 
 
