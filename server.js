@@ -628,30 +628,35 @@ function verifyToken(req, res, next) {
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
-    const adminUsername = process.env.ADMIN_USERNAME;  // Ensure this is set correctly in your Heroku config
-    const adminPasswordHash = process.env.ADMIN_PASSWORD;  // This is the hashed password from the environment variable
+    console.log('Login attempt with username:', username);  // Log incoming username
 
-    // Check if the username is correct
+    const adminUsername = process.env.ADMIN_USERNAME;
+    const adminPasswordHash = process.env.ADMIN_PASSWORD;
+
+    // Log the process
+    console.log('Environment Admin Username:', adminUsername);
+    console.log('Environment Admin Password (hashed):', adminPasswordHash);
+
     if (username !== adminUsername) {
+        console.log('Invalid username');
         return res.status(401).json({ auth: false, message: 'Invalid username or password' });
     }
 
-    // Check if the password matches the hashed password stored in the environment
-    const passwordIsValid = bcrypt.compareSync(password, adminPasswordHash); // Compare plaintext password with hash
+    const passwordIsValid = bcrypt.compareSync(password, adminPasswordHash);
+
     if (!passwordIsValid) {
+        console.log('Invalid password');
         return res.status(401).json({ auth: false, message: 'Invalid username or password' });
     }
 
-    // If both username and password are valid, generate the JWT token
     const token = jwt.sign({ id: adminUsername }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
-        expiresIn: 86400 // 24 hours
+        expiresIn: 86400
     });
 
-    // Set the token as a secure cookie
     res.cookie('token', token, {
         httpOnly: true,
-        secure: true,  // Use secure cookies
-        maxAge: 86400 * 1000 // 24 hours
+        secure: true,  // Ensure you're running in production or adjust this
+        maxAge: 86400 * 1000
     });
 
     res.status(200).json({ auth: true, redirect: `/admin-dashboard-${generateRandomString()}.html` });
