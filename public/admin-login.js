@@ -15,7 +15,8 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.auth) {
-                window.location.href = 'admin-dashboard.html';
+                // Redirect to the dynamic admin URL returned from the server
+                window.location.href = data.url;
             } else {
                 document.getElementById('error-message').textContent = 'Invalid username or password';
             }
