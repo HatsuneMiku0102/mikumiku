@@ -589,6 +589,10 @@ app.get('/api/clan/pending/fromdb', verifyToken, async (req, res) => {
     }
 });
 
+function generateRandomUrl() {
+    return '/admin-dashboard/' + crypto.randomBytes(16).toString('hex');
+}
+
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
@@ -601,17 +605,25 @@ app.post('/login', (req, res) => {
         return res.status(400).send({ auth: false, message: 'Invalid username or password' });
     }
 
+    // Generate JWT token
     const token = jwt.sign({ id: user.username }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
         expiresIn: 86400 // 24 hours
     });
 
+    // Generate random URL
+    const adminUrl = generateRandomUrl();
+    
+    // Store admin URL in session or database (here we store in session)
+    req.session.adminUrl = adminUrl;
+
     res.cookie('token', token, {
         httpOnly: true,
         secure: true, // Set to true if using HTTPS
-        sameSite: 'None', // Set this if you're using cross-site cookies
+        maxAge: 86400 * 1000 // 24 hours
     });
 
-    res.status(200).send({ auth: true, token });
+    // Redirect to the random admin URL
+    res.status(200).send({ auth: true, url: adminUrl });
 });
 
 
@@ -622,8 +634,10 @@ app.post('/logout', (req, res) => {
     res.redirect('/admin-login.html'); // redirect to login page
 });
 
+
+// Middleware to verify token and session-specific admin URL
 function verifyToken(req, res, next) {
-    const token = req.cookies.token; // assuming JWT token is stored in a cookie
+    const token = req.cookies.token;
     if (!token) {
         return res.status(401).json({ redirect: '/admin-login.html' });
     }
@@ -632,10 +646,18 @@ function verifyToken(req, res, next) {
         if (err) {
             return res.status(401).json({ redirect: '/admin-login.html' });
         }
+
         req.userId = decoded.id;
-        next();
+
+        // Check if the user is trying to access their specific admin URL
+        if (req.session.adminUrl && req.originalUrl === req.session.adminUrl) {
+            next();
+        } else {
+            return res.status(401).json({ redirect: '/admin-login.html' });
+        }
     });
 }
+
 
 
 // Public route for fetching videos
