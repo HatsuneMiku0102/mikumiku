@@ -791,20 +791,23 @@ app.get('/admin-dashboard', verifyToken, (req, res) => {
 });
 
 
-app.get('/api/check-youtube', async (req, res) => {
-    const youtubeApiKey = process.env.YOUTUBE_API_KEY;
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&q=test&key=${youtubeApiKey}`;
-
-    try {
-        const response = await axios.get(url);
-        if (response.status === 200) {
-            return res.json({ status: 'YouTube API is working', available: true });
+fetch('/api/check-youtube')
+    .then(response => {
+        if (response.headers.get('content-type').includes('application/json')) {
+            return response.json();
+        } else {
+            console.error('Expected JSON but received:', response);
+            throw new Error('Expected JSON response but received HTML');
         }
-    } catch (error) {
+    })
+    .then(data => {
+        const youtubeStatus = document.getElementById('youtube-status');
+        youtubeStatus.innerText = data.status;
+        youtubeStatus.classList.add(data.available ? 'working' : 'unavailable');
+    })
+    .catch(error => {
         console.error('Error checking YouTube API:', error);
-        return res.json({ status: 'YouTube API is unavailable', available: false });
-    }
-});
+    });
 
 // Bungie API Status Check
 app.get('/api/check-bungie', async (req, res) => {
