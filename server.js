@@ -628,22 +628,16 @@ function verifyToken(req, res, next) {
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
-    console.log('Login attempt with username:', username);  // Log incoming username
+    console.log('Submitted Password:', password); // Log the plain text password from the form
 
     const adminUsername = process.env.ADMIN_USERNAME;
     const adminPasswordHash = process.env.ADMIN_PASSWORD;
 
-    // Log the process
-    console.log('Environment Admin Username:', adminUsername);
-    console.log('Environment Admin Password (hashed):', adminPasswordHash);
-
     if (username !== adminUsername) {
-        console.log('Invalid username');
         return res.status(401).json({ auth: false, message: 'Invalid username or password' });
     }
 
     const passwordIsValid = bcrypt.compareSync(password, adminPasswordHash);
-
     if (!passwordIsValid) {
         console.log('Invalid password');
         return res.status(401).json({ auth: false, message: 'Invalid username or password' });
@@ -655,12 +649,13 @@ app.post('/login', (req, res) => {
 
     res.cookie('token', token, {
         httpOnly: true,
-        secure: true,  // Ensure you're running in production or adjust this
+        secure: true,
         maxAge: 86400 * 1000
     });
 
     res.status(200).json({ auth: true, redirect: `/admin-dashboard-${generateRandomString()}.html` });
 });
+
 
 
 // Serve the dynamic dashboard URL after successful login
