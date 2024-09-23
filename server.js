@@ -94,19 +94,74 @@ app.use(session({
 
 // Set CSP headers using helmet
 
-app.use(helmet.contentSecurityPolicy({
+app.use(
+  helmet.contentSecurityPolicy({
     directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com", "https://www.youtube.com", "https://www.youtube.com/iframe_api"], // Add YouTube script sources
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        imgSrc: ["'self'", "data:", "https://i.ytimg.com", "https://img.youtube.com"], // Allow YouTube images and thumbnails
-        fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        connectSrc: ["'self'", "https://www.googleapis.com", "https://*.youtube.com"], // Allow YouTube API calls
-        frameSrc: ["'self'", "https://discord.com", "https://www.youtube.com"], // Allow embedding YouTube videos in iframes
-        mediaSrc: ["'self'", "https://www.youtube.com"], // Allow media from YouTube
-        frameAncestors: ["'self'", "https://discord.com"]
+      defaultSrc: ["'self'"],
+      
+      // Allow scripts from self, Google Fonts, CDNJS, and YouTube
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'", // Consider replacing with nonces or hashes for better security
+        "https://fonts.googleapis.com",
+        "https://cdnjs.cloudflare.com",
+        "https://www.youtube.com"
+      ],
+      
+      // Allow styles from self, Google Fonts
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'", // Consider replacing with nonces or hashes for better security
+        "https://fonts.googleapis.com"
+      ],
+      
+      // Allow images from self, data URIs, YouTube, and OpenWeatherMap
+      imgSrc: [
+        "'self'",
+        "data:",
+        "https://i.ytimg.com",
+        "https://img.youtube.com",
+        "https://openweathermap.org"
+      ],
+      
+      // Allow fonts from self and Google Fonts
+      fontSrc: [
+        "'self'",
+        "https://fonts.gstatic.com"
+      ],
+      
+      // Allow connections to self, Google APIs, YouTube, and OpenWeatherMap
+      connectSrc: [
+        "'self'",
+        "https://www.googleapis.com",
+        "https://*.youtube.com",
+        "https://api.openweathermap.org" // Added OpenWeatherMap API
+      ],
+      
+      // Allow embedding frames from self, Discord, and YouTube
+      frameSrc: [
+        "'self'",
+        "https://discord.com",
+        "https://www.youtube.com"
+      ],
+      
+      // Allow media from self and YouTube
+      mediaSrc: [
+        "'self'",
+        "https://www.youtube.com"
+      ],
+      
+      // Specify valid parents that may embed a page using frame-ancestors
+      frameAncestors: [
+        "'self'",
+        "https://discord.com"
+      ],
+      
+      // Optional: Upgrade insecure requests
+      upgradeInsecureRequests: []
     }
-}));
+  })
+);
 
 
 
