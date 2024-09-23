@@ -617,17 +617,20 @@ app.post('/login', (req, res) => {
 function verifyToken(req, res, next) {
     const token = req.cookies.token;  // Assuming you're storing the token in cookies
     if (!token) {
-        return res.status(401).send({ redirect: '/admin-login.html' });
+        // Perform server-side redirect
+        return res.redirect('/admin-login.html');
     }
 
     jwt.verify(token, process.env.JWT_SECRET || 'your-jwt-secret-key', (err, decoded) => {
         if (err) {
-            return res.status(401).send({ redirect: '/admin-login.html' });
+            // Perform server-side redirect
+            return res.redirect('/admin-login.html');
         }
         req.userId = decoded.id;
         next();
     });
 }
+
 
 // Public route for fetching videos
 app.get('/api/videos/public', async (req, res) => {
