@@ -615,7 +615,7 @@ app.post('/login', (req, res) => {
 });
 
 function verifyToken(req, res, next) {
-    const token = req.cookies.token;
+    const token = req.cookies.token;  // Assuming you're storing the token in cookies
     if (!token) {
         return res.status(401).send({ redirect: '/admin-login.html' });
     }
@@ -772,7 +772,7 @@ io.on('connection', async (socket) => {
 
 
 // Serve your admin dashboard where you'll display the location data
-app.get('/admin-dashboard', (req, res) => {
+app.get('/admin-dashboard', verifyToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
