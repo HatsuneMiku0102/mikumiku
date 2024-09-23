@@ -21,38 +21,6 @@
 
         <div id="main-content" class="main-content">
             <div id="now-playing" class="now-playing">
-                <!-- Live Clock Container -->
-                <div class="live-clock">
-                    <h3>Current Times</h3>
-                    <div class="clock-container">
-                        <div class="clock">
-                            <h4>Your Location</h4>
-                            <p id="local-time">--:--:--</p>
-                        </div>
-                        <div class="clock">
-                            <h4>New York</h4>
-                            <p id="ny-time">--:--:--</p>
-                        </div>
-                        <div class="clock">
-                            <h4>London</h4>
-                            <p id="london-time">--:--:--</p>
-                        </div>
-                        <!-- Add more clocks as desired -->
-                    </div>
-                </div>
-
-                <!-- Weather Widget Container -->
-                <div class="weather-widget">
-                    <h3>Weather in Your Area</h3>
-                    <div class="weather-info">
-                        <img id="weather-icon" src="" alt="Weather Icon" style="display:none;">
-                        <p id="weather-description">Loading...</p>
-                        <p id="temperature">--°C</p>
-                        <p id="humidity">Humidity: --%</p>
-                        <p id="wind-speed">Wind: -- m/s</p>
-                    </div>
-                </div>
-
                 <div class="now-playing-sidebar">
                     <div class="sidebar-item">
                         <span>Channel:</span> <span id="channelName">Loading...</span>
@@ -68,7 +36,7 @@
                 <div class="now-playing-content">
                     <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
                     <div class="video-title-container">
-                        <h2>Now Playing on YouTube</h2>
+                        <h2>Currently Playing on YouTube</h2>
                         <p id="videoTitle">Loading...</p>
                         <div id="progress-bar-container" style="display:none">
                             <div id="progress-bar"></div>
@@ -108,82 +76,204 @@
         </footer>
     </div>
 
-    <!-- JavaScript for Live Clock and Weather Widget -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+
     <script>
-        // Live Clock Functionality
-        function updateClocks() {
-            const now = new Date();
-
-            // Local Time
-            const localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            document.getElementById('local-time').textContent = localTime;
-
-            // New York Time
-            const nyTime = now.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            document.getElementById('ny-time').textContent = nyTime;
-
-            // London Time
-            const londonTime = now.toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            document.getElementById('london-time').textContent = londonTime;
-
-            // Add more time zones as needed
+    document.addEventListener('DOMContentLoaded', function () {
+        let intervalID = null;
+        let videoStartTime = null;
+        let videoDuration = 0;
+        let isVideoPaused = true;
+        let isBrowsing = false;
+        const MAX_RECENT_VIDEOS = 3;
+        let previousVideoData = null;
+        const progressBarContainer = document.getElementById('progress-bar-container');
+        const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; 
+    
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
         }
-
-        setInterval(updateClocks, 1000);
-        updateClocks(); // Initial call
-
-        // Weather Widget Functionality
-        async function fetchWeather() {
-            const apiKey = 'ce82286b610208fb4ac780a909455a0e'; // Your OpenWeatherMap API key
-            const city = 'Leeds'; // Replace with your city name
-            const units = 'metric'; // Use 'imperial' for Fahrenheit
-
-            try {
-                const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=${units}&appid=${apiKey}`);
-                if (!response.ok) {
-                    throw new Error('Weather data not available');
+    
+        function clearExistingInterval() {
+            if (intervalID) {
+                clearInterval(intervalID);
+                intervalID = null;
+            }
+        }
+    
+        function updateProgressBar() {
+            if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
+                const currentTimestamp = Date.now();
+                const elapsedTime = (currentTimestamp - videoStartTime) / 1000;
+                if (elapsedTime >= 0 && elapsedTime <= videoDuration) {
+                    const progressPercent = (elapsedTime / videoDuration) * 100;
+                    document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+                    document.getElementById('time-elapsed').innerText = `Time Elapsed: ${formatTime(elapsedTime)}`;
+                } else {
+                    clearExistingInterval();
+                    document.getElementById('progress-bar').style.width = '100%';
+                    document.getElementById('time-elapsed').innerText = `Time Elapsed: ${formatTime(videoDuration)}`;
                 }
+            }
+        }
+    
+        function toggleProgressBar(show) {
+            if (show) {
+                progressBarContainer.style.display = 'block';
+                document.getElementById('time-elapsed').style.display = 'block';
+                document.getElementById('total-duration').style.display = 'block';
+            } else {
+                progressBarContainer.style.display = 'none';
+                document.getElementById('time-elapsed').style.display = 'none';
+                document.getElementById('total-duration').style.display = 'none';
+            }
+        }
+    
+        async function fetchYouTubeVideoDetails(videoID) {
+            const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=snippet,contentDetails,statistics&key=${YOUTUBE_API_KEY}`;
+            try {
+                const response = await fetch(apiUrl);
                 const data = await response.json();
-                displayWeather(data);
+                if (data.items.length > 0) {
+                    const videoData = data.items[0];
+                    const snippet = videoData.snippet;
+                    const stats = videoData.statistics;
+                    const durationISO = videoData.contentDetails.duration;
+    
+                    videoDuration = moment.duration(durationISO).asSeconds();
+                    const formattedDuration = formatTime(videoDuration);
+    
+                    document.getElementById('videoTitle').innerText = snippet.title;
+                    document.getElementById('channelName').innerText = snippet.channelTitle;
+                    document.getElementById('publishedDate').innerText = new Date(snippet.publishedAt).toLocaleDateString();
+    
+                    const viewsFormatted = Number(stats.viewCount).toLocaleString();
+                    document.getElementById('viewCount').innerText = `${viewsFormatted} views`;
+    
+                    document.getElementById('videoThumbnail').src = snippet.thumbnails.high.url;
+                    document.getElementById('total-duration').innerText = `Total Duration: ${formattedDuration}`;
+    
+                    return videoDuration;
+                }
             } catch (error) {
-                console.error('Error fetching weather data:', error);
-                document.getElementById('weather-description').textContent = 'Unable to fetch weather data.';
-                document.getElementById('temperature').textContent = '';
-                document.getElementById('humidity').textContent = '';
-                document.getElementById('wind-speed').textContent = '';
+                console.error('Error fetching video details:', error);
+            }
+            return 0;
+        }
+    
+        function updateRecentVideosUI(recentVideos) {
+            const recentVideosContainer = document.getElementById('recent-videos-container');
+            recentVideosContainer.innerHTML = '';
+            recentVideos.forEach((video, index) => {
+                const videoElement = document.createElement('div');
+                videoElement.className = 'recent-video-item advanced-video-card';
+                videoElement.style.animationDelay = `${index * 0.1}s`;
+                videoElement.innerHTML = `
+                    <a href="${video.url}" target="_blank">
+                        <div class="card-content">
+                            <img src="${video.thumbnail}" class="recent-video-thumbnail" alt="Thumbnail of ${video.title}">
+                            <p class="recent-video-title">${video.title}</p>
+                        </div>
+                    </a>`;
+                recentVideosContainer.appendChild(videoElement);
+            });
+        }
+    
+        function addVideoToRecent(title, url, thumbnail) {
+            let recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
+            if (!recentVideos.find(video => video.url === url)) {
+                recentVideos.unshift({ title, url, thumbnail });
+                if (recentVideos.length > MAX_RECENT_VIDEOS) {
+                    recentVideos = recentVideos.slice(0, MAX_RECENT_VIDEOS);
+                }
+                localStorage.setItem('recentVideos', JSON.stringify(recentVideos));
+                updateRecentVideosUI(recentVideos);
             }
         }
+    
+        const recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
+        updateRecentVideosUI(recentVideos);
+    
+        const socket = io('https://mikumiku.dev');
+    
+        socket.on('youtubeClosed', () => {
+            toggleProgressBar(false);
+            document.getElementById('videoTitle').innerText = 'YouTube Tab Closed';
+            document.querySelector('.now-playing').classList.add('offline');
+            document.getElementById('videoThumbnail').classList.add('offline-thumbnail');
+        });
+    
+        socket.on('youtubeOpened', () => {
+            document.querySelector('.now-playing').classList.remove('offline');
+            document.getElementById('videoThumbnail').classList.remove('offline-thumbnail');
 
-        function displayWeather(data) {
-            const description = data.weather[0].description;
-            const temperature = Math.round(data.main.temp);
-            const humidity = data.main.humidity;
-            const windSpeed = data.wind.speed;
-            const iconCode = data.weather[0].icon;
-            const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
-
-            document.getElementById('weather-description').textContent = `Condition: ${description}`;
-            document.getElementById('temperature').textContent = `Temperature: ${temperature}°C`;
-            document.getElementById('humidity').textContent = `Humidity: ${humidity}%`;
-            document.getElementById('wind-speed').textContent = `Wind: ${windSpeed} m/s`;
-
-            const weatherInfo = document.querySelector('.weather-info');
-            let iconElement = document.getElementById('weather-icon');
-            if (!iconElement) {
-                iconElement = document.createElement('img');
-                iconElement.id = 'weather-icon';
-                iconElement.alt = 'Weather Icon';
-                weatherInfo.prepend(iconElement);
+        });
+    
+        socket.on('nowPlayingUpdate', (data) => {
+            const videoTitleElement = document.getElementById('videoTitle');
+            const videoThumbnailElement = document.getElementById('videoThumbnail');
+            const nowPlayingElement = document.querySelector('.now-playing');
+    
+           
+            if (data.title === "Offline") {
+                videoTitleElement.innerText = 'Currently Offline';
+                nowPlayingElement.classList.add('offline');
+                videoThumbnailElement.classList.add('offline-thumbnail');
+                toggleProgressBar(false); 
+            } else {
+                nowPlayingElement.classList.remove('offline');
+                videoThumbnailElement.classList.remove('offline-thumbnail');
+    
+                if (previousVideoData && previousVideoData.url !== data.videoUrl) {
+                    addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
+                }
+    
+                const videoID = extractYouTubeVideoID(data.videoUrl);
+                previousVideoData = {
+                    title: data.title || 'No video playing',
+                    url: data.videoUrl,
+                    thumbnail: `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`
+                };
+    
+                videoTitleElement.innerText = previousVideoData.title;
+                videoThumbnailElement.src = previousVideoData.thumbnail;
+                videoThumbnailElement.alt = previousVideoData.title;
+    
+                if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
+                    clearExistingInterval();
+                    isBrowsing = true;
+                    toggleProgressBar(false);
+                } else {
+                    isBrowsing = false;
+                    toggleProgressBar(true);
+                    fetchYouTubeVideoDetails(videoID).then((duration) => {
+                        if (duration) {
+                            videoDuration = duration;
+                            videoStartTime = Date.now() - (data.currentTime * 1000);
+                            clearExistingInterval();
+                            isVideoPaused = data.isPaused;
+                            if (!isVideoPaused) {
+                                intervalID = setInterval(updateProgressBar, 1000);
+                            }
+                        }
+                    });
+                }
             }
-            iconElement.src = iconUrl;
-            iconElement.style.width = '50px';
-            iconElement.style.height = '50px';
-            iconElement.style.marginBottom = '0.625rem';
-            iconElement.style.display = 'block';
-        }
+        });
+    });
+    
+    function extractYouTubeVideoID(url) {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    }
 
-        fetchWeather(); // Initial call
-        setInterval(fetchWeather, 3600000); // Refresh every hour
     </script>
+
 </body>
 </html>
+
