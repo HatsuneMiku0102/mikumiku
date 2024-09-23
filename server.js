@@ -692,14 +692,17 @@ app.post('/login', (req, res) => {
 // Serve the dynamic dashboard URL after successful login
 app.get('/:dashboardURL', verifyToken, (req, res) => {
     const requestedDashboardURL = `/${req.params.dashboardURL}`;
-    
-    // Compare the requested dashboard URL with the one stored in the session
+    console.log('Requested Dashboard URL:', requestedDashboardURL);
+    console.log('Session Dashboard URL:', req.session.dashboardURL);
+
     if (requestedDashboardURL === req.session.dashboardURL) {
         res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
     } else {
+        console.log('Dashboard URL mismatch. Redirecting to login.');
         res.status(401).redirect('/admin-login.html');
     }
 });
+
 
 
 
