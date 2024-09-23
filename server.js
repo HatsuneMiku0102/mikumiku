@@ -648,7 +648,7 @@ console.log('Hashed Password:', hashedPassword);
 
 
 // POST route for login6
-app.post('/login', loginLimiter, (req, res) => {
+app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
     const adminUsername = process.env.ADMIN_USERNAME;
