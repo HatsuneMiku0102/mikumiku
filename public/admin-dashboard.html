@@ -35,19 +35,15 @@
         button:hover {
             background-color: #0097a7;
         }
-        #active-users-list {
-            list-style-type: none;
-            padding-left: 0;
-        }
-        #active-users-list li {
-            margin: 10px 0;
+        .api-status {
             padding: 10px;
-            background-color: #3a3a3a;
-            border-radius: 5px;
+            margin: 10px 0;
         }
-        #no-users {
-            text-align: center;
-            color: #ff4444;
+        .api-status.working {
+            background-color: #4caf50;
+        }
+        .api-status.unavailable {
+            background-color: #f44336;
         }
     </style>
 </head>
@@ -57,31 +53,37 @@
         <button id="logout">Logout</button>
 
         <h3>Real-time Active Users</h3>
-        <ul id="active-users-list">
-            <li>Loading active users...</li>
-        </ul>
-    </div>
+        <p id="active-users-count">Loading...</p>
 
+        <div id="location-data">
+            <h3>Visitor Location</h3>
+            <p id="location">Loading location data...</p>
+        </div>
+
+        <h3>API Status</h3>
+        <div id="youtube-status" class="api-status">Checking YouTube API...</div>
+        <div id="bungie-status" class="api-status">Checking Bungie API...</div>
+    </div>
+    
     <script src="/socket.io/socket.io.js"></script>
+    <script src="admin-dashboard.js"></script>
     <script>
         const socket = io();
-        
 
         socket.on('activeUsersUpdate', (data) => {
-            const activeUsersList = document.getElementById('active-users-list');
-            activeUsersList.innerHTML = ''; 
-            
-            if (data.users.length === 0) {
-                activeUsersList.innerHTML = '<li id="no-users">No active users at the moment.</li>';
-                return;
-            }
-
-            data.users.forEach(user => {
-                const listItem = document.createElement('li');
-                listItem.innerText = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
-                activeUsersList.appendChild(listItem);
-            });
+            document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.count}`;
         });
+
+        fetch('/api/location')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('location').innerText = 
+                    `IP: ${data.ip}, City: ${data.city}, Region: ${data.region}, Country: ${data.country}`;
+            })
+            .catch(error => {
+                document.getElementById('location').innerText = 'Error loading location data';
+                console.error(error);
+            });
 
         const logoutButton = document.getElementById('logout');
         logoutButton.addEventListener('click', () => {
@@ -92,6 +94,29 @@
                 })
                 .catch(error => console.error('Error:', error));
         });
+
+        fetch('/api/check-youtube')
+            .then(response => response.json())
+            .then(data => {
+                const youtubeStatus = document.getElementById('youtube-status');
+                youtubeStatus.innerText = data.status;
+                youtubeStatus.classList.add(data.available ? 'working' : 'unavailable');
+            })
+            .catch(error => {
+                console.error('Error checking YouTube API:', error);
+            });
+
+  
+        fetch('/api/check-bungie')
+            .then(response => response.json())
+            .then(data => {
+                const bungieStatus = document.getElementById('bungie-status');
+                bungieStatus.innerText = data.status;
+                bungieStatus.classList.add(data.available ? 'working' : 'unavailable');
+            })
+            .catch(error => {
+                console.error('Error checking Bungie API:', error);
+            });
     </script>
 </body>
 </html>
