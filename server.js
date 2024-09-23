@@ -82,7 +82,7 @@ sessionStore.on('error', (error) => {
 });
 
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-session-secret-key',
+    secret: process.env.SESSION_SECRET || '703c21839606106f7636c214e94869353b5b4d30f6c3a69dd8c75335f45fde4b',  // Use the generated secret
     resave: false,
     saveUninitialized: false,
     store: sessionStore,  // Ensure your session store is properly managing sessions
@@ -109,8 +109,11 @@ app.use(helmet.contentSecurityPolicy({
     }
 }));
 
-app.use(express.static(path.join(__dirname, 'public')));
-
+app.use(express.static(path.join(__dirname, 'public'), {
+    etag: false,    // Disable etag generation
+    maxAge: 0,      // Set cache expiry to 0, forces revalidation
+    lastModified: false  // Disable last modified header
+}));
 
 // MongoDB Schemas and Models
 const userSchema = new mongoose.Schema({
