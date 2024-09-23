@@ -624,37 +624,35 @@ function verifyToken(req, res, next) {
 // POST route for login
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
-    const user = users.find(u => u.username === username);
-    if (!user) {
-        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
+
+    // Get environment variables
+    const adminUsername = process.env.ADMIN_USERNAME;
+    const adminPasswordHash = process.env.ADMIN_PASSWORD; // hashed password
+
+    if (username !== adminUsername) {
+        return res.status(401).send({ auth: false, message: 'Invalid username or password' });
     }
 
-    const passwordIsValid = bcrypt.compareSync(password, user.password);
+    // Compare the entered password with the stored hash
+    const passwordIsValid = bcrypt.compareSync(password, adminPasswordHash);
+    
     if (!passwordIsValid) {
-        return res.status(400).send({ auth: false, message: 'Invalid username or password' });
+        return res.status(401).send({ auth: false, message: 'Invalid username or password' });
     }
 
-    const token = jwt.sign({ id: user.username }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
+    // Create token and send success response
+    const token = jwt.sign({ id: adminUsername }, process.env.JWT_SECRET || 'your-jwt-secret', {
         expiresIn: 86400 // 24 hours
     });
 
-    // Generate a random dashboard URL for security
-    const randomDashboardURL = `/dashboard-${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Store the dashboard URL in the session or some cache if necessary
-    req.session.dashboardURL = randomDashboardURL;
-
-    // Set token as cookie
     res.cookie('token', token, {
         httpOnly: true,
-        secure: true, // Set to true if using HTTPS
+        secure: true, // If using HTTPS
         maxAge: 86400 * 1000 // 24 hours
     });
 
-    // Redirect user to the random dashboard URL
-    res.status(200).send({ auth: true, redirectURL: randomDashboardURL });
+    res.status(200).send({ auth: true, redirect: '/your-random-dashboard-url' });
 });
-
 // Serve the dynamic dashboard URL after successful login
 app.get('/:dashboardURL', verifyToken, (req, res) => {
     const requestedDashboardURL = `/${req.params.dashboardURL}`;
