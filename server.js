@@ -624,31 +624,37 @@ function verifyToken(req, res, next) {
 }
 
 
+function hashPassword(password, salt) {
+    const hash = crypto.createHmac('sha256', salt)
+                       .update(password)
+                       .digest('hex');
+    return hash;
+}
+
+
 // POST route for login
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
-    console.log('Submitted Password:', password);
-
     const adminUsername = process.env.ADMIN_USERNAME;
-    const adminPasswordHash = process.env.ADMIN_PASSWORD;
-
-    console.log('Environment Admin Password Hash:', adminPasswordHash);
+    const adminPasswordHash = process.env.ADMIN_PASSWORD;  // Hashed password in env
+    const salt = 'random_salt';  // Use the same salt used when hashing the password
 
     if (username !== adminUsername) {
         return res.status(401).json({ auth: false, message: 'Invalid username or password' });
     }
 
-    // Manual verification of bcrypt comparison
-    const passwordIsValid = bcrypt.compareSync(password, adminPasswordHash);
-    console.log('Password comparison result:', passwordIsValid);
+    // Hash the submitted password with the same salt
+    const hashedInputPassword = hashPassword(password, salt);
 
-    if (!passwordIsValid) {
+    // Compare the hashed input password with the stored hash
+    if (hashedInputPassword !== adminPasswordHash) {
         return res.status(401).json({ auth: false, message: 'Invalid username or password' });
     }
 
+    // If the password is correct, generate a token
     const token = jwt.sign({ id: adminUsername }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
-        expiresIn: 86400
+        expiresIn: 86400  // 24 hours
     });
 
     res.cookie('token', token, {
