@@ -593,6 +593,8 @@ function generateRandomUrl() {
     return '/admin-dashboard/' + crypto.randomBytes(16).toString('hex');
 }
 
+const activeAdminUrls = new Set(); // Store active random admin URLs
+
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
@@ -610,18 +612,23 @@ app.post('/login', (req, res) => {
         expiresIn: 86400 // 24 hours
     });
 
-    // Create a randomized URL for admin dashboard
-    const randomUrl = `/admin-dashboard-${Math.random().toString(36).substring(2, 15)}.html`;
+    // Generate a fully random URL without "admin-dashboard"
+    const randomUrl = `/${Math.random().toString(36).substring(2, 15)}`;
 
+    // Store the random URL as valid for this session
+    activeAdminUrls.add(randomUrl);
+
+    // Set the cookie with the token
     res.cookie('token', token, {
         httpOnly: true,
         secure: true, // Set to true if using HTTPS
         maxAge: 86400 * 1000 // 24 hours
     });
 
-    // Return the randomized URL in the response
+    // Send the random URL back to the frontend
     res.status(200).send({ auth: true, url: randomUrl });
 });
+
 
 
 
