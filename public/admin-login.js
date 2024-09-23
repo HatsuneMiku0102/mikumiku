@@ -1,65 +1,43 @@
-document.addEventListener('DOMContentLoaded', function () {
+
+
+document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const errorMessage = document.getElementById('error-message');
 
-    if (!loginForm) {
-        console.error('Login form not found!');
-        return;
-    }
-
-    errorMessage.classList.remove('active');
-
-    loginForm.addEventListener('submit', function (event) {
+    loginForm.addEventListener('submit', async (event) => {
         event.preventDefault(); 
-        errorMessage.textContent = '';
-        errorMessage.classList.remove('active');
 
+     
+        errorMessage.style.display = 'none';
+
+      
         const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value.trim();
 
-        if (!username || !password) {
-            errorMessage.textContent = 'Please fill in both fields';
-            errorMessage.classList.add('active');
-            setTimeout(() => {
-                errorMessage.classList.remove('active');
-            }, 3000);
-            return;
-        }
+        try {
+           
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            });
 
-        errorMessage.textContent = 'Logging in...';
-        errorMessage.classList.add('active');
+            const data = await response.json();
 
-        fetch('/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ username, password })
-        })
-        .then(response => {
-            if (response.status === 401) {
-                errorMessage.textContent = 'Invalid username or password';
-                throw new Error('401 Unauthorized');
-            } else if (!response.ok) {
-                errorMessage.textContent = 'An error occurred. Please try again.';
-                throw new Error('Login failed');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.auth && data.redirect) {
+            if (response.ok && data.auth) {
+
                 window.location.href = data.redirect;
             } else {
-                errorMessage.textContent = 'An error occurred. Please try again.';
-                errorMessage.classList.add('active');
+
+                errorMessage.textContent = data.message || 'Invalid username or password.';
+                errorMessage.style.display = 'block';
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            if (error.message !== '401 Unauthorized') {
-                errorMessage.textContent = 'An error occurred during login. Please try again.';
-                errorMessage.classList.add('active');
-            }
-        });
+        } catch (error) {
+            console.error('Error during login:', error);
+            errorMessage.textContent = 'An unexpected error occurred. Please try again later.';
+            errorMessage.style.display = 'block';
+        }
     });
 });
