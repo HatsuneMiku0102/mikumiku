@@ -1,4 +1,4 @@
-// admin-login.js
+
 
 document.addEventListener('DOMContentLoaded', function () {
     const loginForm = document.getElementById('login-form');
@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', function () {
         console.error('Login form not found!');
         return;
     }
+
+
+    errorMessage.classList.remove('active');
 
     loginForm.addEventListener('submit', function (event) {
         event.preventDefault();
