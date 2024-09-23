@@ -724,10 +724,7 @@ let activeUsers = [];
 
 async function fetchLocationData(ip) {
     try {
-        // Handle multiple IP addresses (comma-separated), use the first one
-        const publicIP = ip.includes(',') ? ip.split(',')[0].trim() : ip;
-
-        const response = await axios.get(`https://ipinfo.io/${publicIP}?token=14eb346301d8b9`);
+        const response = await axios.get(`https://ipinfo.io/${ip}?token=14eb346301d8b9`);
         const { ip: userIP, city, region, country } = response.data;
         return { ip: userIP, city, region, country };
     } catch (error) {
@@ -757,13 +754,12 @@ function normalizeIp(ip) {
     return ip;
 }
 
-io.on('connection', async (socket) => { // Mark the callback as async
+io.on('connection', async (socket) => { // make sure this is an async function
     let ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
     if (ip.startsWith('::ffff:')) ip = ip.substring(7);  // Handle IPv6-mapped IPv4 addresses
 
-    // Fetch the location for the first IP in case of multiple IPs
     if (!activeUsers[socket.id]) {
-        const locationData = await fetchLocationData(ip); // Now this will work with await
+        const locationData = await fetchLocationData(ip); // await works here
         activeUsers[socket.id] = locationData;
     }
 
