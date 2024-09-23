@@ -608,10 +608,21 @@ app.post('/login', (req, res) => {
     res.cookie('token', token, {
         httpOnly: true,
         secure: true, // Set to true if using HTTPS
-        maxAge: 86400 * 1000 // 24 hours
+        sameSite: 'None', // Set this if you're using cross-site cookies
     });
 
     res.status(200).send({ auth: true, token });
+});
+
+
+
+app.post('/logout', (req, res) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: true, // Set to true if you're using HTTPS
+        sameSite: 'None' // If your site is cross-site
+    });
+    res.status(200).send({ message: 'Logged out' });
 });
 
 function verifyToken(req, res, next) {
