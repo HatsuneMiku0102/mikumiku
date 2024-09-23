@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
+ 
+    errorMessage.classList.remove('active');
+
     loginForm.addEventListener('submit', function (event) {
         event.preventDefault(); 
         errorMessage.textContent = '';
@@ -15,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value.trim();
 
-        // Validate input fields
+     
         if (!username || !password) {
             errorMessage.textContent = 'Please fill in both fields';
             errorMessage.classList.add('active');
@@ -25,11 +28,9 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        
         errorMessage.textContent = 'Logging in...';
         errorMessage.classList.add('active');
 
-        
         fetch('/login', {
             method: 'POST',
             headers: {
@@ -52,11 +53,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 window.location.href = data.redirect;
             } else {
                 errorMessage.textContent = 'An error occurred. Please try again.';
+                errorMessage.classList.add('active');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-           
             if (error.message !== '401 Unauthorized') {
                 errorMessage.textContent = 'An error occurred during login. Please try again.';
                 errorMessage.classList.add('active');
