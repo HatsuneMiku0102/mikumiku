@@ -1,6 +1,7 @@
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('login-form').addEventListener('submit', function(event) {
-        event.preventDefault();
+document.addEventListener('DOMContentLoaded', function () {
+    // Attach submit event to the login form
+    document.getElementById('login-form').addEventListener('submit', function (event) {
+        event.preventDefault();  // Prevent form from refreshing the page
 
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
@@ -12,11 +13,16 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({ username, password })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Login failed');
+            }
+            return response.json();
+        })
         .then(data => {
-            if (data.auth) {
-                // Redirect to the dynamic admin URL returned from the server
-                window.location.href = data.url;
+            if (data.auth && data.redirect) {
+                // Redirect to the randomized dashboard URL
+                window.location.href = data.redirect;
             } else {
                 document.getElementById('error-message').textContent = 'Invalid username or password';
             }
