@@ -628,18 +628,22 @@ function verifyToken(req, res, next) {
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
-    console.log('Submitted Password:', password); // Log the plain text password from the form
+    console.log('Submitted Password:', password);
 
     const adminUsername = process.env.ADMIN_USERNAME;
     const adminPasswordHash = process.env.ADMIN_PASSWORD;
+
+    console.log('Environment Admin Password Hash:', adminPasswordHash);
 
     if (username !== adminUsername) {
         return res.status(401).json({ auth: false, message: 'Invalid username or password' });
     }
 
+    // Manual verification of bcrypt comparison
     const passwordIsValid = bcrypt.compareSync(password, adminPasswordHash);
+    console.log('Password comparison result:', passwordIsValid);
+
     if (!passwordIsValid) {
-        console.log('Invalid password');
         return res.status(401).json({ auth: false, message: 'Invalid username or password' });
     }
 
