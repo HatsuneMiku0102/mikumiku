@@ -7,7 +7,6 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
-
     
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://www.googleapis.com https://*.youtube.com https://api.openweathermap.org; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.openweathermap.org; font-src 'self';">
 </head>
@@ -24,7 +23,6 @@
 
         <div id="main-content" class="main-content">
             <div id="now-playing" class="now-playing">
-                <!-- Live Clock Container -->
                 <div class="live-clock">
                     <h3>Current Times</h3>
                     <div class="clock-container">
@@ -40,11 +38,9 @@
                             <h4>London</h4>
                             <p id="london-time">--:--:--</p>
                         </div>
-                        <!-- Add more clocks as desired -->
                     </div>
                 </div>
 
-                <!-- Weather Widget Container -->
                 <div class="weather-widget">
                     <h3>Weather in Your Area</h3>
                     <div class="weather-info">
@@ -126,8 +122,8 @@
         let previousVideoData = null;
         const progressBarContainer = document.getElementById('progress-bar-container');
         const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; 
-        const OPENWEATHERMAP_API_KEY = 'ce82286b610208fb4ac780a909455a0e'; // Your OpenWeatherMap API key
-        const CITY_NAME = 'Leeds'; // Replace with your city name
+        const OPENWEATHERMAP_API_KEY = 'ce82286b610208fb4ac780a909455a0e';
+        const CITY_NAME = 'Leeds';
 
         function formatTime(seconds) {
             const minutes = Math.floor(seconds / 60);
@@ -300,25 +296,32 @@
             }
         });
 
-        // Live Clock Functionality
+        function extractYouTubeVideoID(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
         function updateClocks() {
             const now = new Date();
 
-            // Local Time
             const localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             document.getElementById('local-time').textContent = localTime;
 
-            // Add more time zones as needed
+            const nyTime = now.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('ny-time').textContent = nyTime;
+
+            const londonTime = now.toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('london-time').textContent = londonTime;
         }
 
         setInterval(updateClocks, 1000);
-        updateClocks(); // Initial call
+        updateClocks();
 
-        // Weather Widget Functionality
         async function fetchWeather() {
-            const apiKey = OPENWEATHERMAP_API_KEY; // Your OpenWeatherMap API key
-            const city = CITY_NAME; // Replace with your city name
-            const units = 'metric'; // Use 'imperial' for Fahrenheit
+            const apiKey = OPENWEATHERMAP_API_KEY;
+            const city = CITY_NAME;
+            const units = 'metric';
 
             try {
                 const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=${units}&appid=${apiKey}`);
@@ -329,7 +332,7 @@
                 displayWeather(data);
             } catch (error) {
                 console.error('Error fetching weather data:', error);
-                document.getElementById('weather-description').textContent = 'Unable to fetch weather data.';
+                document.getElementById('weather-description').innerText = 'Unable to fetch weather data.';
                 document.getElementById('temperature').textContent = '';
                 document.getElementById('humidity').textContent = '';
                 document.getElementById('wind-speed').textContent = '';
@@ -364,16 +367,9 @@
             iconElement.style.display = 'block';
         }
 
-        fetchWeather(); // Initial call
-        setInterval(fetchWeather, 3600000); // Refresh every hour
+        fetchWeather();
+        setInterval(fetchWeather, 3600000);
     });
-
-    function extractYouTubeVideoID(url) {
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
-    }
-
     </script>
 
 </body>
