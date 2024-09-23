@@ -87,10 +87,10 @@ app.use(session({
     saveUninitialized: false,
     store: sessionStore,
     cookie: {
-        secure: true, // Ensure secure flag is true for HTTPS
-        sameSite: 'None', // Adjusting SameSite attribute
+        secure: process.env.NODE_ENV === 'production',  // Ensure secure only in production
+        sameSite: 'None',  // To allow cross-site cookies
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        maxAge: 24 * 60 * 60 * 1000  // 24 hours
     }
 }));
 
