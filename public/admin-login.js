@@ -1,4 +1,4 @@
-
+// admin-login.js
 
 document.addEventListener('DOMContentLoaded', function () {
     const loginForm = document.getElementById('login-form');
@@ -56,6 +56,8 @@ document.addEventListener('DOMContentLoaded', function () {
         .catch(error => {
             console.error('Error:', error);
             errorMessage.textContent = 'An error occurred during login. Please try again.';
+
+            errorMessage.classList.add('active');
         });
     });
 });
