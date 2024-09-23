@@ -200,35 +200,37 @@
 
             const socket = io('https://mikumiku.dev');
 
-             socket.on('youtubeClosed', () => {
-                videoThumbnail.classList.add('static-thumbnail');
-                
-                // Completely remove all animations, transitions, and effects via inline styling
-                videoThumbnail.style.animation = 'none';  // No animation
-                videoThumbnail.style.transition = 'none';  // No transitions
-                videoThumbnail.style.transform = 'none';  // Reset any scaling
-                videoThumbnail.style.filter = 'brightness(1)';  // Reset brightness
-                videoThumbnail.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.5)';  // Minimal shadow
-                videoThumbnail.style.border = '2px solid #999';  // Static border for offline state
+            socket.on('youtubeClosed', () => {
+                console.log('youtubeClosed event triggered');
             
+                // Check if videoThumbnail is being referenced correctly
+                if (!videoThumbnail) {
+                    console.error('videoThumbnail element not found');
+                    return;
+                }
+            
+                videoThumbnail.classList.add('static-thumbnail');
+            
+                // Log the application of static state
                 console.log('Thumbnail is now static and offline.');
             
                 toggleProgressBar(false);
                 document.getElementById('videoTitle').innerText = 'YouTube Tab Closed';
             });
             
-            // When YouTube is opened, remove the static thumbnail state and reapply animations
+            // When YouTube is opened, remove the static thumbnail class with logging
             socket.on('youtubeOpened', () => {
-                videoThumbnail.classList.remove('static-thumbnail');
-                
-                // Reapply animations and transitions via inline styling
-                videoThumbnail.style.animation = 'pulse 2s infinite alternate';  // Restore animation
-                videoThumbnail.style.transition = 'transform 0.4s ease, filter 0.4s ease, box-shadow 0.4s ease';  // Restore transitions
-                videoThumbnail.style.transform = 'scale(1.05)';  // Restore scaling
-                videoThumbnail.style.filter = 'brightness(1.2)';  // Restore brightness
-                videoThumbnail.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.7)';  // Restore dynamic shadow
-                videoThumbnail.style.border = '2px solid #00e5ff';  // Vibrant border for online state
+                console.log('youtubeOpened event triggered');
             
+                // Check if videoThumbnail is being referenced correctly
+                if (!videoThumbnail) {
+                    console.error('videoThumbnail element not found');
+                    return;
+                }
+            
+                videoThumbnail.classList.remove('static-thumbnail');
+            
+                // Log the application of animated state
                 console.log('Thumbnail is now animated and online.');
             
                 fetchYouTubeVideoDetails('YourVideoIDHere').then((duration) => {
