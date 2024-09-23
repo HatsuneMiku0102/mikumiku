@@ -21,9 +21,7 @@ const app = express();
 
 dotenv.config();
 
-const plainPassword = 'Aria'; // Your actual plain text password
-const hashedPassword = bcrypt.hashSync(plainPassword, 8);
-console.log('Hashed Password:', hashedPassword);
+
 
 const server = http.createServer(app); // Create an HTTP server for Socket.IO
 const io = socketIo(server, {
