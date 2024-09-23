@@ -617,25 +617,20 @@ app.post('/login', (req, res) => {
 
 
 app.post('/logout', (req, res) => {
-    res.clearCookie('token', {
-        httpOnly: true,
-        secure: true, // Set to true if you're using HTTPS
-        sameSite: 'None' // If your site is cross-site
-    });
-    res.status(200).send({ message: 'Logged out' });
+    res.clearCookie('token'); // clear the JWT token cookie
+    req.session.destroy();    // destroy the session
+    res.redirect('/admin-login.html'); // redirect to login page
 });
 
 function verifyToken(req, res, next) {
-    const token = req.cookies.token;  // Assuming you're storing the token in cookies
+    const token = req.cookies.token; // assuming JWT token is stored in a cookie
     if (!token) {
-        // Perform server-side redirect
-        return res.redirect('/admin-login.html');
+        return res.status(401).json({ redirect: '/admin-login.html' });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET || 'your-jwt-secret-key', (err, decoded) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
-            // Perform server-side redirect
-            return res.redirect('/admin-login.html');
+            return res.status(401).json({ redirect: '/admin-login.html' });
         }
         req.userId = decoded.id;
         next();
