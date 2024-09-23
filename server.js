@@ -744,21 +744,15 @@ io.on('connection', (socket) => {
 
 
 
-// Route to get visitor location data
-app.get('/api/location', (req, res) => {
-    const userIp = req.ip;  // Get the user's IP address
-
-    ipinfo(userIp, (err, data) => {
-        if (err) {
-            return res.status(500).json({ error: 'Unable to retrieve location data' });
-        }
-        res.json({
-            ip: data.ip,
-            city: data.city,
-            region: data.region,
-            country: data.country
-        });
-    });
+app.get('/api/location', async (req, res) => {
+    try {
+        const response = await axios.get('https://ipinfo.io/2.26.97.43?token=14eb346301d8b9');
+        const locationData = response.data;
+        res.json(locationData);
+    } catch (error) {
+        console.error('Error fetching location data:', error);
+        res.status(500).send('Error fetching location data');
+    }
 });
 
 // Serve your admin dashboard where you'll display the location data
