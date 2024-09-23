@@ -44,15 +44,32 @@
 
         <h3>Real-time Active Users</h3>
         <p id="active-users-count">Loading...</p>
+
+        <div id="location-data">
+            <h3>Visitor Location</h3>
+            <p id="location">Loading location data...</p>
+        </div>
     </div>
     
     <script src="/socket.io/socket.io.js"></script>
+    <script src="admin-dashboard.js"></script>
     <script>
         const socket = io();
-
+        
         socket.on('activeUsersUpdate', (data) => {
             document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.count}`;
         });
+
+        fetch('/api/location')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('location').innerText = 
+                    `IP: ${data.ip}, City: ${data.city}, Region: ${data.region}, Country: ${data.country}`;
+            })
+            .catch(error => {
+                document.getElementById('location').innerText = 'Error loading location data';
+                console.error(error);
+            });
 
         const logoutButton = document.getElementById('logout');
         logoutButton.addEventListener('click', () => {
