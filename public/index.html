@@ -34,9 +34,7 @@
                 </div>
 
                 <div class="now-playing-content">
-                    <div class="video-thumbnail-container">
-                        <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
-                    </div>
+                    <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
                     <div class="video-title-container">
                         <h2>Currently Playing on YouTube</h2>
                         <p id="videoTitle">Loading...</p>
@@ -203,33 +201,15 @@
             const socket = io('https://mikumiku.dev');
 
             socket.on('youtubeClosed', () => {
-                console.log('youtubeClosed event triggered');
-            
-                if (!videoThumbnail) {
-                    console.error('videoThumbnail element not found');
-                    return;
-                }
-            
+                // When YouTube is closed, toggle to static thumbnail
                 videoThumbnail.classList.add('static-thumbnail');
-            
-                console.log('Thumbnail is now static and offline.');
-            
                 toggleProgressBar(false);
                 document.getElementById('videoTitle').innerText = 'YouTube Tab Closed';
             });
-            
+
             socket.on('youtubeOpened', () => {
-                console.log('youtubeOpened event triggered');
-            
-                if (!videoThumbnail) {
-                    console.error('videoThumbnail element not found');
-                    return;
-                }
-            
+                // When YouTube is opened, remove static thumbnail class
                 videoThumbnail.classList.remove('static-thumbnail');
-            
-                console.log('Thumbnail is now animated and online.');
-            
                 fetchYouTubeVideoDetails('YourVideoIDHere').then((duration) => {
                     if (duration) {
                         videoDuration = duration;
