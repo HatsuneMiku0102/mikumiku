@@ -742,7 +742,7 @@ io.on('connection', (socket) => {
     });
 });
 
-const app = express();
+
 
 // Route to get visitor location data
 app.get('/api/location', (req, res) => {
