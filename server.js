@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const winston = require('winston');
 const { DateTime } = require('luxon'); // Import luxon for datetime handling
+const ipinfo = require('ipinfo');
 
 dotenv.config();
 
@@ -741,3 +742,26 @@ io.on('connection', (socket) => {
     });
 });
 
+const app = express();
+
+// Route to get visitor location data
+app.get('/api/location', (req, res) => {
+    const userIp = req.ip;  // Get the user's IP address
+
+    ipinfo(userIp, (err, data) => {
+        if (err) {
+            return res.status(500).json({ error: 'Unable to retrieve location data' });
+        }
+        res.json({
+            ip: data.ip,
+            city: data.city,
+            region: data.region,
+            country: data.country
+        });
+    });
+});
+
+// Serve your admin dashboard where you'll display the location data
+app.get('/admin-dashboard', (req, res) => {
+    // Serve the admin dashboard HTML
+});
