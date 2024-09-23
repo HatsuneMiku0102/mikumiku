@@ -87,17 +87,32 @@
 
         // Fetch initial location data
         fetch('/api/location')
-            .then(response => response.json())
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else if (response.status === 401) {
+                    // If unauthorized, redirect to the login page
+                    return response.json().then(data => {
+                        if (data.redirect) {
+                            window.location.href = data.redirect;
+                        }
+                    });
+                } else {
+                    throw new Error('Error fetching location data');
+                }
+            })
             .then(data => {
-                const locationDiv = document.getElementById('location');
-                locationDiv.innerHTML = '';  // Clear previous data
+                if (data) {
+                    const locationDiv = document.getElementById('location');
+                    locationDiv.innerHTML = '';  // Clear previous data
 
-                data.forEach(user => {
-                    const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
-                    const locationElement = document.createElement('p');
-                    locationElement.innerText = locationInfo;
-                    locationDiv.appendChild(locationElement);
-                });
+                    data.forEach(user => {
+                        const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
+                        const locationElement = document.createElement('p');
+                        locationElement.innerText = locationInfo;
+                        locationDiv.appendChild(locationElement);
+                    });
+                }
             })
             .catch(error => {
                 document.getElementById('location').innerText = 'Error loading location data';
@@ -118,11 +133,26 @@
 
         // Check the status of the YouTube API
         fetch('/api/check-youtube')
-            .then(response => response.json())
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else if (response.status === 401) {
+                    // If unauthorized, redirect to the login page
+                    return response.json().then(data => {
+                        if (data.redirect) {
+                            window.location.href = data.redirect;
+                        }
+                    });
+                } else {
+                    throw new Error('Error checking YouTube API');
+                }
+            })
             .then(data => {
-                const youtubeStatus = document.getElementById('youtube-status');
-                youtubeStatus.innerText = data.status;
-                youtubeStatus.classList.add(data.available ? 'working' : 'unavailable');
+                if (data) {
+                    const youtubeStatus = document.getElementById('youtube-status');
+                    youtubeStatus.innerText = data.status;
+                    youtubeStatus.classList.add(data.available ? 'working' : 'unavailable');
+                }
             })
             .catch(error => {
                 console.error('Error checking YouTube API:', error);
@@ -130,11 +160,26 @@
 
         // Check the status of the Bungie API
         fetch('/api/check-bungie')
-            .then(response => response.json())
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else if (response.status === 401) {
+                    // If unauthorized, redirect to the login page
+                    return response.json().then(data => {
+                        if (data.redirect) {
+                            window.location.href = data.redirect;
+                        }
+                    });
+                } else {
+                    throw new Error('Error checking Bungie API');
+                }
+            })
             .then(data => {
-                const bungieStatus = document.getElementById('bungie-status');
-                bungieStatus.innerText = data.status;
-                bungieStatus.classList.add(data.available ? 'working' : 'unavailable');
+                if (data) {
+                    const bungieStatus = document.getElementById('bungie-status');
+                    bungieStatus.innerText = data.status;
+                    bungieStatus.classList.add(data.available ? 'working' : 'unavailable');
+                }
             })
             .catch(error => {
                 console.error('Error checking Bungie API:', error);
