@@ -680,7 +680,7 @@ app.get('/:dashboardURL', verifyToken, (req, res) => {
     if (requestedDashboardURL === req.session.dashboardURL) {
         res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
     } else {
-        res.status(401).redirect('/admin-dashboard.html');
+        res.status(401).redirect('/admin-login.html');
     }
 });
 
