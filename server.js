@@ -644,7 +644,7 @@ const hashedPassword = hashPassword(plainPassword, salt);
 console.log('Hashed Password:', hashedPassword);
 
 
-// POST route for login
+// POST route for login6
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
@@ -671,9 +671,10 @@ app.post('/login', (req, res) => {
 
     // Generate dynamic dashboard URL
     const dashboardURL = `/admin-dashboard-${generateRandomString()}.html`;
-    
+
     // Store the dashboard URL in the session
     req.session.dashboardURL = dashboardURL;
+    console.log('Stored dashboardURL in session:', req.session.dashboardURL);
 
     // Set the token as a secure cookie
     res.cookie('token', token, {
@@ -683,7 +684,13 @@ app.post('/login', (req, res) => {
     });
 
     // Send back the auth and redirect URL to the frontend
-    res.status(200).json({ auth: true, redirect: dashboardURL });
+    req.session.save((err) => {
+        if (err) {
+            console.error('Error saving session:', err);
+            return res.status(500).json({ auth: false, message: 'Error saving session' });
+        }
+        res.status(200).json({ auth: true, redirect: dashboardURL });
+    });
 });
 
 
