@@ -405,9 +405,8 @@ app.delete('/api/comments/:id', verifyToken, async (req, res) => {
     }
 });
 
-// Function to generate a random string
-function generateRandomString(length) {
-    return crypto.randomBytes(length).toString('hex');
+function generateRandomString(size = 16) {  // Default size of 16 bytes
+    return crypto.randomBytes(size).toString('hex');
 }
 
 // Function to get Bungie token
