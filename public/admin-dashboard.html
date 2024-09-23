@@ -69,13 +69,13 @@
     <script>
         const socket = io();
 
-        // Update real-time active users and their location data
+
         socket.on('activeUsersUpdate', (data) => {
             const activeUsersCount = data.users.length;
             document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
 
             const locationDiv = document.getElementById('location');
-            locationDiv.innerHTML = '';  // Clear previous data
+            locationDiv.innerHTML = '';  
 
             data.users.forEach(user => {
                 const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
@@ -85,13 +85,13 @@
             });
         });
 
-        // Fetch initial location data
+   
         fetch('/api/location')
             .then(response => {
                 if (response.ok) {
                     return response.json();
                 } else if (response.status === 401) {
-                    // If unauthorized, redirect to the login page
+                 
                     return response.json().then(data => {
                         if (data.redirect) {
                             window.location.href = data.redirect;
@@ -104,7 +104,7 @@
             .then(data => {
                 if (data) {
                     const locationDiv = document.getElementById('location');
-                    locationDiv.innerHTML = '';  // Clear previous data
+                    locationDiv.innerHTML = '';  
 
                     data.forEach(user => {
                         const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
@@ -119,25 +119,25 @@
                 console.error(error);
             });
 
-        // Handle logout and redirect
+  
         const logoutButton = document.getElementById('logout');
         logoutButton.addEventListener('click', () => {
             fetch('/logout', { method: 'POST' })
                 .then(() => {
-                    // Clear the token cookie and redirect to the login page
+                    
                     document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
                     window.location.href = '/admin-login.html';
                 })
                 .catch(error => console.error('Error:', error));
         });
 
-        // Check the status of the YouTube API
+     
         fetch('/api/check-youtube')
             .then(response => {
                 if (response.ok) {
                     return response.json();
                 } else if (response.status === 401) {
-                    // If unauthorized, redirect to the login page
+                   
                     return response.json().then(data => {
                         if (data.redirect) {
                             window.location.href = data.redirect;
@@ -158,13 +158,13 @@
                 console.error('Error checking YouTube API:', error);
             });
 
-        // Check the status of the Bungie API
+  
         fetch('/api/check-bungie')
             .then(response => {
                 if (response.ok) {
                     return response.json();
                 } else if (response.status === 401) {
-                    // If unauthorized, redirect to the login page
+                   
                     return response.json().then(data => {
                         if (data.redirect) {
                             window.location.href = data.redirect;
