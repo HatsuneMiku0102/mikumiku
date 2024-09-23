@@ -35,6 +35,36 @@
         button:hover {
             background-color: #0097a7;
         }
+        .table-container {
+            margin-top: 20px;
+            background-color: #2e2e2e;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #444;
+            padding: 8px;
+        }
+        th, td {
+            color: #fff;
+        }
+        th {
+            background-color: #00bcd4;
+        }
+        .location-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .location-list li {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #333;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
@@ -43,31 +73,70 @@
         <button id="logout">Logout</button>
 
         <h3>Real-time Active Users</h3>
-        <p id="active-users-count">Loading...</p>
-
-        <div id="location-data">
-            <h3>Visitor Location</h3>
-            <p id="location">Loading location data...</p>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>User IP</th>
+                        <th>City</th>
+                        <th>Region</th>
+                        <th>Country</th>
+                    </tr>
+                </thead>
+                <tbody id="active-users-list">
+                    <!-- User data will be inserted here -->
+                </tbody>
+            </table>
         </div>
+
+        <h3>Visitor Location History</h3>
+        <ul id="location-list" class="location-list">
+            <!-- Location data will be inserted here -->
+        </ul>
     </div>
     
     <script src="/socket.io/socket.io.js"></script>
     <script src="admin-dashboard.js"></script>
     <script>
         const socket = io();
-        
+
+        // For real-time active users
         socket.on('activeUsersUpdate', (data) => {
-            document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.count}`;
+            const usersList = document.getElementById('active-users-list');
+            usersList.innerHTML = '';  // Clear previous entries
+
+            data.users.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${user.ip}</td>
+                    <td>${user.city}</td>
+                    <td>${user.region}</td>
+                    <td>${user.country}</td>
+                `;
+                usersList.appendChild(row);
+            });
         });
 
+        // For visitor location data
         fetch('/api/location')
             .then(response => response.json())
             .then(data => {
-                document.getElementById('location').innerText = 
-                    `IP: ${data.ip}, City: ${data.city}, Region: ${data.region}, Country: ${data.country}`;
+                const locationList = document.getElementById('location-list');
+                locationList.innerHTML = '';  // Clear previous entries
+
+                data.forEach(location => {
+                    const listItem = document.createElement('li');
+                    listItem.innerHTML = `
+                        <strong>IP:</strong> ${location.ip}<br>
+                        <strong>City:</strong> ${location.city}<br>
+                        <strong>Region:</strong> ${location.region}<br>
+                        <strong>Country:</strong> ${location.country}
+                    `;
+                    locationList.appendChild(listItem);
+                });
             })
             .catch(error => {
-                document.getElementById('location').innerText = 'Error loading location data';
+                document.getElementById('location-list').innerHTML = 'Error loading location data';
                 console.error(error);
             });
 
