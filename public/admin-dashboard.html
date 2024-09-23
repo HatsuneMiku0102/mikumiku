@@ -65,11 +65,34 @@
     <div class="admin-container">
         <h2>Admin Dashboard</h2>
         <button id="logout">Logout</button>
+
+        <h3>Real-time Active Users</h3>
+        <p id="active-users-count">Loading...</p>
         
         <h3>Comments</h3>
         <div id="comment-container"></div>
     </div>
     
-    <script src="admin-dashboard.js"></script>
+    <script src="/socket.io/socket.io.js"></script> <!-- Include the Socket.IO client -->
+    <script src="admin-dashboard.js"></script> <!-- Your custom JS file -->
+    <script>
+        const socket = io(); // Connect to the server using Socket.IO
+
+        // Listen for real-time updates for active users
+        socket.on('activeUsersUpdate', (data) => {
+            document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.count}`;
+        });
+
+        // Existing logout functionality
+        const logoutButton = document.getElementById('logout');
+        logoutButton.addEventListener('click', () => {
+            fetch('/logout', { method: 'POST' })
+                .then(() => {
+                    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                    window.location.href = '/admin-login.html';
+                })
+                .catch(error => console.error('Error:', error));
+        });
+    </script>
 </body>
 </html>
