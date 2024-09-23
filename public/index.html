@@ -202,12 +202,26 @@
 
             socket.on('youtubeClosed', () => {
                 videoThumbnail.classList.add('static-thumbnail');
+                
+                // Directly reset any animation and transition styles via JavaScript
+                videoThumbnail.style.animation = 'none';
+                videoThumbnail.style.transition = 'none';
+                videoThumbnail.style.transform = 'none';  // Reset any scaling
+                videoThumbnail.style.filter = 'brightness(1)';  // Reset brightness
+                
                 toggleProgressBar(false);
                 document.getElementById('videoTitle').innerText = 'YouTube Tab Closed';
             });
 
             socket.on('youtubeOpened', () => {
                 videoThumbnail.classList.remove('static-thumbnail');
+                
+                // Reapply animations and transitions
+                videoThumbnail.style.animation = 'pulse 2s infinite alternate';
+                videoThumbnail.style.transition = 'transform 0.4s ease, filter 0.4s ease, box-shadow 0.4s ease';
+                videoThumbnail.style.transform = 'scale(1.05)';  // Reapply scaling
+                videoThumbnail.style.filter = 'brightness(1.2)';  // Reapply brightness
+            
                 fetchYouTubeVideoDetails('YourVideoIDHere').then((duration) => {
                     if (duration) {
                         videoDuration = duration;
