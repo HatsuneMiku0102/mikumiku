@@ -757,16 +757,17 @@ function normalizeIp(ip) {
     return ip;
 }
 
-io.on('connection', async (socket) => {
+io.on('connection', async (socket) => { // Mark the callback as async
     let ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
     if (ip.startsWith('::ffff:')) ip = ip.substring(7);  // Handle IPv6-mapped IPv4 addresses
 
     // Fetch the location for the first IP in case of multiple IPs
     if (!activeUsers[socket.id]) {
-        const locationData = await fetchLocationData(ip);
+        const locationData = await fetchLocationData(ip); // Now this will work with await
         activeUsers[socket.id] = locationData;
     }
 
+    // Emit updated active users list
     io.emit('activeUsersUpdate', { users: Object.values(activeUsers) });
 
     socket.on('disconnect', () => {
