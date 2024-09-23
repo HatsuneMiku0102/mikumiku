@@ -1,6 +1,6 @@
 const express = require('express');
-const http = require('http'); // Required for setting up Socket.IO with Express
-const socketIo = require('socket.io'); // Import Socket.IO
+const http = require('http');
+const socketIo = require('socket.io');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
@@ -15,15 +15,12 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const fs = require('fs');
 const winston = require('winston');
-const { DateTime } = require('luxon'); // Import luxon for datetime handling
-const ipinfo = require('ipinfo');
-const app = express();
+const { DateTime } = require('luxon');
 
 dotenv.config();
 
-
-
-const server = http.createServer(app); // Create an HTTP server for Socket.IO
+const app = express();
+const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
         origin: "chrome-extension://<ealgoodedcojbceodddhbpcklnpneocp>",
@@ -50,16 +47,17 @@ const logger = winston.createLogger({
 
 app.set('trust proxy', 1);
 
+// Middleware
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const mongoUrl = 'mongodb+srv://hystoriyaallusiataylor:mtW4aUnsTIr5VVcV@mikumiku.jf47gbz.mongodb.net/myfirstdatabase?retryWrites=true&w=majority&appName=mikumiku';
+// MongoDB Connection
+const mongoUrl = process.env.MONGO_URL;
 
-// Connect to MongoDB
 mongoose.connect(mongoUrl, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    useFindAndModify: false  // Address deprecation warning
+    useFindAndModify: false
 }).then(() => {
     logger.info('Connected to MongoDB');
 }).catch((err) => {
@@ -69,7 +67,7 @@ mongoose.connect(mongoUrl, {
 const sessionStore = MongoStore.create({
     mongoUrl: mongoUrl,
     collectionName: 'sessions',
-    ttl: 14 * 24 * 60 * 60, // 14 days
+    ttl: 14 * 24 * 60 * 60,
     autoRemove: 'native'
 });
 
@@ -82,37 +80,37 @@ sessionStore.on('error', (error) => {
 });
 
 app.use(session({
-    secret: process.env.SESSION_SECRET || '703c21839606106f7636c214e94869353b5b4d30f6c3a69dd8c75335f45fde4b',  // Use the generated secret
+    secret: process.env.SESSION_SECRET || '703c21839606106f7636c214e94869353b5b4d30f6c3a69dd8c75335f45fde4b',
     resave: false,
     saveUninitialized: false,
-    store: sessionStore,  // Ensure your session store is properly managing sessions
+    store: sessionStore,
     cookie: {
-        secure: true,  // Only use cookies over HTTPS
+        secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 24-hour expiration for sessions
+        maxAge: 24 * 60 * 60 * 1000
     }
 }));
-
 
 // Set CSP headers using helmet
 app.use(helmet.contentSecurityPolicy({
     directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com", "https://www.youtube.com", "https://www.youtube.com/iframe_api"], // Add YouTube script sources
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com", "https://www.youtube.com", "https://www.youtube.com/iframe_api"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        imgSrc: ["'self'", "data:", "https://i.ytimg.com", "https://img.youtube.com"], // Allow YouTube images and thumbnails
+        imgSrc: ["'self'", "data:", "https://i.ytimg.com", "https://img.youtube.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        connectSrc: ["'self'", "https://www.googleapis.com", "https://*.youtube.com"], // Allow YouTube API calls
-        frameSrc: ["'self'", "https://discord.com", "https://www.youtube.com"], // Allow embedding YouTube videos in iframes
-        mediaSrc: ["'self'", "https://www.youtube.com"], // Allow media from YouTube
+        connectSrc: ["'self'", "https://www.googleapis.com", "https://*.youtube.com"],
+        frameSrc: ["'self'", "https://discord.com", "https://www.youtube.com"],
+        mediaSrc: ["'self'", "https://www.youtube.com"],
         frameAncestors: ["'self'", "https://discord.com"]
     }
 }));
 
+// Serve static files from 'public'
 app.use(express.static(path.join(__dirname, 'public'), {
-    etag: false,    // Disable etag generation
-    maxAge: 0,      // Set cache expiry to 0, forces revalidation
-    lastModified: false  // Disable last modified header
+    etag: false,
+    maxAge: 0,
+    lastModified: false
 }));
 
 // MongoDB Schemas and Models
@@ -121,11 +119,11 @@ const userSchema = new mongoose.Schema({
     bungie_name: { type: String, required: true },
     membership_id: { type: String, unique: true, required: true },
     platform_type: { type: Number, required: true },
-    token: { type: String, unique: true }, // Added token field
-    registration_date: { type: Date, default: Date.now }, // Added registration_date field
-    access_token: { type: String, required: true }, // Added access_token field
-    refresh_token: { type: String, required: true }, // Added refresh_token field
-    token_expiry: { type: Date, required: true } // Added token_expiry field
+    token: { type: String, unique: true },
+    registration_date: { type: Date, default: Date.now },
+    access_token: { type: String, required: true },
+    refresh_token: { type: String, required: true },
+    token_expiry: { type: Date, required: true }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -142,41 +140,69 @@ const sessionSchema = new mongoose.Schema({
     state: { type: String, required: true, unique: true },
     user_id: { type: String, required: true },
     session_id: { type: String, required: true },
-    created_at: { type: Date, default: Date.now, expires: 86400 }, // 24 hours
+    created_at: { type: Date, default: Date.now, expires: 86400 },
     ip_address: { type: String },
     user_agent: { type: String }
 });
 
-const Session = mongoose.model('Session', sessionSchema, 'sessions'); // Explicitly specify the collection name
+const Session = mongoose.model('Session', sessionSchema, 'sessions');
 
-// Comment Schema and Model
 const commentSchema = new mongoose.Schema({
     username: { type: String, required: true },
     comment: { type: String, required: true },
     timestamp: { type: Date, default: Date.now },
-    approved: { type: Boolean, default: true } // You can use this for moderation
+    approved: { type: Boolean, default: true }
 });
 
 const Comment = mongoose.model('Comment', commentSchema);
 
-const users = [
-    {
-        username: process.env.ADMIN_USERNAME,
-        password: bcrypt.hashSync(process.env.ADMIN_PASSWORD, 8)
+// Helper Functions
+function generateRandomString(size = 16) {
+    return crypto.randomBytes(size).toString('hex');
+}
+
+function hashPassword(password, salt) {
+    return crypto.createHmac('sha256', salt)
+                 .update(password)
+                 .digest('hex');
+}
+
+const plainPassword = 'Aria';
+const salt = 'random_salt';
+const hashedPassword = hashPassword(plainPassword, salt);
+logger.info('Hashed Password:', hashedPassword);
+
+// JWT Verification Middleware
+function verifyToken(req, res, next) {
+    const token = req.cookies.token;
+    logger.info('Token from cookie:', token);
+
+    if (!token) {
+        logger.info('Token not found. Redirecting to login.');
+        return res.redirect('/admin-login.html');
     }
-];
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+            logger.info('Token verification failed:', err.message);
+            return res.redirect('/admin-login.html');
+        }
+        logger.info('Token successfully verified. User ID:', decoded.id);
+        req.userId = decoded.id;
+        next();
+    });
+}
 
 // OAuth Configuration
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = 'https://mikumiku.dev/callback';  // Ensure this matches the URL in your Bungie app settings
+const REDIRECT_URI = 'https://mikumiku.dev/callback';
 
 const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
 
 function updateMembershipMapping(discordId, userInfo) {
     let membershipMapping = {};
 
-    // Read the existing file if it exists
     if (fs.existsSync(membershipFilePath)) {
         const data = fs.readFileSync(membershipFilePath, 'utf8');
         logger.info('Read existing membership mapping file:', data);
@@ -190,16 +216,14 @@ function updateMembershipMapping(discordId, userInfo) {
         logger.info('Membership mapping file does not exist. A new one will be created.');
     }
 
-    // Update the membership mapping with new user info
     membershipMapping[discordId] = {
         "membership_id": userInfo.membershipId,
         "platform_type": userInfo.platformType,
         "bungie_name": userInfo.bungieName,
-        "registration_date": new Date(), // Add the registration date here
+        "registration_date": new Date(),
         "clan_id": "4900827"
     };
 
-    // Write the updated membership mapping back to the file
     try {
         fs.writeFileSync(membershipFilePath, JSON.stringify(membershipMapping, null, 2), 'utf8');
         logger.info('Updated membership mapping file:', JSON.stringify(membershipMapping, null, 2));
@@ -207,7 +231,6 @@ function updateMembershipMapping(discordId, userInfo) {
         logger.error('Error writing to membership mapping file:', err);
     }
 
-    // Read and log the file contents to confirm update
     try {
         const updatedData = fs.readFileSync(membershipFilePath, 'utf8');
         logger.info('Verified membership mapping file content:', updatedData);
@@ -217,14 +240,13 @@ function updateMembershipMapping(discordId, userInfo) {
 }
 
 async function sendUserInfoToDiscordBot(discordId, userInfo) {
-    // You can implement additional actions here if needed
     logger.info('User info ready to be sent to Discord bot:', userInfo);
 }
 
-// OAuth Login Route
+// OAuth Routes
 app.get('/login', async (req, res) => {
     const state = generateRandomString(16);
-    const user_id = req.query.user_id; // Assume user_id is passed in the query for simplicity
+    const user_id = req.query.user_id;
     const ip_address = req.ip;
     const user_agent = req.get('User-Agent');
 
@@ -248,7 +270,6 @@ app.get('/login', async (req, res) => {
     }
 });
 
-// OAuth Callback Route
 app.get('/callback', async (req, res) => {
     const state = req.query.state;
     const code = req.query.code;
@@ -273,9 +294,9 @@ app.get('/callback', async (req, res) => {
         }
 
         const accessToken = tokenData.access_token;
-        const refreshToken = tokenData.refresh_token;  // Get the refresh token
-        const expiresIn = tokenData.expires_in; // In seconds
-        const tokenExpiry = DateTime.now().plus({ seconds: expiresIn }).toJSDate(); // Calculate expiry date
+        const refreshToken = tokenData.refresh_token;
+        const expiresIn = tokenData.expires_in;
+        const tokenExpiry = DateTime.now().plus({ seconds: expiresIn }).toJSDate();
 
         const userInfo = await getBungieUserInfo(accessToken);
         logger.info('User Info Response:', userInfo);
@@ -286,7 +307,7 @@ app.get('/callback', async (req, res) => {
         }
 
         const bungieGlobalDisplayName = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayName;
-        const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode.toString().padStart(4, '0'); // Ensure the code is treated as a string and padded with zeros if necessary
+        const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode.toString().padStart(4, '0');
         const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
 
         let primaryMembership = userInfo.Response.destinyMemberships.find(
@@ -294,7 +315,6 @@ app.get('/callback', async (req, res) => {
         );
 
         if (!primaryMembership) {
-            // If no primary membership is found, fallback to the first membership
             primaryMembership = userInfo.Response.destinyMemberships[0];
         }
 
@@ -315,19 +335,17 @@ app.get('/callback', async (req, res) => {
                 discord_id: discordId,
                 bungie_name: bungieName,
                 platform_type: platformType,
-                token: generateRandomString(16), // Generate a token for the user
-                registration_date: new Date(), // Set the registration date here
-                access_token: accessToken, // Store the access token
-                refresh_token: refreshToken, // Store the refresh token
-                token_expiry: tokenExpiry // Store the token expiry
+                token: generateRandomString(16),
+                registration_date: new Date(),
+                access_token: accessToken,
+                refresh_token: refreshToken,
+                token_expiry: tokenExpiry
             },
             { upsert: true, new: true }
         );
 
-        // Send the stored data to the Discord bot
         await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId });
 
-        // Save the user info to the membership mapping JSON file
         updateMembershipMapping(discordId, { bungieName, platformType, membershipId });
 
         await Session.deleteOne({ state });
@@ -348,12 +366,10 @@ app.get('/callback', async (req, res) => {
     }
 });
 
-// Serve the confirmation page
 app.get('/confirmation.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'confirmation.html'));
 });
 
-// API endpoint to fetch Bungie name
 app.get('/api/bungie-name', async (req, res) => {
     const token = req.query.token;
 
@@ -371,8 +387,6 @@ app.get('/api/bungie-name', async (req, res) => {
 });
 
 // Comment Routes
-
-// Add a comment
 app.post('/api/comments', async (req, res) => {
     try {
         const { username, comment } = req.body;
@@ -385,7 +399,6 @@ app.post('/api/comments', async (req, res) => {
     }
 });
 
-// Fetch approved comments
 app.get('/api/comments', async (req, res) => {
     try {
         const comments = await Comment.find({ approved: true });
@@ -396,7 +409,6 @@ app.get('/api/comments', async (req, res) => {
     }
 });
 
-// Delete a comment (requires authentication)
 app.delete('/api/comments/:id', verifyToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -408,11 +420,7 @@ app.delete('/api/comments/:id', verifyToken, async (req, res) => {
     }
 });
 
-function generateRandomString(size = 16) {  // Default size of 16 bytes
-    return crypto.randomBytes(size).toString('hex');
-}
-
-// Function to get Bungie token
+// Utility Functions
 async function getBungieToken(code) {
     const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
     const payload = new URLSearchParams({
@@ -446,7 +454,6 @@ async function getBungieToken(code) {
     }
 }
 
-// Function to refresh Bungie token
 async function refreshBungieToken(refreshToken) {
     const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
     const payload = new URLSearchParams({
@@ -479,7 +486,6 @@ async function refreshBungieToken(refreshToken) {
     }
 }
 
-// Function to get Bungie user info
 async function getBungieUserInfo(accessToken) {
     const url = 'https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/';
     const headers = {
@@ -507,13 +513,11 @@ async function getBungieUserInfo(accessToken) {
     }
 }
 
-// Function to get access token for user
 async function getAccessTokenForUser(user) {
     const now = DateTime.now();
     const tokenExpiry = DateTime.fromJSDate(user.token_expiry);
 
     if (now >= tokenExpiry) {
-        // Token expired, refresh it
         const newTokenData = await refreshBungieToken(user.refresh_token);
         user.access_token = newTokenData.access_token;
         user.refresh_token = newTokenData.refresh_token;
@@ -525,7 +529,6 @@ async function getAccessTokenForUser(user) {
     return user.access_token;
 }
 
-// Function to get pending clan members
 async function getPendingClanMembers(accessToken, groupId) {
     const url = `https://www.bungie.net/Platform/GroupV2/${groupId}/Members/Pending/`;
     const headers = {
@@ -552,7 +555,6 @@ async function getPendingClanMembers(accessToken, groupId) {
     }
 }
 
-// Route to get pending clan members and save to the database
 app.get('/api/clan/pending', verifyToken, async (req, res) => {
     const userId = req.userId;
 
@@ -563,10 +565,9 @@ app.get('/api/clan/pending', verifyToken, async (req, res) => {
         }
 
         const accessToken = await getAccessTokenForUser(user);
-        const pendingMembers = await getPendingClanMembers(accessToken, '5236471'); // Replace '5236471' with the actual group ID
+        const pendingMembers = await getPendingClanMembers(accessToken, '5236471');
 
-        // Save pending members to the database
-        await PendingMember.deleteMany(); // Clear existing entries
+        await PendingMember.deleteMany();
         const pendingMemberDocs = pendingMembers.map(member => ({
             membershipId: member.destinyUserInfo.membershipId,
             displayName: member.destinyUserInfo.displayName,
@@ -581,7 +582,6 @@ app.get('/api/clan/pending', verifyToken, async (req, res) => {
     }
 });
 
-// Route to retrieve pending clan members from the database
 app.get('/api/clan/pending/fromdb', verifyToken, async (req, res) => {
     try {
         const pendingMembers = await PendingMember.find();
@@ -592,64 +592,23 @@ app.get('/api/clan/pending/fromdb', verifyToken, async (req, res) => {
     }
 });
 
-
-const activeAdminUrls = new Set();
-
-app.use(express.json());
-app.use(cookieParser());
-app.use(session({
-    secret: 'your-session-secret',
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: true } // Ensure you use HTTPS for secure cookies
-}));
-
-// Serve static files (like the dashboard HTML and CSS)
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Middleware to verify JWT token and session
-// JWT Verification Middleware
-function verifyToken(req, res, next) {
-    const token = req.cookies.token;
-    console.log('Token from cookie:', token);
-
-    if (!token) {
-        console.log('Token not found. Redirecting to login.');
-        return res.redirect('/admin-login.html');  // Redirect if no token
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-        if (err) {
-            console.log('Token verification failed:', err.message);
-            return res.redirect('/admin-login.html');  // Redirect if token is invalid
+// Additional Security Configurations
+app.use((req, res, next) => {
+    if (process.env.NODE_ENV === 'production') {
+        if (req.headers['x-forwarded-proto'] !== 'https') {
+            return res.redirect(`https://${req.headers.host}${req.url}`);
         }
-        console.log('Token successfully verified. User ID:', decoded.id);
-        req.userId = decoded.id;
-        next();
-    });
-}
+    }
+    next();
+});
 
+// Protected Admin Dashboard Route
+app.get('/admin-dashboard-:random.html', verifyToken, (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
+});
 
-
-function hashPassword(password, salt) {
-    const hash = crypto.createHmac('sha256', salt)
-                       .update(password)
-                       .digest('hex');
-    return hash;
-}
-
-// Define the password and salt
-const plainPassword = 'Aria';  // Your actual password
-const salt = 'random_salt';  // You can change this to any fixed salt, just ensure it's consistent
-
-// Hash the password
-const hashedPassword = hashPassword(plainPassword, salt);
-
-console.log('Hashed Password:', hashedPassword);
-
-
-// POST route for login6
-app.post('/login', (req, res) => {
+// Login Route
+app.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
     const adminUsername = process.env.ADMIN_USERNAME;
@@ -657,106 +616,62 @@ app.post('/login', (req, res) => {
     const salt = 'random_salt';
 
     if (username !== adminUsername) {
+        logger.warn(`Failed login attempt for username: ${username} from IP: ${req.ip}`);
         return res.status(401).json({ auth: false, message: 'Invalid username or password' });
     }
 
-    // Hash the submitted password with the same salt
     const hashedInputPassword = hashPassword(password, salt);
 
-    // Compare the hashed input password with the stored hash
     if (hashedInputPassword !== adminPasswordHash) {
+        logger.warn(`Failed login attempt for username: ${username} from IP: ${req.ip}`);
         return res.status(401).json({ auth: false, message: 'Invalid username or password' });
     }
 
-    // If the password is correct, generate a token
     const token = jwt.sign({ id: adminUsername }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
-        expiresIn: 86400  // 24 hours
+        expiresIn: 86400
     });
 
-    // Generate dynamic dashboard URL
     const dashboardURL = `/admin-dashboard-${generateRandomString()}.html`;
 
-    // Store the dashboard URL in the session
     req.session.dashboardURL = dashboardURL;
-    console.log('Stored dashboardURL in session:', req.session.dashboardURL);
+    logger.info('Stored dashboardURL in session:', req.session.dashboardURL);
 
-    // Set the token as a secure cookie
     res.cookie('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',  // Use true in production, false for local development
-        maxAge: 86400 * 1000  // 24 hours
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 86400 * 1000
     });
 
-    // Send back the auth and redirect URL to the frontend
+    app.get(dashboardURL, verifyToken, (req, res) => {
+        res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
+    });
+
     req.session.save((err) => {
         if (err) {
-            console.error('Error saving session:', err);
+            logger.error('Error saving session:', err);
             return res.status(500).json({ auth: false, message: 'Error saving session' });
         }
         res.status(200).json({ auth: true, redirect: dashboardURL });
     });
 });
 
-
-
-
-
-// Serve the dynamic dashboard URL after successful login
-app.get('/:dashboardURL', verifyToken, (req, res) => {
-    const requestedDashboardURL = `/${req.params.dashboardURL}`;
-    console.log('Requested Dashboard URL:', requestedDashboardURL);
-    console.log('Session Dashboard URL:', req.session.dashboardURL);
-
-    if (requestedDashboardURL === req.session.dashboardURL) {
-        res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
-    } else {
-        console.log('Dashboard URL mismatch. Redirecting to login.');
-        res.status(401).redirect('/admin-login.html');
-    }
-});
-
-
-
-
-// POST route for logout
+// Logout Route
 app.post('/logout', (req, res) => {
-    res.clearCookie('token'); // Clear the JWT token cookie
-    req.session.destroy(); // Destroy the session
-
-    // Optional: Remove the URL from activeAdminUrls (if you track user-specific URLs)
-    const token = req.cookies.token;
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-        if (!err) {
-            activeAdminUrls.delete(decoded.id); // This assumes URL is tied to the user
-        }
-    });
-
-    res.redirect('/admin-login.html'); // Redirect to login page
+    res.clearCookie('token');
+    req.session.destroy();
+    res.redirect('/admin-login.html');
 });
 
-function generateRandomUrl() {
-    return '/admin-dashboard/' + crypto.randomBytes(16).toString('hex');
-}
-
-
-
-
-
-
-
-
-// Public route for fetching videos
+// Video Routes
 app.get('/api/videos/public', async (req, res) => {
     try {
-        // Add your logic here for fetching video metadata from MongoDB
-        res.json([]); // Placeholder response
+        res.json([]);
     } catch (err) {
         logger.error('Error retrieving video metadata:', err);
         res.status(500).send({ error: 'Error retrieving video metadata' });
     }
 });
 
-// Protected route for adding videos
 app.post('/api/videos', verifyToken, async (req, res) => {
     const videoMetadata = {
         url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
@@ -767,52 +682,45 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     };
 
     try {
-        // Add your logic here for saving video metadata to MongoDB
-        res.status(201).send({ message: 'Video added', video: videoMetadata }); // Placeholder response
+        res.status(201).send({ message: 'Video added', video: videoMetadata });
     } catch (err) {
         logger.error('Error saving video metadata:', err);
         res.status(500).send({ error: 'Error saving video metadata' });
     }
 });
 
-
-// Define global variables for video status
+// Video Status Variables
 let currentVideoTitle = 'Loading...';
-let currentVideoUrl = ''; // New variable for the video URL
-let videoStartTimestamp = Date.now(); // Set the initial timestamp
+let currentVideoUrl = '';
+let videoStartTimestamp = Date.now();
 
-// Socket.IO connection handling
+// Socket.IO Connection Handling
 io.on('connection', (socket) => {
-    console.log('New client connected');
+    logger.info('New client connected');
 
-    // Emit the current video title, URL, and current playback time to the new client
     socket.emit('nowPlayingUpdate', { 
         title: currentVideoTitle, 
         videoUrl: currentVideoUrl, 
         startTimestamp: videoStartTimestamp, 
-        currentTime: (Date.now() - videoStartTimestamp) / 1000 // Send the current playback time in seconds
+        currentTime: (Date.now() - videoStartTimestamp) / 1000 
     });
 
-    // Handle updates to the video title and URL
     socket.on('updateVideoTitle', ({ title, videoUrl, currentTime }) => {
-        console.log('Received video title:', title);
-        console.log('Received video URL:', videoUrl);
-        console.log('Received current time:', currentTime);
-    
-        // Update the global variables
+        logger.info('Received video title:', title);
+        logger.info('Received video URL:', videoUrl);
+        logger.info('Received current time:', currentTime);
+
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
-        videoStartTimestamp = Date.now() - (currentTime * 1000); // Adjust the start timestamp based on the provided currentTime
-    
-        // Broadcast the updated video information to all clients
+        videoStartTimestamp = Date.now() - (currentTime * 1000);
+
         io.emit('nowPlayingUpdate', { 
             title, 
             videoUrl, 
             startTimestamp: videoStartTimestamp,
-            currentTime: currentTime // Broadcast the updated current time
+            currentTime: currentTime 
         });
 
-        // If the video title is 'Offline', send an offline status to all clients
         if (title === 'Offline') {
             io.emit('nowPlayingUpdate', {
                 title: 'Offline',
@@ -824,86 +732,75 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log('Client disconnected');
+        logger.info('Client disconnected');
     });
 });
 
-// Endpoint to send real-time data to clients
+// Real-time Data Endpoint
 app.post('/api/update', (req, res) => {
     const data = req.body;
-    // Emit an event to all connected clients
     io.emit('updateData', data);
     res.status(200).send({ message: 'Data sent to clients' });
 });
 
+// Active Users Tracking
 let activeUsers = [];
-
 
 async function fetchLocationData(ip) {
     try {
-        // Ensure only a single IP address is passed by splitting if necessary
-        const singleIp = ip.split(',')[0].trim(); // Take the first IP if multiple are present
+        const singleIp = ip.split(',')[0].trim();
         const response = await axios.get(`https://ipinfo.io/${singleIp}?token=14eb346301d8b9`);
         const { ip: userIP, city, region, country } = response.data;
         return { ip: userIP, city, region, country };
     } catch (error) {
-        console.error('Error fetching location data:', error);
+        logger.error('Error fetching location data:', error);
         return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
     }
 }
 
-
-
 function normalizeIp(ip) {
     if (ip.startsWith('::ffff:')) {
-        return ip.replace('::ffff:', '');  // Normalize IPv6-mapped IPv4 to IPv4
+        return ip.replace('::ffff:', '');
     }
     return ip;
 }
 
 io.on('connection', async (socket) => {  
     let ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
-    
-    // Handle cases where x-forwarded-for contains multiple IPs
+
     if (ip.includes(',')) {
-        ip = ip.split(',')[0].trim();  // Take the first IP in the list
+        ip = ip.split(',')[0].trim();
     }
-    
-    ip = normalizeIp(ip);  // Normalize IP (handle IPv6-mapped IPv4 addresses)
 
-    // Ensure the IP isn't already in the active users list
-    if (!Object.values(activeUsers).some(user => user.ip === ip)) {
+    ip = normalizeIp(ip);
+
+    if (!activeUsers.some(user => user.ip === ip)) {
         const locationData = await fetchLocationData(ip);
-        activeUsers[socket.id] = locationData;  // Store user info based on socket ID
+        activeUsers.push(locationData);
     }
 
-    // Emit updated active users list to all clients
-    io.emit('activeUsersUpdate', { users: Object.values(activeUsers) });
+    io.emit('activeUsersUpdate', { users: activeUsers });
 
     socket.on('disconnect', () => {
-        delete activeUsers[socket.id];
-        io.emit('activeUsersUpdate', { users: Object.values(activeUsers) });
+        activeUsers = activeUsers.filter(user => user.ip !== ip);
+        io.emit('activeUsersUpdate', { users: activeUsers });
     });
 });
 
-
-// Serve your admin dashboard where you'll display the location data
+// Additional Routes
 app.get('/admin-dashboard', verifyToken, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
+    res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
 });
-
 
 app.get('/api/check-youtube', async (req, res) => {
     try {
-        // Perform the YouTube API status check logic here
-        const youtubeApiStatus = true;  // Example: Assume the API is available
-
+        const youtubeApiStatus = true;
         res.json({
             available: youtubeApiStatus,
             status: youtubeApiStatus ? 'YouTube API is working' : 'YouTube API is unavailable'
         });
     } catch (error) {
-        console.error('Error checking YouTube API:', error);
+        logger.error('Error checking YouTube API:', error);
         res.status(500).json({
             available: false,
             status: 'Error checking YouTube API'
@@ -911,8 +808,6 @@ app.get('/api/check-youtube', async (req, res) => {
     }
 });
 
-
-// Bungie API Status Check
 app.get('/api/check-bungie', async (req, res) => {
     const bungieApiKey = process.env.X_API_KEY;
     const url = 'https://www.bungie.net/Platform/Destiny2/Manifest/';
@@ -925,7 +820,7 @@ app.get('/api/check-bungie', async (req, res) => {
             return res.json({ status: 'Bungie API is working', available: true });
         }
     } catch (error) {
-        console.error('Error checking Bungie API:', error);
+        logger.error('Error checking Bungie API:', error);
         return res.json({ status: 'Bungie API is unavailable', available: false });
     }
 });
@@ -934,4 +829,3 @@ app.get('/api/check-bungie', async (req, res) => {
 server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
-
