@@ -733,17 +733,6 @@ async function fetchLocationData(ip) {
     }
 }
 
-    
-    try {
-        // Call IPinfo API for public IP addresses
-        const response = await axios.get(`https://ipinfo.io/${ip}?token=14eb346301d8b9`);
-        const { ip: userIP, city, region, country } = response.data;
-        return { ip: userIP || ip, city: city || 'Unknown', region: region || 'Unknown', country: country || 'Unknown' };
-    } catch (error) {
-        console.error('Error fetching location data:', error);
-        return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
-    }
-}
 
 // Function to normalize IPv6-mapped IPv4 addresses
 function normalizeIp(ip) {
