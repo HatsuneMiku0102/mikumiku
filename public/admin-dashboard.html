@@ -45,6 +45,10 @@
             background-color: #3a3a3a;
             border-radius: 5px;
         }
+        #no-users {
+            text-align: center;
+            color: #ff4444;
+        }
     </style>
 </head>
 <body>
@@ -57,7 +61,7 @@
             <li>Loading active users...</li>
         </ul>
     </div>
-    
+
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
@@ -67,15 +71,16 @@
             const activeUsersList = document.getElementById('active-users-list');
             activeUsersList.innerHTML = ''; // Clear current list
             
+            if (data.users.length === 0) {
+                activeUsersList.innerHTML = '<li id="no-users">No active users at the moment.</li>';
+                return;
+            }
+
             data.users.forEach(user => {
                 const listItem = document.createElement('li');
                 listItem.innerText = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
                 activeUsersList.appendChild(listItem);
             });
-
-            if (data.users.length === 0) {
-                activeUsersList.innerHTML = '<li>No active users at the moment.</li>';
-            }
         });
 
         const logoutButton = document.getElementById('logout');
