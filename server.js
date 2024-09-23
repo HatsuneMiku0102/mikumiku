@@ -625,7 +625,6 @@ function verifyToken(req, res, next) {
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
-
     if (!user) {
         return res.status(400).send({ auth: false, message: 'Invalid username or password' });
     }
@@ -639,34 +638,33 @@ app.post('/login', (req, res) => {
         expiresIn: 86400 // 24 hours
     });
 
-    // Generate a fully random URL for the admin dashboard
-    const randomUrl = `/${Math.random().toString(36).substring(2, 15)}`;
+    // Generate a random dashboard URL for security
+    const randomDashboardURL = `/dashboard-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Store the dashboard URL in the session or some cache if necessary
+    req.session.dashboardURL = randomDashboardURL;
 
-    // Store the random URL as valid for this session
-    activeAdminUrls.add(randomUrl);
-
-    // Set the cookie with the token
+    // Set token as cookie
     res.cookie('token', token, {
         httpOnly: true,
         secure: true, // Set to true if using HTTPS
         maxAge: 86400 * 1000 // 24 hours
     });
 
-    // Send the random URL back to the frontend
-    res.status(200).send({ auth: true, url: randomUrl });
+    // Redirect user to the random dashboard URL
+    res.status(200).send({ auth: true, redirectURL: randomDashboardURL });
 });
 
-// Serve dynamic admin URLs after successful login
-app.get('/:dynamicUrl', verifyToken, (req, res) => {
-    const dynamicUrl = `/${req.params.dynamicUrl}`;
-
-    // Check if the URL is one of the active admin URLs
-    if (activeAdminUrls.has(dynamicUrl)) {
+// Serve the dynamic dashboard URL after successful login
+app.get('/:dashboardURL', verifyToken, (req, res) => {
+    const requestedDashboardURL = `/${req.params.dashboardURL}`;
+    if (requestedDashboardURL === req.session.dashboardURL) {
         res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
     } else {
-        res.status(404).send('Not Found');
+        res.status(401).redirect('/admin-login.html');
     }
 });
+
 
 // POST route for logout
 app.post('/logout', (req, res) => {
