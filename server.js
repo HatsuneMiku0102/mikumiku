@@ -723,10 +723,19 @@ app.post('/api/update', (req, res) => {
 let activeUsers = [];
 
 async function fetchLocationData(ip) {
-    // Exclude private IPs and local addresses
-    if (ip.startsWith('10.') || ip.startsWith('192.168.') || ip.startsWith('127.') || ip === '::1') {
-        return { ip, city: 'Local Network', region: 'Local Network', country: 'Local Network' };
+    try {
+        // Handle multiple IP addresses (comma-separated), use the first one
+        const publicIP = ip.includes(',') ? ip.split(',')[0].trim() : ip;
+
+        const response = await axios.get(`https://ipinfo.io/${publicIP}?token=14eb346301d8b9`);
+        const { ip: userIP, city, region, country } = response.data;
+        return { ip: userIP, city, region, country };
+    } catch (error) {
+        console.error('Error fetching location data:', error);
+        return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
     }
+}
+
     
     try {
         // Call IPinfo API for public IP addresses
@@ -749,10 +758,10 @@ function normalizeIp(ip) {
 }
 
 io.on('connection', async (socket) => {
-    // Extract public IP from headers (use `X-Forwarded-For` if behind a proxy)
     let ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
     if (ip.startsWith('::ffff:')) ip = ip.substring(7);  // Handle IPv6-mapped IPv4 addresses
-    
+
+    // Fetch the location for the first IP in case of multiple IPs
     if (!activeUsers[socket.id]) {
         const locationData = await fetchLocationData(ip);
         activeUsers[socket.id] = locationData;
