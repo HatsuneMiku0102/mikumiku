@@ -744,10 +744,9 @@ io.on('connection', (socket) => {
 });
 
 
-
 app.get('/api/location', async (req, res) => {
     try {
-        const response = await axios.get('https://ipinfo.io/2.26.97.43?token=14eb346301d8b9');
+        const response = await axios.get('https://ipinfo.io?token=14eb346301d8b9');
         const locationData = response.data;
         res.json(locationData);
     } catch (error) {
