@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const winston = require('winston');
 const { DateTime } = require('luxon');
+const fetch = require('node-fetch');
 
 dotenv.config();
 
@@ -824,6 +825,23 @@ app.get('/api/check-bungie', async (req, res) => {
         return res.json({ status: 'Bungie API is unavailable', available: false });
     }
 });
+
+
+app.get('/weather', async (req, res) => {
+    const city = req.query.city || 'Leeds';
+    const apiKey = 'ce82286b610208fb4ac780a909455a0e';
+    const units = 'metric';
+    const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=${units}&appid=${apiKey}`;
+
+    try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch weather data' });
+    }
+});
+
 
 // Start the server
 server.listen(PORT, () => {
