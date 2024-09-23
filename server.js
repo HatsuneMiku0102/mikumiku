@@ -625,33 +625,32 @@ function verifyToken(req, res, next) {
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
-    // Fetch the correct username and hashed password from environment variables
     const adminUsername = process.env.ADMIN_USERNAME;
     const adminPasswordHash = process.env.ADMIN_PASSWORD;
 
-    // Check if username matches
+    // Check if the username is correct
     if (username !== adminUsername) {
-        return res.status(401).send({ auth: false, message: 'Invalid username or password' });
+        return res.status(401).json({ auth: false, message: 'Invalid username or password' });
     }
 
-    // Compare the entered password with the hashed password stored in the environment
+    // Check if the password matches
     const passwordIsValid = bcrypt.compareSync(password, adminPasswordHash);
     if (!passwordIsValid) {
-        return res.status(401).send({ auth: false, message: 'Invalid username or password' });
+        return res.status(401).json({ auth: false, message: 'Invalid username or password' });
     }
 
-    // If valid, generate a token and send a success response
-    const token = jwt.sign({ id: adminUsername }, process.env.JWT_SECRET || 'your-jwt-secret', {
+    // If both username and password are valid, generate the JWT token
+    const token = jwt.sign({ id: adminUsername }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
         expiresIn: 86400 // 24 hours
     });
 
     res.cookie('token', token, {
         httpOnly: true,
-        secure: true, // Enable only if using HTTPS
+        secure: true,  // Use secure cookies
         maxAge: 86400 * 1000 // 24 hours
     });
 
-    res.status(200).send({ auth: true, message: 'Login successful' });
+    res.status(200).json({ auth: true, redirect: `/admin-dashboard-${generateRandomString()}.html` });
 });
 
 // Serve the dynamic dashboard URL after successful login
