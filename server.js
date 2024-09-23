@@ -17,10 +17,11 @@ const fs = require('fs');
 const winston = require('winston');
 const { DateTime } = require('luxon'); // Import luxon for datetime handling
 const ipinfo = require('ipinfo');
+const app = express();
 
 dotenv.config();
 
-const app = express();
+
 const server = http.createServer(app); // Create an HTTP server for Socket.IO
 const io = socketIo(server, {
     cors: {
