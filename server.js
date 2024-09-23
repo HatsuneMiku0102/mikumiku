@@ -589,16 +589,42 @@ app.get('/api/clan/pending/fromdb', verifyToken, async (req, res) => {
     }
 });
 
-function generateRandomUrl() {
-    return '/admin-dashboard/' + crypto.randomBytes(16).toString('hex');
+
+const activeAdminUrls = new Set();
+
+app.use(express.json());
+app.use(cookieParser());
+app.use(session({
+    secret: 'your-session-secret',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: true } // Ensure you use HTTPS for secure cookies
+}));
+
+// Serve static files (like the dashboard HTML and CSS)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Middleware to verify JWT token and session
+function verifyToken(req, res, next) {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({ redirect: '/admin-login.html' });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET || 'your-jwt-secret-key', (err, decoded) => {
+        if (err) {
+            return res.status(401).json({ redirect: '/admin-login.html' });
+        }
+        req.userId = decoded.id;
+        next();
+    });
 }
 
-const activeAdminUrls = new Set(); // Store active random admin URLs
-
+// POST route for login
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
-    
+
     if (!user) {
         return res.status(400).send({ auth: false, message: 'Invalid username or password' });
     }
@@ -612,7 +638,7 @@ app.post('/login', (req, res) => {
         expiresIn: 86400 // 24 hours
     });
 
-    // Generate a fully random URL without "admin-dashboard"
+    // Generate a fully random URL for the admin dashboard
     const randomUrl = `/${Math.random().toString(36).substring(2, 15)}`;
 
     // Store the random URL as valid for this session
@@ -629,39 +655,42 @@ app.post('/login', (req, res) => {
     res.status(200).send({ auth: true, url: randomUrl });
 });
 
+// Serve dynamic admin URLs after successful login
+app.get('/:dynamicUrl', verifyToken, (req, res) => {
+    const dynamicUrl = `/${req.params.dynamicUrl}`;
 
-
-
-
-app.post('/logout', (req, res) => {
-    res.clearCookie('token'); // clear the JWT token cookie
-    req.session.destroy();    // destroy the session
-    res.redirect('/admin-login.html'); // redirect to login page
+    // Check if the URL is one of the active admin URLs
+    if (activeAdminUrls.has(dynamicUrl)) {
+        res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
+    } else {
+        res.status(404).send('Not Found');
+    }
 });
 
+// POST route for logout
+app.post('/logout', (req, res) => {
+    res.clearCookie('token'); // Clear the JWT token cookie
+    req.session.destroy(); // Destroy the session
 
-// Middleware to verify token and session-specific admin URL
-function verifyToken(req, res, next) {
+    // Optional: Remove the URL from activeAdminUrls (if you track user-specific URLs)
     const token = req.cookies.token;
-    if (!token) {
-        return res.status(401).json({ redirect: '/admin-login.html' });
-    }
-
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(401).json({ redirect: '/admin-login.html' });
-        }
-
-        req.userId = decoded.id;
-
-        // Check if the user is trying to access their specific admin URL
-        if (req.session.adminUrl && req.originalUrl === req.session.adminUrl) {
-            next();
-        } else {
-            return res.status(401).json({ redirect: '/admin-login.html' });
+        if (!err) {
+            activeAdminUrls.delete(decoded.id); // This assumes URL is tied to the user
         }
     });
+
+    res.redirect('/admin-login.html'); // Redirect to login page
+});
+
+function generateRandomUrl() {
+    return '/admin-dashboard/' + crypto.randomBytes(16).toString('hex');
 }
+
+
+
+
+
 
 
 
