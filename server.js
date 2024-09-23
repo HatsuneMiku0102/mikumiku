@@ -740,26 +740,30 @@ async function fetchLocationData(ip) {
 
 function normalizeIp(ip) {
     if (ip.startsWith('::ffff:')) {
-        return ip.replace('::ffff:', '');  // Normalize IPv6 to IPv4
+        return ip.replace('::ffff:', '');  // Normalize IPv6-mapped IPv4 to IPv4
     }
     return ip;
-}
 
 io.on('connection', async (socket) => {  
     let ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
-    ip = normalizeIp(ip);  // Handle IPv6-mapped IPv4 addresses
+    
+    // Handle cases where x-forwarded-for contains multiple IPs
+    if (ip.includes(',')) {
+        ip = ip.split(',')[0].trim();  // Take the first IP in the list
+    }
+    
+    ip = normalizeIp(ip);  // Normalize IP (handle IPv6-mapped IPv4 addresses)
 
-    // Check if the IP is already stored for this socket ID
-    if (!activeUsers[socket.id]) {
-        const locationData = await fetchLocationData(ip); // Fetch location data
-        activeUsers[socket.id] = locationData;  // Store unique user info based on socket ID
+    // Ensure the IP isn't already in the active users list
+    if (!Object.values(activeUsers).some(user => user.ip === ip)) {
+        const locationData = await fetchLocationData(ip);
+        activeUsers[socket.id] = locationData;  // Store user info based on socket ID
     }
 
     // Emit updated active users list to all clients
     io.emit('activeUsersUpdate', { users: Object.values(activeUsers) });
 
     socket.on('disconnect', () => {
-        // Remove the user on disconnect
         delete activeUsers[socket.id];
         io.emit('activeUsersUpdate', { users: Object.values(activeUsers) });
     });
