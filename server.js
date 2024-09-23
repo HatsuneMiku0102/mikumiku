@@ -596,6 +596,7 @@ function generateRandomUrl() {
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
+    
     if (!user) {
         return res.status(400).send({ auth: false, message: 'Invalid username or password' });
     }
@@ -605,16 +606,12 @@ app.post('/login', (req, res) => {
         return res.status(400).send({ auth: false, message: 'Invalid username or password' });
     }
 
-    // Generate JWT token
     const token = jwt.sign({ id: user.username }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
         expiresIn: 86400 // 24 hours
     });
 
-    // Generate random URL
-    const adminUrl = generateRandomUrl();
-    
-    // Store admin URL in session or database (here we store in session)
-    req.session.adminUrl = adminUrl;
+    // Create a randomized URL for admin dashboard
+    const randomUrl = `/admin-dashboard-${Math.random().toString(36).substring(2, 15)}.html`;
 
     res.cookie('token', token, {
         httpOnly: true,
@@ -622,9 +619,10 @@ app.post('/login', (req, res) => {
         maxAge: 86400 * 1000 // 24 hours
     });
 
-    // Redirect to the random admin URL
-    res.status(200).send({ auth: true, url: adminUrl });
+    // Return the randomized URL in the response
+    res.status(200).send({ auth: true, url: randomUrl });
 });
+
 
 
 
