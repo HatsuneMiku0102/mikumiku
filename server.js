@@ -767,6 +767,39 @@ app.get('/admin-dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
+app.get('/api/check-youtube', async (req, res) => {
+    const youtubeApiKey = process.env.YOUTUBE_API_KEY;
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&q=test&key=${youtubeApiKey}`;
+
+    try {
+        const response = await axios.get(url);
+        if (response.status === 200) {
+            return res.json({ status: 'YouTube API is working', available: true });
+        }
+    } catch (error) {
+        console.error('Error checking YouTube API:', error);
+        return res.json({ status: 'YouTube API is unavailable', available: false });
+    }
+});
+
+// Bungie API Status Check
+app.get('/api/check-bungie', async (req, res) => {
+    const bungieApiKey = process.env.X_API_KEY;
+    const url = 'https://www.bungie.net/Platform/Destiny2/Manifest/';
+
+    try {
+        const response = await axios.get(url, {
+            headers: { 'X-API-Key': bungieApiKey }
+        });
+        if (response.status === 200) {
+            return res.json({ status: 'Bungie API is working', available: true });
+        }
+    } catch (error) {
+        console.error('Error checking Bungie API:', error);
+        return res.json({ status: 'Bungie API is unavailable', available: false });
+    }
+});
+
 // Start the server
 server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
