@@ -89,21 +89,22 @@
             const MAX_RECENT_VIDEOS = 3;
             let previousVideoData = null;
             const progressBarContainer = document.getElementById('progress-bar-container');
+            const liveIndicator = document.getElementById('live-indicator'); // Get the live indicator element here
             const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; 
-    
+        
             function formatTime(seconds) {
                 const minutes = Math.floor(seconds / 60);
                 const secs = Math.floor(seconds % 60);
                 return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
             }
-    
+        
             function clearExistingInterval() {
                 if (intervalID) {
                     clearInterval(intervalID);
                     intervalID = null;
                 }
             }
-    
+        
             function updateProgressBar() {
                 if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
                     const currentTimestamp = Date.now();
@@ -119,7 +120,7 @@
                     }
                 }
             }
-    
+        
             function toggleProgressBar(show) {
                 if (show) {
                     progressBarContainer.style.display = 'block';
@@ -131,7 +132,7 @@
                     document.getElementById('total-duration').style.display = 'none';
                 }
             }
-    
+        
             async function fetchYouTubeVideoDetails(videoID) {
                 const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=snippet,contentDetails,statistics&key=${YOUTUBE_API_KEY}`;
                 try {
@@ -163,7 +164,7 @@
                 }
                 return 0;
             }
-    
+        
             function updateRecentVideosUI(recentVideos) {
                 const recentVideosContainer = document.getElementById('recent-videos-container');
                 recentVideosContainer.innerHTML = '';
@@ -181,7 +182,7 @@
                     recentVideosContainer.appendChild(videoElement);
                 });
             }
-    
+        
             function addVideoToRecent(title, url, thumbnail) {
                 let recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
                 if (!recentVideos.find(video => video.url === url)) {
@@ -193,30 +194,28 @@
                     updateRecentVideosUI(recentVideos);
                 }
             }
-    
+        
             const recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
             updateRecentVideosUI(recentVideos);
-    
+        
             const socket = io('https://mikumiku.dev');
-    
+        
+            // This function will now only update one live indicator
             function handleLiveIndicator(isLive) {
-                liveIndicator.innerText = isLive ? 'Live' : 'Offline';
-                liveIndicator.classList.toggle('live', isLive);
+                if (liveIndicator) {
+                    liveIndicator.innerText = isLive ? 'Live' : 'Offline';
+                    liveIndicator.classList.toggle('live', isLive);
+                }
             }
-    
-            // Remove the live indicator handling from socket connects and disconnects
+        
             socket.on('youtubeClosed', () => {
                 handleLiveIndicator(false); // Only triggered when the YouTube tab is closed
                 toggleProgressBar(false);
                 document.getElementById('videoTitle').innerText = 'YouTube Tab Closed';
             });
-    
+        
             socket.on('youtubeOpened', () => {
                 handleLiveIndicator(true);  // Trigger when the YouTube tab is opened
-                // Fetch and update the video details when YouTube is opened
-                const videoTitleElement = document.getElementById('videoTitle');
-                const videoThumbnailElement = document.getElementById('videoThumbnail');
-                handleLiveIndicator(true);
                 fetchYouTubeVideoDetails('YourVideoIDHere').then((duration) => {
                     if (duration) {
                         videoDuration = duration;
@@ -227,7 +226,7 @@
                     }
                 });
             });
-    
+        
             socket.on('nowPlayingUpdate', (data) => {
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
@@ -244,7 +243,7 @@
                 videoTitleElement.innerText = previousVideoData.title;
                 videoThumbnailElement.src = previousVideoData.thumbnail;
                 videoThumbnailElement.alt = previousVideoData.title;
-    
+        
                 if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
                     clearExistingInterval();
                     isBrowsing = true;
@@ -266,6 +265,7 @@
                 }
             });
         });
+
     
         function extractYouTubeVideoID(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
