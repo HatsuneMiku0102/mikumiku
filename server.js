@@ -745,7 +745,8 @@ function normalizeIp(ip) {
 
 io.on('connection', async (socket) => { // make sure this is an async function
     let ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
-    if (ip.startsWith('::ffff:')) ip = ip.substring(7);  // Handle IPv6-mapped IPv4 addresses
+    ip = ip.split(',')[0].trim();  // Take only the first IP if there are multiple
+
 
     if (!activeUsers[socket.id]) {
         const locationData = await fetchLocationData(ip); // await works here
