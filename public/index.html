@@ -123,20 +123,20 @@
         const progressBarContainer = document.getElementById('progress-bar-container');
         const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; 
         const CITY_NAME = 'Leeds';
-
+    
         function formatTime(seconds) {
             const minutes = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
             return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
         }
-
+    
         function clearExistingInterval() {
             if (intervalID) {
                 clearInterval(intervalID);
                 intervalID = null;
             }
         }
-
+    
         function updateProgressBar() {
             if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
                 const currentTimestamp = Date.now();
@@ -152,7 +152,7 @@
                 }
             }
         }
-
+    
         function toggleProgressBar(show) {
             if (show) {
                 progressBarContainer.style.display = 'block';
@@ -164,7 +164,7 @@
                 document.getElementById('total-duration').style.display = 'none';
             }
         }
-
+    
         async function fetchYouTubeVideoDetails(videoID) {
             const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoID}&part=snippet,contentDetails,statistics&key=${YOUTUBE_API_KEY}`;
             try {
@@ -175,20 +175,20 @@
                     const snippet = videoData.snippet;
                     const stats = videoData.statistics;
                     const durationISO = videoData.contentDetails.duration;
-
+    
                     videoDuration = moment.duration(durationISO).asSeconds();
                     const formattedDuration = formatTime(videoDuration);
-
+    
                     document.getElementById('videoTitle').innerText = snippet.title;
                     document.getElementById('channelName').innerText = snippet.channelTitle;
                     document.getElementById('publishedDate').innerText = new Date(snippet.publishedAt).toLocaleDateString();
-
+    
                     const viewsFormatted = Number(stats.viewCount).toLocaleString();
                     document.getElementById('viewCount').innerText = `${viewsFormatted} views`;
-
+    
                     document.getElementById('videoThumbnail').src = snippet.thumbnails.high.url;
                     document.getElementById('total-duration').innerText = `Total Duration: ${formattedDuration}`;
-
+    
                     return videoDuration;
                 }
             } catch (error) {
@@ -196,7 +196,7 @@
             }
             return 0;
         }
-
+    
         function updateRecentVideosUI(recentVideos) {
             const recentVideosContainer = document.getElementById('recent-videos-container');
             recentVideosContainer.innerHTML = '';
@@ -214,7 +214,7 @@
                 recentVideosContainer.appendChild(videoElement);
             });
         }
-
+    
         function addVideoToRecent(title, url, thumbnail) {
             let recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
             if (!recentVideos.find(video => video.url === url)) {
@@ -226,29 +226,29 @@
                 updateRecentVideosUI(recentVideos);
             }
         }
-
+    
         const recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
         updateRecentVideosUI(recentVideos);
-
+    
         const socket = io('https://mikumiku.dev');
-
+    
         socket.on('youtubeClosed', () => {
             toggleProgressBar(false);
             document.getElementById('videoTitle').innerText = 'YouTube Tab Closed';
             document.querySelector('.now-playing').classList.add('offline');
             document.getElementById('videoThumbnail').classList.add('offline-thumbnail');
         });
-
+    
         socket.on('youtubeOpened', () => {
             document.querySelector('.now-playing').classList.remove('offline');
             document.getElementById('videoThumbnail').classList.remove('offline-thumbnail');
         });
-
+    
         socket.on('nowPlayingUpdate', (data) => {
             const videoTitleElement = document.getElementById('videoTitle');
             const videoThumbnailElement = document.getElementById('videoThumbnail');
             const nowPlayingElement = document.querySelector('.now-playing');
-
+    
             if (data.title === "Offline") {
                 videoTitleElement.innerText = 'Currently Offline';
                 nowPlayingElement.classList.add('offline');
@@ -257,22 +257,22 @@
             } else {
                 nowPlayingElement.classList.remove('offline');
                 videoThumbnailElement.classList.remove('offline-thumbnail');
-
+    
                 if (previousVideoData && previousVideoData.url !== data.videoUrl) {
                     addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
                 }
-
+    
                 const videoID = extractYouTubeVideoID(data.videoUrl);
                 previousVideoData = {
                     title: data.title || 'No video playing',
                     url: data.videoUrl,
                     thumbnail: `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`
                 };
-
+    
                 videoTitleElement.innerText = previousVideoData.title;
                 videoThumbnailElement.src = previousVideoData.thumbnail;
                 videoThumbnailElement.alt = previousVideoData.title;
-
+    
                 if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
                     clearExistingInterval();
                     isBrowsing = true;
@@ -294,29 +294,29 @@
                 }
             }
         });
-
+    
         function extractYouTubeVideoID(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
             const match = url.match(regExp);
             return (match && match[2].length === 11) ? match[2] : null;
         }
-
+    
         function updateClocks() {
             const now = new Date();
-
+    
             const localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             document.getElementById('local-time').textContent = localTime;
-
+    
             const nyTime = now.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit' });
             document.getElementById('ny-time').textContent = nyTime;
-
+    
             const londonTime = now.toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', second: '2-digit' });
             document.getElementById('london-time').textContent = londonTime;
         }
-
+    
         setInterval(updateClocks, 1000);
         updateClocks();
-
+    
         async function fetchWeather() {
             const city = CITY_NAME;
             const units = 'metric';
@@ -336,7 +336,7 @@
                 document.getElementById('wind-speed').textContent = '';
             }
         }
-
+    
         function displayWeather(data) {
             const description = data.weather[0].description;
             const temperature = Math.round(data.main.temp);
@@ -344,12 +344,12 @@
             const windSpeed = data.wind.speed;
             const iconCode = data.weather[0].icon;
             const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
-
+    
             document.getElementById('weather-description').textContent = `Condition: ${description}`;
             document.getElementById('temperature').textContent = `Temperature: ${temperature}°C`;
             document.getElementById('humidity').textContent = `Humidity: ${humidity}%`;
             document.getElementById('wind-speed').textContent = `Wind: ${windSpeed} m/s`;
-
+    
             const weatherInfo = document.querySelector('.weather-info');
             let iconElement = document.getElementById('weather-icon');
             if (!iconElement) {
@@ -364,11 +364,10 @@
             iconElement.style.marginBottom = '0.625rem';
             iconElement.style.display = 'block';
         }
-
+    
         fetchWeather();
         setInterval(fetchWeather, 3600000);
     });
     </script>
-
 </body>
 </html>
