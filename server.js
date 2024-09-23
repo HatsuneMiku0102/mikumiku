@@ -768,33 +768,38 @@ app.get('/admin-dashboard', (req, res) => {
 });
 
 
-setTimeout(() => {
-    fetch('/api/check-youtube')
-        .then(response => response.json())
-        .then(data => {
-            const youtubeStatus = document.getElementById('youtube-status');
-            youtubeStatus.innerText = data.status;
-            youtubeStatus.classList.add(data.available ? 'working' : 'unavailable');
-        })
-        .catch(error => {
-            console.error('Error checking YouTube API:', error);
-        });
-}, 2000);
+app.get('/api/check-youtube', async (req, res) => {
+    const youtubeApiKey = process.env.YOUTUBE_API_KEY;
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&q=test&key=${youtubeApiKey}`;
 
-// Check Bungie API after 3 seconds
-setTimeout(() => {
-    fetch('/api/check-bungie')
-        .then(response => response.json())
-        .then(data => {
-            const bungieStatus = document.getElementById('bungie-status');
-            bungieStatus.innerText = data.status;
-            bungieStatus.classList.add(data.available ? 'working' : 'unavailable');
-        })
-        .catch(error => {
-            console.error('Error checking Bungie API:', error);
-        });
-}, 3000);
+    try {
+        const response = await axios.get(url);
+        if (response.status === 200) {
+            return res.json({ status: 'YouTube API is working', available: true });
+        }
+    } catch (error) {
+        console.error('Error checking YouTube API:', error);
+        return res.json({ status: 'YouTube API is unavailable', available: false });
+    }
+});
 
+// Bungie API Status Check
+app.get('/api/check-bungie', async (req, res) => {
+    const bungieApiKey = process.env.X_API_KEY;
+    const url = 'https://www.bungie.net/Platform/Destiny2/Manifest/';
+
+    try {
+        const response = await axios.get(url, {
+            headers: { 'X-API-Key': bungieApiKey }
+        });
+        if (response.status === 200) {
+            return res.json({ status: 'Bungie API is working', available: true });
+        }
+    } catch (error) {
+        console.error('Error checking Bungie API:', error);
+        return res.json({ status: 'Bungie API is unavailable', available: false });
+    }
+});
 
 // Start the server
 server.listen(PORT, () => {
