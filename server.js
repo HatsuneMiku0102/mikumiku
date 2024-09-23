@@ -96,17 +96,51 @@ app.use(session({
 app.use(helmet.contentSecurityPolicy({
     directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com", "https://www.youtube.com", "https://www.youtube.com/iframe_api"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        imgSrc: ["'self'", "data:", "https://i.ytimg.com", "https://img.youtube.com"],
-        imgSrc: ["'self'", "data:", "https://openweathermap.org"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        connectSrc: ["'self'", "https://www.googleapis.com", "https://*.youtube.com"],
-        frameSrc: ["'self'", "https://discord.com", "https://www.youtube.com"],
-        mediaSrc: ["'self'", "https://www.youtube.com"],
-        frameAncestors: ["'self'", "https://discord.com"]
+        scriptSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "https://fonts.googleapis.com",
+            "https://cdnjs.cloudflare.com",
+            "https://www.youtube.com",
+            "https://www.youtube.com/iframe_api"
+        ],
+        styleSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "https://fonts.googleapis.com"
+        ],
+        imgSrc: [
+            "'self'",
+            "data:",
+            "https://i.ytimg.com",
+            "https://img.youtube.com",
+            "https://openweathermap.org"
+        ],
+        fontSrc: [
+            "'self'",
+            "https://fonts.gstatic.com"
+        ],
+        connectSrc: [
+            "'self'",
+            "https://www.googleapis.com",
+            "https://*.youtube.com"
+        ],
+        frameSrc: [
+            "'self'",
+            "https://discord.com",
+            "https://www.youtube.com"
+        ],
+        mediaSrc: [
+            "'self'",
+            "https://www.youtube.com"
+        ],
+        frameAncestors: [
+            "'self'",
+            "https://discord.com"
+        ]
     }
 }));
+
 
 // Serve static files from 'public'
 app.use(express.static(path.join(__dirname, 'public'), {
@@ -830,16 +864,20 @@ app.get('/api/check-bungie', async (req, res) => {
 
 app.get('/weather', async (req, res) => {
     const city = req.query.city || 'Leeds';
-    const apiKey = 'ce82286b610208fb4ac780a909455a0e';
-    const units = 'metric';
-    const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=${units}&appid=${apiKey}`;
+    const units = 'metric'; // or 'imperial' for Fahrenheit
+    const apiKey = process.env.OPENWEATHERMAP_API_KEY;
+    const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=${units}&appid=${apiKey}`;
 
     try {
         const response = await fetch(apiUrl);
+        if (!response.ok) {
+            return res.status(response.status).json({ error: 'Failed to fetch weather data' });
+        }
         const data = await response.json();
         res.json(data);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch weather data' });
+        console.error('Error fetching weather data:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 });
 
