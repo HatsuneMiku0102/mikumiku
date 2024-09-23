@@ -93,12 +93,14 @@ app.use(session({
 }));
 
 // Set CSP headers using helmet
+
 app.use(helmet.contentSecurityPolicy({
     directives: {
         defaultSrc: ["'self'"],
         scriptSrc: [
             "'self'",
             "'unsafe-inline'",
+            "'unsafe-eval'",
             "https://fonts.googleapis.com",
             "https://cdnjs.cloudflare.com",
             "https://www.youtube.com",
@@ -140,6 +142,7 @@ app.use(helmet.contentSecurityPolicy({
         ]
     }
 }));
+
 
 
 // Serve static files from 'public'
