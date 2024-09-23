@@ -743,24 +743,27 @@ function normalizeIp(ip) {
     return ip;
 }
 
-io.on('connection', async (socket) => { // make sure this is an async function
-    let ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
-    ip = ip.split(',')[0].trim();  // Take only the first IP if there are multiple
+io.on('connection', async (socket) => {
+    console.log('New client connected'); // Debugging log
 
+    let ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
+    if (ip.startsWith('::ffff:')) ip = ip.substring(7);  // Handle IPv6-mapped IPv4 addresses
 
     if (!activeUsers[socket.id]) {
-        const locationData = await fetchLocationData(ip); // await works here
+        const locationData = await fetchLocationData(ip); // Fetch location data
         activeUsers[socket.id] = locationData;
     }
 
     // Emit updated active users list
-    io.emit('activeUsersUpdate', { users: Object.values(activeUsers) });
+    io.emit('activeUsersUpdate', { users: Object.values(activeUsers) }); // Ensure data is being sent here
 
     socket.on('disconnect', () => {
+        console.log('Client disconnected'); // Debugging log
         delete activeUsers[socket.id];
         io.emit('activeUsersUpdate', { users: Object.values(activeUsers) });
     });
 });
+
 
 // Serve your admin dashboard where you'll display the location data
 app.get('/admin-dashboard', (req, res) => {
