@@ -643,8 +643,8 @@ app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
     const adminUsername = process.env.ADMIN_USERNAME;
-    const adminPasswordHash = process.env.ADMIN_PASSWORD;  // Hashed password in env
-    const salt = 'random_salt';  // Use the same salt used when hashing the password
+    const adminPasswordHash = process.env.ADMIN_PASSWORD;
+    const salt = 'random_salt';
 
     if (username !== adminUsername) {
         return res.status(401).json({ auth: false, message: 'Invalid username or password' });
@@ -663,26 +663,38 @@ app.post('/login', (req, res) => {
         expiresIn: 86400  // 24 hours
     });
 
+    // Generate dynamic dashboard URL
+    const dashboardURL = `/admin-dashboard-${generateRandomString()}.html`;
+    
+    // Store the dashboard URL in the session
+    req.session.dashboardURL = dashboardURL;
+
+    // Set the token as a secure cookie
     res.cookie('token', token, {
         httpOnly: true,
-        secure: true,
-        maxAge: 86400 * 1000
+        secure: process.env.NODE_ENV === 'production',  // Use true in production, false for local development
+        maxAge: 86400 * 1000  // 24 hours
     });
 
-    res.status(200).json({ auth: true, redirect: `/admin-dashboard-${generateRandomString()}.html` });
+    // Send back the auth and redirect URL to the frontend
+    res.status(200).json({ auth: true, redirect: dashboardURL });
 });
+
 
 
 
 // Serve the dynamic dashboard URL after successful login
 app.get('/:dashboardURL', verifyToken, (req, res) => {
     const requestedDashboardURL = `/${req.params.dashboardURL}`;
+    
+    // Compare the requested dashboard URL with the one stored in the session
     if (requestedDashboardURL === req.session.dashboardURL) {
         res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
     } else {
         res.status(401).redirect('/admin-login.html');
     }
 });
+
 
 
 // POST route for logout
