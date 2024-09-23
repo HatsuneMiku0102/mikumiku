@@ -749,19 +749,17 @@ function normalizeIp(ip) {
 }
 
 io.on('connection', async (socket) => {
-    // Normalize the IP address (convert IPv6-mapped IPv4 to IPv4)
-    let ip = normalizeIp(socket.handshake.address);
-
-    // Check if the user is already registered
+    // Extract public IP from headers (use `X-Forwarded-For` if behind a proxy)
+    let ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
+    if (ip.startsWith('::ffff:')) ip = ip.substring(7);  // Handle IPv6-mapped IPv4 addresses
+    
     if (!activeUsers[socket.id]) {
         const locationData = await fetchLocationData(ip);
         activeUsers[socket.id] = locationData;
     }
 
-    // Emit the updated list of active users to all connected clients
     io.emit('activeUsersUpdate', { users: Object.values(activeUsers) });
 
-    // Handle disconnections
     socket.on('disconnect', () => {
         delete activeUsers[socket.id];
         io.emit('activeUsersUpdate', { users: Object.values(activeUsers) });
