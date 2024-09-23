@@ -756,7 +756,4 @@ app.get('/api/location', async (req, res) => {
     }
 });
 
-// Serve your admin dashboard where you'll display the location data
-app.get('/admin-dashboard', (req, res) => {
-    // Serve the admin dashboard HTML
-});
+
