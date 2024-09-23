@@ -17,12 +17,10 @@ const fs = require('fs');
 const winston = require('winston');
 const { DateTime } = require('luxon'); // Import luxon for datetime handling
 const ipinfo = require('ipinfo');
-const app = express();
 
 dotenv.config();
 
-
-
+const app = express();
 const server = http.createServer(app); // Create an HTTP server for Socket.IO
 const io = socketIo(server, {
     cors: {
@@ -50,12 +48,13 @@ const logger = winston.createLogger({
 
 app.set('trust proxy', 1);
 
+// Middleware
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const mongoUrl = 'mongodb+srv://hystoriyaallusiataylor:mtW4aUnsTIr5VVcV@mikumiku.jf47gbz.mongodb.net/myfirstdatabase?retryWrites=true&w=majority&appName=mikumiku';
+// MongoDB Connection
+const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/myfirstdatabase'; // Use environment variable for MongoDB URL
 
-// Connect to MongoDB
 mongoose.connect(mongoUrl, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -66,6 +65,7 @@ mongoose.connect(mongoUrl, {
     logger.error('Error connecting to MongoDB:', err);
 });
 
+// Session Store
 const sessionStore = MongoStore.create({
     mongoUrl: mongoUrl,
     collectionName: 'sessions',
@@ -81,38 +81,39 @@ sessionStore.on('error', (error) => {
     logger.error('Session store error:', error);
 });
 
+// Session Middleware
 app.use(session({
-    secret: process.env.SESSION_SECRET || '703c21839606106f7636c214e94869353b5b4d30f6c3a69dd8c75335f45fde4b',  // Use the generated secret
+    secret: process.env.SESSION_SECRET || 'your-default-session-secret',  // Use a strong secret in production
     resave: false,
     saveUninitialized: false,
-    store: sessionStore,  // Ensure your session store is properly managing sessions
+    store: sessionStore,
     cookie: {
-        secure: true,  // Only use cookies over HTTPS
+        secure: process.env.NODE_ENV === 'production',  // Only use cookies over HTTPS in production
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24-hour expiration for sessions
     }
 }));
 
-
 // Set CSP headers using helmet
 app.use(helmet.contentSecurityPolicy({
     directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com", "https://www.youtube.com", "https://www.youtube.com/iframe_api"], // Add YouTube script sources
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com", "https://www.youtube.com", "https://www.youtube.com/iframe_api"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        imgSrc: ["'self'", "data:", "https://i.ytimg.com", "https://img.youtube.com"], // Allow YouTube images and thumbnails
+        imgSrc: ["'self'", "data:", "https://i.ytimg.com", "https://img.youtube.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        connectSrc: ["'self'", "https://www.googleapis.com", "https://*.youtube.com"], // Allow YouTube API calls
-        frameSrc: ["'self'", "https://discord.com", "https://www.youtube.com"], // Allow embedding YouTube videos in iframes
-        mediaSrc: ["'self'", "https://www.youtube.com"], // Allow media from YouTube
+        connectSrc: ["'self'", "https://www.googleapis.com", "https://*.youtube.com"],
+        frameSrc: ["'self'", "https://discord.com", "https://www.youtube.com"],
+        mediaSrc: ["'self'", "https://www.youtube.com"],
         frameAncestors: ["'self'", "https://discord.com"]
     }
 }));
 
+// Serve static files excluding the protected directory
 app.use(express.static(path.join(__dirname, 'public'), {
-    etag: false,    // Disable etag generation
-    maxAge: 0,      // Set cache expiry to 0, forces revalidation
-    lastModified: false  // Disable last modified header
+    etag: false,
+    maxAge: 0,
+    lastModified: false
 }));
 
 // MongoDB Schemas and Models
@@ -121,11 +122,11 @@ const userSchema = new mongoose.Schema({
     bungie_name: { type: String, required: true },
     membership_id: { type: String, unique: true, required: true },
     platform_type: { type: Number, required: true },
-    token: { type: String, unique: true }, // Added token field
-    registration_date: { type: Date, default: Date.now }, // Added registration_date field
-    access_token: { type: String, required: true }, // Added access_token field
-    refresh_token: { type: String, required: true }, // Added refresh_token field
-    token_expiry: { type: Date, required: true } // Added token_expiry field
+    token: { type: String, unique: true },
+    registration_date: { type: Date, default: Date.now },
+    access_token: { type: String, required: true },
+    refresh_token: { type: String, required: true },
+    token_expiry: { type: Date, required: true }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -154,11 +155,12 @@ const commentSchema = new mongoose.Schema({
     username: { type: String, required: true },
     comment: { type: String, required: true },
     timestamp: { type: Date, default: Date.now },
-    approved: { type: Boolean, default: true } // You can use this for moderation
+    approved: { type: Boolean, default: true } // For moderation
 });
 
 const Comment = mongoose.model('Comment', commentSchema);
 
+// Users (for admin authentication)
 const users = [
     {
         username: process.env.ADMIN_USERNAME,
@@ -195,7 +197,7 @@ function updateMembershipMapping(discordId, userInfo) {
         "membership_id": userInfo.membershipId,
         "platform_type": userInfo.platformType,
         "bungie_name": userInfo.bungieName,
-        "registration_date": new Date(), // Add the registration date here
+        "registration_date": new Date(),
         "clan_id": "4900827"
     };
 
@@ -217,7 +219,7 @@ function updateMembershipMapping(discordId, userInfo) {
 }
 
 async function sendUserInfoToDiscordBot(discordId, userInfo) {
-    // You can implement additional actions here if needed
+    // Implement additional actions here if needed
     logger.info('User info ready to be sent to Discord bot:', userInfo);
 }
 
@@ -240,7 +242,7 @@ app.get('/login', async (req, res) => {
         await sessionData.save();
         logger.info(`Generated state: ${state}`);
         logger.info(`Inserted session: ${JSON.stringify(sessionData)}`);
-        const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
+        const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
         res.redirect(authorizeUrl);
     } catch (err) {
         logger.error('Error saving session to DB:', err);
@@ -408,6 +410,7 @@ app.delete('/api/comments/:id', verifyToken, async (req, res) => {
     }
 });
 
+// Utility Functions
 function generateRandomString(size = 16) {  // Default size of 16 bytes
     return crypto.randomBytes(size).toString('hex');
 }
@@ -552,6 +555,16 @@ async function getPendingClanMembers(accessToken, groupId) {
     }
 }
 
+// Admin Dashboard Protected Route
+app.get('/admin-dashboard.html', verifyToken, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'admin-dashboard.html'));
+});
+
+// Dynamic Admin Dashboard Route (if needed)
+app.get('/admin-dashboard-:random.html', verifyToken, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'admin-dashboard.html'));
+});
+
 // Route to get pending clan members and save to the database
 app.get('/api/clan/pending', verifyToken, async (req, res) => {
     const userId = req.userId;
@@ -592,22 +605,21 @@ app.get('/api/clan/pending/fromdb', verifyToken, async (req, res) => {
     }
 });
 
+// Serve the protected admin dashboard
+app.get('/:dashboardURL', verifyToken, (req, res) => {
+    const requestedDashboardURL = `/${req.params.dashboardURL}`;
+    console.log('Requested Dashboard URL:', requestedDashboardURL);
+    console.log('Session Dashboard URL:', req.session.dashboardURL);
 
-const activeAdminUrls = new Set();
+    if (requestedDashboardURL === req.session.dashboardURL) {
+        res.sendFile(path.join(__dirname, 'protected', 'admin-dashboard.html'));
+    } else {
+        console.log('Dashboard URL mismatch. Redirecting to login.');
+        res.status(401).redirect('/admin-login.html');
+    }
+});
 
-app.use(express.json());
-app.use(cookieParser());
-app.use(session({
-    secret: 'your-session-secret',
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: true } // Ensure you use HTTPS for secure cookies
-}));
-
-// Serve static files (like the dashboard HTML and CSS)
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Middleware to verify JWT token and session
+// JWT Verification Middleware
 function verifyToken(req, res, next) {
     const token = req.cookies.token;
     console.log('Token from cookie:', token);
@@ -628,8 +640,7 @@ function verifyToken(req, res, next) {
     });
 }
 
-
-
+// Password Hashing Utility
 function hashPassword(password, salt) {
     const hash = crypto.createHmac('sha256', salt)
                        .update(password)
@@ -643,16 +654,14 @@ const salt = 'random_salt';  // You can change this to any fixed salt, just ensu
 
 // Hash the password
 const hashedPassword = hashPassword(plainPassword, salt);
-
 console.log('Hashed Password:', hashedPassword);
 
-
-// POST route for login6
+// POST route for login
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
     const adminUsername = process.env.ADMIN_USERNAME;
-    const adminPasswordHash = process.env.ADMIN_PASSWORD;
+    const adminPasswordHash = process.env.ADMIN_PASSWORD; // Ensure this is already hashed
     const salt = 'random_salt';
 
     if (username !== adminUsername) {
@@ -686,6 +695,11 @@ app.post('/login', (req, res) => {
         maxAge: 86400 * 1000  // 24 hours
     });
 
+    // Define the protected dashboard route
+    app.get(dashboardURL, verifyToken, (req, res) => {
+        res.sendFile(path.join(__dirname, 'protected', 'admin-dashboard.html'));
+    });
+
     // Send back the auth and redirect URL to the frontend
     req.session.save((err) => {
         if (err) {
@@ -696,53 +710,69 @@ app.post('/login', (req, res) => {
     });
 });
 
-
-
-
-
 // Serve the dynamic dashboard URL after successful login
-app.get('/:dashboardURL', verifyToken, (req, res) => {
-    const requestedDashboardURL = `/${req.params.dashboardURL}`;
-    console.log('Requested Dashboard URL:', requestedDashboardURL);
-    console.log('Session Dashboard URL:', req.session.dashboardURL);
-
-    if (requestedDashboardURL === req.session.dashboardURL) {
-        res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
-    } else {
-        console.log('Dashboard URL mismatch. Redirecting to login.');
-        res.status(401).redirect('/admin-login.html');
-    }
-});
-
-
-
+// Note: This route is now handled within the login POST route
 
 // POST route for logout
-app.post('/logout', (req, res) => {
+app.post('/logout', verifyToken, (req, res) => {
     res.clearCookie('token'); // Clear the JWT token cookie
     req.session.destroy(); // Destroy the session
-
-    // Optional: Remove the URL from activeAdminUrls (if you track user-specific URLs)
-    const token = req.cookies.token;
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-        if (!err) {
-            activeAdminUrls.delete(decoded.id); // This assumes URL is tied to the user
-        }
-    });
 
     res.redirect('/admin-login.html'); // Redirect to login page
 });
 
-function generateRandomUrl() {
-    return '/admin-dashboard/' + crypto.randomBytes(16).toString('hex');
+// Socket.IO Connection Handling
+let activeUsers = [];
+
+async function fetchLocationData(ip) {
+    try {
+        // Ensure only a single IP address is passed by splitting if necessary
+        const singleIp = ip.split(',')[0].trim(); // Take the first IP if multiple are present
+        const response = await axios.get(`https://ipinfo.io/${singleIp}?token=14eb346301d8b9`);
+        const { ip: userIP, city, region, country } = response.data;
+        return { ip: userIP, city, region, country };
+    } catch (error) {
+        console.error('Error fetching location data:', error);
+        return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
+    }
 }
 
+function normalizeIp(ip) {
+    if (ip.startsWith('::ffff:')) {
+        return ip.replace('::ffff:', '');  // Normalize IPv6-mapped IPv4 to IPv4
+    }
+    return ip;
+}
 
+io.on('connection', async (socket) => {  
+    let ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
 
+    // Handle cases where x-forwarded-for contains multiple IPs
+    if (ip.includes(',')) {
+        ip = ip.split(',')[0].trim();  // Take the first IP in the list
+    }
 
+    ip = normalizeIp(ip);  // Normalize IP (handle IPv6-mapped IPv4 addresses)
 
+    // Ensure the IP isn't already in the active users list
+    if (!activeUsers.some(user => user.ip === ip)) {
+        const locationData = await fetchLocationData(ip);
+        activeUsers.push(locationData);  // Store user info
+    }
 
+    // Emit updated active users list to all clients
+    io.emit('activeUsersUpdate', { users: activeUsers });
 
+    socket.on('disconnect', () => {
+        activeUsers = activeUsers.filter(user => user.ip !== ip);
+        io.emit('activeUsersUpdate', { users: activeUsers });
+    });
+});
+
+// Serve your admin dashboard where you'll display the location data
+// Already handled by the protected route above
+
+// Additional API Endpoints
 
 // Public route for fetching videos
 app.get('/api/videos/public', async (req, res) => {
@@ -774,127 +804,15 @@ app.post('/api/videos', verifyToken, async (req, res) => {
     }
 });
 
-
-// Define global variables for video status
-let currentVideoTitle = 'Loading...';
-let currentVideoUrl = ''; // New variable for the video URL
-let videoStartTimestamp = Date.now(); // Set the initial timestamp
-
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-    console.log('New client connected');
-
-    // Emit the current video title, URL, and current playback time to the new client
-    socket.emit('nowPlayingUpdate', { 
-        title: currentVideoTitle, 
-        videoUrl: currentVideoUrl, 
-        startTimestamp: videoStartTimestamp, 
-        currentTime: (Date.now() - videoStartTimestamp) / 1000 // Send the current playback time in seconds
-    });
-
-    // Handle updates to the video title and URL
-    socket.on('updateVideoTitle', ({ title, videoUrl, currentTime }) => {
-        console.log('Received video title:', title);
-        console.log('Received video URL:', videoUrl);
-        console.log('Received current time:', currentTime);
-    
-        // Update the global variables
-        currentVideoTitle = title;
-        currentVideoUrl = videoUrl;
-        videoStartTimestamp = Date.now() - (currentTime * 1000); // Adjust the start timestamp based on the provided currentTime
-    
-        // Broadcast the updated video information to all clients
-        io.emit('nowPlayingUpdate', { 
-            title, 
-            videoUrl, 
-            startTimestamp: videoStartTimestamp,
-            currentTime: currentTime // Broadcast the updated current time
-        });
-
-        // If the video title is 'Offline', send an offline status to all clients
-        if (title === 'Offline') {
-            io.emit('nowPlayingUpdate', {
-                title: 'Offline',
-                videoUrl: '',
-                startTimestamp: 0,
-                currentTime: 0
-            });
-        }
-    });
-
-    socket.on('disconnect', () => {
-        console.log('Client disconnected');
-    });
-});
-
-// Endpoint to send real-time data to clients
-app.post('/api/update', (req, res) => {
-    const data = req.body;
-    // Emit an event to all connected clients
-    io.emit('updateData', data);
-    res.status(200).send({ message: 'Data sent to clients' });
-});
-
-let activeUsers = [];
-
-
-async function fetchLocationData(ip) {
-    try {
-        // Ensure only a single IP address is passed by splitting if necessary
-        const singleIp = ip.split(',')[0].trim(); // Take the first IP if multiple are present
-        const response = await axios.get(`https://ipinfo.io/${singleIp}?token=14eb346301d8b9`);
-        const { ip: userIP, city, region, country } = response.data;
-        return { ip: userIP, city, region, country };
-    } catch (error) {
-        console.error('Error fetching location data:', error);
-        return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
-    }
+// Function to generate random URLs (if needed)
+function generateRandomUrl() {
+    return '/admin-dashboard/' + crypto.randomBytes(16).toString('hex');
 }
 
-
-
-function normalizeIp(ip) {
-    if (ip.startsWith('::ffff:')) {
-        return ip.replace('::ffff:', '');  // Normalize IPv6-mapped IPv4 to IPv4
-    }
-    return ip;
-}
-
-io.on('connection', async (socket) => {  
-    let ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
-    
-    // Handle cases where x-forwarded-for contains multiple IPs
-    if (ip.includes(',')) {
-        ip = ip.split(',')[0].trim();  // Take the first IP in the list
-    }
-    
-    ip = normalizeIp(ip);  // Normalize IP (handle IPv6-mapped IPv4 addresses)
-
-    // Ensure the IP isn't already in the active users list
-    if (!Object.values(activeUsers).some(user => user.ip === ip)) {
-        const locationData = await fetchLocationData(ip);
-        activeUsers[socket.id] = locationData;  // Store user info based on socket ID
-    }
-
-    // Emit updated active users list to all clients
-    io.emit('activeUsersUpdate', { users: Object.values(activeUsers) });
-
-    socket.on('disconnect', () => {
-        delete activeUsers[socket.id];
-        io.emit('activeUsersUpdate', { users: Object.values(activeUsers) });
-    });
-});
-
-
-// Serve your admin dashboard where you'll display the location data
-app.get('/admin-dashboard', verifyToken, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
-});
-
-
+// API Check YouTube
 app.get('/api/check-youtube', async (req, res) => {
     try {
-        // Perform the YouTube API status check logic here
+        // Add your logic here for checking YouTube API status
         const youtubeApiStatus = true;  // Example: Assume the API is available
 
         res.json({
@@ -909,7 +827,6 @@ app.get('/api/check-youtube', async (req, res) => {
         });
     }
 });
-
 
 // Bungie API Status Check
 app.get('/api/check-bungie', async (req, res) => {
@@ -933,7 +850,3 @@ app.get('/api/check-bungie', async (req, res) => {
 server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
-
-
-
-
