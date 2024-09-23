@@ -724,7 +724,9 @@ let activeUsers = [];
 
 async function fetchLocationData(ip) {
     try {
-        const response = await axios.get(`https://ipinfo.io/${ip}?token=14eb346301d8b9`);
+        // Ensure only a single IP address is passed by splitting if necessary
+        const singleIp = ip.split(',')[0].trim(); // Take the first IP if multiple are present
+        const response = await axios.get(`https://ipinfo.io/${singleIp}?token=14eb346301d8b9`);
         const { ip: userIP, city, region, country } = response.data;
         return { ip: userIP, city, region, country };
     } catch (error) {
@@ -732,6 +734,7 @@ async function fetchLocationData(ip) {
         return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
     }
 }
+
 
 
 // Function to normalize IPv6-mapped IPv4 addresses
