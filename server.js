@@ -723,20 +723,36 @@ app.post('/api/update', (req, res) => {
 let activeUsers = [];
 
 async function fetchLocationData(ip) {
+    // Exclude private IPs and local addresses
+    if (ip.startsWith('10.') || ip.startsWith('192.168.') || ip.startsWith('127.') || ip === '::1') {
+        return { ip, city: 'Local Network', region: 'Local Network', country: 'Local Network' };
+    }
+    
     try {
+        // Call IPinfo API for public IP addresses
         const response = await axios.get(`https://ipinfo.io/${ip}?token=14eb346301d8b9`);
         const { ip: userIP, city, region, country } = response.data;
-        return { ip: userIP, city, region, country };
+        return { ip: userIP || ip, city: city || 'Unknown', region: region || 'Unknown', country: country || 'Unknown' };
     } catch (error) {
         console.error('Error fetching location data:', error);
         return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
     }
 }
 
-// Middleware to add each visitor's location info when they connect
-io.on('connection', async (socket) => {
-    const ip = socket.handshake.address === '::1' ? '127.0.0.1' : socket.handshake.address;
+// Function to normalize IPv6-mapped IPv4 addresses
+function normalizeIp(ip) {
+    // Check for IPv6-mapped IPv4 addresses and normalize to IPv4
+    if (ip.startsWith('::ffff:')) {
+        return ip.replace('::ffff:', '');
+    }
+    return ip;
+}
 
+io.on('connection', async (socket) => {
+    // Normalize the IP address (convert IPv6-mapped IPv4 to IPv4)
+    let ip = normalizeIp(socket.handshake.address);
+
+    // Check if the user is already registered
     if (!activeUsers[socket.id]) {
         const locationData = await fetchLocationData(ip);
         activeUsers[socket.id] = locationData;
@@ -750,11 +766,6 @@ io.on('connection', async (socket) => {
         delete activeUsers[socket.id];
         io.emit('activeUsersUpdate', { users: Object.values(activeUsers) });
     });
-});
-
-// Endpoint to fetch location data (redundant as now handled in real-time via Socket.IO)
-app.get('/api/location', (req, res) => {
-    res.json(Object.values(activeUsers));
 });
 
 // Serve your admin dashboard where you'll display the location data
