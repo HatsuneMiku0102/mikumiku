@@ -89,6 +89,7 @@
             const MAX_RECENT_VIDEOS = 3;
             let previousVideoData = null;
             const progressBarContainer = document.getElementById('progress-bar-container');
+            const videoThumbnail = document.getElementById('videoThumbnail'); // Thumbnail element reference
             const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; 
 
             function formatTime(seconds) {
@@ -200,11 +201,15 @@
             const socket = io('https://mikumiku.dev');
 
             socket.on('youtubeClosed', () => {
+                // When YouTube is closed, toggle to static thumbnail
+                videoThumbnail.classList.add('static-thumbnail');
                 toggleProgressBar(false);
                 document.getElementById('videoTitle').innerText = 'YouTube Tab Closed';
             });
 
             socket.on('youtubeOpened', () => {
+                // When YouTube is opened, remove static thumbnail class
+                videoThumbnail.classList.remove('static-thumbnail');
                 fetchYouTubeVideoDetails('YourVideoIDHere').then((duration) => {
                     if (duration) {
                         videoDuration = duration;
