@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
- 
     errorMessage.classList.remove('active');
 
     loginForm.addEventListener('submit', function (event) {
@@ -18,7 +17,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value.trim();
 
-     
         if (!username || !password) {
             errorMessage.textContent = 'Please fill in both fields';
             errorMessage.classList.add('active');
