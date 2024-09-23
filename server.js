@@ -722,7 +722,6 @@ app.post('/api/update', (req, res) => {
 
 let activeUsers = [];
 
-// Helper function to fetch location data using IPinfo
 async function fetchLocationData(ip) {
     try {
         const response = await axios.get(`https://ipinfo.io/${ip}?token=14eb346301d8b9`);
@@ -734,36 +733,33 @@ async function fetchLocationData(ip) {
     }
 }
 
-// Middleware to add each visitor's location info to the activeUsers list
-app.use(async (req, res, next) => {
-    const ip = req.ip === '::1' ? '127.0.0.1' : req.ip; // Handle localhost IPs
+// Middleware to add each visitor's location info when they connect
+io.on('connection', async (socket) => {
+    const ip = socket.handshake.address === '::1' ? '127.0.0.1' : socket.handshake.address;
 
-    if (!activeUsers.find(user => user.ip === ip)) {
+    if (!activeUsers[socket.id]) {
         const locationData = await fetchLocationData(ip);
-        activeUsers.push(locationData);
+        activeUsers[socket.id] = locationData;
     }
 
-    // Remove disconnected users after a session expires
-    setTimeout(() => {
-        activeUsers = activeUsers.filter(user => user.ip !== ip);
-    }, 10 * 60 * 1000); // Remove user after 10 minutes of inactivity
+    // Emit the updated list of active users to all connected clients
+    io.emit('activeUsersUpdate', { users: Object.values(activeUsers) });
 
-    next();
-});
-
-// Route to get the list of active users and their locations
-app.get('/api/location', (req, res) => {
-    res.json(activeUsers);
-});
-
-// Socket.IO for real-time active user count and details
-io.on('connection', (socket) => {
-    // Emit active users to the newly connected client
-    io.emit('activeUsersUpdate', { users: activeUsers });
-
+    // Handle disconnections
     socket.on('disconnect', () => {
-        // You can handle user disconnection here if needed
+        delete activeUsers[socket.id];
+        io.emit('activeUsersUpdate', { users: Object.values(activeUsers) });
     });
+});
+
+// Endpoint to fetch location data (redundant as now handled in real-time via Socket.IO)
+app.get('/api/location', (req, res) => {
+    res.json(Object.values(activeUsers));
+});
+
+// Serve your admin dashboard where you'll display the location data
+app.get('/admin-dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
 // Start the server
