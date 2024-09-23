@@ -629,6 +629,15 @@ function hashPassword(password, salt) {
     return hash;
 }
 
+// Define the password and salt
+const plainPassword = 'Aria';  // Your actual password
+const salt = 'random_salt';  // You can change this to any fixed salt, just ensure it's consistent
+
+// Hash the password
+const hashedPassword = hashPassword(plainPassword, salt);
+
+console.log('Hashed Password:', hashedPassword);
+
 
 // POST route for login
 app.post('/login', (req, res) => {
