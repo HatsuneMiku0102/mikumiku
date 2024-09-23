@@ -69,25 +69,6 @@
     <script>
         const socket = io();
 
-        // Check if the response requires redirection
-        function handleRedirect(response) {
-            if (response.redirect) {
-                window.location.href = response.redirect;
-            }
-        }
-
-        // Fetch wrapper that checks for JSON redirects
-        async function fetchWithRedirectCheck(url) {
-            const response = await fetch(url);
-            const data = await response.json();
-
-            if (data.redirect) {
-                window.location.href = data.redirect;
-            } else {
-                return data;
-            }
-        }
-
         // Update real-time active users and their location data
         socket.on('activeUsersUpdate', (data) => {
             const activeUsersCount = data.users.length;
@@ -104,8 +85,9 @@
             });
         });
 
-        // Fetch initial location data with auto-redirect if unauthorized
-        fetchWithRedirectCheck('/api/location')
+        // Fetch initial location data
+        fetch('/api/location')
+            .then(response => response.json())
             .then(data => {
                 const locationDiv = document.getElementById('location');
                 locationDiv.innerHTML = '';  // Clear previous data
@@ -135,7 +117,8 @@
         });
 
         // Check the status of the YouTube API
-        fetchWithRedirectCheck('/api/check-youtube')
+        fetch('/api/check-youtube')
+            .then(response => response.json())
             .then(data => {
                 const youtubeStatus = document.getElementById('youtube-status');
                 youtubeStatus.innerText = data.status;
@@ -146,7 +129,8 @@
             });
 
         // Check the status of the Bungie API
-        fetchWithRedirectCheck('/api/check-bungie')
+        fetch('/api/check-bungie')
+            .then(response => response.json())
             .then(data => {
                 const bungieStatus = document.getElementById('bungie-status');
                 bungieStatus.innerText = data.status;
