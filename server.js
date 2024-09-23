@@ -625,8 +625,8 @@ function verifyToken(req, res, next) {
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
-    const adminUsername = process.env.ADMIN_USERNAME;
-    const adminPasswordHash = process.env.ADMIN_PASSWORD;
+    const plainPassword = 'Aria01'; // Replace this with your actual password
+    const hashedPassword = bcrypt.hashSync(plainPassword, 8);
 
     // Check if the username is correct
     if (username !== adminUsername) {
