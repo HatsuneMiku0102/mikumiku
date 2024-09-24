@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
     <style>
-        /* Ensures the canvas stays behind other content */
+        /* Ensure the canvas stays behind other content and is transparent */
         #technoCanvas {
             position: fixed;
             top: 0;
@@ -16,7 +16,7 @@
             width: 100vw;
             height: 100vh;
             z-index: -1; /* Background canvas stays behind content */
-            background: black;
+            pointer-events: none; /* Ensure canvas doesn't block interactions */
         }
     </style>
 </head>
@@ -167,18 +167,8 @@
             let dy = mouse.y - this.y;
             let distance = Math.sqrt(dx * dx + dy * dy);
             if (distance < mouse.radius) {
-              if (mouse.x < this.x && this.x < canvas.width - this.size * 10) {
-                this.x += 10;
-              }
-              if (mouse.x > this.x && this.x > this.size * 10) {
-                this.x -= 10;
-              }
-              if (mouse.y < this.y && this.y < canvas.height - this.size * 10) {
-                this.y += 10;
-              }
-              if (mouse.y > this.y && this.y > this.size * 10) {
-                this.y -= 10;
-              }
+              this.directionX += (Math.random() - 0.5) * 2;
+              this.directionY += (Math.random() - 0.5) * 2;
             }
 
             this.x += this.directionX;
@@ -189,12 +179,12 @@
 
         function init() {
           particlesArray = [];
-          for (let i = 0; i < 100; i++) {
+          for (let i = 0; i < 150; i++) {
             let size = (Math.random() * 5) + 1;
             let x = Math.random() * (canvas.width - size * 2) + size;
             let y = Math.random() * (canvas.height - size * 2) + size;
-            let directionX = (Math.random() * 0.2) - 0.1;
-            let directionY = (Math.random() * 0.2) - 0.1;
+            let directionX = (Math.random() * 0.4) - 0.2;
+            let directionY = (Math.random() * 0.4) - 0.2;
             let color = colors[Math.floor(Math.random() * colors.length)];
 
             particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
@@ -219,6 +209,7 @@
         animate();
     </script>
 
+    <!-- Original Scripts for YouTube and Weather Widgets -->
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         let intervalID = null;
