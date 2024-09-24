@@ -10,14 +10,20 @@
     <style>
         /* Ensure the canvas stays behind other content */
         #technoCanvas {
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             width: 100vw;
-            height: 100vh;
+            height: 100%;
             z-index: -1; /* Background canvas stays behind content */
             pointer-events: none; /* Ensures it doesn't interfere with other content */
             background: black; /* Dark background for neon effect */
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow-x: hidden;
         }
     </style>
 </head>
@@ -96,7 +102,7 @@
                         <div id="recent-videos-container" class="recent-videos-container"></div>
                     </div>
 
-                    <div class="about">
+                    <div class="about" id="aboutMe">
                         <div class="container">
                             <h2>About Me</h2>
                             <p>Hey there, I'm Hystoriya, a 24-year-old developer. This is my personal website that I made for no apparent reason. If you find yourself here randomly, then hi :)</p>
@@ -117,21 +123,25 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
-    <!-- Circuit board effect with neon beams animation -->
+    <!-- Script for snake-like neon light beams -->
     <script>
         const canvas = document.getElementById('technoCanvas');
         const ctx = canvas.getContext('2d');
+
+        // Make the canvas height dynamically adjust to the full page, including scrolling areas
+        const documentHeight = document.body.scrollHeight;
         canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        canvas.height = documentHeight;
 
         const beamColors = ['#ff4081', '#00e5ff']; // Reddish pink and neon blue
         const maxBeams = 6; // Max 6 beams at a time
         const beamLength = 50; // Number of segments (length) of the beams
-        const segmentSize = 20; // Size of each segment
-        const beamThickness = 10; // Beam thickness
+        const segmentSize = 10; // Size of each segment
+        const beamThickness = 15; // Beam thickness
         const beamGlow = 25; // Glow effect for the beams
+        const moveSpeed = 0.5; // Slower movement speed
 
-        // Possible directions for snake-like movement
+        // Possible directions for snake-like movement (4 directions: up, down, left, right)
         const directions = [
             { dx: segmentSize, dy: 0 },    // Right
             { dx: -segmentSize, dy: 0 },   // Left
@@ -155,14 +165,22 @@
 
             // Update beam's position with snake-like movement
             update() {
+                // Prevent the beams from overlapping the "About Me" section
+                const aboutMeElement = document.getElementById('aboutMe');
+                const aboutMeTop = aboutMeElement.offsetTop;
+
+                if (this.y + this.direction.dy >= aboutMeTop - segmentSize) {
+                    this.direction = directions[Math.floor(Math.random() * 2)]; // Force movement sideways
+                }
+
                 // Determine if it's time to change direction
                 if (Math.random() < 0.02) {
                     this.direction = directions[Math.floor(Math.random() * directions.length)];
                 }
 
                 // Move the head of the snake
-                this.x += this.direction.dx;
-                this.y += this.direction.dy;
+                this.x += this.direction.dx * moveSpeed;
+                this.y += this.direction.dy * moveSpeed;
 
                 // Wrap the snake around the screen when it goes offscreen
                 if (this.x < 0) this.x = canvas.width;
@@ -217,7 +235,7 @@
         // Handle resize
         window.addEventListener('resize', () => {
             canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            canvas.height = document.body.scrollHeight;
             init();
         });
 
