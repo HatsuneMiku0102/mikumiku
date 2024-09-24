@@ -8,7 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
     <style>
-        /* Canvas stays behind other content */
         #mikuCanvas {
             position: absolute;
             top: 0;
@@ -136,11 +135,13 @@
         const mikuPink = '#ff4081';  // Hatsune Miku pink color
 
         let particlesArray = [];
-        const particleCount = 80; // Fewer particles for performance
+        const particleCount = 80;
         let linesArray = [];
-        const circuitLinesCount = 6; // Neon lines representing circuit-like flow
+        const circuitLinesCount = 6;
 
-        // Resizing canvas dynamically
+        let musicBarsArray = [];
+        const totalBars = 40;
+
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = document.body.scrollHeight;
@@ -214,33 +215,48 @@
             }
         }
 
-        // Music bar class for equalizer-style background animation
+        // MusicBar class for dynamic equalizer-like bars
         class MusicBar {
             constructor() {
                 this.x = Math.random() * canvas.width;
-                this.width = Math.random() * 3 + 1;
+                this.width = Math.random() * 4 + 1;
                 this.height = 0;
+                this.maxHeight = Math.random() * (canvas.height * 0.5);
+                this.speed = Math.random() * 0.5 + 0.5;
+                this.rising = true;
                 this.color = Math.random() > 0.5 ? mikuCyan : mikuPink;
-                this.maxHeight = Math.random() * canvas.height;
-                this.speed = Math.random() * 1 + 0.5;
             }
 
             update() {
-                this.height += this.speed;
-                if (this.height > this.maxHeight) this.height = 0;
+                if (this.rising) {
+                    this.height += this.speed;
+                    if (this.height >= this.maxHeight) {
+                        this.rising = false;
+                    }
+                } else {
+                    this.height -= this.speed;
+                    if (this.height <= 0) {
+                        this.height = 0;
+                        this.rising = true;
+                        this.maxHeight = Math.random() * (canvas.height * 0.5); // New max height
+                    }
+                }
             }
 
             draw() {
+                const gradient = ctx.createLinearGradient(
+                    this.x, canvas.height - this.height, this.x, canvas.height
+                );
+                gradient.addColorStop(0, this.color);
+                gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                
                 ctx.beginPath();
-                ctx.fillStyle = this.color;
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = this.color;
+                ctx.fillStyle = gradient;
                 ctx.fillRect(this.x, canvas.height - this.height, this.width, this.height);
                 ctx.closePath();
             }
         }
 
-        // Initialize arrays of particles, lines, and bars
         function init() {
             particlesArray = [];
             for (let i = 0; i < particleCount; i++) {
@@ -253,28 +269,24 @@
             }
 
             musicBarsArray = [];
-            for (let i = 0; i < 40; i++) {
+            for (let i = 0; i < totalBars; i++) {
                 musicBarsArray.push(new MusicBar());
             }
         }
 
-        // Animate the canvas
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw particles (glowing orbs)
             particlesArray.forEach(particle => {
                 particle.update();
                 particle.draw();
             });
 
-            // Draw neon circuit lines
             linesArray.forEach(line => {
                 line.update();
                 line.draw();
             });
 
-            // Draw music bars (equalizer effect)
             musicBarsArray.forEach(bar => {
                 bar.update();
                 bar.draw();
@@ -283,10 +295,8 @@
             requestAnimationFrame(animate);
         }
 
-        // Initialize and animate the canvas
         init();
         animate();
-
     </script>
 
 
