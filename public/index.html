@@ -43,8 +43,12 @@
                         <p id="videoTitle">Loading...</p>
                     </div>
                     
-                    <div id="progress-bar-container">
-                        <canvas id="liquidProgressBar" width="400" height="50"></canvas>
+                    <!-- Added Paused Icon -->
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-top: 1rem;">
+                        <span id="pausedIcon" style="display: none; font-size: 1.5rem;">⏸️</span>
+                        <div id="progress-bar-container">
+                            <canvas id="liquidProgressBar" width="400" height="50"></canvas>
+                        </div>
                     </div>
                     
                     <img id="videoThumbnail" src="" alt="Thumbnail of currently playing video" class="video-thumbnail">
@@ -282,7 +286,7 @@
         const MAX_RECENT_VIDEOS = 3;
         let previousVideoData = null;
         const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; 
-        const OPENWEATHERMAP_API_KEY = 'ce82286b610208fb4ac780a909455a0e';
+        const OPENWEATHERMAP_API_KEY = 'YOUR_OPENWEATHERMAP_API_KEY';
         const CITY_NAME = 'Leeds';
         
         function formatTime(seconds) {
@@ -373,6 +377,8 @@
             updateProgress(0);
             document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
             document.getElementById('total-duration').innerText = `Total Duration: --:--`;
+            // Hide paused icon when offline
+            document.getElementById('pausedIcon').style.display = 'none';
         });
 
         socket.on('youtubeOpened', () => {
@@ -393,6 +399,8 @@
                 updateProgress(0);
                 document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
                 document.getElementById('total-duration').innerText = `Total Duration: --:--`;
+                // Hide paused icon when offline
+                document.getElementById('pausedIcon').style.display = 'none';
             } else {
                 nowPlayingElement.classList.remove('offline');
                 videoThumbnailElement.classList.remove('offline-thumbnail');
@@ -418,6 +426,8 @@
                     updateProgress(0);
                     document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
                     document.getElementById('total-duration').innerText = `Total Duration: --:--`;
+                    // Hide paused icon when browsing
+                    document.getElementById('pausedIcon').style.display = 'none';
                 } else {
                     isBrowsing = false;
                     fetchYouTubeVideoDetails(videoID).then((duration) => {
@@ -426,12 +436,24 @@
                             videoStartTime = Date.now() - (data.currentTime * 1000);
                             clearExistingInterval();
                             isVideoPaused = data.isPaused;
+                            if (isVideoPaused) {
+                                document.getElementById('pausedIcon').style.display = 'inline';
+                            } else {
+                                document.getElementById('pausedIcon').style.display = 'none';
+                            }
                             if (!isVideoPaused) {
                                 intervalID = setInterval(updateProgressBar, 1000);
                             }
                             document.getElementById('total-duration').innerText = `Total Duration: ${formatTime(videoDuration)}`;
                         }
                     });
+                }
+
+                // Toggle Paused Icon based on isPaused
+                if (data.isPaused) {
+                    document.getElementById('pausedIcon').style.display = 'inline';
+                } else {
+                    document.getElementById('pausedIcon').style.display = 'none';
                 }
             }
         });
