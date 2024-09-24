@@ -125,33 +125,35 @@
         canvas.height = window.innerHeight;
 
         const colors = ['#00e5ff', '#ff4081']; // Neon blue and pink
-        const lineWidth = 2;
-        const glowStrength = 20;
+        const lineWidth = 1.5;
+        const glowStrength = 8;
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
-        const gridSpacing = 40; // Grid spacing for circuit paths
-        const radiatingLines = 30;
+        const gridSpacing = 80; // Increased spacing to reduce the number of lines
+        const radiatingLines = 20; // Reduced number of radiating lines
 
         // Draw central microchip node
         function drawChip() {
-            const chipSize = 80;
+            const chipSize = 60; // Reduced chip size
             ctx.beginPath();
             ctx.rect(centerX - chipSize / 2, centerY - chipSize / 2, chipSize, chipSize);
             ctx.strokeStyle = '#00e5ff';
-            ctx.lineWidth = 4;
+            ctx.lineWidth = 2; // Reduced line width for the chip
             ctx.shadowBlur = glowStrength;
             ctx.shadowColor = '#00e5ff';
             ctx.stroke();
             ctx.closePath();
         }
 
-        // Draw grid lines
+        // Draw grid lines with a reduced number of lines
         function drawGridLines() {
             const lines = [];
             for (let x = 0; x < canvas.width; x += gridSpacing) {
                 for (let y = 0; y < canvas.height; y += gridSpacing) {
-                    lines.push({x1: x, y1: y, x2: x + gridSpacing, y2: y});
-                    lines.push({x1: x, y1: y, x2: x, y2: y + gridSpacing});
+                    if (Math.random() > 0.5) {
+                        lines.push({x1: x, y1: y, x2: x + gridSpacing, y2: y}); // Horizontal
+                        lines.push({x1: x, y1: y, x2: x, y2: y + gridSpacing}); // Vertical
+                    }
                 }
             }
 
@@ -187,16 +189,17 @@
         function drawRadiatingLines() {
             for (let i = 0; i < radiatingLines; i++) {
                 const angle = (i / radiatingLines) * Math.PI * 2;
-                const xEnd = centerX + Math.cos(angle) * canvas.width;
-                const yEnd = centerY + Math.sin(angle) * canvas.height;
+                const xEnd = centerX + Math.cos(angle) * (canvas.width / 2);
+                const yEnd = centerY + Math.sin(angle) * (canvas.height / 2);
 
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 1.5; // Reduced line width
                 ctx.shadowBlur = glowStrength;
 
-                // Neon blue lines
-                ctx.strokeStyle = '#00e5ff';
-                ctx.shadowColor = '#00e5ff';
-                if (i % 2 === 0) { // Alternate colors
+                // Alternate between blue and pink
+                if (i % 2 === 0) {
+                    ctx.strokeStyle = '#00e5ff';
+                    ctx.shadowColor = '#00e5ff';
+                } else {
                     ctx.strokeStyle = '#ff4081';
                     ctx.shadowColor = '#ff4081';
                 }
@@ -220,11 +223,11 @@
         window.addEventListener('resize', () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            drawChip(); // Redraw chip on resize
         });
 
         animate();
     </script>
-
     <!-- Original Scripts for YouTube and Weather Widgets -->
     <script>
     document.addEventListener('DOMContentLoaded', function () {
