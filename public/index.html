@@ -28,7 +28,7 @@
 </head>
 
 <body>
-    <canvas id="mikuCanvas"></canvas> <!-- Canvas for Hatsune Miku theme -->
+    <canvas id="mikuCanvas"></canvas>
 
     <div class="page-container">
         <div class="title-bar">
@@ -124,15 +124,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
-    <!-- Script for dynamic Miku-themed shapes and particles -->
     <script>
         const canvas = document.getElementById('mikuCanvas');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
         canvas.height = document.body.scrollHeight;
 
-        const mikuCyan = '#00e5ff';  // Hatsune Miku cyan color
-        const mikuPink = '#ff4081';  // Hatsune Miku pink color
+        const mikuCyan = '#00e5ff';
+        const mikuPink = '#ff4081';
 
         let particlesArray = [];
         const particleCount = 80;
@@ -148,7 +147,6 @@
         }
         window.addEventListener('resize', resizeCanvas);
 
-        // Particle class for glowing orbs
         class Particle {
             constructor() {
                 this.x = Math.random() * canvas.width;
@@ -178,7 +176,6 @@
             }
         }
 
-        // CircuitLine class for animated neon lines
         class CircuitLine {
             constructor() {
                 this.startX = Math.random() * canvas.width;
@@ -215,7 +212,6 @@
             }
         }
 
-        // MusicBar class for dynamic equalizer-like bars
         class MusicBar {
             constructor() {
                 this.x = Math.random() * canvas.width;
@@ -238,7 +234,7 @@
                     if (this.height <= 0) {
                         this.height = 0;
                         this.rising = true;
-                        this.maxHeight = Math.random() * (canvas.height * 0.5); // New max height
+                        this.maxHeight = Math.random() * (canvas.height * 0.5);
                     }
                 }
             }
@@ -299,9 +295,39 @@
         animate();
     </script>
 
+    <script>
+        function getTimeOfDay() {
+            const hour = new Date().getHours();
 
-    
-    <!-- Original Scripts for YouTube and Weather Widgets -->
+            if (hour < 12) {
+                return "Good Morning";
+            } else if (hour >= 12 && hour < 18) {
+                return "Good Afternoon";
+            } else {
+                return "Good Evening";
+            }
+        }
+
+        function setDynamicTitle() {
+            const originalTitle = document.title;
+            const timeOfDayMessage = getTimeOfDay();
+
+            document.title = timeOfDayMessage;
+
+            setTimeout(() => {
+                document.title = originalTitle;
+            }, 5000);
+        }
+
+        setDynamicTitle();
+
+        document.addEventListener("visibilitychange", function() {
+            if (!document.hidden) {
+                setDynamicTitle();
+            }
+        });
+    </script>
+
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         let intervalID = null;
