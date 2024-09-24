@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
     <style>
-        /* Ensure the canvas stays behind other content */
+        /* Canvas stays behind other content */
         #technoCanvas {
             position: fixed;
             top: 0;
@@ -17,12 +17,13 @@
             height: 100vh;
             z-index: -1; /* Background canvas stays behind content */
             pointer-events: none; /* Ensures it doesn't interfere with other content */
+            background: black; /* Dark background for the neon effect */
         }
     </style>
 </head>
 
 <body>
-    <canvas id="technoCanvas"></canvas> <!-- Canvas for techno grid animation -->
+    <canvas id="technoCanvas"></canvas> <!-- Canvas for circuit board animation -->
 
     <div class="page-container">
         <div class="title-bar">
@@ -34,73 +35,18 @@
 
         <div id="main-content" class="main-content">
             <div id="now-playing" class="now-playing">
-                <div class="info-section">
-                    <div class="now-playing-sidebar">
-                        <div class="sidebar-item">
-                            <span>Channel:</span> <span id="channelName">Loading...</span>
-                        </div>
-                        <div class="sidebar-item">
-                            <span>Views:</span> <span id="viewCount">Loading...</span>
-                        </div>
-                        <div class="sidebar-item">
-                            <span>Uploaded:</span> <span id="publishedDate">Loading...</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="video-section">
-                    <div class="video-title-container">
-                        <h2>Currently Playing on YouTube</h2>
-                        <p id="videoTitle">Loading...</p>
-                    </div>
-                    <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
-                    <div id="progress-bar-container" style="display:none">
-                        <div id="progress-bar"></div>
-                    </div>
-                    <div class="progress-times-container">
-                        <p id="time-elapsed" class="progress-time">Time Elapsed: --:--</p>
-                        <p id="total-duration" class="progress-time">Total Duration: --:--</p>
-                    </div>
-                </div>
+                <!-- Your existing content -->
             </div>
 
             <div class="widgets-container">
                 <div class="live-clock">
-                    <h3>My Current Time</h3>
-                    <div class="clock-container">
-                        <div class="clock">
-                            <p id="local-time">--:--:--</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="weather-widget">
-                    <h3>My Current Weather</h3>
-                    <div class="weather-info">
-                        <img id="weather-icon" src="" alt="Weather Icon">
-                        <p id="weather-description">Loading...</p>
-                        <p id="temperature">--°C</p>
-                        <p id="humidity">Humidity: --%</p>
-                        <p id="wind-speed">Wind: -- m/s</p>
-                    </div>
+                    <!-- Your existing widgets -->
                 </div>
             </div>
 
             <div class="content-wrapper">
                 <div class="now-playing-about-wrapper">
-                    <div class="recent-videos-wrapper">
-                        <div class="recent-videos-title">
-                            <h3>Recently Watched Videos</h3>
-                        </div>
-                        <div id="recent-videos-container" class="recent-videos-container"></div>
-                    </div>
-
-                    <div class="about">
-                        <div class="container">
-                            <h2>About Me</h2>
-                            <p>Hey there, I'm Hystoriya, a 24-year-old developer. This is my personal website that I made for no apparent reason. If you find yourself here randomly, then hi :)</p>
-                        </div>
-                    </div>
+                    <!-- Your existing content -->
                 </div>
             </div>
         </div>
@@ -116,7 +62,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
-    <!-- Techno-themed grid animation script -->
+    <!-- Circuit board animation script -->
     <script>
         const canvas = document.getElementById('technoCanvas');
         const ctx = canvas.getContext('2d');
@@ -125,93 +71,114 @@
         canvas.height = window.innerHeight;
 
         let nodes = [];
-        const colors = ['#00e5ff', '#ff4081', '#ffdd57'];
+        const colors = ['#00e5ff', '#ff4081']; // Neon blue and reddish-pink
         const maxNodes = 150;
-
-        const mouse = {
-          x: null,
-          y: null,
-          radius: 100
-        };
-
-        window.addEventListener('mousemove', function (event) {
-          mouse.x = event.x;
-          mouse.y = event.y;
-        });
-
-        window.addEventListener('resize', function () {
-          canvas.width = window.innerWidth;
-          canvas.height = window.innerHeight;
-          init();
-        });
+        const maxConnections = 80;
+        const connectionDistance = 150;
 
         class Node {
-          constructor(x, y, size, color) {
-            this.x = x;
-            this.y = y;
-            this.size = size;
-            this.color = color;
-            this.dx = (Math.random() - 0.5) * 0.5;
-            this.dy = (Math.random() - 0.5) * 0.5;
-          }
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.dx = (Math.random() - 0.5) * 0.5;
+                this.dy = (Math.random() - 0.5) * 0.5;
+                this.size = 3;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+            }
 
-          draw() {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
-            ctx.fillStyle = this.color;
-            ctx.fill();
-          }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color; // Glow effect
+                ctx.fill();
+                ctx.closePath();
+            }
 
-          update() {
-            // Update position
-            this.x += this.dx;
-            this.y += this.dy;
+            update() {
+                this.x += this.dx;
+                this.y += this.dy;
 
-            // Bounce from edges
-            if (this.x < 0 || this.x > canvas.width) this.dx = -this.dx;
-            if (this.y < 0 || this.y > canvas.height) this.dy = -this.dy;
+                if (this.x < 0 || this.x > canvas.width) this.dx = -this.dx;
+                if (this.y < 0 || this.y > canvas.height) this.dy = -this.dy;
 
-            // Draw the node
-            this.draw();
-          }
+                this.draw();
+            }
         }
 
         function connectNodes() {
-          for (let i = 0; i < nodes.length; i++) {
-            for (let j = i + 1; j < nodes.length; j++) {
-              let distance = Math.sqrt(
-                (nodes[i].x - nodes[j].x) ** 2 + (nodes[i].y - nodes[j].y) ** 2
-              );
+            for (let i = 0; i < nodes.length; i++) {
+                let connectedNodes = 0;
+                for (let j = i + 1; j < nodes.length && connectedNodes < maxConnections; j++) {
+                    let distance = Math.sqrt(
+                        (nodes[i].x - nodes[j].x) ** 2 + (nodes[i].y - nodes[j].y) ** 2
+                    );
 
-              if (distance < 100) {
-                ctx.strokeStyle = `rgba(255, 255, 255, ${1 - distance / 100})`;
-                ctx.lineWidth = 0.5;
-                ctx.beginPath();
-                ctx.moveTo(nodes[i].x, nodes[i].y);
-                ctx.lineTo(nodes[j].x, nodes[j].y);
-                ctx.stroke();
-              }
+                    if (distance < connectionDistance) {
+                        ctx.strokeStyle = ctx.createLinearGradient(
+                            nodes[i].x, nodes[i].y, nodes[j].x, nodes[j].y
+                        );
+
+                        ctx.strokeStyle.addColorStop(0, nodes[i].color);
+                        ctx.strokeStyle.addColorStop(1, nodes[j].color);
+
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(nodes[i].x, nodes[i].y);
+                        ctx.lineTo(nodes[j].x, nodes[j].y);
+                        ctx.stroke();
+                        ctx.closePath();
+                        
+                        // Create pulsating light effect along the lines
+                        const gradient = ctx.createRadialGradient(
+                            (nodes[i].x + nodes[j].x) / 2,
+                            (nodes[i].y + nodes[j].y) / 2,
+                            0,
+                            (nodes[i].x + nodes[j].x) / 2,
+                            (nodes[i].y + nodes[j].y) / 2,
+                            15
+                        );
+                        gradient.addColorStop(0, "rgba(255, 255, 255, 0.5)");
+                        gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+
+                        ctx.fillStyle = gradient;
+                        ctx.arc(
+                            (nodes[i].x + nodes[j].x) / 2,
+                            (nodes[i].y + nodes[j].y) / 2,
+                            15,
+                            0,
+                            Math.PI * 2
+                        );
+                        ctx.fill();
+
+                        connectedNodes++;
+                    }
+                }
             }
-          }
         }
 
         function init() {
-          nodes = [];
-          for (let i = 0; i < maxNodes; i++) {
-            const size = Math.random() * 3 + 1;
-            const x = Math.random() * canvas.width;
-            const y = Math.random() * canvas.height;
-            const color = colors[Math.floor(Math.random() * colors.length)];
-            nodes.push(new Node(x, y, size, color));
-          }
+            nodes = [];
+            for (let i = 0; i < maxNodes; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                nodes.push(new Node(x, y));
+            }
         }
 
         function animate() {
-          requestAnimationFrame(animate);
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          nodes.forEach(node => node.update());
-          connectNodes();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            nodes.forEach(node => node.update());
+            connectNodes();
+            requestAnimationFrame(animate);
         }
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            init();
+        });
 
         init();
         animate();
