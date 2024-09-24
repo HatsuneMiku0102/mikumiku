@@ -23,7 +23,7 @@
 </head>
 
 <body>
-    <canvas id="technoCanvas"></canvas> <!-- Canvas for circuit board animation -->
+    <canvas id="technoCanvas"></canvas> <!-- Canvas for moving neon lines -->
 
     <div class="page-container">
         <div class="title-bar">
@@ -124,98 +124,62 @@
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        const colors = ['#00e5ff', '#ff4081']; // Neon blue and pink
-        const lineWidth = 1.5;
-        const glowStrength = 8;
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const gridSpacing = 80; // Increased spacing to reduce the number of lines
-        const radiatingLines = 20; // Reduced number of radiating lines
+        const lineColors = ['#00e5ff', '#ff4081']; // Neon blue and pink
+        const lines = [];
+        const totalLines = 50; // Number of lines
+        const maxSpeed = 0.5; // Slow movement
+        const lineLength = 150; // Length of each line
 
-        // Draw central microchip node
-        function drawChip() {
-            const chipSize = 60; // Reduced chip size
-            ctx.beginPath();
-            ctx.rect(centerX - chipSize / 2, centerY - chipSize / 2, chipSize, chipSize);
-            ctx.strokeStyle = '#00e5ff';
-            ctx.lineWidth = 2; // Reduced line width for the chip
-            ctx.shadowBlur = glowStrength;
-            ctx.shadowColor = '#00e5ff';
-            ctx.stroke();
-            ctx.closePath();
-        }
-
-        // Draw grid lines with a reduced number of lines
-        function drawGridLines() {
-            const lines = [];
-            for (let x = 0; x < canvas.width; x += gridSpacing) {
-                for (let y = 0; y < canvas.height; y += gridSpacing) {
-                    if (Math.random() > 0.5) {
-                        lines.push({x1: x, y1: y, x2: x + gridSpacing, y2: y}); // Horizontal
-                        lines.push({x1: x, y1: y, x2: x, y2: y + gridSpacing}); // Vertical
-                    }
-                }
+        class MovingLine {
+            constructor() {
+                this.startX = Math.random() * canvas.width;
+                this.startY = Math.random() * canvas.height;
+                this.angle = Math.random() * 2 * Math.PI; // Random direction
+                this.speedX = Math.cos(this.angle) * (Math.random() * maxSpeed + 0.1);
+                this.speedY = Math.sin(this.angle) * (Math.random() * maxSpeed + 0.1);
+                this.color = lineColors[Math.floor(Math.random() * lineColors.length)];
             }
 
-            ctx.lineWidth = lineWidth;
-            ctx.shadowBlur = glowStrength;
+            // Method to update line position and draw it
+            update() {
+                // Move the line
+                this.startX += this.speedX;
+                this.startY += this.speedY;
 
-            // Neon blue vertical lines
-            ctx.strokeStyle = '#00e5ff';
-            ctx.shadowColor = '#00e5ff';
-            lines.forEach(line => {
-                if (Math.random() > 0.5) { // Randomize some blue lines
-                    ctx.beginPath();
-                    ctx.moveTo(line.x1, line.y1);
-                    ctx.lineTo(line.x2, line.y2);
-                    ctx.stroke();
-                }
-            });
-
-            // Neon pink horizontal lines
-            ctx.strokeStyle = '#ff4081';
-            ctx.shadowColor = '#ff4081';
-            lines.forEach(line => {
-                if (Math.random() > 0.5) { // Randomize some pink lines
-                    ctx.beginPath();
-                    ctx.moveTo(line.x1, line.y1);
-                    ctx.lineTo(line.x2, line.y2);
-                    ctx.stroke();
-                }
-            });
-        }
-
-        // Radiating lines from the center chip
-        function drawRadiatingLines() {
-            for (let i = 0; i < radiatingLines; i++) {
-                const angle = (i / radiatingLines) * Math.PI * 2;
-                const xEnd = centerX + Math.cos(angle) * (canvas.width / 2);
-                const yEnd = centerY + Math.sin(angle) * (canvas.height / 2);
-
-                ctx.lineWidth = 1.5; // Reduced line width
-                ctx.shadowBlur = glowStrength;
-
-                // Alternate between blue and pink
-                if (i % 2 === 0) {
-                    ctx.strokeStyle = '#00e5ff';
-                    ctx.shadowColor = '#00e5ff';
-                } else {
-                    ctx.strokeStyle = '#ff4081';
-                    ctx.shadowColor = '#ff4081';
+                // If the line goes off the screen, reset it
+                if (this.startX < 0 || this.startX > canvas.width || this.startY < 0 || this.startY > canvas.height) {
+                    this.startX = Math.random() * canvas.width;
+                    this.startY = Math.random() * canvas.height;
+                    this.angle = Math.random() * 2 * Math.PI;
+                    this.speedX = Math.cos(this.angle) * (Math.random() * maxSpeed + 0.1);
+                    this.speedY = Math.sin(this.angle) * (Math.random() * maxSpeed + 0.1);
                 }
 
+                // Draw the line
                 ctx.beginPath();
-                ctx.moveTo(centerX, centerY);
-                ctx.lineTo(xEnd, yEnd);
+                ctx.moveTo(this.startX, this.startY);
+                ctx.lineTo(this.startX - this.speedX * lineLength, this.startY - this.speedY * lineLength);
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
                 ctx.stroke();
+                ctx.closePath();
             }
         }
 
+        // Create initial set of lines
+        function init() {
+            lines.length = 0;
+            for (let i = 0; i < totalLines; i++) {
+                lines.push(new MovingLine());
+            }
+        }
+
+        // Animation loop
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawGridLines();
-            drawChip();
-            drawRadiatingLines();
+            lines.forEach(line => line.update());
             requestAnimationFrame(animate);
         }
 
@@ -223,11 +187,15 @@
         window.addEventListener('resize', () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            drawChip(); // Redraw chip on resize
+            init();
         });
 
+        // Start animation
+        init();
         animate();
     </script>
+
+    
     <!-- Original Scripts for YouTube and Weather Widgets -->
     <script>
     document.addEventListener('DOMContentLoaded', function () {
