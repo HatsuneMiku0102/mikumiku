@@ -23,7 +23,7 @@
 </head>
 
 <body>
-    <canvas id="technoCanvas"></canvas> <!-- Canvas for neon snake-like beams -->
+    <canvas id="technoCanvas"></canvas> <!-- Canvas for neon beams -->
 
     <div class="page-container">
         <div class="title-bar">
@@ -124,22 +124,22 @@
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        const lineColors = ['#00e5ff', '#ff4081']; // Neon blue and pink
-        const totalBeams = 20; // Number of beams (lines)
-        const beamLength = 50; // Number of segments in each beam
-        const maxSpeed = 0.8; // Speed of movement
-        const segmentLength = 8; // Length of each segment
-        const turningSpeed = 0.02; // How quickly the snake-like beam turns
+        const beamColors = ['#ff4081', '#00e5ff']; // Reddish pink and neon blue
+        const maxBeams = 6; // Max 6 beams at a time
+        const beamLength = 100; // Number of segments in each beam
+        const segmentSpeed = 1; // Speed of beam movement
+        const segmentLength = 10; // Length of each segment
+        const beamGlow = 20; // Amount of glow for the beams
 
-        class SnakeBeam {
+        class DynamicBeam {
             constructor() {
                 this.points = [];
-                this.color = lineColors[Math.floor(Math.random() * lineColors.length)];
-                this.angle = Math.random() * 2 * Math.PI;
-                this.speedX = Math.cos(this.angle) * maxSpeed;
-                this.speedY = Math.sin(this.angle) * maxSpeed;
+                this.color = beamColors[Math.floor(Math.random() * beamColors.length)];
+                this.angle = Math.random() * Math.PI * 2;
+                this.speedX = Math.cos(this.angle) * segmentSpeed;
+                this.speedY = Math.sin(this.angle) * segmentSpeed;
 
-                // Create the segments of the beam starting at a random point
+                // Create the segments of the beam
                 for (let i = 0; i < beamLength; i++) {
                     this.points.push({
                         x: Math.random() * canvas.width,
@@ -148,20 +148,17 @@
                 }
             }
 
-            // Method to update the beam's position
+            // Update the beam's position and direction
             update() {
                 // Move the head of the beam
                 let head = this.points[0];
                 head.x += this.speedX;
                 head.y += this.speedY;
 
-                // If the head goes out of bounds, reset it
+                // If head goes out of bounds, reset to a random point
                 if (head.x < 0 || head.x > canvas.width || head.y < 0 || head.y > canvas.height) {
                     head.x = Math.random() * canvas.width;
                     head.y = Math.random() * canvas.height;
-                    this.angle = Math.random() * 2 * Math.PI;
-                    this.speedX = Math.cos(this.angle) * maxSpeed;
-                    this.speedY = Math.sin(this.angle) * maxSpeed;
                 }
 
                 // Update the rest of the segments to follow the head
@@ -170,38 +167,38 @@
                     this.points[i].y = this.points[i - 1].y;
                 }
 
-                // Gradually change direction (turn slowly)
-                this.angle += (Math.random() - 0.5) * turningSpeed;
-                this.speedX = Math.cos(this.angle) * maxSpeed;
-                this.speedY = Math.sin(this.angle) * maxSpeed;
+                // Gradually change direction (random smooth turn)
+                this.angle += (Math.random() - 0.5) * 0.05;
+                this.speedX = Math.cos(this.angle) * segmentSpeed;
+                this.speedY = Math.sin(this.angle) * segmentSpeed;
             }
 
-            // Method to draw the beam
+            // Draw the beam on the canvas
             draw() {
                 ctx.beginPath();
                 ctx.moveTo(this.points[0].x, this.points[0].y);
 
-                // Draw lines between the segments
+                // Draw the segments as lines
                 for (let i = 1; i < this.points.length; i++) {
                     ctx.lineTo(this.points[i].x, this.points[i].y);
                 }
 
                 ctx.strokeStyle = this.color;
-                ctx.lineWidth = 3;
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = this.color; // Glow effect
+                ctx.lineWidth = 4;
+                ctx.shadowBlur = beamGlow;
+                ctx.shadowColor = this.color; // Add glow effect
                 ctx.stroke();
                 ctx.closePath();
             }
         }
 
-        const beams = [];
+        let beams = [];
 
         // Initialize the beams
         function init() {
-            beams.length = 0;
-            for (let i = 0; i < totalBeams; i++) {
-                beams.push(new SnakeBeam());
+            beams = [];
+            for (let i = 0; i < maxBeams; i++) {
+                beams.push(new DynamicBeam());
             }
         }
 
