@@ -369,6 +369,10 @@
             document.getElementById('videoTitle').innerText = 'YouTube Tab Closed';
             document.querySelector('.now-playing').classList.add('offline');
             document.getElementById('videoThumbnail').classList.add('offline-thumbnail');
+            clearExistingInterval();
+            updateProgress(0);
+            document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
+            document.getElementById('total-duration').innerText = `Total Duration: --:--`;
         });
 
         socket.on('youtubeOpened', () => {
@@ -385,6 +389,10 @@
                 videoTitleElement.innerText = 'Currently Offline';
                 nowPlayingElement.classList.add('offline');
                 videoThumbnailElement.classList.add('offline-thumbnail');
+                clearExistingInterval();
+                updateProgress(0);
+                document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
+                document.getElementById('total-duration').innerText = `Total Duration: --:--`;
             } else {
                 nowPlayingElement.classList.remove('offline');
                 videoThumbnailElement.classList.remove('offline-thumbnail');
@@ -407,6 +415,9 @@
                 if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
                     clearExistingInterval();
                     isBrowsing = true;
+                    updateProgress(0);
+                    document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
+                    document.getElementById('total-duration').innerText = `Total Duration: --:--`;
                 } else {
                     isBrowsing = false;
                     fetchYouTubeVideoDetails(videoID).then((duration) => {
@@ -418,6 +429,7 @@
                             if (!isVideoPaused) {
                                 intervalID = setInterval(updateProgressBar, 1000);
                             }
+                            document.getElementById('total-duration').innerText = `Total Duration: ${formatTime(videoDuration)}`;
                         }
                     });
                 }
@@ -434,6 +446,8 @@
             const now = new Date();
             const localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             document.getElementById('local-time').textContent = localTime;
+            const currentDate = now.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+            document.getElementById('current-date').textContent = currentDate;
         }
 
         setInterval(updateClocks, 1000);
@@ -502,15 +516,12 @@
 
         fetchWeather();
         setInterval(fetchWeather, 3600000);
-    });
-    </script>
 
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const canvas = document.getElementById('liquidProgressBar');
-        const ctx = canvas.getContext('2d');
-        const width = canvas.width;
-        const height = canvas.height;
+        // Liquid Progress Bar Integration
+        const liquidCanvas = document.getElementById('liquidProgressBar');
+        const liquidCtx = liquidCanvas.getContext('2d');
+        const liquidWidth = liquidCanvas.width;
+        const liquidHeight = liquidCanvas.height;
 
         let progress = 0;
 
@@ -523,54 +534,59 @@
 
         function updateProgress(newProgress) {
             progress = Math.min(Math.max(newProgress, 0), 100);
+            document.getElementById('time-elapsed').innerText = `Time Elapsed: ${formatTime((progress / 100) * videoDuration)}`;
         }
 
         function drawLiquidFill() {
-            ctx.clearRect(0, 0, width, height);
-            const fillLevel = height - (progress / 100) * height;
+            liquidCtx.clearRect(0, 0, liquidWidth, liquidHeight);
+            const fillLevel = liquidHeight - (progress / 100) * liquidHeight;
 
-            ctx.beginPath();
-            ctx.moveTo(0, fillLevel);
+            liquidCtx.beginPath();
+            liquidCtx.moveTo(0, fillLevel);
 
-            for (let x = 0; x <= width; x++) {
+            for (let x = 0; x <= liquidWidth; x++) {
                 const y = wave.amplitude * Math.sin((2 * Math.PI / wave.wavelength) * x + wave.phase) + fillLevel;
-                ctx.lineTo(x, y);
+                liquidCtx.lineTo(x, y);
             }
 
-            ctx.lineTo(width, height);
-            ctx.lineTo(0, height);
-            ctx.closePath();
+            liquidCtx.lineTo(liquidWidth, liquidHeight);
+            liquidCtx.lineTo(0, liquidHeight);
+            liquidCtx.closePath();
 
-            const gradient = ctx.createLinearGradient(0, fillLevel - wave.amplitude, 0, height);
+            const gradient = liquidCtx.createLinearGradient(0, fillLevel - wave.amplitude, 0, liquidHeight);
             gradient.addColorStop(0, 'rgba(0, 229, 255, 0.6)');
             gradient.addColorStop(0.5, 'rgba(255, 64, 129, 0.6)');
             gradient.addColorStop(1, 'rgba(255, 64, 129, 0.6)');
 
-            ctx.fillStyle = gradient;
-            ctx.fill();
+            liquidCtx.fillStyle = gradient;
+            liquidCtx.fill();
 
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = '#00e5ff';
-            ctx.stroke();
+            liquidCtx.lineWidth = 2;
+            liquidCtx.strokeStyle = '#00e5ff';
+            liquidCtx.stroke();
         }
 
-        function animateProgressBar() {
+        function animateLiquidProgressBar() {
             wave.phase += wave.speed;
             drawLiquidFill();
-            requestAnimationFrame(animateProgressBar);
+            requestAnimationFrame(animateLiquidProgressBar);
         }
 
-        animateProgressBar();
+        animateLiquidProgressBar();
 
-        function simulateProgress() {
-            if (progress < 100) {
-                progress += 0.1;
-                updateProgress(progress);
-                setTimeout(simulateProgress, 50);
+        function updateProgressBar() {
+            if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
+                const currentTimestamp = Date.now();
+                const elapsedTime = (currentTimestamp - videoStartTime) / 1000;
+                if (elapsedTime >= 0 && elapsedTime <= videoDuration) {
+                    const progressPercent = (elapsedTime / videoDuration) * 100;
+                    updateProgress(progressPercent);
+                } else {
+                    clearExistingInterval();
+                    updateProgress(100);
+                }
             }
         }
-
-        simulateProgress();
     });
     </script>
 </body>
