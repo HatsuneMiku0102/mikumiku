@@ -127,68 +127,52 @@
         const beamColors = ['#ff4081', '#00e5ff']; // Reddish pink and neon blue
         const maxBeams = 6; // Max 6 beams at a time
         const beamLength = 100; // Number of segments in each beam
-        const segmentSpeed = 1; // Speed of beam movement
-        const segmentLength = 10; // Length of each segment
-        const beamGlow = 20; // Amount of glow for the beams
+        const segmentSpeed = 2; // Speed of beam movement (higher for faster)
+        const beamThickness = 6; // Thickness of the beams
+        const beamGlow = 30; // Amount of glow for the beams
 
         class DynamicBeam {
             constructor() {
-                this.points = [];
+                this.x = Math.random() * canvas.width; // Random start position
+                this.y = Math.random() * canvas.height;
+                this.dx = (Math.random() - 0.5) * 2 * segmentSpeed; // Straight direction
+                this.dy = (Math.random() - 0.5) * 2 * segmentSpeed;
                 this.color = beamColors[Math.floor(Math.random() * beamColors.length)];
-                this.angle = Math.random() * Math.PI * 2;
-                this.speedX = Math.cos(this.angle) * segmentSpeed;
-                this.speedY = Math.sin(this.angle) * segmentSpeed;
-
-                // Create the segments of the beam
+                this.segments = [];
                 for (let i = 0; i < beamLength; i++) {
-                    this.points.push({
-                        x: Math.random() * canvas.width,
-                        y: Math.random() * canvas.height
-                    });
+                    this.segments.push({ x: this.x, y: this.y });
                 }
             }
 
-            // Update the beam's position and direction
+            // Update beam's position
             update() {
-                // Move the head of the beam
-                let head = this.points[0];
-                head.x += this.speedX;
-                head.y += this.speedY;
+                // Move the beam in a straight line
+                this.x += this.dx;
+                this.y += this.dy;
 
-                // If head goes out of bounds, reset to a random point
-                if (head.x < 0 || head.x > canvas.width || head.y < 0 || head.y > canvas.height) {
-                    head.x = Math.random() * canvas.width;
-                    head.y = Math.random() * canvas.height;
+                // Wrap the beam to the other side of the screen when it goes offscreen
+                if (this.x < 0 || this.x > canvas.width) this.dx = -this.dx;
+                if (this.y < 0 || this.y > canvas.height) this.dy = -this.dy;
+
+                // Update all segments to follow the head
+                for (let i = this.segments.length - 1; i > 0; i--) {
+                    this.segments[i] = { ...this.segments[i - 1] };
                 }
-
-                // Update the rest of the segments to follow the head
-                for (let i = this.points.length - 1; i > 0; i--) {
-                    this.points[i].x = this.points[i - 1].x;
-                    this.points[i].y = this.points[i - 1].y;
-                }
-
-                // Gradually change direction (random smooth turn)
-                this.angle += (Math.random() - 0.5) * 0.05;
-                this.speedX = Math.cos(this.angle) * segmentSpeed;
-                this.speedY = Math.sin(this.angle) * segmentSpeed;
+                this.segments[0] = { x: this.x, y: this.y };
             }
 
             // Draw the beam on the canvas
             draw() {
                 ctx.beginPath();
-                ctx.moveTo(this.points[0].x, this.points[0].y);
-
-                // Draw the segments as lines
-                for (let i = 1; i < this.points.length; i++) {
-                    ctx.lineTo(this.points[i].x, this.points[i].y);
+                ctx.moveTo(this.segments[0].x, this.segments[0].y);
+                for (let i = 1; i < this.segments.length; i++) {
+                    ctx.lineTo(this.segments[i].x, this.segments[i].y);
                 }
-
                 ctx.strokeStyle = this.color;
-                ctx.lineWidth = 4;
+                ctx.lineWidth = beamThickness;
                 ctx.shadowBlur = beamGlow;
                 ctx.shadowColor = this.color; // Add glow effect
                 ctx.stroke();
-                ctx.closePath();
             }
         }
 
@@ -225,6 +209,7 @@
         init();
         animate();
     </script>
+
 
     
     <!-- Original Scripts for YouTube and Weather Widgets -->
