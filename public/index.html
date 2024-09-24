@@ -9,15 +9,15 @@
     <link rel="stylesheet" href="/styles.css">
     <style>
         /* Ensure the canvas stays behind other content */
-        #technoCanvas {
+        #mikuCanvas {
             position: absolute;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100%;
-            z-index: -1; /* Background canvas stays behind content */
-            pointer-events: none; /* Ensures it doesn't interfere with other content */
-            background: black; /* Dark background for neon effect */
+            z-index: -1;
+            pointer-events: none;
+            background: black;
         }
         body, html {
             margin: 0;
@@ -29,7 +29,7 @@
 </head>
 
 <body>
-    <canvas id="technoCanvas"></canvas> <!-- Canvas for neon beams -->
+    <canvas id="mikuCanvas"></canvas> <!-- Canvas for Hatsune Miku theme -->
 
     <div class="page-container">
         <div class="title-bar">
@@ -125,98 +125,101 @@
 
     <!-- Script for snake-like neon light beams -->
     <script>
-        const canvas = document.getElementById('technoCanvas');
+        const canvas = document.getElementById('mikuCanvas');
         const ctx = canvas.getContext('2d');
-
-        // Make the canvas height dynamically adjust to the full page, including scrolling areas
-        const documentHeight = document.body.scrollHeight;
         canvas.width = window.innerWidth;
-        canvas.height = documentHeight;
+        canvas.height = document.body.scrollHeight;
 
-        const beamColors = ['#ff4081', '#00e5ff']; // Reddish pink and neon blue
-        const maxBeams = 6; // Max 6 beams at a time
-        const beamLength = 50; // Number of segments (length) of the beams
-        const segmentSize = 10; // Size of each segment
-        const beamThickness = 15; // Beam thickness
-        const beamGlow = 25; // Glow effect for the beams
-        const moveSpeed = 0.5; // Slower movement speed
+        const mikuCyan = '#00e5ff';  // Hatsune Miku cyan color
+        const mikuPink = '#ff4081';  // Hatsune Miku pink color
 
-        // Possible directions for snake-like movement (4 directions: up, down, left, right)
-        const directions = [
-            { dx: segmentSize, dy: 0 },    // Right
-            { dx: -segmentSize, dy: 0 },   // Left
-            { dx: 0, dy: segmentSize },    // Down
-            { dx: 0, dy: -segmentSize }    // Up
-        ];
+        let particlesArray = [];
+        const particleCount = 100;
+        const linesArray = [];
+        const maxLines = 5;
+        const maxLineLength = 200;
 
-        class SnakeBeam {
+        // Particle class to create floating digital "dust" or glowing orbs
+        class Particle {
             constructor() {
-                this.x = Math.random() * canvas.width; // Random start position
+                this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
-                this.color = beamColors[Math.floor(Math.random() * beamColors.length)];
-                this.direction = directions[Math.floor(Math.random() * directions.length)];
-                this.segments = [];
-
-                // Initialize the snake beam with `beamLength` segments
-                for (let i = 0; i < beamLength; i++) {
-                    this.segments.push({ x: this.x, y: this.y });
-                }
+                this.size = Math.random() * 2 + 1;
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.speedY = (Math.random() - 0.5) * 0.5;
+                this.color = Math.random() > 0.5 ? mikuCyan : mikuPink;
             }
 
-            // Update beam's position with snake-like movement
             update() {
-                // Prevent the beams from overlapping the "About Me" section
-                const aboutMeElement = document.getElementById('aboutMe');
-                const aboutMeTop = aboutMeElement.offsetTop;
+                this.x += this.speedX;
+                this.y += this.speedY;
 
-                if (this.y + this.direction.dy >= aboutMeTop - segmentSize) {
-                    this.direction = directions[Math.floor(Math.random() * 2)]; // Force movement sideways
-                }
-
-                // Determine if it's time to change direction
-                if (Math.random() < 0.02) {
-                    this.direction = directions[Math.floor(Math.random() * directions.length)];
-                }
-
-                // Move the head of the snake
-                this.x += this.direction.dx * moveSpeed;
-                this.y += this.direction.dy * moveSpeed;
-
-                // Wrap the snake around the screen when it goes offscreen
-                if (this.x < 0) this.x = canvas.width;
+                // Wrap around edges
                 if (this.x > canvas.width) this.x = 0;
-                if (this.y < 0) this.y = canvas.height;
+                if (this.x < 0) this.x = canvas.width;
                 if (this.y > canvas.height) this.y = 0;
-
-                // Update all segments to follow the head
-                for (let i = this.segments.length - 1; i > 0; i--) {
-                    this.segments[i] = { ...this.segments[i - 1] };
-                }
-                this.segments[0] = { x: this.x, y: this.y };
+                if (this.y < 0) this.y = canvas.height;
             }
 
-            // Draw the snake beam on the canvas
             draw() {
                 ctx.beginPath();
-                ctx.moveTo(this.segments[0].x, this.segments[0].y);
-                for (let i = 1; i < this.segments.length; i++) {
-                    ctx.lineTo(this.segments[i].x, this.segments[i].y);
-                }
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+            }
+        }
+
+        // Line class to create glowing, flowing lines that represent music or digital circuits
+        class Line {
+            constructor() {
+                this.startX = Math.random() * canvas.width;
+                this.startY = Math.random() * canvas.height;
+                this.length = Math.random() * maxLineLength + 50;
+                this.angle = Math.random() * Math.PI * 2;
+                this.speed = Math.random() * 1 + 0.5;
+                this.color = Math.random() > 0.5 ? mikuCyan : mikuPink;
+                this.thickness = Math.random() * 2 + 1;
+                this.directionX = Math.cos(this.angle);
+                this.directionY = Math.sin(this.angle);
+            }
+
+            update() {
+                this.startX += this.directionX * this.speed;
+                this.startY += this.directionY * this.speed;
+
+                // Wrap around edges
+                if (this.startX > canvas.width) this.startX = 0;
+                if (this.startX < 0) this.startX = canvas.width;
+                if (this.startY > canvas.height) this.startY = 0;
+                if (this.startY < 0) this.startY = canvas.height;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.moveTo(this.startX, this.startY);
+                ctx.lineTo(
+                    this.startX + this.directionX * this.length,
+                    this.startY + this.directionY * this.length
+                );
                 ctx.strokeStyle = this.color;
-                ctx.lineWidth = beamThickness;
-                ctx.shadowBlur = beamGlow;
-                ctx.shadowColor = this.color; // Add glow effect
+                ctx.lineWidth = this.thickness;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = this.color;
                 ctx.stroke();
             }
         }
 
-        let beams = [];
-
-        // Initialize the beams
+        // Initialize particles and lines
         function init() {
-            beams = [];
-            for (let i = 0; i < maxBeams; i++) {
-                beams.push(new SnakeBeam());
+            particlesArray = [];
+            for (let i = 0; i < particleCount; i++) {
+                particlesArray.push(new Particle());
+            }
+
+            for (let i = 0; i < maxLines; i++) {
+                linesArray.push(new Line());
             }
         }
 
@@ -224,22 +227,28 @@
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            beams.forEach(beam => {
-                beam.update();
-                beam.draw();
+            // Update and draw particles
+            particlesArray.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+
+            // Update and draw lines
+            linesArray.forEach(line => {
+                line.update();
+                line.draw();
             });
 
             requestAnimationFrame(animate);
         }
 
-        // Handle resize
+        // Adjust canvas size on window resize
         window.addEventListener('resize', () => {
             canvas.width = window.innerWidth;
             canvas.height = document.body.scrollHeight;
             init();
         });
 
-        // Start the animation
         init();
         animate();
     </script>
