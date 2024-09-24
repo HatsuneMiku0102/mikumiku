@@ -19,38 +19,46 @@
 
     <script>
         // Function to determine the time of day
-        function getTimeOfDay() {
-            const hour = new Date().getHours();
-            if (hour < 12) {
-                return "Good Morning";
-            } else if (hour >= 12 && hour < 18) {
-                return "Good Afternoon";
-            } else {
-                return "Good Evening";
-            }
+    function getTimeOfDay() {
+        const hour = new Date().getHours();
+        if (hour < 12) {
+            return "Good Morning";
+        } else if (hour >= 12 && hour < 18) {
+            return "Good Afternoon";
+        } else {
+            return "Good Evening";
         }
-
-        // Function to set dynamic title and revert back after a delay
-        function setDynamicTitle() {
-            const originalTitle = document.title;  // Store the original title
-            const timeOfDayMessage = getTimeOfDay();  // Get greeting based on the time
-            document.title = timeOfDayMessage;  // Set the title to the greeting
-
-            // Revert to original title after 5 seconds
-            setTimeout(() => {
-                document.title = originalTitle;
-            }, 5000);
+    }
+    
+    function setDynamicTitle() {
+        const originalTitle = document.title;
+        const timeOfDayMessage = getTimeOfDay();
+    
+        // Change the browser tab title
+        document.title = timeOfDayMessage;
+    
+        // Change the visible title on the page (h1 with id dynamicTitle)
+        const dynamicTitleElement = document.getElementById('dynamicTitle');
+        if (dynamicTitleElement) {
+            dynamicTitleElement.innerText = timeOfDayMessage;
         }
-
-        // Set the dynamic title on page load
-        setDynamicTitle();
-
-        // Re-apply the dynamic title when the user switches back to the page
-        document.addEventListener("visibilitychange", function() {
-            if (!document.hidden) {
-                setDynamicTitle();
+    
+        setTimeout(() => {
+            document.title = originalTitle;
+            if (dynamicTitleElement) {
+                dynamicTitleElement.innerText = "MikuMiku"; // Or set to any original title you want
             }
-        });
+        }, 5000);
+    }
+    
+    setDynamicTitle();
+    
+    document.addEventListener("visibilitychange", function () {
+        if (!document.hidden) {
+            setDynamicTitle();
+        }
+    });
+
     </script>
 </body>
 </html>
