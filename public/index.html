@@ -123,7 +123,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
-    <!-- Animated Tech Canvas Script -->
+    <!-- Animated Tech Canvas Script with Interactivity -->
     <script>
         const canvas = document.getElementById('techCanvas');
         const ctx = canvas.getContext('2d');
@@ -143,6 +143,18 @@
         const techCyan = '#00ffff';
         const techGray = '#4b4b4b';
 
+        // Mouse Position
+        const mouse = {
+            x: null,
+            y: null,
+            radius: 100
+        };
+
+        window.addEventListener('mousemove', function(event) {
+            mouse.x = event.clientX;
+            mouse.y = event.clientY;
+        });
+
         // Node class for glowing points
         class Node {
             constructor(x, y, radius, color) {
@@ -151,6 +163,33 @@
                 this.radius = radius;
                 this.color = color;
                 this.alpha = Math.random() * 0.5 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.2;
+                this.speedY = (Math.random() - 0.5) * 0.2;
+            }
+
+            update() {
+                const dx = this.x - mouse.x;
+                const dy = this.y - mouse.y;
+                const distance = Math.hypot(dx, dy);
+
+                if (distance < mouse.radius && mouse.x && mouse.y) {
+                    const angle = Math.atan2(dy, dx);
+                    const force = (mouse.radius - distance) / mouse.radius;
+                    const forceX = Math.cos(angle) * force * 2; // Adjust force multiplier as needed
+                    const forceY = Math.sin(angle) * force * 2;
+
+                    this.x += this.speedX + forceX;
+                    this.y += this.speedY + forceY;
+                } else {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                }
+
+                // Boundary conditions to wrap around
+                if (this.x > canvas.width) this.x = 0;
+                if (this.x < 0) this.x = canvas.width;
+                if (this.y > canvas.height) this.y = 0;
+                if (this.y < 0) this.y = canvas.height;
             }
 
             draw() {
@@ -172,12 +211,12 @@
 
         // Generate random nodes
         const nodes = [];
-        const nodeCount = 100;
+        const nodeCount = 150;
 
         for (let i = 0; i < nodeCount; i++) {
             const x = Math.random() * canvas.width;
             const y = Math.random() * canvas.height;
-            const radius = Math.random() * 1.5 + 0.5;
+            const radius = Math.random() * 2 + 1;
             const colorOptions = [techBlue, techPurple, techPink, techCyan, techGray];
             const color = colorOptions[Math.floor(Math.random() * colorOptions.length)];
             nodes.push(new Node(x, y, radius, color));
@@ -185,10 +224,12 @@
 
         // Connect nodes within a certain distance
         function connectNodes() {
-            const maxDistance = 100;
+            const maxDistance = 120;
             for (let i = 0; i < nodes.length; i++) {
                 for (let j = i + 1; j < nodes.length; j++) {
-                    const distance = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y);
+                    const dx = nodes[i].x - nodes[j].x;
+                    const dy = nodes[i].y - nodes[j].y;
+                    const distance = Math.hypot(dx, dy);
                     if (distance < maxDistance) {
                         ctx.beginPath();
                         ctx.strokeStyle = `rgba(${hexToRgb('#00e5ff')}, ${1 - distance / maxDistance})`;
@@ -204,7 +245,10 @@
         // Animation loop
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            nodes.forEach(node => node.draw());
+            nodes.forEach(node => {
+                node.update();
+                node.draw();
+            });
             connectNodes();
             requestAnimationFrame(animate);
         }
