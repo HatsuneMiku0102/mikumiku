@@ -23,7 +23,7 @@
 </head>
 
 <body>
-    <canvas id="technoCanvas"></canvas> <!-- Canvas for techno grid animation -->
+    <canvas id="technoCanvas"></canvas> <!-- Canvas for techno circuit board animation -->
 
     <div class="page-container">
         <div class="title-bar">
@@ -117,7 +117,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
-    <!-- Techno-themed grid animation script -->
+    <!-- Circuit board effect with neon beams animation -->
     <script>
         const canvas = document.getElementById('technoCanvas');
         const ctx = canvas.getContext('2d');
@@ -125,96 +125,102 @@
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        let nodes = [];
-        const colors = ['#00e5ff', '#ff4081', '#ffdd57'];
-        const maxNodes = 150;
-
-        const mouse = {
-          x: null,
-          y: null,
-          radius: 100
-        };
-
-        window.addEventListener('mousemove', function (event) {
-          mouse.x = event.x;
-          mouse.y = event.y;
-        });
-
-        window.addEventListener('resize', function () {
-          canvas.width = window.innerWidth;
-          canvas.height = window.innerHeight;
-          init();
-        });
+        const colors = ['#00e5ff', '#ff4081']; // Neon blue and pink colors for beams
+        const nodes = [];
+        const connections = [];
+        const gridSpacing = 80; // Spacing for nodes to create a grid effect
 
         class Node {
-          constructor(x, y, size, color) {
-            this.x = x;
-            this.y = y;
-            this.size = size;
-            this.color = color;
-            this.dx = (Math.random() - 0.5) * 0.5;
-            this.dy = (Math.random() - 0.5) * 0.5;
-          }
-
-          draw() {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
-            ctx.fillStyle = this.color;
-            ctx.fill();
-          }
-
-          update() {
-            // Update position
-            this.x += this.dx;
-            this.y += this.dy;
-
-            // Bounce from edges
-            if (this.x < 0 || this.x > canvas.width) this.dx = -this.dx;
-            if (this.y < 0 || this.y > canvas.height) this.dy = -this.dy;
-
-            // Draw the node
-            this.draw();
-          }
-        }
-
-        function connectNodes() {
-          for (let i = 0; i < nodes.length; i++) {
-            for (let j = i + 1; j < nodes.length; j++) {
-              let distance = Math.sqrt(
-                (nodes[i].x - nodes[j].x) ** 2 + (nodes[i].y - nodes[j].y) ** 2
-              );
-
-              if (distance < 100) {
-                ctx.strokeStyle = `rgba(255, 255, 255, ${1 - distance / 100})`;
-                ctx.lineWidth = 0.5;
-                ctx.beginPath();
-                ctx.moveTo(nodes[i].x, nodes[i].y);
-                ctx.lineTo(nodes[j].x, nodes[j].y);
-                ctx.stroke();
-              }
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
             }
-          }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 4, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.closePath();
+            }
         }
 
-        function init() {
-          nodes = [];
-          for (let i = 0; i < maxNodes; i++) {
-            const size = Math.random() * 3 + 1;
-            const x = Math.random() * canvas.width;
-            const y = Math.random() * canvas.height;
-            const color = colors[Math.floor(Math.random() * colors.length)];
-            nodes.push(new Node(x, y, size, color));
-          }
+        class Connection {
+            constructor(nodeA, nodeB) {
+                this.nodeA = nodeA;
+                this.nodeB = nodeB;
+                this.color = nodeA.color;
+                this.width = 2;
+                this.offset = Math.random() * 100;
+            }
+
+            draw() {
+                const gradient = ctx.createLinearGradient(
+                    this.nodeA.x, this.nodeA.y, this.nodeB.x, this.nodeB.y
+                );
+                gradient.addColorStop(0, this.nodeA.color);
+                gradient.addColorStop(1, this.nodeB.color);
+
+                ctx.lineWidth = this.width;
+                ctx.strokeStyle = gradient;
+                ctx.beginPath();
+                ctx.moveTo(this.nodeA.x, this.nodeA.y);
+                ctx.lineTo(this.nodeB.x, this.nodeB.y);
+                ctx.stroke();
+                ctx.closePath();
+            }
+
+            animate() {
+                // Creates a pulsating effect by dynamically adjusting the line width
+                this.width = 1 + Math.sin(Date.now() / 200 + this.offset) * 2;
+                this.draw();
+            }
+        }
+
+        function createGrid() {
+            for (let x = gridSpacing; x < canvas.width; x += gridSpacing) {
+                for (let y = gridSpacing; y < canvas.height; y += gridSpacing) {
+                    const node = new Node(x, y);
+                    nodes.push(node);
+                }
+            }
+        }
+
+        function createConnections() {
+            nodes.forEach(nodeA => {
+                nodes.forEach(nodeB => {
+                    const distance = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
+                    if (distance < gridSpacing * 1.5 && nodeA !== nodeB) {
+                        const connection = new Connection(nodeA, nodeB);
+                        connections.push(connection);
+                    }
+                });
+            });
         }
 
         function animate() {
-          requestAnimationFrame(animate);
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          nodes.forEach(node => node.update());
-          connectNodes();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            nodes.forEach(node => node.draw());
+            connections.forEach(connection => connection.animate());
+
+            requestAnimationFrame(animate);
         }
 
-        init();
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            nodes.length = 0;
+            connections.length = 0;
+            createGrid();
+            createConnections();
+        });
+
+        createGrid();
+        createConnections();
         animate();
     </script>
 
