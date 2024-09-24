@@ -135,67 +135,46 @@
 
         let particlesArray = [];
         const particleCount = 100;
-        const linesArray = [];
-        const maxLines = 5;
-        const maxLineLength = 200;
 
-        // Randomly generate shapes at intervals
-        function drawRandomShapes() {
-            const x = Math.random() * canvas.width;
-            const y = Math.random() * canvas.height;
-            const size = Math.random() * 50 + 20;  // Random size for shapes
-            const color = Math.random() > 0.5 ? mikuCyan : mikuPink;
-            const shapeType = Math.floor(Math.random() * 3);  // Choose between 3 shape types: star, note, or circle
-
-            ctx.beginPath();
+        // Function to draw "01" symbol in the Miku style
+        function draw01(x, y, size, color) {
+            ctx.font = `${size}px Arial`;
             ctx.fillStyle = color;
             ctx.shadowBlur = 20;
             ctx.shadowColor = color;
-
-            // Draw different shapes based on the random type
-            if (shapeType === 0) {
-                // Draw a star
-                drawStar(ctx, x, y, 5, size, size / 2);
-            } else if (shapeType === 1) {
-                // Draw a music note
-                drawMusicNote(ctx, x, y, size);
-            } else {
-                // Draw a glowing circle
-                ctx.arc(x, y, size, 0, Math.PI * 2);
-            }
-
-            ctx.fill();
+            ctx.fillText('01', x, y);
         }
 
-        // Helper function to draw a star shape
-        function drawStar(ctx, x, y, spikes, outerRadius, innerRadius) {
-            let rotation = Math.PI / 2 * 3;
-            let step = Math.PI / spikes;
-            let xPos = x;
-            let yPos = y;
-            ctx.moveTo(x, y - outerRadius);
-            for (let i = 0; i < spikes; i++) {
-                xPos = x + Math.cos(rotation) * outerRadius;
-                yPos = y + Math.sin(rotation) * outerRadius;
-                ctx.lineTo(xPos, yPos);
-                rotation += step;
-
-                xPos = x + Math.cos(rotation) * innerRadius;
-                yPos = y + Math.sin(rotation) * innerRadius;
-                ctx.lineTo(xPos, yPos);
-                rotation += step;
-            }
-            ctx.lineTo(x, y - outerRadius);
+        // Function to draw headphones
+        function drawHeadphones(x, y, size, color) {
+            ctx.beginPath();
+            // Left earcup
+            ctx.arc(x - size / 2, y, size / 2, Math.PI * 0.5, Math.PI * 1.5);
+            // Right earcup
+            ctx.arc(x + size / 2, y, size / 2, Math.PI * 1.5, Math.PI * 0.5);
+            ctx.moveTo(x - size / 2, y - size / 2);
+            ctx.lineTo(x + size / 2, y - size / 2);
+            ctx.lineTo(x + size / 2, y + size / 2);
+            ctx.lineTo(x - size / 2, y + size / 2);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 5;
+            ctx.stroke();
             ctx.closePath();
         }
 
-        // Helper function to draw a music note shape
-        function drawMusicNote(ctx, x, y, size) {
-            ctx.moveTo(x, y);
-            ctx.arc(x, y - size / 4, size / 4, 0, Math.PI * 2);
-            ctx.moveTo(x + size / 4, y - size / 4);
-            ctx.lineTo(x + size / 4, y - size * 1.5);
-            ctx.arc(x + size / 4, y - size * 1.75, size / 4, 0, Math.PI * 2);
+        // Function to draw random Hatsune Miku symbols
+        function drawRandomMikuSymbols() {
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * canvas.height;
+            const size = Math.random() * 50 + 20;  // Random size for symbols
+            const color = Math.random() > 0.5 ? mikuCyan : mikuPink;
+            const symbolType = Math.random() > 0.5 ? '01' : 'headphones';  // Choose between '01' and 'headphones'
+
+            if (symbolType === '01') {
+                draw01(x, y, size, color);
+            } else {
+                drawHeadphones(x, y, size, color);
+            }
         }
 
         // Particle class to create floating digital "dust" or glowing orbs
@@ -230,15 +209,15 @@
             }
         }
 
-        // Initialize particles and random shape intervals
+        // Initialize particles and random symbol intervals
         function init() {
             particlesArray = [];
             for (let i = 0; i < particleCount; i++) {
                 particlesArray.push(new Particle());
             }
 
-            // Set intervals for random shapes to appear
-            setInterval(drawRandomShapes, Math.random() * 5000 + 1000); // Random interval between 1s and 5s
+            // Set intervals for random symbols to appear
+            setInterval(drawRandomMikuSymbols, Math.random() * 4000 + 2000); // Random interval between 2s and 6s
         }
 
         // Animation loop
