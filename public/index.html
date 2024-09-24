@@ -7,9 +7,24 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
+    <style>
+        /* Ensure the canvas stays behind other content */
+        #technoCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1; /* Background canvas stays behind content */
+            pointer-events: none; /* Ensures it doesn't interfere with other content */
+            background: black; /* Optional background for better contrast */
+        }
+    </style>
 </head>
 
 <body>
+    <canvas id="technoCanvas"></canvas> <!-- Canvas for techno grid animation -->
+
     <div class="page-container">
         <div class="title-bar">
             <div class="container">
@@ -102,6 +117,108 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
+    <!-- Techno-themed grid animation script -->
+    <script>
+        const canvas = document.getElementById('technoCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let nodes = [];
+        const colors = ['#00e5ff', '#ff4081', '#ffdd57'];
+        const maxNodes = 150;
+
+        const mouse = {
+          x: null,
+          y: null,
+          radius: 100
+        };
+
+        window.addEventListener('mousemove', function (event) {
+          mouse.x = event.x;
+          mouse.y = event.y;
+        });
+
+        window.addEventListener('resize', function () {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+          init();
+        });
+
+        class Node {
+          constructor(x, y, size, color) {
+            this.x = x;
+            this.y = y;
+            this.size = size;
+            this.color = color;
+            this.dx = (Math.random() - 0.5) * 0.5;
+            this.dy = (Math.random() - 0.5) * 0.5;
+          }
+
+          draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+          }
+
+          update() {
+            // Update position
+            this.x += this.dx;
+            this.y += this.dy;
+
+            // Bounce from edges
+            if (this.x < 0 || this.x > canvas.width) this.dx = -this.dx;
+            if (this.y < 0 || this.y > canvas.height) this.dy = -this.dy;
+
+            // Draw the node
+            this.draw();
+          }
+        }
+
+        function connectNodes() {
+          for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+              let distance = Math.sqrt(
+                (nodes[i].x - nodes[j].x) ** 2 + (nodes[i].y - nodes[j].y) ** 2
+              );
+
+              if (distance < 100) {
+                ctx.strokeStyle = `rgba(255, 255, 255, ${1 - distance / 100})`;
+                ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(nodes[i].x, nodes[i].y);
+                ctx.lineTo(nodes[j].x, nodes[j].y);
+                ctx.stroke();
+              }
+            }
+          }
+        }
+
+        function init() {
+          nodes = [];
+          for (let i = 0; i < maxNodes; i++) {
+            const size = Math.random() * 3 + 1;
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * canvas.height;
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            nodes.push(new Node(x, y, size, color));
+          }
+        }
+
+        function animate() {
+          requestAnimationFrame(animate);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          nodes.forEach(node => node.update());
+          connectNodes();
+        }
+
+        init();
+        animate();
+    </script>
+
+    <!-- Original Scripts for YouTube and Weather Widgets -->
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         let intervalID = null;
@@ -115,7 +232,7 @@
         const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; 
         const OPENWEATHERMAP_API_KEY = 'ce82286b610208fb4ac780a909455a0e';
         const CITY_NAME = 'Leeds';
-
+        
         function formatTime(seconds) {
             const minutes = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
