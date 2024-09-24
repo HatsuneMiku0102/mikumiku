@@ -126,33 +126,49 @@
 
         const beamColors = ['#ff4081', '#00e5ff']; // Reddish pink and neon blue
         const maxBeams = 6; // Max 6 beams at a time
-        const beamLength = 300; // Increased length of the beams
-        const segmentSpeed = 2; // Speed of beam movement (higher for faster)
-        const beamThickness = 12; // Increased thickness of the beams
-        const beamGlow = 40; // Glow for the thicker beams
+        const beamLength = 50; // Number of segments (length) of the beams
+        const segmentSize = 20; // Size of each segment
+        const beamThickness = 10; // Beam thickness
+        const beamGlow = 25; // Glow effect for the beams
 
-        class DynamicBeam {
+        // Possible directions for snake-like movement
+        const directions = [
+            { dx: segmentSize, dy: 0 },    // Right
+            { dx: -segmentSize, dy: 0 },   // Left
+            { dx: 0, dy: segmentSize },    // Down
+            { dx: 0, dy: -segmentSize }    // Up
+        ];
+
+        class SnakeBeam {
             constructor() {
                 this.x = Math.random() * canvas.width; // Random start position
                 this.y = Math.random() * canvas.height;
-                this.dx = (Math.random() - 0.5) * 2 * segmentSpeed; // Straight direction
-                this.dy = (Math.random() - 0.5) * 2 * segmentSpeed;
                 this.color = beamColors[Math.floor(Math.random() * beamColors.length)];
+                this.direction = directions[Math.floor(Math.random() * directions.length)];
                 this.segments = [];
+
+                // Initialize the snake beam with `beamLength` segments
                 for (let i = 0; i < beamLength; i++) {
                     this.segments.push({ x: this.x, y: this.y });
                 }
             }
 
-            // Update beam's position
+            // Update beam's position with snake-like movement
             update() {
-                // Move the beam in a straight line
-                this.x += this.dx;
-                this.y += this.dy;
+                // Determine if it's time to change direction
+                if (Math.random() < 0.02) {
+                    this.direction = directions[Math.floor(Math.random() * directions.length)];
+                }
 
-                // Wrap the beam to the other side of the screen when it goes offscreen
-                if (this.x < 0 || this.x > canvas.width) this.dx = -this.dx;
-                if (this.y < 0 || this.y > canvas.height) this.dy = -this.dy;
+                // Move the head of the snake
+                this.x += this.direction.dx;
+                this.y += this.direction.dy;
+
+                // Wrap the snake around the screen when it goes offscreen
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
 
                 // Update all segments to follow the head
                 for (let i = this.segments.length - 1; i > 0; i--) {
@@ -161,7 +177,7 @@
                 this.segments[0] = { x: this.x, y: this.y };
             }
 
-            // Draw the beam on the canvas
+            // Draw the snake beam on the canvas
             draw() {
                 ctx.beginPath();
                 ctx.moveTo(this.segments[0].x, this.segments[0].y);
@@ -182,7 +198,7 @@
         function init() {
             beams = [];
             for (let i = 0; i < maxBeams; i++) {
-                beams.push(new DynamicBeam());
+                beams.push(new SnakeBeam());
             }
         }
 
