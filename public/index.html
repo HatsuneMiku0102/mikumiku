@@ -13,12 +13,9 @@
 </head>
 
 <body>
-    <!-- Animated Tech-Themed Background Canvas -->
     <canvas id="techCanvas"></canvas>
 
-    <!-- Page Container -->
     <div class="page-container">
-        <!-- Title Bar -->
         <div class="title-bar">
             <div class="container">
                 <img src="/logo.webp" alt="Logo" class="logo">
@@ -26,12 +23,8 @@
             </div>
         </div>
 
-        <!-- Main Content -->
         <div id="main-content" class="main-content">
-            <!-- Now Playing Section -->
-           
             <div id="now-playing" class="now-playing">
-                <!-- Sidebar Info -->
                 <div class="now-playing-sidebar">
                     <div class="sidebar-item">
                         <span>Channel:</span> <span id="channelName">Loading...</span>
@@ -44,19 +37,16 @@
                     </div>
                 </div>
             
-                <!-- Video Information -->
                 <div class="video-section">
                     <div class="video-title-container">
                         <h2>Currently Playing on YouTube</h2>
                         <p id="videoTitle">Loading...</p>
                     </div>
                     
-                    <!-- Liquid Fill Progress Bar -->
                     <div id="progress-bar-container">
                         <canvas id="liquidProgressBar" width="400" height="50"></canvas>
                     </div>
                     
-                    <!-- Centered Thumbnail -->
                     <img id="videoThumbnail" src="" alt="Thumbnail of currently playing video" class="video-thumbnail">
                     
                     <div class="progress-times-container">
@@ -66,10 +56,7 @@
                 </div>
             </div>
 
-
-            <!-- Widgets Container -->
             <div class="widgets-container">
-                <!-- Live Clock -->
                 <div class="live-clock">
                     <h3>My Current Time</h3>
                     <div class="clock-container">
@@ -80,7 +67,6 @@
                     </div>
                 </div>
 
-                <!-- Weather Widget -->
                 <div class="weather-widget">
                     <h3>My Current Weather</h3>
                     <div class="weather-info">
@@ -93,10 +79,8 @@
                 </div>
             </div>
 
-            <!-- Additional Content -->
             <div class="content-wrapper">
                 <div class="now-playing-about-wrapper">
-                    <!-- Recently Watched Videos -->
                     <div class="recent-videos-wrapper">
                         <div class="recent-videos-title">
                             <h3>Recently Watched Videos</h3>
@@ -104,7 +88,6 @@
                         <div id="recent-videos-container" class="recent-videos-container"></div>
                     </div>
 
-                    <!-- About Me Section -->
                     <div class="about" id="aboutMe">
                         <div class="container">
                             <h2>About Me</h2>
@@ -115,7 +98,6 @@
             </div>
         </div>
 
-        <!-- Footer -->
         <footer class="footer">
             <div class="container">
                 <p>&copy; 2024 MikuMiku. All rights reserved.</p>
@@ -124,16 +106,13 @@
         </footer>
     </div>
 
-    <!-- External Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
-    <!-- Animated Tech Canvas Script -->
     <script>
         const canvas = document.getElementById('techCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Set canvas size to cover the entire viewport
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -141,14 +120,12 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        // Tech-Themed Colors
         const techBlue = '#00e5ff';
         const techPurple = '#7e57ff';
         const techPink = '#ff4081';
         const techCyan = '#00ffff';
         const techGray = '#4b4b4b';
 
-        // Mouse Position
         const mouse = {
             x: null,
             y: null,
@@ -160,7 +137,6 @@
             mouse.y = event.clientY;
         });
 
-        // Node class for glowing points
         class Node {
             constructor(x, y, radius, color) {
                 this.x = x;
@@ -180,7 +156,7 @@
                 if (distance < mouse.radius && mouse.x && mouse.y) {
                     const angle = Math.atan2(dy, dx);
                     const force = (mouse.radius - distance) / mouse.radius;
-                    const forceX = Math.cos(angle) * force * 2; // Adjust force multiplier as needed
+                    const forceX = Math.cos(angle) * force * 2;
                     const forceY = Math.sin(angle) * force * 2;
 
                     this.x += this.speedX + forceX;
@@ -190,7 +166,6 @@
                     this.y += this.speedY;
                 }
 
-                // Boundary conditions to wrap around
                 if (this.x > canvas.width) this.x = 0;
                 if (this.x < 0) this.x = canvas.width;
                 if (this.y > canvas.height) this.y = 0;
@@ -205,7 +180,6 @@
             }
         }
 
-        // Utility function to convert hex to RGB
         function hexToRgb(hex) {
             const bigint = parseInt(hex.replace('#',''), 16);
             const r = (bigint >> 16) & 255;
@@ -214,7 +188,6 @@
             return `${r}, ${g}, ${b}`;
         }
 
-        // Generate random nodes
         const nodes = [];
         const nodeCount = 150;
 
@@ -227,7 +200,6 @@
             nodes.push(new Node(x, y, radius, color));
         }
 
-        // Connect nodes within a certain distance
         function connectNodes() {
             const maxDistance = 120;
             for (let i = 0; i < nodes.length; i++) {
@@ -247,21 +219,19 @@
             }
         }
 
-        // Animation loop
-        function animate() {
+        function animateBackground() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             nodes.forEach(node => {
                 node.update();
                 node.draw();
             });
             connectNodes();
-            requestAnimationFrame(animate);
+            requestAnimationFrame(animateBackground);
         }
 
-        animate();
+        animateBackground();
     </script>
 
-    <!-- Dynamic Title Script -->
     <script>
         function getTimeOfDay() {
             const hour = new Date().getHours();
@@ -302,7 +272,6 @@
         });
     </script>
 
-    <!-- Main Functionality Script -->
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         let intervalID = null;
@@ -312,7 +281,6 @@
         let isBrowsing = false;
         const MAX_RECENT_VIDEOS = 3;
         let previousVideoData = null;
-        const progressBarContainer = document.getElementById('progress-bar-container');
         const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; 
         const OPENWEATHERMAP_API_KEY = 'YOUR_OPENWEATHERMAP_API_KEY';
         const CITY_NAME = 'Leeds';
@@ -327,34 +295,6 @@
             if (intervalID) {
                 clearInterval(intervalID);
                 intervalID = null;
-            }
-        }
-
-        function updateProgressBar() {
-            if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
-                const currentTimestamp = Date.now();
-                const elapsedTime = (currentTimestamp - videoStartTime) / 1000;
-                if (elapsedTime >= 0 && elapsedTime <= videoDuration) {
-                    const progressPercent = (elapsedTime / videoDuration) * 100;
-                    document.getElementById('progress-bar').style.width = `${progressPercent}%`;
-                    document.getElementById('time-elapsed').innerText = `Time Elapsed: ${formatTime(elapsedTime)}`;
-                } else {
-                    clearExistingInterval();
-                    document.getElementById('progress-bar').style.width = '100%';
-                    document.getElementById('time-elapsed').innerText = `Time Elapsed: ${formatTime(videoDuration)}`;
-                }
-            }
-        }
-
-        function toggleProgressBar(show) {
-            if (show) {
-                progressBarContainer.style.display = 'block';
-                document.getElementById('time-elapsed').style.display = 'block';
-                document.getElementById('total-duration').style.display = 'block';
-            } else {
-                progressBarContainer.style.display = 'none';
-                document.getElementById('time-elapsed').style.display = 'none';
-                document.getElementById('total-duration').style.display = 'none';
             }
         }
 
@@ -426,7 +366,6 @@
         const socket = io('https://mikumiku.dev');
 
         socket.on('youtubeClosed', () => {
-            toggleProgressBar(false);
             document.getElementById('videoTitle').innerText = 'YouTube Tab Closed';
             document.querySelector('.now-playing').classList.add('offline');
             document.getElementById('videoThumbnail').classList.add('offline-thumbnail');
@@ -446,7 +385,6 @@
                 videoTitleElement.innerText = 'Currently Offline';
                 nowPlayingElement.classList.add('offline');
                 videoThumbnailElement.classList.add('offline-thumbnail');
-                toggleProgressBar(false); 
             } else {
                 nowPlayingElement.classList.remove('offline');
                 videoThumbnailElement.classList.remove('offline-thumbnail');
@@ -469,10 +407,8 @@
                 if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
                     clearExistingInterval();
                     isBrowsing = true;
-                    toggleProgressBar(false);
                 } else {
                     isBrowsing = false;
-                    toggleProgressBar(true);
                     fetchYouTubeVideoDetails(videoID).then((duration) => {
                         if (duration) {
                             videoDuration = duration;
@@ -531,19 +467,16 @@
             const windSpeed = data.wind.speed;
             const iconCode = data.weather[0].icon;
             const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
-            const weatherMain = data.weather[0].main.toLowerCase(); // Main weather condition
-        
+            const weatherMain = data.weather[0].main.toLowerCase();
+
             document.getElementById('weather-description').innerText = `Condition: ${description}`;
             document.getElementById('temperature').innerText = `Temperature: ${temperature}°C`;
             document.getElementById('humidity').innerText = `Humidity: ${humidity}%`;
             document.getElementById('wind-speed').innerText = `Wind: ${windSpeed} m/s`;
-        
+
             const weatherWidget = document.querySelector('.weather-widget');
-            
-            // Remove existing weather condition class
             weatherWidget.classList.remove('clear', 'rain', 'cloudy', 'snow', 'fog');
-        
-            // Apply new style based on weather condition
+
             if (weatherMain.includes('clear')) {
                 weatherWidget.classList.add('clear');
             } else if (weatherMain.includes('rain')) {
@@ -555,8 +488,7 @@
             } else if (weatherMain.includes('fog') || weatherMain.includes('mist') || weatherMain.includes('haze')) {
                 weatherWidget.classList.add('fog');
             }
-        
-            // Set the weather icon
+
             let iconElement = document.getElementById('weather-icon');
             if (!iconElement) {
                 iconElement = document.createElement('img');
@@ -569,9 +501,77 @@
         }
 
         fetchWeather();
-        setInterval(fetchWeather, 3600000); // Update weather every hour
+        setInterval(fetchWeather, 3600000);
     });
     </script>
 
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const canvas = document.getElementById('liquidProgressBar');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        let progress = 0;
+
+        const wave = {
+            amplitude: 10,
+            wavelength: 100,
+            speed: 0.02,
+            phase: 0,
+        };
+
+        function updateProgress(newProgress) {
+            progress = Math.min(Math.max(newProgress, 0), 100);
+        }
+
+        function drawLiquidFill() {
+            ctx.clearRect(0, 0, width, height);
+            const fillLevel = height - (progress / 100) * height;
+
+            ctx.beginPath();
+            ctx.moveTo(0, fillLevel);
+
+            for (let x = 0; x <= width; x++) {
+                const y = wave.amplitude * Math.sin((2 * Math.PI / wave.wavelength) * x + wave.phase) + fillLevel;
+                ctx.lineTo(x, y);
+            }
+
+            ctx.lineTo(width, height);
+            ctx.lineTo(0, height);
+            ctx.closePath();
+
+            const gradient = ctx.createLinearGradient(0, fillLevel - wave.amplitude, 0, height);
+            gradient.addColorStop(0, 'rgba(0, 229, 255, 0.6)');
+            gradient.addColorStop(0.5, 'rgba(255, 64, 129, 0.6)');
+            gradient.addColorStop(1, 'rgba(255, 64, 129, 0.6)');
+
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#00e5ff';
+            ctx.stroke();
+        }
+
+        function animateProgressBar() {
+            wave.phase += wave.speed;
+            drawLiquidFill();
+            requestAnimationFrame(animateProgressBar);
+        }
+
+        animateProgressBar();
+
+        function simulateProgress() {
+            if (progress < 100) {
+                progress += 0.1;
+                updateProgress(progress);
+                setTimeout(simulateProgress, 50);
+            }
+        }
+
+        simulateProgress();
+    });
+    </script>
 </body>
 </html>
