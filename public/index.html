@@ -17,13 +17,13 @@
             height: 100vh;
             z-index: -1; /* Background canvas stays behind content */
             pointer-events: none; /* Ensures it doesn't interfere with other content */
-            background: black; /* Optional background for better contrast */
+            background: black; /* Dark background for neon effect */
         }
     </style>
 </head>
 
 <body>
-    <canvas id="technoCanvas"></canvas> <!-- Canvas for techno circuit board animation -->
+    <canvas id="technoCanvas"></canvas> <!-- Canvas for circuit board animation -->
 
     <div class="page-container">
         <div class="title-bar">
@@ -121,106 +121,107 @@
     <script>
         const canvas = document.getElementById('technoCanvas');
         const ctx = canvas.getContext('2d');
-
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        const colors = ['#00e5ff', '#ff4081']; // Neon blue and pink colors for beams
-        const nodes = [];
-        const connections = [];
-        const gridSpacing = 80; // Spacing for nodes to create a grid effect
+        const colors = ['#00e5ff', '#ff4081']; // Neon blue and pink
+        const lineWidth = 2;
+        const glowStrength = 20;
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const gridSpacing = 40; // Grid spacing for circuit paths
+        const radiatingLines = 30;
 
-        class Node {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.color = colors[Math.floor(Math.random() * colors.length)];
-            }
-
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, 4, 0, Math.PI * 2, false);
-                ctx.fillStyle = this.color;
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = this.color;
-                ctx.fill();
-                ctx.closePath();
-            }
+        // Draw central microchip node
+        function drawChip() {
+            const chipSize = 80;
+            ctx.beginPath();
+            ctx.rect(centerX - chipSize / 2, centerY - chipSize / 2, chipSize, chipSize);
+            ctx.strokeStyle = '#00e5ff';
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = glowStrength;
+            ctx.shadowColor = '#00e5ff';
+            ctx.stroke();
+            ctx.closePath();
         }
 
-        class Connection {
-            constructor(nodeA, nodeB) {
-                this.nodeA = nodeA;
-                this.nodeB = nodeB;
-                this.color = nodeA.color;
-                this.width = 2;
-                this.offset = Math.random() * 100;
-            }
-
-            draw() {
-                const gradient = ctx.createLinearGradient(
-                    this.nodeA.x, this.nodeA.y, this.nodeB.x, this.nodeB.y
-                );
-                gradient.addColorStop(0, this.nodeA.color);
-                gradient.addColorStop(1, this.nodeB.color);
-
-                ctx.lineWidth = this.width;
-                ctx.strokeStyle = gradient;
-                ctx.beginPath();
-                ctx.moveTo(this.nodeA.x, this.nodeA.y);
-                ctx.lineTo(this.nodeB.x, this.nodeB.y);
-                ctx.stroke();
-                ctx.closePath();
-            }
-
-            animate() {
-                // Creates a pulsating effect by dynamically adjusting the line width
-                this.width = 1 + Math.sin(Date.now() / 200 + this.offset) * 2;
-                this.draw();
-            }
-        }
-
-        function createGrid() {
-            for (let x = gridSpacing; x < canvas.width; x += gridSpacing) {
-                for (let y = gridSpacing; y < canvas.height; y += gridSpacing) {
-                    const node = new Node(x, y);
-                    nodes.push(node);
+        // Draw grid lines
+        function drawGridLines() {
+            const lines = [];
+            for (let x = 0; x < canvas.width; x += gridSpacing) {
+                for (let y = 0; y < canvas.height; y += gridSpacing) {
+                    lines.push({x1: x, y1: y, x2: x + gridSpacing, y2: y});
+                    lines.push({x1: x, y1: y, x2: x, y2: y + gridSpacing});
                 }
             }
+
+            ctx.lineWidth = lineWidth;
+            ctx.shadowBlur = glowStrength;
+
+            // Neon blue vertical lines
+            ctx.strokeStyle = '#00e5ff';
+            ctx.shadowColor = '#00e5ff';
+            lines.forEach(line => {
+                if (Math.random() > 0.5) { // Randomize some blue lines
+                    ctx.beginPath();
+                    ctx.moveTo(line.x1, line.y1);
+                    ctx.lineTo(line.x2, line.y2);
+                    ctx.stroke();
+                }
+            });
+
+            // Neon pink horizontal lines
+            ctx.strokeStyle = '#ff4081';
+            ctx.shadowColor = '#ff4081';
+            lines.forEach(line => {
+                if (Math.random() > 0.5) { // Randomize some pink lines
+                    ctx.beginPath();
+                    ctx.moveTo(line.x1, line.y1);
+                    ctx.lineTo(line.x2, line.y2);
+                    ctx.stroke();
+                }
+            });
         }
 
-        function createConnections() {
-            nodes.forEach(nodeA => {
-                nodes.forEach(nodeB => {
-                    const distance = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
-                    if (distance < gridSpacing * 1.5 && nodeA !== nodeB) {
-                        const connection = new Connection(nodeA, nodeB);
-                        connections.push(connection);
-                    }
-                });
-            });
+        // Radiating lines from the center chip
+        function drawRadiatingLines() {
+            for (let i = 0; i < radiatingLines; i++) {
+                const angle = (i / radiatingLines) * Math.PI * 2;
+                const xEnd = centerX + Math.cos(angle) * canvas.width;
+                const yEnd = centerY + Math.sin(angle) * canvas.height;
+
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = glowStrength;
+
+                // Neon blue lines
+                ctx.strokeStyle = '#00e5ff';
+                ctx.shadowColor = '#00e5ff';
+                if (i % 2 === 0) { // Alternate colors
+                    ctx.strokeStyle = '#ff4081';
+                    ctx.shadowColor = '#ff4081';
+                }
+
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(xEnd, yEnd);
+                ctx.stroke();
+            }
         }
 
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            nodes.forEach(node => node.draw());
-            connections.forEach(connection => connection.animate());
-
+            drawGridLines();
+            drawChip();
+            drawRadiatingLines();
             requestAnimationFrame(animate);
         }
 
+        // Handle resize
         window.addEventListener('resize', () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            nodes.length = 0;
-            connections.length = 0;
-            createGrid();
-            createConnections();
         });
 
-        createGrid();
-        createConnections();
         animate();
     </script>
 
