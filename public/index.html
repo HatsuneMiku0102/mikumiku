@@ -579,34 +579,41 @@
             const windSpeed = data.wind.speed;
             const iconCode = data.weather[0].icon;
             const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
-            const weatherMain = data.weather[0].main.toLowerCase();
-
+            const weatherMain = data.weather[0].main.toLowerCase(); // Main weather condition
+        
             document.getElementById('weather-description').innerText = `Condition: ${description}`;
             document.getElementById('temperature').innerText = `Temperature: ${temperature}°C`;
             document.getElementById('humidity').innerText = `Humidity: ${humidity}%`;
             document.getElementById('wind-speed').innerText = `Wind: ${windSpeed} m/s`;
-
-            const weatherInfo = document.querySelector('.weather-info');
+        
+            const weatherWidget = document.querySelector('.weather-widget');
+            
+            // Remove existing weather condition class
+            weatherWidget.classList.remove('clear', 'rain', 'cloudy', 'snow', 'fog');
+        
+            // Apply new style based on weather condition
+            if (weatherMain.includes('clear')) {
+                weatherWidget.classList.add('clear');
+            } else if (weatherMain.includes('rain')) {
+                weatherWidget.classList.add('rain');
+            } else if (weatherMain.includes('cloud')) {
+                weatherWidget.classList.add('cloudy');
+            } else if (weatherMain.includes('snow')) {
+                weatherWidget.classList.add('snow');
+            } else if (weatherMain.includes('fog') || weatherMain.includes('mist') || weatherMain.includes('haze')) {
+                weatherWidget.classList.add('fog');
+            }
+        
+            // Set the weather icon
             let iconElement = document.getElementById('weather-icon');
             if (!iconElement) {
                 iconElement = document.createElement('img');
                 iconElement.id = 'weather-icon';
                 iconElement.alt = 'Weather Icon';
-                weatherInfo.prepend(iconElement);
+                document.querySelector('.weather-info').prepend(iconElement);
             }
             iconElement.src = iconUrl;
             iconElement.style.display = 'block';
-
-            const weatherWidget = document.querySelector('.weather-widget');
-            if (weatherMain.includes('cloud')) {
-                weatherWidget.style.background = 'rgba(200, 200, 200, 0.3)';
-            } else if (weatherMain.includes('rain')) {
-                weatherWidget.style.background = 'rgba(100, 100, 100, 0.5)';
-            } else if (weatherMain.includes('clear')) {
-                weatherWidget.style.background = 'rgba(255, 223, 0, 0.3)';
-            } else {
-                weatherWidget.style.background = 'rgba(255, 255, 255, 0.05)';
-            }
         }
 
         fetchWeather();
