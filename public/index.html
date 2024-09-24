@@ -43,19 +43,24 @@
                         <p id="videoTitle">Loading...</p>
                     </div>
                     
-                    <!-- Added Paused Icon -->
+                    <!-- Paused Icon and Progress Bar Container -->
                     <div style="display: flex; align-items: center; gap: 1rem; margin-top: 1rem;">
-                        <span id="pausedIcon" style="display: none; font-size: 1.5rem;">⏸️</span>
-                        <div id="progress-bar-container">
+                        <!-- Paused Icon: Initially hidden -->
+                        <span id="pausedIcon" style="display: none; font-size: 1.5rem;" aria-label="Video Paused" title="Video Paused">⏸️</span>
+                        
+                        <!-- Liquid Progress Bar -->
+                        <div id="progress-bar-container" style="flex-grow: 1;">
                             <canvas id="liquidProgressBar" width="400" height="50"></canvas>
                         </div>
                     </div>
                     
                     <img id="videoThumbnail" src="" alt="Thumbnail of currently playing video" class="video-thumbnail">
                     
+                    <!-- Progress Times and Time Remaining -->
                     <div class="progress-times-container">
                         <p id="time-elapsed" class="progress-time">Time Elapsed: --:--</p>
                         <p id="total-duration" class="progress-time">Total Duration: --:--</p>
+                        <p id="time-remaining" class="progress-time" style="display: none;">Browsing for: --:--</p> <!-- Added time-remaining -->
                     </div>
                 </div>
             </div>
@@ -110,9 +115,11 @@
         </footer>
     </div>
 
+    <!-- Socket.io and Moment.js Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
+    <!-- Canvas Background Animation Script -->
     <script>
         const canvas = document.getElementById('techCanvas');
         const ctx = canvas.getContext('2d');
@@ -236,6 +243,7 @@
         animateBackground();
     </script>
 
+    <!-- Dynamic Title Script -->
     <script>
         function getTimeOfDay() {
             const hour = new Date().getHours();
@@ -276,6 +284,7 @@
         });
     </script>
 
+    <!-- Video and Socket.io Integration Script -->
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         let intervalID = null;
@@ -379,6 +388,11 @@
             document.getElementById('total-duration').innerText = `Total Duration: --:--`;
             // Hide paused icon when offline
             document.getElementById('pausedIcon').style.display = 'none';
+            // Hide time-remaining if present
+            const timeRemaining = document.getElementById('time-remaining');
+            if (timeRemaining) {
+                timeRemaining.style.display = 'none';
+            }
         });
 
         socket.on('youtubeOpened', () => {
@@ -401,6 +415,11 @@
                 document.getElementById('total-duration').innerText = `Total Duration: --:--`;
                 // Hide paused icon when offline
                 document.getElementById('pausedIcon').style.display = 'none';
+                // Hide time-remaining if present
+                const timeRemaining = document.getElementById('time-remaining');
+                if (timeRemaining) {
+                    timeRemaining.style.display = 'none';
+                }
             } else {
                 nowPlayingElement.classList.remove('offline');
                 videoThumbnailElement.classList.remove('offline-thumbnail');
@@ -428,6 +447,11 @@
                     document.getElementById('total-duration').innerText = `Total Duration: --:--`;
                     // Hide paused icon when browsing
                     document.getElementById('pausedIcon').style.display = 'none';
+                    // Show time-remaining
+                    const timeRemaining = document.getElementById('time-remaining');
+                    if (timeRemaining) {
+                        timeRemaining.style.display = 'block';
+                    }
                 } else {
                     isBrowsing = false;
                     fetchYouTubeVideoDetails(videoID).then((duration) => {
@@ -445,6 +469,11 @@
                                 intervalID = setInterval(updateProgressBar, 1000);
                             }
                             document.getElementById('total-duration').innerText = `Total Duration: ${formatTime(videoDuration)}`;
+                            // Hide time-remaining if present
+                            const timeRemaining = document.getElementById('time-remaining');
+                            if (timeRemaining) {
+                                timeRemaining.style.display = 'none';
+                            }
                         }
                     });
                 }
@@ -459,7 +488,7 @@
         });
 
         function extractYouTubeVideoID(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#&?]*).*/;
             const match = url.match(regExp);
             return (match && match[2].length === 11) ? match[2] : null;
         }
@@ -537,7 +566,7 @@
         }
 
         fetchWeather();
-        setInterval(fetchWeather, 3600000);
+        setInterval(fetchWeather, 3600000); // Refresh weather every hour
 
         // Liquid Progress Bar Integration
         const liquidCanvas = document.getElementById('liquidProgressBar');
