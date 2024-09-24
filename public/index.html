@@ -3,112 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MikuMiku | Neon Circuit Animation</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background: black;
-            height: 100%;
-            width: 100%;
-        }
+    <title>MikuMiku | Home</title>
 
-        canvas {
-            position: fixed;
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        /* Ensure the canvas stays behind other content */
+        #technoCanvas {
+            position: absolute;
             top: 0;
             left: 0;
             width: 100vw;
-            height: 100vh;
-            z-index: -1;
+            height: 100%;
+            z-index: -1; /* Background canvas stays behind content */
+            pointer-events: none; /* Ensures it doesn't interfere with other content */
+            background: black; /* Dark background for neon effect */
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow-x: hidden;
         }
     </style>
 </head>
+
 <body>
-    <canvas id="circuitCanvas"></canvas>
-    
+    <canvas id="technoCanvas"></canvas> <!-- Canvas for neon beams -->
+
+    <div class="page-container">
+        <div class="title-bar">
+            <div class="container">
+                <img src="/logo.webp" alt="Logo" class="logo">
+                <h1 class="site-title">MikuMiku</h1>
+            </div>
+        </div>
+
+        <div id="main-content" class="main-content">
+            <div id="now-playing" class="now-playing">
+                <div class="info-section">
+                    <div class="now-playing-sidebar">
+                        <div class="sidebar-item">
+                            <span>Channel:</span> <span id="channelName">Loading...</span>
+                        </div>
+                        <div class="sidebar-item">
+                            <span>Views:</span> <span id="viewCount">Loading...</span>
+                        </div>
+                        <div class="sidebar-item">
+                            <span>Uploaded:</span> <span id="publishedDate">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-section">
+                    <div class="video-title-container">
+                        <h2>Currently Playing on YouTube</h2>
+                        <p id="videoTitle">Loading...</p>
+                    </div>
+                    <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
+                    <div id="progress-bar-container" style="display:none">
+                        <div id="progress-bar"></div>
+                    </div>
+                    <div class="progress-times-container">
+                        <p id="time-elapsed" class="progress-time">Time Elapsed: --:--</p>
+                        <p id="total-duration" class="progress-time">Total Duration: --:--</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="widgets-container">
+                <div class="live-clock">
+                    <h3>My Current Time</h3>
+                    <div class="clock-container">
+                        <div class="clock">
+                            <p id="local-time">--:--:--</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="weather-widget">
+                    <h3>My Current Weather</h3>
+                    <div class="weather-info">
+                        <img id="weather-icon" src="" alt="Weather Icon">
+                        <p id="weather-description">Loading...</p>
+                        <p id="temperature">--°C</p>
+                        <p id="humidity">Humidity: --%</p>
+                        <p id="wind-speed">Wind: -- m/s</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-wrapper">
+                <div class="now-playing-about-wrapper">
+                    <div class="recent-videos-wrapper">
+                        <div class="recent-videos-title">
+                            <h3>Recently Watched Videos</h3>
+                        </div>
+                        <div id="recent-videos-container" class="recent-videos-container"></div>
+                    </div>
+
+                    <div class="about" id="aboutMe">
+                        <div class="container">
+                            <h2>About Me</h2>
+                            <p>Hey there, I'm Hystoriya, a 24-year-old developer. This is my personal website that I made for no apparent reason. If you find yourself here randomly, then hi :)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="container">
+                <p>&copy; 2024 MikuMiku. All rights reserved.</p>
+                <p><a href="/admin-login.html">Admin Login</a></p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+
+    <!-- Script for snake-like neon light beams -->
     <script>
-        const canvas = document.getElementById('circuitCanvas');
+        const canvas = document.getElementById('technoCanvas');
         const ctx = canvas.getContext('2d');
 
+        // Make the canvas height dynamically adjust to the full page, including scrolling areas
+        const documentHeight = document.body.scrollHeight;
         canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        canvas.height = documentHeight;
 
-        const colors = {
-            cyan: '#00e5ff', // Hatsune Miku cyan
-            pinkRed: '#ff4081' // Hatsune Miku pink/red
-        };
+        const beamColors = ['#ff4081', '#00e5ff']; // Reddish pink and neon blue
+        const maxBeams = 6; // Max 6 beams at a time
+        const beamLength = 50; // Number of segments (length) of the beams
+        const segmentSize = 10; // Size of each segment
+        const beamThickness = 15; // Beam thickness
+        const beamGlow = 25; // Glow effect for the beams
+        const moveSpeed = 0.5; // Slower movement speed
 
-        const grid = [];
-        const gridSize = 50;
-        const lineWidth = 2;
-        const speed = 0.2; // Speed of the light animation
-        let step = 0;
+        // Possible directions for snake-like movement (4 directions: up, down, left, right)
+        const directions = [
+            { dx: segmentSize, dy: 0 },    // Right
+            { dx: -segmentSize, dy: 0 },   // Left
+            { dx: 0, dy: segmentSize },    // Down
+            { dx: 0, dy: -segmentSize }    // Up
+        ];
 
-        function createGrid() {
-            for (let x = 0; x < canvas.width; x += gridSize) {
-                for (let y = 0; y < canvas.height; y += gridSize) {
-                    const horizontal = Math.random() > 0.5;
-                    grid.push({
-                        x: x,
-                        y: y,
-                        color: Math.random() > 0.5 ? colors.cyan : colors.pinkRed,
-                        direction: horizontal ? 'horizontal' : 'vertical'
-                    });
+        class SnakeBeam {
+            constructor() {
+                this.x = Math.random() * canvas.width; // Random start position
+                this.y = Math.random() * canvas.height;
+                this.color = beamColors[Math.floor(Math.random() * beamColors.length)];
+                this.direction = directions[Math.floor(Math.random() * directions.length)];
+                this.segments = [];
+
+                // Initialize the snake beam with `beamLength` segments
+                for (let i = 0; i < beamLength; i++) {
+                    this.segments.push({ x: this.x, y: this.y });
                 }
+            }
+
+            // Update beam's position with snake-like movement
+            update() {
+                // Prevent the beams from overlapping the "About Me" section
+                const aboutMeElement = document.getElementById('aboutMe');
+                const aboutMeTop = aboutMeElement.offsetTop;
+
+                if (this.y + this.direction.dy >= aboutMeTop - segmentSize) {
+                    this.direction = directions[Math.floor(Math.random() * 2)]; // Force movement sideways
+                }
+
+                // Determine if it's time to change direction
+                if (Math.random() < 0.02) {
+                    this.direction = directions[Math.floor(Math.random() * directions.length)];
+                }
+
+                // Move the head of the snake
+                this.x += this.direction.dx * moveSpeed;
+                this.y += this.direction.dy * moveSpeed;
+
+                // Wrap the snake around the screen when it goes offscreen
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+
+                // Update all segments to follow the head
+                for (let i = this.segments.length - 1; i > 0; i--) {
+                    this.segments[i] = { ...this.segments[i - 1] };
+                }
+                this.segments[0] = { x: this.x, y: this.y };
+            }
+
+            // Draw the snake beam on the canvas
+            draw() {
+                ctx.beginPath();
+                ctx.moveTo(this.segments[0].x, this.segments[0].y);
+                for (let i = 1; i < this.segments.length; i++) {
+                    ctx.lineTo(this.segments[i].x, this.segments[i].y);
+                }
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = beamThickness;
+                ctx.shadowBlur = beamGlow;
+                ctx.shadowColor = this.color; // Add glow effect
+                ctx.stroke();
             }
         }
 
-        function drawGrid() {
+        let beams = [];
+
+        // Initialize the beams
+        function init() {
+            beams = [];
+            for (let i = 0; i < maxBeams; i++) {
+                beams.push(new SnakeBeam());
+            }
+        }
+
+        // Animation loop
+        function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            grid.forEach(segment => {
-                ctx.strokeStyle = segment.color;
-                ctx.lineWidth = lineWidth;
-                ctx.beginPath();
-                if (segment.direction === 'horizontal') {
-                    ctx.moveTo(segment.x, segment.y);
-                    ctx.lineTo(segment.x + gridSize, segment.y);
-                } else {
-                    ctx.moveTo(segment.x, segment.y);
-                    ctx.lineTo(segment.x, segment.y + gridSize);
-                }
-                ctx.stroke();
-            });
-        }
 
-        function animateCircuit() {
-            step += speed;
-            if (step > 1) step = 0;
-
-            grid.forEach(segment => {
-                ctx.strokeStyle = segment.color;
-                ctx.lineWidth = lineWidth;
-                ctx.beginPath();
-                ctx.globalAlpha = Math.abs(Math.sin(step * Math.PI)); // Glowing effect
-
-                if (segment.direction === 'horizontal') {
-                    ctx.moveTo(segment.x, segment.y);
-                    ctx.lineTo(segment.x + gridSize, segment.y);
-                } else {
-                    ctx.moveTo(segment.x, segment.y);
-                    ctx.lineTo(segment.x, segment.y + gridSize);
-                }
-                ctx.stroke();
-                ctx.globalAlpha = 1;
+            beams.forEach(beam => {
+                beam.update();
+                beam.draw();
             });
 
-            requestAnimationFrame(animateCircuit);
+            requestAnimationFrame(animate);
         }
 
+        // Handle resize
         window.addEventListener('resize', () => {
             canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            createGrid();
+            canvas.height = document.body.scrollHeight;
+            init();
         });
 
-        createGrid();
-        animateCircuit();
+        // Start the animation
+        init();
+        animate();
     </script>
 
 
