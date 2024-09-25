@@ -986,26 +986,11 @@ app.get('/api/location', async (req, res) => {
 
 
 function getClientIp(req) {
-    // Check x-forwarded-for header for public IP if behind proxy or load balancer
-    let ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-    
-    if (ip.includes(',')) {
-        // If there are multiple IPs (comma-separated), use the first one
-        ip = ip.split(',')[0].trim();
-    }
-
-    // Remove IPv6 prefix (::ffff:) for IPv4 addresses
-    if (ip.startsWith('::ffff:')) {
-        ip = ip.replace('::ffff:', '');
-    }
-
-    // Check if the IP is private or internal, and return null if it is
-    if (/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1]))/.test(ip)) {
-        return null; // Private IP addresses shouldn't be sent to the public IPInfo API
-    }
-
-    return ip;
+    const forwarded = req.headers['x-forwarded-for'];
+    const ip = forwarded ? forwarded.split(',')[0] : req.connection.remoteAddress;
+    return ip.includes("::ffff:") ? ip.split("::ffff:")[1] : ip; // Strip IPv6 prefix
 }
+
 
 async function fetchUserLocation(ip) {
     try {
