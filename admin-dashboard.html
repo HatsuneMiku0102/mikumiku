@@ -109,27 +109,22 @@
                 const locationDiv = document.getElementById('location');
                 locationDiv.innerHTML = '';  
         
-                if (Array.isArray(data)) {
-                    // If data is an array, iterate over it
-                    data.forEach(user => {
-                        const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
-                        const locationElement = document.createElement('p');
-                        locationElement.innerText = locationInfo;
-                        locationDiv.appendChild(locationElement);
-                    });
-                } else {
-                    // If data is not an array, handle it as an object
-                    console.warn('Data is not an array:', data);
-                    const locationInfo = `IP: ${data.ip || 'Unknown'}, City: ${data.city || 'Unknown'}, Region: ${data.region || 'Unknown'}, Country: ${data.country || 'Unknown'}`;
+                // Handle single object data
+                if (data.ip) {
+                    const locationInfo = `IP: ${data.ip}, City: ${data.city || 'Unknown'}, Region: ${data.region || 'Unknown'}, Country: ${data.country || 'Unknown'}`;
                     const locationElement = document.createElement('p');
                     locationElement.innerText = locationInfo;
                     locationDiv.appendChild(locationElement);
+                } else {
+                    console.warn('No valid location data found.');
+                    locationDiv.innerText = 'No location data available.';
                 }
             })
             .catch(error => {
                 console.error('Error fetching location data:', error);
                 document.getElementById('location').innerText = 'Error loading location data';
             });
+
 
 
   
