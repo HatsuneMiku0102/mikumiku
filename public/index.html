@@ -385,28 +385,38 @@
         const socket = io('https://mikumiku.dev');
 
         socket.on('connect', () => {
-            console.log('Frontend connected to server via Socket.io');
+            console.log('Connected to server via Socket.IO');
         });
-
-        socket.on('disconnect', () => {
-            console.log('Frontend disconnected from server');
-        });
-
-        socket.on('youtubeClosed', () => {
-            console.log('Received "youtubeClosed" event from server.');
-            document.getElementById('videoTitle').innerText = 'YouTube Tab Closed';
-            document.querySelector('.now-playing').classList.add('offline');
-            document.getElementById('videoThumbnail').classList.add('offline-thumbnail');
-            clearExistingInterval();
-            updateProgress(0);
-            document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
-            document.getElementById('total-duration').innerText = `Total Duration: --:--`;
-            // Hide paused icon when offline
-            document.getElementById('pausedIcon').style.display = 'none';
-            // Hide time-remaining if present
-            const timeRemaining = document.getElementById('time-remaining');
-            if (timeRemaining) {
-                timeRemaining.style.display = 'none';
+        
+        socket.on('nowPlayingUpdate', (data) => {
+            console.log('Received "nowPlayingUpdate":', data);
+            
+            const { title, videoUrl, currentTime, isOffline, isPaused } = data;
+        
+            // Update the video title and URL on the frontend
+            document.getElementById('video-title').innerText = title || 'No Title';
+            document.getElementById('video-url').href = videoUrl || '#';
+        
+            // Update the progress bar
+            const progressBar = document.getElementById('progress-bar');
+            if (videoUrl && !isOffline) {
+                // Assuming duration is known or fetched separately
+                const duration = 600; // Example duration in seconds
+                const progressPercent = (currentTime / duration) * 100;
+                progressBar.style.width = `${progressPercent}%`;
+            } else {
+                progressBar.style.width = '0%';
+            }
+        
+            // Update the paused icon
+            const pausedIcon = document.getElementById('paused-icon');
+            if (isOffline) {
+                // Hide the paused icon and show offline indicator
+                pausedIcon.style.display = 'none';
+                document.getElementById('offline-indicator').style.display = 'block';
+            } else {
+                document.getElementById('offline-indicator').style.display = 'none';
+                pausedIcon.style.display = isPaused ? 'block' : 'none';
             }
         });
 
