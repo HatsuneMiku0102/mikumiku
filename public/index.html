@@ -668,24 +668,30 @@
             }
 
             // Dynamic Prompt Logic
-        socket.on('dynamicPrompt', (data) => {
-            console.log('Dynamic prompt received:', data);  // Debug log
+            socket.on('dynamicPrompt', (data) => {
+                console.log('Dynamic prompt received:', data);  // Debug log
         
-            const promptContainer = document.getElementById('dynamic-prompt-container');
-            const promptText = document.getElementById('dynamic-prompt-text');
+                const promptContainer = document.getElementById('dynamic-prompt-container');
+                const promptText = document.getElementById('dynamic-prompt-text');
         
-            // If prompt container exists, display the dynamic message
-            if (promptContainer && promptText) {
                 promptText.innerText = data.message || "A new prompt has arrived!";
-                promptContainer.style.display = 'block';
+                promptContainer.style.display = 'block'; // Show the prompt
         
                 // Auto-hide the prompt after 5 seconds
                 setTimeout(() => {
                     promptContainer.style.display = 'none';
                 }, 5000);
-            } else {
-                console.warn('Prompt container not found in the DOM.');
-            }
+        
+                // Allow manual close
+                document.getElementById('close-prompt').addEventListener('click', () => {
+                    promptContainer.style.display = 'none';
+                });
+            });
+        
+            // Log all incoming events for debugging purposes
+            socket.onAny((event, data) => {
+                console.log(`Received event: ${event}, Data:`, data);
+            });
         });
         </script>
     </body>
