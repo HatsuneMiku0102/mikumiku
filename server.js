@@ -961,8 +961,11 @@ app.get('/weather', async (req, res) => {
 });
 
 
+const processedIPs = new Set(); // Set to store unique IPs
+
 function getValidIpAddress(req) {
     let ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
     if (ipAddress.includes(',')) {
         // Extract first valid IP from the list (ignoring local/internal IPs if present)
         ipAddress = ipAddress.split(',').map(ip => ip.trim())[0];
@@ -973,6 +976,14 @@ function getValidIpAddress(req) {
         ipAddress = ipAddress.replace('::ffff:', '');
     }
 
+    // Check if the IP has already been processed to avoid duplicates
+    if (processedIPs.has(ipAddress)) {
+        console.log(`Duplicate IP detected: ${ipAddress}, skipping processing.`);
+        return null; // Return null to indicate a duplicate IP
+    }
+
+    // Add the new IP to the set of processed IPs
+    processedIPs.add(ipAddress);
     return ipAddress;
 }
 
@@ -980,7 +991,11 @@ module.exports = { fetchLocationData, getValidIpAddress };
 
 
 app.get('/api/location', async (req, res) => {
-    const clientIp = getClientIp(req);
+    const clientIp = getValidIpAddress(req);
+
+    if (!clientIp) {
+        return res.status(400).send('Duplicate IP detected, location not processed.');
+    }
 
     try {
         const locationData = await fetchLocationData(clientIp); // Fetch the location using the public IP
