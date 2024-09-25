@@ -19,9 +19,7 @@ document.addEventListener('DOMContentLoaded', function () {
         type();
     }
 
-    if (fancyTitleElement) {
-        typeFancyWord(fancyTitleElement, fancyText, fancyTypingSpeed);
-    }
+    typeFancyWord(fancyTitleElement, fancyText, fancyTypingSpeed);
 
     // Fetch Videos Data
     fetch('/videos.json')
@@ -33,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(data => {
             const videoContainer = document.getElementById('recent-videos-container');
-            if (videoContainer && data && data.length) {
+            if (data && data.length) {
                 data.forEach(video => {
                     const videoItem = document.createElement('div');
                     videoItem.classList.add('video-item', 'advanced-video-card');
@@ -46,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <circle cx="50" cy="50" r="45" stroke="#ffffff" stroke-width="5" fill="none" stroke-dasharray="283" stroke-dashoffset="283"/>
                             </svg>
                         </div>
-                        <img src="https://img.youtube.com/vi/${extractYouTubeID(video.url)}/0.jpg" alt="${video.title} Thumbnail" class="recent-video-thumbnail">
+                        <img src="${video.thumbnail || '/video-thumbnail1.jpg'}" alt="${video.title} Thumbnail" class="recent-video-thumbnail">
                         <p class="recent-video-title">${video.title}</p>
                         <div class="video-info-overlay">
                             <button class="play-button">
@@ -62,24 +60,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
                 initializeVideoLoading();
                 initializeProgressCircles();
-            } else if (videoContainer) {
+            } else {
                 videoContainer.innerHTML = '<p>No videos available</p>';
             }
         })
         .catch(error => {
             console.error('Error fetching video data:', error);
-            const videoContainer = document.getElementById('recent-videos-container');
-            if (videoContainer) {
-                videoContainer.innerHTML = '<p>Error loading videos.</p>';
-            }
+            document.getElementById('recent-videos-container').innerHTML = '<p>Error loading videos.</p>';
         });
-
-    // Function to Extract YouTube Video ID from URL
-    function extractYouTubeID(url) {
-        const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:embed\/|watch\?v=)|youtu\.be\/)([^\s&]+)/;
-        const match = url.match(regex);
-        return match ? match[1] : '';
-    }
 
     // Initialize Video Loading with IntersectionObserver and Click Events
     function initializeVideoLoading() {
@@ -112,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function () {
             threshold: 0.1
         });
 
-        document.querySelectorAll(".advanced-video-card").forEach(container => {
+        document.querySelectorAll(".video-item").forEach(container => {
             observer.observe(container);
         });
 
@@ -134,12 +122,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize Circular Progress Indicators
     function initializeProgressCircles() {
         document.querySelectorAll('.progress-circle').forEach(circle => {
-            const progress = parseInt(circle.getAttribute('data-progress')) || 0;
+            const progress = parseFloat(circle.getAttribute('data-progress')) || 0;
             const offset = 283 - (283 * progress) / 100;
             const progressCircle = circle.querySelectorAll('circle')[1];
-            if (progressCircle) {
-                progressCircle.style.strokeDashoffset = offset;
-            }
+            progressCircle.style.strokeDashoffset = offset;
         });
     }
 
@@ -152,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function () {
             "max-glare": 0.2,
         });
     } else {
-        console.error('VanillaTilt is not loaded.');
+        console.warn("VanillaTilt is not loaded.");
     }
 
     // Initialize Canvas-Based Molecular Structure Animation
@@ -232,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         drawMolecules();
     } else {
-        console.error('Canvas element with ID "molecularCanvas" not found.');
+        console.error("Canvas element with id 'molecularCanvas' not found.");
     }
 
     // Dynamic Prompt Functionality (Existing)
