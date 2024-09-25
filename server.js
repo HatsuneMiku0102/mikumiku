@@ -851,7 +851,11 @@ const IPINFO_API_KEY = process.env.IPINFO_API_KEY; // Using your environment var
 // Function to fetch location data from IPInfo API
 async function fetchLocationData(ip) {
     try {
-        const response = await axios.get(`https://ipinfo.io/${ip}?token=${IPINFO_API_KEY}`);
+        // Normalize the IP before sending it to the API
+        const normalizedIp = normalizeIp(ip);
+
+        // Fetch location data from IPInfo
+        const response = await axios.get(`https://ipinfo.io/${normalizedIp}?token=${IPINFO_API_KEY}`);
         const { ip: userIP, city, region, country } = response.data;
 
         return {
