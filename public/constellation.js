@@ -1,6 +1,6 @@
 // constellation.js
 
-// Star Catalog with Real Data (Example: Orion and others)
+// Star Catalog with Real Data (Orion, Ursa Major, Cassiopeia, Cygnus, Scorpius)
 const starCatalog = [
     // Orion Constellation Stars
     {
@@ -180,6 +180,32 @@ const constellationDefinitions = [
             ["Segin", "Caph"]
         ]
     },
+    {
+        name: "Cygnus",
+        stars: ["Sadr", "Deneb", "Albireo", "Gienah", "Segin", "Eta Cygni", "Vega Cygni", "Gienah", "Gamma Cygni"],
+        connections: [
+            ["Sadr", "Deneb"],
+            ["Deneb", "Albireo"],
+            ["Albireo", "Gienah"],
+            ["Gienah", "Eta Cygni"],
+            ["Eta Cygni", "Vega Cygni"],
+            ["Vega Cygni", "Gamma Cygni"]
+        ]
+    },
+    {
+        name: "Scorpius",
+        stars: ["Antares", "Shaula", "Sargas", "Dschubba", "Girtab", "Sirr", "Graffias", "Paikauhale", "Sargas"],
+        connections: [
+            ["Antares", "Shaula"],
+            ["Shaula", "Sargas"],
+            ["Sargas", "Dschubba"],
+            ["Dschubba", "Girtab"],
+            ["Girtab", "Sirr"],
+            ["Sirr", "Graffias"],
+            ["Graffias", "Paikauhale"],
+            ["Paikauhale", "Sargas"]
+        ]
+    }
     // Add more constellations as needed
 ];
 
@@ -333,9 +359,8 @@ class Constellation {
         this.canvasWidth = canvasWidth;
         this.canvasHeight = canvasHeight;
 
-        // Randomly position, scale, and rotate the constellation
+        // Randomly position and scale the constellation
         this.scale = Math.random() * 100 + 100; // Scale between 100 and 200 pixels
-        this.rotation = Math.random() * 2 * Math.PI; // Rotation in radians
 
         // Random position ensuring the constellation fits within the canvas
         this.position = this.getRandomPosition();
@@ -360,17 +385,17 @@ class Constellation {
 
             const { x, y } = raDecToXY(ra, dec, this.canvasWidth, this.canvasHeight, this.scale);
 
-            // Adjust for rotation
-            const rotatedX = (x - this.position.x) * Math.cos(this.rotation) - (y - this.position.y) * Math.sin(this.rotation) + this.position.x;
-            const rotatedY = (x - this.position.x) * Math.sin(this.rotation) + (y - this.position.y) * Math.cos(this.rotation) + this.position.y;
-
             const appearance = mapMagnitudeToAppearance(starInfo.magnitude);
             const color = mapSpectralTypeToColor(starInfo.spectralType);
 
-            this.stars.push(new Star(starInfo.name, rotatedX, rotatedY, appearance.radius, 0.002, color, appearance.baseOpacity));
+            this.stars.push(new Star(starInfo.name, x, y, appearance.radius, 0.002, color, appearance.baseOpacity));
         });
     }
 
+    update() {
+        this.stars.forEach(star => star.update());
+        // Removed rotation updates to keep constellations static
+    }
 
     draw(ctx) {
         // Draw connections
@@ -432,12 +457,12 @@ class ShootingStar {
 }
 
 // Initialize Canvas and Constellations
-const canvas = document.getElementById('techCanvas');
-const ctx = canvas.getContext('2d');
+const canvasElement = document.getElementById('techCanvas');
+const ctx = canvasElement.getContext('2d');
 
 function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvasElement.width = window.innerWidth;
+    canvasElement.height = window.innerHeight;
     initializeConstellations(); // Reinitialize constellations on resize
 }
 resizeCanvas();
@@ -449,7 +474,7 @@ let constellations = [];
 function initializeConstellations() {
     constellations = [];
     constellationDefinitions.forEach(def => {
-        const constel = new Constellation(def, canvas.width, canvas.height);
+        const constel = new Constellation(def, canvasElement.width, canvasElement.height);
         constellations.push(constel);
     });
 }
@@ -462,11 +487,11 @@ const shootingStarProbability = 0.002; // Probability per frame to spawn a shoot
 
 function manageShootingStars() {
     if (Math.random() < shootingStarProbability) {
-        shootingStars.push(new ShootingStar(canvas.width, canvas.height));
+        shootingStars.push(new ShootingStar(canvasElement.width, canvasElement.height));
     }
 
     for (let i = shootingStars.length - 1; i >= 0; i--) {
-        shootingStars[i].update(canvas.width, canvas.height);
+        shootingStars[i].update(canvasElement.width, canvasElement.height);
         shootingStars[i].draw(ctx);
         if (!shootingStars[i].alive) {
             shootingStars.splice(i, 1);
@@ -488,7 +513,7 @@ function animateBackground() {
     if (elapsed > fpsInterval) {
         lastFrameTime = now - (elapsed % fpsInterval);
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
         // Update and draw constellations
         constellations.forEach(constellation => {
