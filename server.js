@@ -847,9 +847,11 @@ app.post('/api/videos', verifyToken, async (req, res) => {
 
 // Active Users Tracking Helper Functions
 async function fetchLocationData(ip) {
+    const token = process.env.IPINFO_API_KEY; // Access the API key from the environment variable
+
     try {
         const singleIp = ip.split(',')[0].trim();
-        const response = await axios.get(`https://ipinfo.io/${singleIp}?token=14eb346301d8b9`);
+        const response = await axios.get(`https://ipinfo.io/${singleIp}?token=${token}`);
         const { ip: userIP, city, region, country } = response.data;
         return { ip: userIP, city, region, country };
     } catch (error) {
@@ -864,6 +866,7 @@ function normalizeIp(ip) {
     }
     return ip;
 }
+
 
 // Additional Routes
 app.get('/admin-dashboard', verifyToken, (req, res) => {
