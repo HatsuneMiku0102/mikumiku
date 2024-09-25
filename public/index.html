@@ -127,7 +127,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
     <script>
-        // Constellation-Based Canvas Background Animation
+        // Realistic Constellation-Based Canvas Background Animation
         const canvas = document.getElementById('techCanvas');
         const ctx = canvas.getContext('2d');
     
@@ -139,7 +139,7 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
     
-        // Star Class
+        // Star Class (Unchanged)
         class Star {
             constructor(x, y, radius, twinkleSpeed, color) {
                 this.x = x;
@@ -170,53 +170,48 @@
             }
         }
     
-        // Constellation Class
+        // Constellation Class (Updated as above)
         class Constellation {
-            constructor(x, y, numStars, spread) {
-                this.x = x;
-                this.y = y;
-                this.numStars = numStars;
-                this.spread = spread; // How spread out the stars are
+            constructor(data, x, y, scale, rotation) {
+                this.name = data.name;
                 this.stars = [];
-                this.connections = [];
+                this.connections = data.connections;
+                this.x = x; // Position on canvas
+                this.y = y;
+                this.scale = scale; // Size scaling factor
+                this.rotation = rotation; // Rotation angle in radians
     
-                this.generateStars();
-                this.generateConnections();
+                this.generateStars(data.stars);
             }
     
-            generateStars() {
-                for (let i = 0; i < this.numStars; i++) {
-                    const angle = Math.random() * 2 * Math.PI;
-                    const distance = Math.random() * this.spread;
-                    const x = this.x + distance * Math.cos(angle);
-                    const y = this.y + distance * Math.sin(angle);
-                    const radius = Math.random() * 1.5 + 0.5; // Small stars
+            generateStars(normalizedStars) {
+                normalizedStars.forEach(star => {
+                    // Scale normalized coordinates
+                    let starX = star.x * this.scale;
+                    let starY = star.y * this.scale;
+    
+                    // Apply rotation
+                    const rotatedX = starX * Math.cos(this.rotation) - starY * Math.sin(this.rotation);
+                    const rotatedY = starX * Math.sin(this.rotation) + starY * Math.cos(this.rotation);
+    
+                    // Position on canvas
+                    const finalX = this.x + rotatedX;
+                    const finalY = this.y + rotatedY;
+    
+                    // Assign a random twinkle speed
                     const twinkleSpeed = Math.random() * 0.005 + 0.002;
-                    
-                    // Random color assignment (e.g., subtle white to blue hues)
+    
+                    // Assign color based on brightness or type (optional)
                     const colorOptions = [
                         { r: 255, g: 255, b: 255 }, // White
-                        { r: 230, g: 240, b: 255 }, // Light Blue
-                        { r: 200, g: 220, b: 255 }  // Sky Blue
+                        { r: 255, g: 204, b: 204 }, // Light Red
+                        { r: 204, g: 255, b: 255 }, // Light Blue
+                        { r: 255, g: 255, b: 204 }  // Light Yellow
                     ];
                     const color = colorOptions[Math.floor(Math.random() * colorOptions.length)];
     
-                    this.stars.push(new Star(x, y, radius, twinkleSpeed, color));
-                }
-            }
-    
-            generateConnections() {
-                // Connect stars based on proximity to form constellations
-                for (let i = 0; i < this.stars.length; i++) {
-                    for (let j = i + 1; j < this.stars.length; j++) {
-                        const dx = this.stars[i].x - this.stars[j].x;
-                        const dy = this.stars[i].y - this.stars[j].y;
-                        const distance = Math.hypot(dx, dy);
-                        if (distance < this.spread * 0.5) { // Adjust the multiplier for connection density
-                            this.connections.push([i, j]);
-                        }
-                    }
-                }
+                    this.stars.push(new Star(finalX, finalY, 1.5, twinkleSpeed, color));
+                });
             }
     
             update() {
@@ -225,22 +220,109 @@
     
             draw(ctx) {
                 // Draw connections
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
                 ctx.lineWidth = 1;
                 this.connections.forEach(connection => {
                     const [i, j] = connection;
-                    const starA = this.stars[i];
-                    const starB = this.stars[j];
-                    ctx.beginPath();
-                    ctx.moveTo(starA.x, starA.y);
-                    ctx.lineTo(starB.x, starB.y);
-                    ctx.stroke();
+                    if (this.stars[i] && this.stars[j]) { // Ensure stars exist
+                        const starA = this.stars[i];
+                        const starB = this.stars[j];
+                        ctx.beginPath();
+                        ctx.moveTo(starA.x, starA.y);
+                        ctx.lineTo(starB.x, starB.y);
+                        ctx.stroke();
+                    }
                 });
     
                 // Draw stars
                 this.stars.forEach(star => star.draw(ctx));
             }
         }
+    
+        // Constellation Definitions (Orion, Ursa Major, Cassiopeia)
+        const constellationData = [
+            {
+                name: "Orion",
+                stars: [
+                    { x: 0.5, y: 0.1 }, // Betelgeuse
+                    { x: 0.4, y: 0.3 }, // Bellatrix
+                    { x: 0.6, y: 0.3 }, // Saiph
+                    { x: 0.5, y: 0.5 }, // Rigel
+                    { x: 0.3, y: 0.4 }, // Alnilam
+                    { x: 0.5, y: 0.4 }, // Alnitak
+                    { x: 0.7, y: 0.4 }  // Mintaka
+                ],
+                connections: [
+                    [0, 1], [0, 2], [1, 4], [2, 6],
+                    [4, 5], [5, 6], [1, 3], [2, 3]
+                ]
+            },
+            {
+                name: "Ursa Major",
+                stars: [
+                    { x: 0.2, y: 0.1 },
+                    { x: 0.3, y: 0.2 },
+                    { x: 0.4, y: 0.3 },
+                    { x: 0.5, y: 0.4 },
+                    { x: 0.6, y: 0.3 },
+                    { x: 0.7, y: 0.2 },
+                    { x: 0.8, y: 0.1 }
+                ],
+                connections: [
+                    [0, 1], [1, 2], [2, 3],
+                    [3, 4], [4, 5], [5, 6]
+                ]
+            },
+            {
+                name: "Cassiopeia",
+                stars: [
+                    { x: 0.2, y: 0.2 },
+                    { x: 0.4, y: 0.3 },
+                    { x: 0.6, y: 0.2 },
+                    { x: 0.8, y: 0.3 },
+                    { x: 0.6, y: 0.4 },
+                    { x: 0.4, y: 0.4 }
+                ],
+                connections: [
+                    [0, 1], [1, 2], [2, 3],
+                    [3, 4], [4, 5], [5, 1]
+                ]
+            }
+            // Add more constellations as needed
+        ];
+    
+        // Constellation Instances
+        const constellations = [];
+        const numberOfConstellations = 3; // Number of each constellation to display
+    
+        // Function to generate random rotation between 0 and 2π
+        function getRandomRotation() {
+            return Math.random() * 2 * Math.PI;
+        }
+    
+        // Function to generate random scale between 50 and 150 pixels
+        function getRandomScale() {
+            return Math.random() * 100 + 50;
+        }
+    
+        // Function to generate random position ensuring constellations stay within canvas
+        function getRandomPosition(scale) {
+            const padding = scale;
+            const x = Math.random() * (canvas.width - 2 * padding) + padding;
+            const y = Math.random() * (canvas.height - 2 * padding) + padding;
+            return { x, y };
+        }
+    
+        // Instantiate constellations randomly on the canvas
+        constellationData.forEach(data => {
+            for (let i = 0; i < numberOfConstellations; i++) {
+                const scale = getRandomScale();
+                const rotation = getRandomRotation();
+                const position = getRandomPosition(scale);
+                const constel = new Constellation(data, position.x, position.y, scale, rotation);
+                constellations.push(constel);
+            }
+        });
     
         // Shooting Star Class (Optional Enhancement)
         class ShootingStar {
@@ -280,23 +362,11 @@
             }
         }
     
-        // Generate Random Constellations
-        const constellations = [];
-        const numberOfConstellations = 10; // Adjust based on preference
-    
-        for (let i = 0; i < numberOfConstellations; i++) {
-            const x = Math.random() * canvas.width;
-            const y = Math.random() * canvas.height;
-            const numStars = Math.floor(Math.random() * 5) + 3; // Each constellation has between 3 to 7 stars
-            const spread = Math.random() * 50 + 30; // Spread between 30 to 80 pixels
-            constellations.push(new Constellation(x, y, numStars, spread));
-        }
-    
         // Shooting Stars Management
         const shootingStars = [];
         const shootingStarProbability = 0.002; // Probability per frame to spawn a shooting star
     
-        // Twinkling Stars and Shooting Stars Animation
+        // Animation Loop
         function animateBackground() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
     
@@ -327,16 +397,22 @@
     
         // Optional: Regenerate constellations periodically to keep the background dynamic
         setInterval(() => {
-            constellations.length = 0; // Clear existing constellations
-            for (let i = 0; i < numberOfConstellations; i++) {
-                const x = Math.random() * canvas.width;
-                const y = Math.random() * canvas.height;
-                const numStars = Math.floor(Math.random() * 5) + 3;
-                const spread = Math.random() * 50 + 30;
-                constellations.push(new Constellation(x, y, numStars, spread));
-            }
+            // Clear existing constellations
+            constellations.length = 0;
+    
+            // Re-instantiate constellations
+            constellationData.forEach(data => {
+                for (let i = 0; i < numberOfConstellations; i++) {
+                    const scale = getRandomScale();
+                    const rotation = getRandomRotation();
+                    const position = getRandomPosition(scale);
+                    const constel = new Constellation(data, position.x, position.y, scale, rotation);
+                    constellations.push(constel);
+                }
+            });
         }, 60000); // Regenerate every 60 seconds
     </script>
+
 
 
     <script>
