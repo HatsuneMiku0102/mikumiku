@@ -851,12 +851,13 @@ const IPINFO_API_KEY = process.env.IPINFO_API_KEY; // Using your environment var
 // Function to fetch location data from IPInfo API
 async function fetchLocationData(ip) {
     try {
-        const singleIp = ip.split(',')[0].trim(); // Handle multiple IPs by taking the first one
-        const response = await axios.get(`https://ipinfo.io/${singleIp}?token=${IPINFO_API_KEY}`);
+        const normalizedIp = normalizeIp(ip);  // Normalize the IP before sending to IP info
+        console.log(`Normalized IP: ${normalizedIp}`); // Log normalized IP for debugging
+        const response = await axios.get(`https://ipinfo.io/${normalizedIp}?token=${IPINFO_API_KEY}`);
         const { ip: userIP, city, region, country } = response.data;
         return { ip: userIP, city, region, country };
     } catch (error) {
-        console.error(`Error fetching location data for IP ${ip}: ${error.message}`);
+        console.error(`Error fetching location data for IP ${ip}:`, error.message);
         return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
     }
 }
@@ -972,27 +973,29 @@ async function getActiveUsersWithLocations() {
 }
 
 // Socket.io connection handler
-io.on('connection', (socket) => {
-    console.log(`A new user connected: ${socket.id}`);
-    
-    // Add the user to the active users list
-    activeUsers.push({
-        id: socket.id,
-        ip: socket.request.connection.remoteAddress, // Get IP from connection
-        city: 'Unknown',
-        region: 'Unknown',
-        country: 'Unknown'
-    });
+io.on('connection', async (socket) => {
+    const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
+    console.log(`New client connected: ${socket.id}, IP: ${ip}`);
 
-    // Emit the active users to all connected clients
+    // Fetch location data
+    const locationData = await fetchLocationData(ip);
+    console.log(`Location data fetched:`, locationData);
+
+    // Add the user with location data to active users list
+    const user = {
+        id: socket.id,
+        ip: locationData.ip,
+        city: locationData.city,
+        region: locationData.region,
+        country: locationData.country
+    };
+
+    activeUsers.push(user);
     io.emit('activeUsersUpdate', { users: activeUsers });
 
-    // Handle disconnection
+    // On disconnect, remove user from active list
     socket.on('disconnect', () => {
-        console.log(`User disconnected: ${socket.id}`);
-        activeUsers = activeUsers.filter(user => user.id !== socket.id);
-        
-        // Emit the updated active users list
+        activeUsers = activeUsers.filter(u => u.id !== socket.id);
         io.emit('activeUsersUpdate', { users: activeUsers });
     });
 });
