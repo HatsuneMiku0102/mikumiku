@@ -93,22 +93,35 @@
     
         // Receive updated list of active users from the server and display it
         socket.on('activeUsersUpdate', (data) => {
-            console.log('Active users data received:', data); // Debugging
+            console.log('Active users data received:', data);  // Log the received data for debugging
         
-            const activeUsersCount = data.users.length;
-            document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
+            if (data && data.users && Array.isArray(data.users)) {
+                const activeUsersCount = data.users.length;
+                document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
+                
+                const locationDiv = document.getElementById('location');
+                locationDiv.innerHTML = '';  // Clear previous content
+                
+                // Create a set to keep track of unique IPs
+                const uniqueIps = new Set();
         
-            const locationDiv = document.getElementById('location');
-            locationDiv.innerHTML = ''; // Clear previous content
-        
-            // Loop through users array and display location info
-            data.users.forEach(user => {
-                const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
-                const locationElement = document.createElement('p');
-                locationElement.innerText = locationInfo;
-                locationDiv.appendChild(locationElement);
-            });
+                // Loop through the users array and display each user's location info
+                data.users.forEach(user => {
+                    // Check if the IP is already in the set
+                    if (!uniqueIps.has(user.ip)) {
+                        uniqueIps.add(user.ip);
+                        const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
+                        const locationElement = document.createElement('p');
+                        locationElement.innerText = locationInfo;
+                        locationDiv.appendChild(locationElement);
+                    }
+                });
+            } else {
+                console.warn('No valid active users data found.');
+                document.getElementById('active-users-count').innerText = 'No active users found.';
+            }
         });
+
     
         // Fetch location data from the backend
         fetch('/api/location')
