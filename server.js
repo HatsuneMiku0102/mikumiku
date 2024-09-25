@@ -757,36 +757,41 @@ let videoStartTimestamp = Date.now();
 io.on('connection', (socket) => {
     logger.info('New client connected');
 
+    // Emit current status to the newly connected client
     socket.emit('nowPlayingUpdate', { 
         title: currentVideoTitle, 
         videoUrl: currentVideoUrl, 
         startTimestamp: videoStartTimestamp, 
-        currentTime: (Date.now() - videoStartTimestamp) / 1000 
-        isPaused: data.isPaused
+        currentTime: (Date.now() - videoStartTimestamp) / 1000,
+        isPaused: isVideoPaused // Ensure this variable reflects the current paused state
     });
 
-    socket.on('updateVideoTitle', ({ title, videoUrl, currentTime }) => {
-        logger.info('Received video title:', title);
-        logger.info('Received video URL:', videoUrl);
-        logger.info('Received current time:', currentTime);
+    socket.on('updateVideoTitle', ({ title, videoUrl, currentTime, isPaused }) => {
+        logger.info('Received "updateVideoTitle" event:', { title, videoUrl, currentTime, isPaused });
 
+        // Update server-side variables
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
         videoStartTimestamp = Date.now() - (currentTime * 1000);
+        isVideoPaused = isPaused; // Update the paused state
 
+        // Emit the updated status to all connected clients
         io.emit('nowPlayingUpdate', { 
             title, 
             videoUrl, 
             startTimestamp: videoStartTimestamp,
-            currentTime: currentTime 
+            currentTime: currentTime,
+            isPaused: isPaused
         });
 
+        // Handle 'Offline' status separately
         if (title === 'Offline') {
             io.emit('nowPlayingUpdate', {
                 title: 'Offline',
                 videoUrl: '',
                 startTimestamp: 0,
-                currentTime: 0
+                currentTime: 0,
+                isPaused: false 
             });
         }
     });
@@ -795,6 +800,7 @@ io.on('connection', (socket) => {
         logger.info('Client disconnected');
     });
 });
+
 
 // Real-time Data Endpoint
 app.post('/api/update', (req, res) => {
