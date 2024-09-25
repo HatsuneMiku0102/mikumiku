@@ -13,7 +13,7 @@ body {
   height: 100%;
   width: 100%;
   font-family: 'Roboto', sans-serif;
-  background: #000000; /* Dark background for contrast */
+  background: linear-gradient(145deg, #1e1e1e, #000000);
   color: #ffffff;
   overflow-x: hidden;
   scroll-behavior: smooth;
@@ -24,16 +24,15 @@ body {
   flex-direction: column;
 }
 
-/* Canvas-Based Molecular Structure Background */
-.molecular-canvas {
+/* Tech Canvas */
+#techCanvas {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  z-index: -1; /* Behind all content */
+  z-index: 0;
   pointer-events: none;
-  background-color: #000000; /* Fallback background */
 }
 
 /* Title Bar */
@@ -59,7 +58,7 @@ body {
 .title-bar .container {
   display: flex;
   align-items: center;
-  justify-content: center; /* Centered alignment */
+  justify-content: space-between;
   width: 100%;
   max-width: 1200px;
   padding: 0 1.5rem;
@@ -78,7 +77,7 @@ body {
 
 .title-bar .site-title {
   font-size: 2.5rem;
-  color: #00e5ff; /* Miku's teal */
+  color: #00e5ff;
   letter-spacing: 0.09375rem;
   text-shadow: 2px 2px 5px rgba(0, 229, 255, 0.7);
   transition: color 0.3s ease, transform 0.3s ease;
@@ -89,7 +88,7 @@ body {
 
 .title-bar .site-title:hover {
   transform: perspective(500px) rotateX(0deg) scale(1.1);
-  color: #ff4081; /* Pink accent */
+  color: #ff4081;
 }
 
 /* Main Content */
@@ -99,10 +98,10 @@ body {
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  padding-top: 7.5rem; /* To offset fixed title bar */
+  padding-top: 7.5rem;
   background: transparent;
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 /* Page Container */
@@ -126,11 +125,12 @@ body {
   justify-content: center;
   width: 90%;
   max-width: 900px;
-  background: rgba(30, 30, 30, 0.6); /* Semi-transparent */
+  background: rgba(30, 30, 30, 0.9);
   padding: 2.5rem;
   border-radius: 1rem;
   backdrop-filter: blur(15px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+  margin-bottom: 3.125rem;
   transition: background 0.5s ease, box-shadow 0.5s ease, transform 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
@@ -139,7 +139,7 @@ body {
 .now-playing:hover {
   box-shadow: 0 12px 40px rgba(0, 255, 255, 0.6);
   transform: scale(1.02);
-  background: rgba(30, 30, 30, 0.8);
+  background: rgba(30, 30, 30, 0.95);
 }
 
 .video-thumbnail {
@@ -191,15 +191,10 @@ body {
 }
 
 /* Progress Bar */
-.progress-bar-container {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-#progress-bar {
-  flex-grow: 1;
+#progress-bar-container {
+  width: 80%;
+  max-width: 800px;
+  margin: 2rem auto 1rem auto;
   background-color: rgba(255, 255, 255, 0.1);
   border-radius: 0.625rem;
   height: 3rem;
@@ -215,7 +210,6 @@ body {
   height: 100%;
 }
 
-/* Progress Times */
 .progress-times-container {
   display: flex;
   justify-content: space-between;
@@ -227,14 +221,6 @@ body {
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
-}
-
-/* Offline Indicator */
-.offline-indicator {
-  display: none;
-  color: red;
-  font-weight: bold;
-  margin-top: 1rem;
 }
 
 /* Sidebar */
@@ -260,69 +246,7 @@ body {
   font-weight: bold;
 }
 
-/* Recently Watched Videos Section */
-.recent-videos-wrapper {
-  position: relative; /* To contain absolute elements */
-  width: 90%;
-  max-width: 900px;
-  background: rgba(30, 30, 30, 0.4); /* Semi-transparent */
-  border-radius: 1rem;
-  padding: 2rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  margin: 3rem auto 2rem auto; /* Position below widgets */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transition: background 0.5s ease, box-shadow 0.5s ease, transform 0.3s ease;
-  overflow: hidden; /* Hide overflow */
-}
-
-.recent-videos-wrapper:hover {
-  box-shadow: 0 12px 40px rgba(0, 255, 255, 0.6);
-  transform: scale(1.02);
-  background: rgba(30, 30, 30, 0.6);
-}
-
-/* Recent Videos Title */
-.recent-videos-title {
-  position: relative;
-  z-index: 2; /* Above other elements */
-  font-size: 2.5rem;
-  color: #00e5ff; /* Miku's teal */
-  text-align: center;
-  margin-bottom: 1.5rem;
-  padding: 0.5rem 1rem;
-  background: rgba(0, 0, 0, 0.5); /* Transparent background */
-  border-radius: 0.625rem;
-  box-shadow: 0 4px 10px rgba(0, 229, 255, 0.7);
-  text-shadow: 0 2px 5px rgba(0, 229, 255, 0.7);
-  animation: neonGlow 2s infinite alternate;
-  cursor: default;
-}
-
-.recent-videos-title::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 0.625rem;
-  border: 2px solid #00e5ff;
-  box-shadow: 0 0 10px #00e5ff, 0 0 20px #00e5ff, 0 0 30px #00e5ff;
-  opacity: 0.5;
-  pointer-events: none;
-  animation: neonPulse 2s infinite alternate;
-}
-
-/* Remove Hover Effects from Title */
-.recent-videos-title:hover {
-  /* No hover effects */
-}
-
-/* Recent Videos Container */
+/* Recent Videos */
 .recent-videos-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(15.625rem, 1fr));
@@ -330,153 +254,25 @@ body {
   max-width: 90%;
   margin: 2.5rem auto;
   width: 100%;
-  position: relative;
-  z-index: 2; /* Above other elements */
 }
 
-/* Advanced Video Card */
 .advanced-video-card {
-  position: relative;
   background: rgba(30, 30, 30, 0.8);
-  border-radius: 1rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  transition: transform 0.4s ease, box-shadow 0.4s ease, border-radius 1s ease;
+  border-radius: 0.9375rem;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.5);
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
   padding: 1.25rem;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow: hidden;
-  cursor: pointer;
 }
 
-/* Neon Glow Borders */
-.advanced-video-card::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(45deg, #00e5ff, #ff4081, #00e5ff, #ff4081);
-  border-radius: 1rem;
-  z-index: -1;
-  filter: blur(8px);
-  opacity: 0.7;
-  animation: neonBorder 10s linear infinite;
-}
-
-@keyframes neonBorder {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-/* Shape Morphing on Hover */
 .advanced-video-card:hover {
   transform: translateY(-0.625rem) scale(1.05);
   box-shadow: 0 12px 40px rgba(0, 255, 255, 0.4);
-  border-radius: 50% 10% 50% 10% / 30% 50% 30% 50%;
 }
 
-/* Video Info Overlay */
-.video-info-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.7);
-  color: #ffffff;
-  padding: 1rem;
-  transform: translateY(100%);
-  transition: transform 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.advanced-video-card:hover .video-info-overlay {
-  transform: translateY(0);
-}
-
-/* Play Button with Animated SVG */
-.play-button {
-  display: flex;
-  align-items: center;
-  background-color: #00e5ff;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.3125rem;
-  color: #000;
-  font-weight: bold;
-  margin-top: 0.5rem;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.3s ease;
-}
-
-.play-button .play-icon {
-  margin-right: 0.5rem;
-  transition: transform 0.3s ease, stroke 0.3s ease;
-}
-
-.play-button:hover {
-  background-color: #ff4081;
-  transform: scale(1.05);
-}
-
-.play-button:hover .play-icon {
-  transform: rotate(90deg);
-  stroke: #ffffff;
-  fill: #ffffff;
-}
-
-/* Circular Progress Indicators */
-.progress-circle {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 100px;
-  height: 100px;
-}
-
-.progress-circle svg {
-  transform: rotate(-90deg);
-  width: 100%;
-  height: 100%;
-}
-
-.progress-circle circle:first-child {
-  stroke: #00e5ff; /* Miku's teal */
-  stroke-linecap: round;
-  animation: rotateCircle 2s forwards;
-}
-
-.progress-circle circle:last-child {
-  stroke: #ffffff;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 1s ease;
-}
-
-@keyframes rotateCircle {
-  from {
-    stroke-dashoffset: 283;
-  }
-  to {
-    stroke-dashoffset: calc(283 - (283 * var(--progress)) / 100);
-  }
-}
-
-.advanced-video-card[data-progress] .progress-circle {
-  --progress: attr(data-progress percentage);
-}
-
-/* Recent Video Thumbnails with Glowing Pulse */
 .recent-video-thumbnail {
   width: 6.25rem;
   height: 3.5rem;
@@ -485,25 +281,10 @@ body {
   margin-bottom: 0.9375rem;
   transition: transform 0.3s ease;
   object-fit: cover;
-  position: relative;
 }
 
-.recent-video-thumbnail::after {
-  content: '';
-  position: absolute;
-  top: -10%;
-  left: -10%;
-  width: 120%;
-  height: 120%;
-  border-radius: 0.625rem;
-  box-shadow: 0 0 10px #00e5ff, 0 0 20px #00e5ff, 0 0 30px #00e5ff;
-  opacity: 0;
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.recent-video-thumbnail:hover::after {
-  opacity: 1;
-  transform: scale(1.1);
+.recent-video-thumbnail:hover {
+  transform: scale(1.05);
 }
 
 .recent-video-title {
@@ -514,7 +295,7 @@ body {
 }
 
 .advanced-video-card:hover .recent-video-title {
-  color: #00ffcc; /* Light teal accent */
+  color: #00ffcc;
 }
 
 /* About Section */
@@ -530,7 +311,7 @@ body {
 
 .about h2 {
   font-size: 2.5rem;
-  background: linear-gradient(to right, #00e5ff, #00ff7f);
+  background: linear-gradient(to right, #ff7e5f, #feb47b);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 1rem;
@@ -550,8 +331,7 @@ body {
   color: #999;
   font-size: 1rem;
   width: 100%;
-  position: relative;
-  z-index: 1000;
+  margin-top: auto;
 }
 
 .footer a {
@@ -660,7 +440,7 @@ body {
   width: 100%;
 }
 
-/* Neon Glow Animations */
+/* Animations */
 @keyframes neonGlow {
   0% {
     text-shadow: 0 0 10px #00e5ff, 0 0 20px #00e5ff, 0 0 30px #00e5ff;
@@ -670,34 +450,23 @@ body {
   }
 }
 
-@keyframes neonPulse {
-  from {
-    opacity: 0.5;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-/* Blossom Animation */
-.blossom {
-  position: fixed;
-  bottom: 0;
-  width: 20px;
-  height: 20px;
-  background: url('/images/path-to-blossom-image.png') no-repeat center center / contain;
-  opacity: 0.8;
-  animation: floatUp 8s linear forwards;
-}
-
-@keyframes floatUp {
+@keyframes pulse {
   0% {
-    transform: translateY(0) scale(1);
-    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 15px #00e5ff;
   }
   100% {
-    transform: translateY(-100vh) scale(1.5);
-    opacity: 0;
+    transform: scale(1.05);
+    box-shadow: 0 0 30px #00e5ff;
+  }
+}
+
+@keyframes rotateBackground {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -710,7 +479,6 @@ body {
 
   .now-playing,
   .about,
-  .recent-videos-wrapper,
   .recent-videos-container,
   .widgets-container,
   .progress-times-container {
@@ -794,15 +562,5 @@ body {
   .progress-times-container {
     font-size: 0.9rem;
     width: 90%;
-  }
-
-  .recent-videos-title {
-    font-size: 2rem;
-    padding: 0.4rem 0.8rem;
-  }
-
-  /* Disable Complex Animations on Small Screens */
-  .progress-circle {
-    display: none;
   }
 }
