@@ -851,11 +851,7 @@ const IPINFO_API_KEY = process.env.IPINFO_API_KEY; // Using your environment var
 // Function to fetch location data from IPInfo API
 async function fetchLocationData(ip) {
     try {
-        // Normalize the IP before sending it to the API
-        const normalizedIp = normalizeIp(ip);
-
-        // Fetch location data from IPInfo
-        const response = await axios.get(`https://ipinfo.io/${normalizedIp}?token=${IPINFO_API_KEY}`);
+        const response = await axios.get(`https://ipinfo.io/${ip}?token=${IPINFO_API_KEY}`);
         const { ip: userIP, city, region, country } = response.data;
 
         return {
@@ -874,6 +870,7 @@ async function fetchLocationData(ip) {
         };
     }
 }
+
 
 
 async function attachLocationData(req, res, next) {
@@ -961,34 +958,28 @@ app.get('/weather', async (req, res) => {
 
 
 app.get('/api/location', async (req, res) => {
-    let ipAddresses = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-
-    if (!ipAddresses) {
-        return res.status(400).json({ error: 'IP address not found' });
-    }
-
-    ipAddresses = ipAddresses.split(',').map(ip => normalizeIp(ip.trim()));
+    const clientIp = getClientIp(req);
 
     try {
-        const locationPromises = ipAddresses.map(ip => fetchLocationData(ip));
-        const locationData = await Promise.all(locationPromises);
-
-        if (locationData.length === 1) {
-            return res.json(locationData[0]); // Return as an object if only one IP
-        }
-
-        return res.json(locationData); // Return an array if multiple IPs
+        const locationData = await fetchLocationData(clientIp); // Fetch the location using the public IP
+        res.json(locationData);
     } catch (error) {
-        console.error('Error fetching location data:', error);
-        res.status(500).json({ error: 'Error fetching location data' });
+        console.error(`Error fetching location for IP ${clientIp}:`, error);
+        res.status(500).send('Error fetching location data');
     }
 });
 
 
 function getClientIp(req) {
     const forwarded = req.headers['x-forwarded-for'];
-    const ip = forwarded ? forwarded.split(',')[0] : req.connection.remoteAddress;
-    return ip.includes("::ffff:") ? ip.split("::ffff:")[1] : ip; // Strip IPv6 prefix
+    let ip = forwarded ? forwarded.split(',')[0] : req.connection.remoteAddress;
+    
+    // Strip the ::ffff: IPv6 prefix if present
+    if (ip.includes("::ffff:")) {
+        ip = ip.split("::ffff:")[1];
+    }
+    
+    return ip;
 }
 
 
