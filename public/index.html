@@ -10,12 +10,80 @@
     
     <!-- External CSS -->
     <link rel="stylesheet" href="/styles.css">
+    
+    <style>
+        /* Additional styles for offline and paused states */
+        .now-playing.offline {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .offline-indicator {
+            display: none;
+            color: red;
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .paused-icon {
+            display: none;
+            color: yellow;
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .offline-thumbnail {
+            filter: grayscale(100%);
+        }
+
+        /* Example styles for visual clarity */
+        .now-playing-sidebar .sidebar-item {
+            margin-bottom: 10px;
+        }
+
+        .video-section {
+            position: relative;
+        }
+
+        /* Adjust progress bar container */
+        #progress-bar-container {
+            width: 100%;
+            background-color: #ddd;
+            height: 10px;
+            position: relative;
+            margin-top: 10px;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #4caf50;
+        }
+
+        .progress-times-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .widgets-container {
+                flex-direction: column;
+            }
+        }
+    </style>
 </head>
 
 <body>
+    <!-- Animated Tech-Themed Background Canvas -->
     <canvas id="techCanvas"></canvas>
 
+    <!-- Page Container -->
     <div class="page-container">
+        <!-- Title Bar -->
         <div class="title-bar">
             <div class="container">
                 <img src="/logo.webp" alt="Logo" class="logo">
@@ -23,8 +91,11 @@
             </div>
         </div>
 
+        <!-- Main Content -->
         <div id="main-content" class="main-content">
+            <!-- Now Playing Section -->
             <div id="now-playing" class="now-playing">
+                <!-- Sidebar Info -->
                 <div class="now-playing-sidebar">
                     <div class="sidebar-item">
                         <span>Channel:</span> <span id="channelName">Loading...</span>
@@ -36,42 +107,33 @@
                         <span>Uploaded:</span> <span id="publishedDate">Loading...</span>
                     </div>
                 </div>
-            
+
+                <!-- Video Information -->
                 <div class="video-section">
                     <div class="video-title-container">
                         <h2>Currently Playing on YouTube</h2>
                         <p id="videoTitle">Loading...</p>
                     </div>
+                    <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
                     
-                    <!-- Paused Icon and Progress Bar Container -->
-                    <div style="display: flex; align-items: center; gap: 1rem; margin-top: 1rem;">
-                        <!-- Paused Icon: Initially hidden -->
-                        <span id="pausedIcon" style="display: none; width: 24px; height: 24px;" aria-label="Video Paused" title="Video Paused">
-                            <!-- SVG for Pause Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                <rect x="6" y="5" width="4" height="14"></rect>
-                                <rect x="14" y="5" width="4" height="14"></rect>
-                            </svg>
-                        </span>
-                        
-                        <!-- Liquid Progress Bar -->
-                        <div id="progress-bar-container" style="flex-grow: 1;">
-                            <canvas id="liquidProgressBar" width="400" height="50"></canvas>
-                        </div>
+                    <!-- Progress Bar -->
+                    <div id="progress-bar-container" style="display:none">
+                        <div id="progress-bar"></div>
                     </div>
-                    
-                    <img id="videoThumbnail" src="" alt="Thumbnail of currently playing video" class="video-thumbnail">
-                    
-                    <!-- Progress Times and Time Remaining -->
                     <div class="progress-times-container">
                         <p id="time-elapsed" class="progress-time">Time Elapsed: --:--</p>
                         <p id="total-duration" class="progress-time">Total Duration: --:--</p>
-                        <p id="time-remaining" class="progress-time" style="display: none;">Browsing for: --:--</p> <!-- Added time-remaining -->
                     </div>
+
+                    <!-- Visual Indicators -->
+                    <div class="offline-indicator" id="offline-indicator">📴 Offline</div>
+                    <div class="paused-icon" id="paused-icon">⏸️ Paused</div>
                 </div>
             </div>
 
+            <!-- Widgets Container -->
             <div class="widgets-container">
+                <!-- Live Clock -->
                 <div class="live-clock">
                     <h3>My Current Time</h3>
                     <div class="clock-container">
@@ -82,6 +144,7 @@
                     </div>
                 </div>
 
+                <!-- Weather Widget -->
                 <div class="weather-widget">
                     <h3>My Current Weather</h3>
                     <div class="weather-info">
@@ -94,8 +157,10 @@
                 </div>
             </div>
 
+            <!-- Additional Content -->
             <div class="content-wrapper">
                 <div class="now-playing-about-wrapper">
+                    <!-- Recently Watched Videos -->
                     <div class="recent-videos-wrapper">
                         <div class="recent-videos-title">
                             <h3>Recently Watched Videos</h3>
@@ -103,6 +168,7 @@
                         <div id="recent-videos-container" class="recent-videos-container"></div>
                     </div>
 
+                    <!-- About Me Section -->
                     <div class="about" id="aboutMe">
                         <div class="container">
                             <h2>About Me</h2>
@@ -113,6 +179,7 @@
             </div>
         </div>
 
+        <!-- Footer -->
         <footer class="footer">
             <div class="container">
                 <p>&copy; 2024 MikuMiku. All rights reserved.</p>
@@ -121,15 +188,16 @@
         </footer>
     </div>
 
-    <!-- Socket.io and Moment.js Libraries -->
+    <!-- External Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
-    <!-- Canvas Background Animation Script -->
+    <!-- Animated Tech Canvas Script -->
     <script>
         const canvas = document.getElementById('techCanvas');
         const ctx = canvas.getContext('2d');
 
+        // Set canvas size to cover the entire viewport
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -137,23 +205,14 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
+        // Tech-Themed Colors
         const techBlue = '#00e5ff';
         const techPurple = '#7e57ff';
         const techPink = '#ff4081';
         const techCyan = '#00ffff';
         const techGray = '#4b4b4b';
 
-        const mouse = {
-            x: null,
-            y: null,
-            radius: 100
-        };
-
-        window.addEventListener('mousemove', function(event) {
-            mouse.x = event.clientX;
-            mouse.y = event.clientY;
-        });
-
+        // Node class for glowing points
         class Node {
             constructor(x, y, radius, color) {
                 this.x = x;
@@ -161,32 +220,6 @@
                 this.radius = radius;
                 this.color = color;
                 this.alpha = Math.random() * 0.5 + 0.5;
-                this.speedX = (Math.random() - 0.5) * 0.2;
-                this.speedY = (Math.random() - 0.5) * 0.2;
-            }
-
-            update() {
-                const dx = this.x - mouse.x;
-                const dy = this.y - mouse.y;
-                const distance = Math.hypot(dx, dy);
-
-                if (distance < mouse.radius && mouse.x && mouse.y) {
-                    const angle = Math.atan2(dy, dx);
-                    const force = (mouse.radius - distance) / mouse.radius;
-                    const forceX = Math.cos(angle) * force * 2;
-                    const forceY = Math.sin(angle) * force * 2;
-
-                    this.x += this.speedX + forceX;
-                    this.y += this.speedY + forceY;
-                } else {
-                    this.x += this.speedX;
-                    this.y += this.speedY;
-                }
-
-                if (this.x > canvas.width) this.x = 0;
-                if (this.x < 0) this.x = canvas.width;
-                if (this.y > canvas.height) this.y = 0;
-                if (this.y < 0) this.y = canvas.height;
             }
 
             draw() {
@@ -197,6 +230,7 @@
             }
         }
 
+        // Utility function to convert hex to RGB
         function hexToRgb(hex) {
             const bigint = parseInt(hex.replace('#',''), 16);
             const r = (bigint >> 16) & 255;
@@ -205,25 +239,25 @@
             return `${r}, ${g}, ${b}`;
         }
 
+        // Generate random nodes
         const nodes = [];
-        const nodeCount = 150;
+        const nodeCount = 100;
 
         for (let i = 0; i < nodeCount; i++) {
             const x = Math.random() * canvas.width;
             const y = Math.random() * canvas.height;
-            const radius = Math.random() * 2 + 1;
+            const radius = Math.random() * 1.5 + 0.5;
             const colorOptions = [techBlue, techPurple, techPink, techCyan, techGray];
             const color = colorOptions[Math.floor(Math.random() * colorOptions.length)];
             nodes.push(new Node(x, y, radius, color));
         }
 
+        // Connect nodes within a certain distance
         function connectNodes() {
-            const maxDistance = 120;
+            const maxDistance = 100;
             for (let i = 0; i < nodes.length; i++) {
                 for (let j = i + 1; j < nodes.length; j++) {
-                    const dx = nodes[i].x - nodes[j].x;
-                    const dy = nodes[i].y - nodes[j].y;
-                    const distance = Math.hypot(dx, dy);
+                    const distance = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y);
                     if (distance < maxDistance) {
                         ctx.beginPath();
                         ctx.strokeStyle = `rgba(${hexToRgb('#00e5ff')}, ${1 - distance / maxDistance})`;
@@ -236,17 +270,15 @@
             }
         }
 
-        function animateBackground() {
+        // Animation loop
+        function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            nodes.forEach(node => {
-                node.update();
-                node.draw();
-            });
+            nodes.forEach(node => node.draw());
             connectNodes();
-            requestAnimationFrame(animateBackground);
+            requestAnimationFrame(animate);
         }
 
-        animateBackground();
+        animate();
     </script>
 
     <!-- Dynamic Title Script -->
@@ -290,7 +322,7 @@
         });
     </script>
 
-    <!-- Video and Socket.io Integration Script -->
+    <!-- Main Functionality Script -->
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         let intervalID = null;
@@ -300,8 +332,9 @@
         let isBrowsing = false;
         const MAX_RECENT_VIDEOS = 3;
         let previousVideoData = null;
-        const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; 
-        const OPENWEATHERMAP_API_KEY = 'YOUR_OPENWEATHERMAP_API_KEY'; // Replace with your actual API key
+        const progressBarContainer = document.getElementById('progress-bar-container');
+        const YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY'; 
+        const OPENWEATHERMAP_API_KEY = 'YOUR_OPENWEATHERMAP_API_KEY';
         const CITY_NAME = 'Leeds';
         
         function formatTime(seconds) {
@@ -314,6 +347,34 @@
             if (intervalID) {
                 clearInterval(intervalID);
                 intervalID = null;
+            }
+        }
+
+        function updateProgressBar() {
+            if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
+                const currentTimestamp = Date.now();
+                const elapsedTime = (currentTimestamp - videoStartTime) / 1000;
+                if (elapsedTime >= 0 && elapsedTime <= videoDuration) {
+                    const progressPercent = (elapsedTime / videoDuration) * 100;
+                    document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+                    document.getElementById('time-elapsed').innerText = `Time Elapsed: ${formatTime(elapsedTime)}`;
+                } else {
+                    clearExistingInterval();
+                    document.getElementById('progress-bar').style.width = '100%';
+                    document.getElementById('time-elapsed').innerText = `Time Elapsed: ${formatTime(videoDuration)}`;
+                }
+            }
+        }
+
+        function toggleProgressBar(show) {
+            if (show) {
+                progressBarContainer.style.display = 'block';
+                document.getElementById('time-elapsed').style.display = 'block';
+                document.getElementById('total-duration').style.display = 'block';
+            } else {
+                progressBarContainer.style.display = 'none';
+                document.getElementById('time-elapsed').style.display = 'none';
+                document.getElementById('total-duration').style.display = 'none';
             }
         }
 
@@ -384,80 +445,42 @@
 
         const socket = io('https://mikumiku.dev');
 
-        socket.on('connect', () => {
-            console.log('Connected to server via Socket.IO');
-        });
-        
         socket.on('nowPlayingUpdate', (data) => {
             console.log('Received "nowPlayingUpdate":', data);
-            
-            const { title, videoUrl, currentTime, isOffline, isPaused } = data;
-        
-            // Update the video title and URL on the frontend
-            document.getElementById('video-title').innerText = title || 'No Title';
-            document.getElementById('video-url').href = videoUrl || '#';
-        
-            // Update the progress bar
-            const progressBar = document.getElementById('progress-bar');
-            if (videoUrl && !isOffline) {
-                // Assuming duration is known or fetched separately
-                const duration = 600; // Example duration in seconds
-                const progressPercent = (currentTime / duration) * 100;
-                progressBar.style.width = `${progressPercent}%`;
-            } else {
-                progressBar.style.width = '0%';
-            }
-        
-            // Update the paused icon
-            const pausedIcon = document.getElementById('paused-icon');
-            if (isOffline) {
-                // Hide the paused icon and show offline indicator
-                pausedIcon.style.display = 'none';
-                document.getElementById('offline-indicator').style.display = 'block';
-            } else {
-                document.getElementById('offline-indicator').style.display = 'none';
-                pausedIcon.style.display = isPaused ? 'block' : 'none';
-            }
-        });
-
-        socket.on('youtubeOpened', () => {
-            console.log('Received "youtubeOpened" event from server.');
-            document.querySelector('.now-playing').classList.remove('offline');
-            document.getElementById('videoThumbnail').classList.remove('offline-thumbnail');
-        });
-
-        socket.on('nowPlayingUpdate', (data) => {
-            console.log('Received "nowPlayingUpdate" event from server:', data);
             const videoTitleElement = document.getElementById('videoTitle');
             const videoThumbnailElement = document.getElementById('videoThumbnail');
-            const nowPlayingElement = document.querySelector('.now-playing');
+            const nowPlayingElement = document.getElementById('now-playing');
+            const offlineIndicator = document.getElementById('offline-indicator');
+            const pausedIcon = document.getElementById('paused-icon');
 
-            if (data.title === "Offline") {
-                console.log('Handling offline status.');
-                videoTitleElement.innerText = 'Currently Offline';
+            if (data.isOffline) {
+                // Handle Offline State
+                videoTitleElement.innerText = 'YouTube Tab Closed';
                 nowPlayingElement.classList.add('offline');
                 videoThumbnailElement.classList.add('offline-thumbnail');
-                clearExistingInterval();
-                updateProgress(0);
-                document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
-                document.getElementById('total-duration').innerText = `Total Duration: --:--`;
-                // Hide paused icon when offline
-                document.getElementById('pausedIcon').style.display = 'none';
-                // Hide time-remaining if present
-                const timeRemaining = document.getElementById('time-remaining');
-                if (timeRemaining) {
-                    timeRemaining.style.display = 'none';
-                }
+                toggleProgressBar(false); 
+
+                // Show Offline Indicator
+                offlineIndicator.style.display = 'block';
+
+                // Hide Paused Icon
+                pausedIcon.style.display = 'none';
             } else {
-                console.log('Handling video status.');
+                // Not Offline
                 nowPlayingElement.classList.remove('offline');
                 videoThumbnailElement.classList.remove('offline-thumbnail');
+                offlineIndicator.style.display = 'none';
+
+                const videoID = extractYouTubeVideoID(data.videoUrl);
+                if (!videoID) {
+                    console.warn('Invalid YouTube Video ID:', data.videoUrl);
+                    return;
+                }
 
                 if (previousVideoData && previousVideoData.url !== data.videoUrl) {
                     addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
                 }
 
-                const videoID = extractYouTubeVideoID(data.videoUrl);
                 previousVideoData = {
                     title: data.title || 'No video playing',
                     url: data.videoUrl,
@@ -469,61 +492,36 @@
                 videoThumbnailElement.alt = previousVideoData.title;
 
                 if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
-                    console.log('User is browsing videos.');
                     clearExistingInterval();
                     isBrowsing = true;
-                    updateProgress(0);
-                    document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
-                    document.getElementById('total-duration').innerText = `Total Duration: --:--`;
-                    // Hide paused icon when browsing
-                    document.getElementById('pausedIcon').style.display = 'none';
-                    // Show time-remaining
-                    const timeRemaining = document.getElementById('time-remaining');
-                    if (timeRemaining) {
-                        timeRemaining.style.display = 'block';
-                    }
+                    toggleProgressBar(false);
                 } else {
-                    console.log('User is watching a video.');
                     isBrowsing = false;
+                    toggleProgressBar(true);
                     fetchYouTubeVideoDetails(videoID).then((duration) => {
                         if (duration) {
                             videoDuration = duration;
                             videoStartTime = Date.now() - (data.currentTime * 1000);
                             clearExistingInterval();
                             isVideoPaused = data.isPaused;
-                            if (isVideoPaused) {
-                                document.getElementById('pausedIcon').style.display = 'inline';
-                                console.log('Video is paused. Showing paused icon.');
-                            } else {
-                                document.getElementById('pausedIcon').style.display = 'none';
-                                console.log('Video is playing. Hiding paused icon.');
-                            }
                             if (!isVideoPaused) {
                                 intervalID = setInterval(updateProgressBar, 1000);
-                            }
-                            document.getElementById('total-duration').innerText = `Total Duration: ${formatTime(videoDuration)}`;
-                            // Hide time-remaining if present
-                            const timeRemaining = document.getElementById('time-remaining');
-                            if (timeRemaining) {
-                                timeRemaining.style.display = 'none';
                             }
                         }
                     });
                 }
 
-                // Toggle Paused Icon based on isPaused
+                // Handle Paused State
                 if (data.isPaused) {
-                    document.getElementById('pausedIcon').style.display = 'inline';
-                    console.log('Video is paused. Showing paused icon.');
+                    pausedIcon.style.display = 'block';
                 } else {
-                    document.getElementById('pausedIcon').style.display = 'none';
-                    console.log('Video is playing. Hiding paused icon.');
+                    pausedIcon.style.display = 'none';
                 }
             }
         });
 
         function extractYouTubeVideoID(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|youtube.com\/shorts\/)([^#&?]*).*/;
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|youtube.com\/shorts\/)([^#\&\?]*).*/;
             const match = url.match(regExp);
             return (match && match[2].length === 11) ? match[2] : null;
         }
@@ -532,8 +530,6 @@
             const now = new Date();
             const localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             document.getElementById('local-time').textContent = localTime;
-            const currentDate = now.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-            document.getElementById('current-date').textContent = currentDate;
         }
 
         setInterval(updateClocks, 1000);
@@ -561,28 +557,25 @@
         }
 
         function displayWeather(data) {
-            if (!data || !data.weather) {
-                console.warn('Weather data is incomplete.');
-                document.getElementById('weather-description').innerText = 'Weather data unavailable.';
-                return;
-            }
-
             const description = data.weather[0].description;
             const temperature = Math.round(data.main.temp);
             const humidity = data.main.humidity;
             const windSpeed = data.wind.speed;
             const iconCode = data.weather[0].icon;
             const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
-            const weatherMain = data.weather[0].main.toLowerCase();
-
+            const weatherMain = data.weather[0].main.toLowerCase(); // Main weather condition
+        
             document.getElementById('weather-description').innerText = `Condition: ${description}`;
             document.getElementById('temperature').innerText = `Temperature: ${temperature}°C`;
             document.getElementById('humidity').innerText = `Humidity: ${humidity}%`;
             document.getElementById('wind-speed').innerText = `Wind: ${windSpeed} m/s`;
-
+        
             const weatherWidget = document.querySelector('.weather-widget');
+            
+            // Remove existing weather condition class
             weatherWidget.classList.remove('clear', 'rain', 'cloudy', 'snow', 'fog');
-
+        
+            // Apply new style based on weather condition
             if (weatherMain.includes('clear')) {
                 weatherWidget.classList.add('clear');
             } else if (weatherMain.includes('rain')) {
@@ -594,7 +587,8 @@
             } else if (weatherMain.includes('fog') || weatherMain.includes('mist') || weatherMain.includes('haze')) {
                 weatherWidget.classList.add('fog');
             }
-
+        
+            // Set the weather icon
             let iconElement = document.getElementById('weather-icon');
             if (!iconElement) {
                 iconElement = document.createElement('img');
@@ -607,79 +601,9 @@
         }
 
         fetchWeather();
-        setInterval(fetchWeather, 3600000); // Refresh weather every hour
-
-        // Liquid Progress Bar Integration
-        const liquidCanvas = document.getElementById('liquidProgressBar');
-        const liquidCtx = liquidCanvas.getContext('2d');
-        const liquidWidth = liquidCanvas.width;
-        const liquidHeight = liquidCanvas.height;
-
-        let progress = 0;
-
-        const wave = {
-            amplitude: 10,
-            wavelength: 100,
-            speed: 0.02,
-            phase: 0,
-        };
-
-        function updateProgress(newProgress) {
-            progress = Math.min(Math.max(newProgress, 0), 100);
-            document.getElementById('time-elapsed').innerText = `Time Elapsed: ${formatTime((progress / 100) * videoDuration)}`;
-        }
-
-        function drawLiquidFill() {
-            liquidCtx.clearRect(0, 0, liquidWidth, liquidHeight);
-            const fillLevel = liquidHeight - (progress / 100) * liquidHeight;
-
-            liquidCtx.beginPath();
-            liquidCtx.moveTo(0, fillLevel);
-
-            for (let x = 0; x <= liquidWidth; x++) {
-                const y = wave.amplitude * Math.sin((2 * Math.PI / wave.wavelength) * x + wave.phase) + fillLevel;
-                liquidCtx.lineTo(x, y);
-            }
-
-            liquidCtx.lineTo(liquidWidth, liquidHeight);
-            liquidCtx.lineTo(0, liquidHeight);
-            liquidCtx.closePath();
-
-            const gradient = liquidCtx.createLinearGradient(0, fillLevel - wave.amplitude, 0, liquidHeight);
-            gradient.addColorStop(0, 'rgba(0, 229, 255, 0.6)');
-            gradient.addColorStop(0.5, 'rgba(255, 64, 129, 0.6)');
-            gradient.addColorStop(1, 'rgba(255, 64, 129, 0.6)');
-
-            liquidCtx.fillStyle = gradient;
-            liquidCtx.fill();
-
-            liquidCtx.lineWidth = 2;
-            liquidCtx.strokeStyle = '#00e5ff';
-            liquidCtx.stroke();
-        }
-
-        function animateLiquidProgressBar() {
-            wave.phase += wave.speed;
-            drawLiquidFill();
-            requestAnimationFrame(animateLiquidProgressBar);
-        }
-
-        animateLiquidProgressBar();
-
-        function updateProgressBar() {
-            if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
-                const currentTimestamp = Date.now();
-                const elapsedTime = (currentTimestamp - videoStartTime) / 1000;
-                if (elapsedTime >= 0 && elapsedTime <= videoDuration) {
-                    const progressPercent = (elapsedTime / videoDuration) * 100;
-                    updateProgress(progressPercent);
-                } else {
-                    clearExistingInterval();
-                    updateProgress(100);
-                }
-            }
-        }
+        setInterval(fetchWeather, 3600000); // Update weather every hour
     });
     </script>
+
 </body>
 </html>
