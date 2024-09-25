@@ -46,7 +46,13 @@
                     <!-- Paused Icon and Progress Bar Container -->
                     <div style="display: flex; align-items: center; gap: 1rem; margin-top: 1rem;">
                         <!-- Paused Icon: Initially hidden -->
-                        <span id="pausedIcon" style="display: none; font-size: 1.5rem;" aria-label="Video Paused" title="Video Paused">⏸️</span>
+                        <span id="pausedIcon" style="display: none; width: 24px; height: 24px;" aria-label="Video Paused" title="Video Paused">
+                            <!-- SVG for Pause Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="6" y="5" width="4" height="14"></rect>
+                                <rect x="14" y="5" width="4" height="14"></rect>
+                            </svg>
+                        </span>
                         
                         <!-- Liquid Progress Bar -->
                         <div id="progress-bar-container" style="flex-grow: 1;">
@@ -295,7 +301,7 @@
         const MAX_RECENT_VIDEOS = 3;
         let previousVideoData = null;
         const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; 
-        const OPENWEATHERMAP_API_KEY = 'YOUR_OPENWEATHERMAP_API_KEY';
+        const OPENWEATHERMAP_API_KEY = 'YOUR_OPENWEATHERMAP_API_KEY'; // Replace with your actual API key
         const CITY_NAME = 'Leeds';
         
         function formatTime(seconds) {
@@ -378,7 +384,16 @@
 
         const socket = io('https://mikumiku.dev');
 
+        socket.on('connect', () => {
+            console.log('Frontend connected to server via Socket.io');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Frontend disconnected from server');
+        });
+
         socket.on('youtubeClosed', () => {
+            console.log('Received "youtubeClosed" event from server.');
             document.getElementById('videoTitle').innerText = 'YouTube Tab Closed';
             document.querySelector('.now-playing').classList.add('offline');
             document.getElementById('videoThumbnail').classList.add('offline-thumbnail');
@@ -396,17 +411,19 @@
         });
 
         socket.on('youtubeOpened', () => {
+            console.log('Received "youtubeOpened" event from server.');
             document.querySelector('.now-playing').classList.remove('offline');
             document.getElementById('videoThumbnail').classList.remove('offline-thumbnail');
         });
 
         socket.on('nowPlayingUpdate', (data) => {
-            console.log('Received nowPlayingUpdate:', data);
+            console.log('Received "nowPlayingUpdate" event from server:', data);
             const videoTitleElement = document.getElementById('videoTitle');
             const videoThumbnailElement = document.getElementById('videoThumbnail');
             const nowPlayingElement = document.querySelector('.now-playing');
 
             if (data.title === "Offline") {
+                console.log('Handling offline status.');
                 videoTitleElement.innerText = 'Currently Offline';
                 nowPlayingElement.classList.add('offline');
                 videoThumbnailElement.classList.add('offline-thumbnail');
@@ -422,6 +439,7 @@
                     timeRemaining.style.display = 'none';
                 }
             } else {
+                console.log('Handling video status.');
                 nowPlayingElement.classList.remove('offline');
                 videoThumbnailElement.classList.remove('offline-thumbnail');
 
@@ -441,6 +459,7 @@
                 videoThumbnailElement.alt = previousVideoData.title;
 
                 if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
+                    console.log('User is browsing videos.');
                     clearExistingInterval();
                     isBrowsing = true;
                     updateProgress(0);
@@ -454,6 +473,7 @@
                         timeRemaining.style.display = 'block';
                     }
                 } else {
+                    console.log('User is watching a video.');
                     isBrowsing = false;
                     fetchYouTubeVideoDetails(videoID).then((duration) => {
                         if (duration) {
@@ -463,8 +483,10 @@
                             isVideoPaused = data.isPaused;
                             if (isVideoPaused) {
                                 document.getElementById('pausedIcon').style.display = 'inline';
+                                console.log('Video is paused. Showing paused icon.');
                             } else {
                                 document.getElementById('pausedIcon').style.display = 'none';
+                                console.log('Video is playing. Hiding paused icon.');
                             }
                             if (!isVideoPaused) {
                                 intervalID = setInterval(updateProgressBar, 1000);
@@ -482,8 +504,10 @@
                 // Toggle Paused Icon based on isPaused
                 if (data.isPaused) {
                     document.getElementById('pausedIcon').style.display = 'inline';
+                    console.log('Video is paused. Showing paused icon.');
                 } else {
                     document.getElementById('pausedIcon').style.display = 'none';
+                    console.log('Video is playing. Hiding paused icon.');
                 }
             }
         });
@@ -527,6 +551,12 @@
         }
 
         function displayWeather(data) {
+            if (!data || !data.weather) {
+                console.warn('Weather data is incomplete.');
+                document.getElementById('weather-description').innerText = 'Weather data unavailable.';
+                return;
+            }
+
             const description = data.weather[0].description;
             const temperature = Math.round(data.main.temp);
             const humidity = data.main.humidity;
