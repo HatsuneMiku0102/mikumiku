@@ -761,22 +761,6 @@ let activeUsers = [];
 io.on('connection', async (socket) => {
     logger.info('New client connected');
 
-    // Handle Active Users Tracking
-    let ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
-
-    if (ip.includes(',')) {
-        ip = ip.split(',')[0].trim();
-    }
-
-    ip = normalizeIp(ip);
-
-    if (!activeUsers.some(user => user.ip === ip)) {
-        const locationData = await fetchLocationData(ip);
-        activeUsers.push(locationData);
-    }
-
-    io.emit('activeUsersUpdate', { users: activeUsers });
-
     // Emit the current status to the newly connected client
     socket.emit('nowPlayingUpdate', { 
         title: currentVideoTitle, 
@@ -788,48 +772,32 @@ io.on('connection', async (socket) => {
     });
 
     // Handle video status updates
-    socket.on('updateVideoTitle', ({ title, videoUrl, currentTime, isPaused }) => {
-        logger.info('Received "updateVideoTitle" event:', { title, videoUrl, currentTime, isPaused });
+    socket.on('updateVideoTitle', ({ title, videoUrl, currentTime, isPaused, isOffline }) => {
+        logger.info('Received "updateVideoTitle" event:', { title, videoUrl, currentTime, isPaused, isOffline });
 
         // Update server's current status
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
         videoStartTimestamp = Date.now() - (currentTime * 1000);
         isVideoPaused = isPaused; // Update the paused status
+        isOffline = isOffline; // Update the offline status
 
-        // Determine if the status is Offline or Paused
-        if (title === 'Offline') {
-            // Emit Offline status
-            isOffline = true;
-            io.emit('nowPlayingUpdate', {
-                title: 'Offline',
-                videoUrl: '',
-                startTimestamp: 0,
-                currentTime: 0,
-                isOffline: true,
-                isPaused: false // Offline implies YouTube is closed, so not paused
-            });
-            logger.info('Emitted "nowPlayingUpdate" with Offline status.');
-        } else {
-            // Emit Paused or Playing status
-            isOffline = false;
-            io.emit('nowPlayingUpdate', { 
-                title, 
-                videoUrl, 
-                startTimestamp: videoStartTimestamp,
-                currentTime: currentTime,
-                isOffline: false,
-                isPaused: isPaused || false
-            });
-            logger.info('Emitted "nowPlayingUpdate" with current video status.');
-        }
+        // Emit the updated status to all connected clients
+        io.emit('nowPlayingUpdate', { 
+            title, 
+            videoUrl, 
+            startTimestamp: videoStartTimestamp,
+            currentTime: currentTime,
+            isOffline: isOffline,
+            isPaused: isPaused || false
+        });
+
+        logger.info('Emitted "nowPlayingUpdate" with updated video status.');
     });
 
-    // Handle Active Users Tracking Disconnection
+    // Handle disconnection
     socket.on('disconnect', () => {
         logger.info('Client disconnected');
-        activeUsers = activeUsers.filter(user => user.ip !== ip);
-        io.emit('activeUsersUpdate', { users: activeUsers });
     });
 });
 
