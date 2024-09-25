@@ -5,6 +5,11 @@ const starCatalog = [
     // Example Star Data:
     { name: "Betelgeuse", ra: "05h 55m 10.3053s", dec: "+07° 24′ 25.430″", magnitude: 0.42, spectralType: "M1-M2" },
     { name: "Rigel", ra: "05h 14m 32.27210s", dec: "-08° 12′ 05.8981″", magnitude: 0.18, spectralType: "B8I" },
+    { name: "Bellatrix", ra: "05h 25m 07.8633s", dec: "+06° 20′ 58.931″", magnitude: 1.64, spectralType: "B2III" },
+    { name: "Saiph", ra: "05h 47m 45.348s", dec: "-09° 40′ 10.585″", magnitude: 2.07, spectralType: "B0III" },
+    { name: "Alnilam", ra: "05h 36m 12.813s", dec: "-01° 12′ 06.939″", magnitude: 1.69, spectralType: "B0Ia" },
+    { name: "Alnitak", ra: "05h 40m 45.528s", dec: "-01° 56′ 33.187″", magnitude: 1.76, spectralType: "O9.5Ib" },
+    { name: "Mintaka", ra: "05h 32m 00.400s", dec: "-00° 17′ 57.117″", magnitude: 2.23, spectralType: "O9.5II" },
     // Add more stars as needed
 ];
 
@@ -26,7 +31,78 @@ const constellationData = [
             [4, 5], [5, 6], [1, 3], [2, 3]
         ]
     },
-    // Add other constellations as needed
+    {
+        name: "Ursa Major",
+        stars: [
+            "Dubhe",
+            "Merak",
+            "Phecda",
+            "Megrez",
+            "Alioth",
+            "Mizar",
+            "Alkaid"
+        ],
+        connections: [
+            [0, 1], [1, 2], [2, 3],
+            [3, 4], [4, 5], [5, 6]
+        ]
+    },
+    {
+        name: "Cassiopeia",
+        stars: [
+            "Schedar",
+            "Caph",
+            "Gamma Cassiopeiae",
+            "Ruchbah",
+            "Segin",
+            "Tsih"
+        ],
+        connections: [
+            [0, 1], [1, 2], [2, 3],
+            [3, 4], [4, 5], [5, 1]
+        ]
+    },
+    {
+        name: "Cygnus",
+        stars: [
+            "Deneb",
+            "Albireo",
+            "Sadr",
+            "Gienah",
+            "Segin",
+            "Delta Cygni",
+            "Epsilon Cygni",
+            "Zeta Cygni",
+            "Eta Cygni"
+        ],
+        connections: [
+            [0, 1], [1, 2], [2, 3],
+            [3, 4], [4, 5], [5, 6],
+            [6, 7], [7, 8]
+        ]
+    },
+    {
+        name: "Scorpius",
+        stars: [
+            "Antares",
+            "Shaula",
+            "Sargas",
+            "Girtab",
+            "Jabbah",
+            "Sargas",
+            "Dschubba",
+            "Jabbah",
+            "Akrab",
+            "Dschubba",
+            "Alniyat"
+        ],
+        connections: [
+            [0, 1], [1, 2], [2, 3],
+            [3, 4], [4, 5], [5, 6],
+            [6, 7], [7, 8],
+            [8, 9], [9, 10], [10, 1]
+        ]
+    }
 ];
 
 // Star Class
@@ -305,52 +381,4 @@ initializeConstellations();
 
 // Shooting Stars Management (Optional Enhancement)
 const shootingStars = [];
-const shootingStarProbability = 0.002; // Probability per frame to spawn a shooting star
-
-function manageShootingStars() {
-    if (Math.random() < shootingStarProbability) {
-        shootingStars.push(new ShootingStar(canvasElement.width, canvasElement.height));
-    }
-
-    for (let i = shootingStars.length - 1; i >= 0; i--) {
-        shootingStars[i].update(canvasElement.width, canvasElement.height);
-        shootingStars[i].draw(ctx);
-        if (!shootingStars[i].alive) {
-            shootingStars.splice(i, 1);
-        }
-    }
-}
-
-// Animation Loop
-let lastFrameTime = Date.now();
-const fps = 60;
-const fpsInterval = 1000 / fps;
-
-function animateBackground() {
-    requestAnimationFrame(animateBackground);
-
-    const now = Date.now();
-    const elapsed = now - lastFrameTime;
-
-    if (elapsed > fpsInterval) {
-        lastFrameTime = now - (elapsed % fpsInterval);
-
-        ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-
-        // Update and draw constellations
-        constellationsList.forEach(constellation => {
-            constellation.update();
-            constellation.draw(ctx);
-        });
-
-        // Manage shooting stars
-        manageShootingStars();
-    }
-}
-
-animateBackground();
-
-// Optional: Regenerate constellations periodically to keep the background dynamic
-setInterval(() => {
-    initializeConstellations();
-}, 60000); // Regenerate every 60 seconds
+const shootingStarProbability = 0.002; // Probability
