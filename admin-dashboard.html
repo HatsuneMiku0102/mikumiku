@@ -82,19 +82,19 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-
+    
         socket.on('connect', () => {
             console.log('Socket connected successfully');
         });
-
+    
         socket.on('connect_error', (error) => {
             console.error('Error connecting to socket:', error);
         });
-
+    
         // Receive updated list of active users from the server and display it
         socket.on('activeUsersUpdate', (data) => {
             console.log('Active users data received:', data);
-
+    
             if (data && data.users && Array.isArray(data.users)) {
                 const activeUsersCount = data.users.length;
                 document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
@@ -104,8 +104,10 @@
                 
                 // Loop through the users array and display each user's location info
                 data.users.forEach(user => {
-                    const { ip, city, region, country } = user.location;
-                    const locationInfo = `IP: ${ip}, City: ${city || 'Unknown'}, Region: ${region || 'Unknown'}, Country: ${country || 'Unknown'}`;
+                    // Ensure user.location exists before destructuring
+                    const { ip, city, region, country } = user.location || { ip: 'Unknown', city: 'Unknown', region: 'Unknown', country: 'Unknown' };
+                    
+                    const locationInfo = `IP: ${ip}, City: ${city}, Region: ${region}, Country: ${country}`;
                     const locationElement = document.createElement('div');
                     locationElement.classList.add('user-location');
                     locationElement.innerText = locationInfo;
@@ -116,7 +118,7 @@
                 document.getElementById('active-users-count').innerText = 'No active users found.';
             }
         });
-
+    
         // Fetch location data from the backend if needed (for testing or manual fetches)
         fetch('/api/location')
             .then(response => {
@@ -134,14 +136,14 @@
             })
             .then(data => {
                 console.log('Location data received:', data);
-
+    
                 if (data && Array.isArray(data) && data.length > 0) {
                     const locationDiv = document.getElementById('location');
                     locationDiv.innerHTML = '';  // Clear previous content
-
+    
                     data.forEach(user => {
-                        const { ip, city, region, country } = user;
-                        const locationInfo = `IP: ${ip}, City: ${city || 'Unknown'}, Region: ${region || 'Unknown'}, Country: ${country || 'Unknown'}`;
+                        const { ip, city, region, country } = user || { ip: 'Unknown', city: 'Unknown', region: 'Unknown', country: 'Unknown' };
+                        const locationInfo = `IP: ${ip}, City: ${city}, Region: ${region}, Country: ${country}`;
                         const locationElement = document.createElement('div');
                         locationElement.classList.add('user-location');
                         locationElement.innerText = locationInfo;
@@ -156,7 +158,7 @@
                 document.getElementById('location').innerText = 'Error loading location data';
                 console.error(error);
             });
-
+    
         // Logout logic
         const logoutButton = document.getElementById('logout');
         logoutButton.addEventListener('click', () => {
@@ -167,7 +169,7 @@
                 })
                 .catch(error => console.error('Error:', error));
         });
-
+    
         // Fetch YouTube API Status
         fetch('/api/check-youtube')
             .then(response => {
@@ -193,7 +195,7 @@
             .catch(error => {
                 console.error('Error checking YouTube API:', error);
             });
-
+    
         // Fetch Bungie API Status
         fetch('/api/check-bungie')
             .then(response => {
@@ -220,5 +222,6 @@
                 console.error('Error checking Bungie API:', error);
             });
     </script>
+
 </body>
 </html>
