@@ -68,6 +68,11 @@
                         <p id="total-duration" class="progress-time">Total Duration: --:--</p>
                         <p id="time-remaining" class="progress-time" style="display: none;">Browsing for: --:--</p> <!-- Added time-remaining -->
                     </div>
+
+                    <!-- Offline Indicator -->
+                    <div id="offline-indicator" style="display: none; color: red; font-weight: bold; margin-top: 1rem;">
+                        YouTube is currently offline.
+                    </div>
                 </div>
 
                 <div class="widgets-container">
@@ -393,42 +398,29 @@
                 console.log('Frontend disconnected from server');
             });
 
-            // Remove 'youtubeClosed' and 'youtubeOpened' event listeners
-            /*
-            socket.on('youtubeClosed', () => {
-                console.log('Received "youtubeClosed" event from server.');
-                document.getElementById('videoTitle').innerText = 'YouTube Tab Closed';
-                document.querySelector('.now-playing').classList.add('offline');
-                document.getElementById('videoThumbnail').classList.add('offline-thumbnail');
-                clearExistingInterval();
-                updateProgress(0);
-                document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
-                document.getElementById('total-duration').innerText = `Total Duration: --:--`;
-                // Hide paused icon when offline
-                document.getElementById('pausedIcon').style.display = 'none';
-                // Hide time-remaining if present
-                const timeRemaining = document.getElementById('time-remaining');
-                if (timeRemaining) {
-                    timeRemaining.style.display = 'none';
-                }
-            });
-
-            socket.on('youtubeOpened', () => {
-                console.log('Received "youtubeOpened" event from server.');
-                document.querySelector('.now-playing').classList.remove('offline');
-                document.getElementById('videoThumbnail').classList.remove('offline-thumbnail');
-            });
-            */
-
             socket.on('nowPlayingUpdate', (data) => {
                 console.log('Received "nowPlayingUpdate" event from server:', data);
+                
+                // Validate the received data
+                if (!data) {
+                    console.error('No data received for nowPlayingUpdate');
+                    return;
+                }
+
+                const { isOffline, videoUrl, title, currentTime, isPaused } = data;
+
+                if (typeof isOffline === 'undefined' || !videoUrl || !title) {
+                    console.error('Incomplete data received for nowPlayingUpdate:', data);
+                    return;
+                }
+
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 const nowPlayingElement = document.querySelector('.now-playing');
                 const offlineIndicator = document.getElementById('offline-indicator');
                 const pausedIcon = document.getElementById('pausedIcon'); // Updated to 'pausedIcon'
 
-                if (data.isOffline) {
+                if (isOffline) {
                     // Handle Offline State
                     console.log('Handling offline status.');
                     videoTitleElement.innerText = 'YouTube Tab Closed';
@@ -453,19 +445,19 @@
                     videoThumbnailElement.classList.remove('offline-thumbnail');
                     offlineIndicator.style.display = 'none';
 
-                    const videoID = extractYouTubeVideoID(data.videoUrl);
+                    const videoID = extractYouTubeVideoID(videoUrl);
                     if (!videoID) {
-                        console.warn('Invalid YouTube Video ID:', data.videoUrl);
+                        console.warn('Invalid YouTube Video ID:', videoUrl);
                         return;
                     }
 
-                    if (previousVideoData && previousVideoData.url !== data.videoUrl) {
+                    if (previousVideoData && previousVideoData.url !== videoUrl) {
                         addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
                     }
 
                     previousVideoData = {
-                        title: data.title || 'No video playing',
-                        url: data.videoUrl,
+                        title: title || 'No video playing',
+                        url: videoUrl,
                         thumbnail: `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`
                     };
 
@@ -473,7 +465,7 @@
                     videoThumbnailElement.src = previousVideoData.thumbnail;
                     videoThumbnailElement.alt = previousVideoData.title;
 
-                    if (data.videoUrl.includes("youtube.com/") && !data.videoUrl.includes("/watch")) {
+                    if (videoUrl.includes("youtube.com/") && !videoUrl.includes("/watch")) {
                         // User is browsing YouTube but not watching a video
                         console.log('User is browsing YouTube.');
                         clearExistingInterval();
@@ -495,9 +487,9 @@
                         fetchYouTubeVideoDetails(videoID).then((duration) => {
                             if (duration) {
                                 videoDuration = duration;
-                                videoStartTime = Date.now() - (data.currentTime * 1000);
+                                videoStartTime = Date.now() - (currentTime * 1000);
                                 clearExistingInterval();
-                                isVideoPaused = data.isPaused;
+                                isVideoPaused = isPaused;
                                 if (!isVideoPaused) {
                                     intervalID = setInterval(updateProgressBar, 1000);
                                 }
@@ -512,7 +504,7 @@
                     }
 
                     // Handle Paused State
-                    if (data.isPaused) {
+                    if (isPaused) {
                         pausedIcon.style.display = 'inline';
                         console.log('Video is paused. Showing paused icon.');
                     } else {
