@@ -758,8 +758,9 @@ let isOffline = false; // Initialize as online
 let activeUsers = [];
 
 // Socket.IO Connection Handling
+// Socket.IO Connection Handling
 io.on('connection', async (socket) => {
-    logger.info('New client connected');
+    logger.info('New client connected:', socket.id);
 
     // Emit the current status to the newly connected client
     socket.emit('nowPlayingUpdate', { 
@@ -771,35 +772,38 @@ io.on('connection', async (socket) => {
         isPaused: isVideoPaused || false // Initialize with current pause status
     });
 
-    // Handle video status updates
-    socket.on('updateVideoTitle', ({ title, videoUrl, currentTime, isPaused, isOffline }) => {
-        logger.info('Received "updateVideoTitle" event:', { title, videoUrl, currentTime, isPaused, isOffline });
+    // Handle video status updates from clients
+    socket.on('updateVideoTitle', (data) => {
+        logger.info('Received "updateVideoTitle" event from client:', data);
 
         // Update server's current status
-        currentVideoTitle = title;
-        currentVideoUrl = videoUrl;
-        videoStartTimestamp = Date.now() - (currentTime * 1000);
-        isVideoPaused = isPaused; // Update the paused status
-        isOffline = isOffline; // Update the offline status
+        currentVideoTitle = data.title;
+        currentVideoUrl = data.videoUrl;
+        videoStartTimestamp = Date.now() - (data.currentTime * 1000);
+        isVideoPaused = data.isPaused;
+        isOffline = data.isOffline;
+
+        logger.info('Updated server state:', { currentVideoTitle, currentVideoUrl, videoStartTimestamp, isVideoPaused, isOffline });
 
         // Emit the updated status to all connected clients
         io.emit('nowPlayingUpdate', { 
-            title, 
-            videoUrl, 
+            title: currentVideoTitle, 
+            videoUrl: currentVideoUrl, 
             startTimestamp: videoStartTimestamp,
-            currentTime: currentTime,
+            currentTime: data.currentTime,
             isOffline: isOffline,
-            isPaused: isPaused || false
+            isPaused: isVideoPaused || false
         });
 
-        logger.info('Emitted "nowPlayingUpdate" with updated video status.');
+        logger.info('Emitted "nowPlayingUpdate" to all clients:', { currentVideoTitle, currentVideoUrl, isOffline, isPaused: isVideoPaused });
     });
 
     // Handle disconnection
     socket.on('disconnect', () => {
-        logger.info('Client disconnected');
+        logger.info('Client disconnected:', socket.id);
     });
 });
+
 
 // Real-time Data Endpoint
 app.post('/api/update', (req, res) => {
