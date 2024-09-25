@@ -59,7 +59,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center; /* Centered alignment */
-  gap: 1rem; /* Space between logo and title */
   width: 100%;
   max-width: 1200px;
   padding: 0 1.5rem;
@@ -67,6 +66,7 @@ body {
 
 .title-bar .logo {
   width: 5rem;
+  margin-right: 1.25rem;
   transition: transform 0.3s ease;
   cursor: pointer;
 }
@@ -98,7 +98,7 @@ body {
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  padding-top: 7.5rem; /* Space for fixed title bar */
+  padding-top: 7.5rem;
   background: transparent;
   position: relative;
   z-index: 2;
@@ -112,7 +112,7 @@ body {
   align-items: center;
   z-index: 1;
   padding: 2rem;
-  margin-top: 7rem; /* Space for fixed title bar */
+  margin-top: 7rem;
   gap: 2rem;
   width: 100%;
 }
@@ -191,10 +191,15 @@ body {
 }
 
 /* Progress Bar */
+.progress-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
 #progress-bar-container {
-  width: 100%;
-  max-width: 800px;
-  margin: 2rem auto 1rem auto;
+  flex-grow: 1;
   background-color: rgba(255, 255, 255, 0.1);
   border-radius: 0.625rem;
   height: 3rem;
@@ -217,7 +222,7 @@ body {
   font-size: 1.2rem;
   color: #ffffff;
   font-weight: bold;
-  width: 100%;
+  width: 80%;
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
@@ -247,7 +252,8 @@ body {
 }
 
 /* Recently Watched Videos Section */
-.recent-videos-section {
+.recent-videos-wrapper {
+  position: relative; /* To contain the absolute SVG */
   width: 90%;
   max-width: 900px;
   background: rgba(30, 30, 30, 0.8); /* Transparent box matching theme */
@@ -261,15 +267,29 @@ body {
   flex-direction: column;
   align-items: center;
   transition: background 0.5s ease, box-shadow 0.5s ease, transform 0.3s ease;
+  overflow: hidden; /* Hide SVG overflow */
 }
 
-.recent-videos-section:hover {
+.recent-videos-wrapper:hover {
   box-shadow: 0 12px 40px rgba(0, 255, 255, 0.6);
   transform: scale(1.02);
   background: rgba(30, 30, 30, 0.95);
 }
 
+.animated-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
 .recent-videos-title {
+  position: relative;
+  z-index: 2; /* Above the SVG */
   font-size: 2.5rem;
   color: #00e5ff;
   text-align: center;
@@ -288,7 +308,6 @@ body {
   transform: scale(1.05);
 }
 
-/* Recent Videos Container */
 .recent-videos-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(15.625rem, 1fr));
@@ -296,6 +315,8 @@ body {
   max-width: 90%;
   margin: 2.5rem auto;
   width: 100%;
+  position: relative;
+  z-index: 2; /* Above the SVG */
 }
 
 .advanced-video-card {
@@ -308,6 +329,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
+  overflow: hidden;
 }
 
 .advanced-video-card:hover {
@@ -482,219 +505,6 @@ body {
   width: 100%;
 }
 
-/* Recently Watched Videos Title */
-.recent-videos-title {
-  font-size: 2.5rem;
-  color: #00e5ff;
-  text-align: center;
-  margin-bottom: 1.5rem;
-  padding: 0.5rem 1rem;
-  background: rgba(0, 0, 0, 0.5); /* Transparent background */
-  border-radius: 0.625rem;
-  box-shadow: 0 4px 10px rgba(0, 229, 255, 0.7);
-  text-shadow: 0 2px 5px rgba(0, 229, 255, 0.7);
-  animation: neonGlow 2s infinite alternate;
-  cursor: default;
-}
-
-.recent-videos-title:hover {
-  color: #ff4081;
-  transform: scale(1.05);
-}
-
-/* Recently Watched Videos Section Hover Effect */
-.recent-videos-section:hover {
-  box-shadow: 0 12px 40px rgba(0, 255, 255, 0.6);
-  transform: scale(1.02);
-  background: rgba(30, 30, 30, 0.95);
-}
-
-/* Recent Videos Container */
-.recent-videos-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15.625rem, 1fr));
-  gap: 1.875rem;
-  max-width: 90%;
-  margin: 2.5rem auto;
-  width: 100%;
-}
-
-.advanced-video-card {
-  background: rgba(30, 30, 30, 0.8);
-  border-radius: 0.9375rem;
-  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.5);
-  transition: transform 0.4s ease, box-shadow 0.4s ease;
-  padding: 1.25rem;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.advanced-video-card:hover {
-  transform: translateY(-0.625rem) scale(1.05);
-  box-shadow: 0 12px 40px rgba(0, 255, 255, 0.4);
-}
-
-.recent-video-thumbnail {
-  width: 6.25rem;
-  height: 3.5rem;
-  border-radius: 0.625rem;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
-  margin-bottom: 0.9375rem;
-  transition: transform 0.3s ease;
-  object-fit: cover;
-}
-
-.recent-video-thumbnail:hover {
-  transform: scale(1.05);
-}
-
-.recent-video-title {
-  font-size: 1.3rem;
-  color: #ffffff;
-  margin: 0;
-  transition: color 0.3s ease;
-}
-
-.advanced-video-card:hover .recent-video-title {
-  color: #00ffcc;
-}
-
-/* About Section */
-.about {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 1.875rem;
-  border-radius: 0.9375rem;
-  text-align: center;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-  max-width: 90%;
-  margin: 2.5rem auto;
-}
-
-.about h2 {
-  font-size: 2.5rem;
-  background: linear-gradient(to right, #ff7e5f, #feb47b);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 1rem;
-}
-
-.about p {
-  font-size: 1.3rem;
-  color: white;
-  line-height: 1.8;
-}
-
-/* Footer */
-.footer {
-  background-color: rgba(0, 0, 0, 0.9);
-  padding: 1.25rem 0;
-  text-align: center;
-  color: #999;
-  font-size: 1rem;
-  width: 100%;
-  margin-top: auto;
-}
-
-.footer a {
-  color: #00ffff;
-  transition: color 0.3s ease;
-  text-decoration: none;
-}
-
-.footer a:hover {
-  color: #ff4081;
-  text-decoration: underline;
-}
-
-/* Widgets */
-.live-clock,
-.weather-widget {
-  width: 100%;
-  max-width: 500px;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 1.5rem;
-  border-radius: 1.25rem;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  margin: 1.875rem auto;
-  transition: background 0.5s ease, box-shadow 0.5s ease, transform 0.3s ease;
-}
-
-.live-clock:hover,
-.weather-widget:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
-}
-
-/* Clock */
-.clock-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-}
-
-.clock {
-  background: rgba(0, 0, 0, 0.5);
-  padding: 1rem;
-  border-radius: 0.625rem;
-  text-align: center;
-  width: 200px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  cursor: default;
-}
-
-.clock:hover {
-  transform: scale(1.05);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
-}
-
-.clock p {
-  font-size: 2rem;
-  color: #ffffff;
-  margin: 0;
-}
-
-/* Weather Widget */
-.weather-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.625rem;
-}
-
-.weather-info p {
-  font-size: 1.2rem;
-  color: #ffffff;
-  margin: 0;
-}
-
-.weather-info img {
-  width: 100px;
-  height: 100px;
-  margin-bottom: 0.625rem;
-  transition: transform 0.3s ease;
-  cursor: pointer;
-}
-
-.weather-info img:hover {
-  transform: scale(1.1);
-}
-
-/* Widgets Container */
-.widgets-container {
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-  width: 90%;
-  max-width: 1200px;
-  margin: 0 auto;
-  flex-wrap: wrap;
-}
-
 /* Animations */
 @keyframes neonGlow {
   0% {
@@ -725,6 +535,52 @@ body {
   }
 }
 
+/* Recently Watched Videos Section Animations */
+.animated-background rect {
+  animation: moveBackground 20s linear infinite;
+}
+
+.animated-background line {
+  animation: moveLines 15s linear infinite;
+}
+
+.animated-background circle {
+  animation: pulsate 10s ease-in-out infinite;
+}
+
+@keyframes moveBackground {
+  0% {
+    x: 0;
+  }
+  100% {
+    x: -800px;
+  }
+}
+
+@keyframes moveLines {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 800px;
+  }
+}
+
+@keyframes pulsate {
+  0% {
+    r: 100;
+    opacity: 0.7;
+  }
+  50% {
+    r: 120;
+    opacity: 1;
+  }
+  100% {
+    r: 100;
+    opacity: 0.7;
+  }
+}
+
 /* Responsive Styles */
 @media (max-width: 768px) {
   .title-bar .container {
@@ -734,7 +590,7 @@ body {
 
   .now-playing,
   .about,
-  .recent-videos-section,
+  .recent-videos-wrapper,
   .recent-videos-container,
   .widgets-container,
   .progress-times-container {
