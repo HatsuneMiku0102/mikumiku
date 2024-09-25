@@ -1,4 +1,3 @@
-const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const bodyParser = require('body-parser');
@@ -752,6 +751,9 @@ app.post('/api/videos', verifyToken, async (req, res) => {
 let currentVideoTitle = 'Loading...';
 let currentVideoUrl = '';
 let videoStartTimestamp = Date.now();
+let isVideoPaused = false; 
+let isOffline = false; 
+
 
 // Socket.IO Connection Handling
 io.on('connection', (socket) => {
