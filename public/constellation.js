@@ -1,7 +1,8 @@
 // constellation.js
 
-// Star Catalog with Real Data (Example: Orion)
+// Star Catalog with Real Data (Example: Orion and others)
 const starCatalog = [
+    // Orion Constellation Stars
     {
         name: "Betelgeuse",
         ra: "05h 55m 10.3053s",
@@ -50,6 +51,92 @@ const starCatalog = [
         dec: "-00° 17′ 57″",
         magnitude: 2.23,
         spectralType: "B0III"
+    },
+    // Ursa Major Constellation Stars
+    {
+        name: "Dubhe",
+        ra: "11h 03m 43.671s",
+        dec: "+61° 45′ 03.63″",
+        magnitude: 1.79,
+        spectralType: "A1V"
+    },
+    {
+        name: "Merak",
+        ra: "11h 01m 50.749s",
+        dec: "+56° 22′ 57.0″",
+        magnitude: 2.43,
+        spectralType: "A1V"
+    },
+    {
+        name: "Phecda",
+        ra: "11h 53m 50.077s",
+        dec: "+53° 41′ 41.24″",
+        magnitude: 2.44,
+        spectralType: "A1V"
+    },
+    {
+        name: "Megrez",
+        ra: "12h 15m 17.393s",
+        dec: "+56° 05′ 03.75″",
+        magnitude: 3.31,
+        spectralType: "A3V"
+    },
+    {
+        name: "Alioth",
+        ra: "12h 54m 01.749s",
+        dec: "+55° 57′ 33.3″",
+        magnitude: 1.76,
+        spectralType: "A0V"
+    },
+    {
+        name: "Mizar",
+        ra: "13h 23m 55.201s",
+        dec: "+54° 55′ 31.93″",
+        magnitude: 2.23,
+        spectralType: "A2V"
+    },
+    {
+        name: "Alkaid",
+        ra: "13h 47m 32.730s",
+        dec: "+49° 18′ 48.6″",
+        magnitude: 1.86,
+        spectralType: "B3V"
+    },
+    // Cassiopeia Constellation Stars
+    {
+        name: "Schedar",
+        ra: "02h 01m 57.886s",
+        dec: "+56° 32′ 22.3″",
+        magnitude: 2.24,
+        spectralType: "K0III"
+    },
+    {
+        name: "Caph",
+        ra: "02h 07m 10.915s",
+        dec: "+60° 10′ 03.35″",
+        magnitude: 2.28,
+        spectralType: "A0V"
+    },
+    {
+        name: "Gamma Cassiopeiae",
+        ra: "02h 22m 43.144s",
+        dec: "+60° 52′ 15.2″",
+        magnitude: 2.53,
+        spectralType: "B0IVpe"
+    },
+    {
+        name: "Ruchbah",
+        ra: "02h 22m 58.381s",
+        dec: "+63° 39′ 35.0″",
+        magnitude: 3.31,
+        spectralType: "A0V"
+    },
+    {
+        name: "Segin",
+        ra: "02h 40m 02.299s",
+        dec: "+62° 24′ 15.7″",
+        magnitude: 3.09,
+        spectralType: "A5V"
     },
     // Add more stars from other constellations as needed
 ];
@@ -131,6 +218,9 @@ function parseDec(decStr) {
  * Converts RA and Dec to Cartesian coordinates.
  * @param {number} ra - Right Ascension in decimal degrees
  * @param {number} dec - Declination in decimal degrees
+ * @param {number} canvasWidth - Width of the canvas
+ * @param {number} canvasHeight - Height of the canvas
+ * @param {number} scale - Scaling factor for projection
  * @returns {Object} - { x, y } coordinates
  */
 function raDecToXY(ra, dec, canvasWidth, canvasHeight, scale = 300) {
@@ -167,7 +257,7 @@ function mapMagnitudeToAppearance(magnitude) {
 
 /**
  * Maps spectral type to RGB color.
- * Simplified mapping for demonstration.
+ * Simplified mapping based on star temperatures.
  * @param {string} spectralType 
  * @returns {Object} - { r, g, b }
  */
@@ -193,7 +283,8 @@ function mapSpectralTypeToColor(spectralType) {
 
 // Star Class
 class Star {
-    constructor(x, y, radius, twinkleSpeed, color, baseOpacity) {
+    constructor(name, x, y, radius, twinkleSpeed, color, baseOpacity) {
+        this.name = name; // Added name property for connection drawing
         this.x = x;
         this.y = y;
         this.radius = radius;
@@ -276,7 +367,7 @@ class Constellation {
             const appearance = mapMagnitudeToAppearance(starInfo.magnitude);
             const color = mapSpectralTypeToColor(starInfo.spectralType);
 
-            this.stars.push(new Star(rotatedX, rotatedY, appearance.radius, 0.002, color, appearance.baseOpacity));
+            this.stars.push(new Star(starInfo.name, rotatedX, rotatedY, appearance.radius, 0.002, color, appearance.baseOpacity));
         });
     }
 
@@ -305,6 +396,44 @@ class Constellation {
     }
 }
 
+// Shooting Star Class (Optional Enhancement)
+class ShootingStar {
+    constructor(canvasWidth, canvasHeight) {
+        this.reset(canvasWidth, canvasHeight);
+    }
+
+    reset(canvasWidth, canvasHeight) {
+        this.x = Math.random() * canvasWidth;
+        this.y = Math.random() * canvasHeight * 0.5; // Appear in the upper half
+        this.length = Math.random() * 80 + 20;
+        this.speed = Math.random() * 10 + 10;
+        this.angle = Math.PI / 4; // 45 degrees
+        this.opacity = 1;
+        this.alive = true;
+    }
+
+    update(canvasWidth, canvasHeight) {
+        this.x += Math.cos(this.angle) * this.speed;
+        this.y += Math.sin(this.angle) * this.speed;
+        this.opacity -= 0.02;
+        if (this.opacity <= 0 || this.x > canvasWidth || this.y > canvasHeight) {
+            this.alive = false;
+        }
+    }
+
+    draw(ctx) {
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(
+            this.x - Math.cos(this.angle) * this.length,
+            this.y - Math.sin(this.angle) * this.length
+        );
+        ctx.strokeStyle = `rgba(255, 255, 255, ${this.opacity})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+}
+
 // Initialize Canvas and Constellations
 const canvas = document.getElementById('techCanvas');
 const ctx = canvas.getContext('2d');
@@ -330,45 +459,21 @@ function initializeConstellations() {
 
 initializeConstellations();
 
-// Star Class (Reiterated for clarity)
-class Star {
-    constructor(x, y, radius, twinkleSpeed, color, baseOpacity) {
-        this.x = x;
-        this.y = y;
-        this.radius = radius;
-        this.twinkleSpeed = twinkleSpeed;
-        this.opacity = baseOpacity;
-        this.twinkleDirection = Math.random() > 0.5 ? 1 : -1;
-        this.color = color; // { r, g, b }
+// Shooting Stars Management (Optional)
+const shootingStars = [];
+const shootingStarProbability = 0.002; // Probability per frame to spawn a shooting star
+
+function manageShootingStars() {
+    if (Math.random() < shootingStarProbability) {
+        shootingStars.push(new ShootingStar(canvas.width, canvas.height));
     }
 
-    update() {
-        this.opacity += this.twinkleSpeed * this.twinkleDirection;
-        if (this.opacity <= this.baseOpacity * 0.5) {
-            this.opacity = this.baseOpacity * 0.5;
-            this.twinkleDirection = 1;
-        } else if (this.opacity >= this.baseOpacity) {
-            this.opacity = this.baseOpacity;
-            this.twinkleDirection = -1;
+    for (let i = shootingStars.length - 1; i >= 0; i--) {
+        shootingStars[i].update(canvas.width, canvas.height);
+        shootingStars[i].draw(ctx);
+        if (!shootingStars[i].alive) {
+            shootingStars.splice(i, 1);
         }
-    }
-
-    draw(ctx) {
-        // Draw glow using radial gradient
-        const gradient = ctx.createRadialGradient(this.x, this.y, this.radius, this.x, this.y, this.radius * 4);
-        gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity})`);
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius * 4, 0, Math.PI * 2);
-        ctx.fillStyle = gradient;
-        ctx.fill();
-
-        // Draw star
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity})`;
-        ctx.fill();
     }
 }
 
@@ -394,90 +499,14 @@ function animateBackground() {
             constellation.draw(ctx);
         });
 
-        // Optionally, add shooting stars or other effects here
-        // ...
-    }
-}
-
-animateBackground();
-
-// Optional: Shooting Stars Enhancement (Advanced)
-class ShootingStar {
-    constructor() {
-        this.reset();
-    }
-
-    reset() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height * 0.5; // Appear in the upper half
-        this.length = Math.random() * 80 + 20;
-        this.speed = Math.random() * 10 + 10;
-        this.angle = Math.PI / 4; // 45 degrees
-        this.opacity = 1;
-        this.alive = true;
-    }
-
-    update() {
-        this.x += Math.cos(this.angle) * this.speed;
-        this.y += Math.sin(this.angle) * this.speed;
-        this.opacity -= 0.02;
-        if (this.opacity <= 0) {
-            this.alive = false;
-        }
-    }
-
-    draw(ctx) {
-        ctx.beginPath();
-        ctx.moveTo(this.x, this.y);
-        ctx.lineTo(
-            this.x - Math.cos(this.angle) * this.length,
-            this.y - Math.sin(this.angle) * this.length
-        );
-        ctx.strokeStyle = `rgba(255, 255, 255, ${this.opacity})`;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-    }
-}
-
-// Shooting Stars Management
-const shootingStars = [];
-const shootingStarProbability = 0.002; // Probability per frame to spawn a shooting star
-
-function manageShootingStars() {
-    if (Math.random() < shootingStarProbability) {
-        shootingStars.push(new ShootingStar());
-    }
-
-    for (let i = shootingStars.length - 1; i >= 0; i--) {
-        shootingStars[i].update();
-        shootingStars[i].draw(ctx);
-        if (!shootingStars[i].alive) {
-            shootingStars.splice(i, 1);
-        }
-    }
-}
-
-// Update the animateBackground function to include shooting stars
-function animateBackground() {
-    requestAnimationFrame(animateBackground);
-
-    const now = Date.now();
-    const elapsed = now - lastFrameTime;
-
-    if (elapsed > fpsInterval) {
-        lastFrameTime = now - (elapsed % fpsInterval);
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Update and draw constellations
-        constellations.forEach(constellation => {
-            constellation.update();
-            constellation.draw(ctx);
-        });
-
         // Manage shooting stars
         manageShootingStars();
     }
 }
 
 animateBackground();
+
+// Dynamic Regeneration (Optional)
+setInterval(() => {
+    initializeConstellations();
+}, 60000); // Regenerate constellations every 60 seconds
