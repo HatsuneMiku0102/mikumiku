@@ -71,7 +71,8 @@
 
 
         socket.on('activeUsersUpdate', (data) => {
-            console.log('Received active users data:', data);
+            console.log('Received active users update from server:', data);
+        
             const activeUsersCount = data.users.length;
             document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
         
@@ -85,15 +86,16 @@
                 locationDiv.appendChild(locationElement);
             });
         });
-   
+        
         fetch('/api/location')
             .then(response => {
+                console.log('Fetched location response:', response);
                 if (response.ok) {
                     return response.json();
                 } else if (response.status === 401) {
-                    // Handle unauthorized error
                     return response.json().then(data => {
                         if (data.redirect) {
+                            console.log('Redirecting to:', data.redirect);
                             window.location.href = data.redirect;
                         }
                     });
@@ -102,20 +104,22 @@
                 }
             })
             .then(data => {
+                console.log('Location data received:', data);
                 if (data) {
                     const locationDiv = document.getElementById('location');
-                    locationDiv.innerHTML = '';
-    
-                    // Display location data in the dashboard
-                    const locationInfo = `IP: ${data.ip}, City: ${data.city}, Region: ${data.region}, Country: ${data.country}`;
-                    const locationElement = document.createElement('p');
-                    locationElement.innerText = locationInfo;
-                    locationDiv.appendChild(locationElement);
+                    locationDiv.innerHTML = '';  
+        
+                    data.forEach(user => {
+                        const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
+                        const locationElement = document.createElement('p');
+                        locationElement.innerText = locationInfo;
+                        locationDiv.appendChild(locationElement);
+                    });
                 }
             })
             .catch(error => {
+                console.error('Error fetching location data:', error);
                 document.getElementById('location').innerText = 'Error loading location data';
-                console.error(error);
             });
 
   
