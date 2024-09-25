@@ -371,9 +371,6 @@ class Constellation {
         });
     }
 
-    update() {
-        this.stars.forEach(star => star.update());
-    }
 
     draw(ctx) {
         // Draw connections
