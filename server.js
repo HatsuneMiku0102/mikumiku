@@ -957,6 +957,18 @@ app.get('/weather', async (req, res) => {
 });
 
 
+function getValidIpAddress(req) {
+    let ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    if (ipAddress.includes(',')) {
+        ipAddress = ipAddress.split(',').map(ip => ip.trim())[0];
+    }
+    if (ipAddress.startsWith('::ffff:')) {
+        ipAddress = ipAddress.replace('::ffff:', '');
+    }
+    return ipAddress;
+}
+
+
 app.get('/api/location', async (req, res) => {
     const clientIp = getClientIp(req);
 
