@@ -952,27 +952,47 @@ app.get('/api/location', async (req, res) => {
     }
 });
 
+
+async function fetchUserLocation(ip) {
+    try {
+        const response = await axios.get(`https://ipinfo.io/${ip}/geo?token=${process.env.IPINFO_API_KEY}`);
+        const { city, region, country } = response.data;
+        return { ip, city, region, country };
+    } catch (error) {
+        console.error(`Error fetching location data for IP ${ip}:`, error);
+        return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
+    }
+}
+
+// Function to get all active users with their locations
+async function getActiveUsersWithLocations() {
+    // Fetch all active users' location data asynchronously
+    const userPromises = activeUsers.map(user => fetchUserLocation(user.ip));
+    return await Promise.all(userPromises);
+}
+
+// Socket.io connection handler
 io.on('connection', (socket) => {
     console.log('A new admin client connected');
 
-    // Emit active users upon connection
+    // Emit the active users and their locations when a client connects
     getActiveUsersWithLocations().then((users) => {
-        console.log('Emitting active users data:', users);
+        console.log('Emitting active users with locations:', users);
         socket.emit('activeUsersUpdate', { users });
-    });
+    }).catch(err => console.error('Error getting active users:', err));
 
-    // Optionally, update the active users periodically every 10 seconds
+    // Optionally, update the active users periodically
     const updateInterval = setInterval(() => {
         getActiveUsersWithLocations().then((users) => {
-            console.log('Periodic active users update:', users);
+            console.log('Periodic update of active users with locations:', users);
             socket.emit('activeUsersUpdate', { users });
-        });
+        }).catch(err => console.error('Error during periodic update:', err));
     }, 10000); // Update every 10 seconds
 
-    // Cleanup when client disconnects
+    // Handle client disconnect
     socket.on('disconnect', () => {
         console.log('Admin client disconnected');
-        clearInterval(updateInterval); // Stop the periodic updates when the client disconnects
+        clearInterval(updateInterval); // Stop updates when the client disconnects
     });
 });
 
