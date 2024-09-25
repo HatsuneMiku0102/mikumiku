@@ -13,6 +13,7 @@
             margin: 0;
             padding: 0;
         }
+
         .admin-container {
             max-width: 800px;
             margin: 50px auto;
@@ -21,9 +22,11 @@
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
         }
+
         h2, h3 {
             color: #00bcd4;
         }
+
         button {
             background-color: #00bcd4;
             color: #ffffff;
@@ -32,21 +35,29 @@
             border-radius: 5px;
             cursor: pointer;
         }
+
         button:hover {
             background-color: #0097a7;
         }
+
         .api-status {
             padding: 10px;
             margin: 10px 0;
         }
+
         .api-status.working {
             background-color: #4caf50;
         }
+
         .api-status.unavailable {
             background-color: #f44336;
         }
+
         .user-location {
-            margin-bottom: 10px;
+            margin: 5px 0;
+            padding: 10px;
+            background-color: #383838;
+            border-radius: 5px;
         }
     </style>
 </head>
@@ -72,7 +83,6 @@
     <script>
         const socket = io();
 
-        // Handle socket connection and logs for debugging
         socket.on('connect', () => {
             console.log('Socket connected successfully');
         });
@@ -81,25 +91,23 @@
             console.error('Error connecting to socket:', error);
         });
 
-        // Listen for active users update from the server
+        // Receive updated list of active users from the server and display it
         socket.on('activeUsersUpdate', (data) => {
-            console.log('Received active users data from the server:', data);  // Log the received data for debugging
-        
-            // Check if data and users array are valid
+            console.log('Active users data received:', data);
+
             if (data && data.users && Array.isArray(data.users)) {
                 const activeUsersCount = data.users.length;
-                console.log(`Number of active users: ${activeUsersCount}`); // Log user count
-        
                 document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
-        
+                
                 const locationDiv = document.getElementById('location');
                 locationDiv.innerHTML = '';  // Clear previous content
-        
+                
                 // Loop through the users array and display each user's location info
                 data.users.forEach(user => {
-                    console.log('User Data:', user);  // Log each user data for debugging
-                    const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
-                    const locationElement = document.createElement('p');
+                    const { ip, city, region, country } = user.location;
+                    const locationInfo = `IP: ${ip}, City: ${city || 'Unknown'}, Region: ${region || 'Unknown'}, Country: ${country || 'Unknown'}`;
+                    const locationElement = document.createElement('div');
+                    locationElement.classList.add('user-location');
                     locationElement.innerText = locationInfo;
                     locationDiv.appendChild(locationElement);
                 });
@@ -109,26 +117,47 @@
             }
         });
 
-        // Fetch YouTube and Bungie API status
-        fetch('/api/check-youtube')
-            .then(response => response.json())
-            .then(data => {
-                const youtubeStatus = document.getElementById('youtube-status');
-                youtubeStatus.innerText = data.status;
-                youtubeStatus.classList.add(data.available ? 'working' : 'unavailable');
+        // Fetch location data from the backend if needed (for testing or manual fetches)
+        fetch('/api/location')
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else if (response.status === 401) {
+                    return response.json().then(data => {
+                        if (data.redirect) {
+                            window.location.href = data.redirect;
+                        }
+                    });
+                } else {
+                    throw new Error('Error fetching location data');
+                }
             })
-            .catch(error => console.error('Error checking YouTube API:', error));
-
-        fetch('/api/check-bungie')
-            .then(response => response.json())
             .then(data => {
-                const bungieStatus = document.getElementById('bungie-status');
-                bungieStatus.innerText = data.status;
-                bungieStatus.classList.add(data.available ? 'working' : 'unavailable');
-            })
-            .catch(error => console.error('Error checking Bungie API:', error));
+                console.log('Location data received:', data);
 
-        // Logout function
+                if (data && Array.isArray(data) && data.length > 0) {
+                    const locationDiv = document.getElementById('location');
+                    locationDiv.innerHTML = '';  // Clear previous content
+
+                    data.forEach(user => {
+                        const { ip, city, region, country } = user;
+                        const locationInfo = `IP: ${ip}, City: ${city || 'Unknown'}, Region: ${region || 'Unknown'}, Country: ${country || 'Unknown'}`;
+                        const locationElement = document.createElement('div');
+                        locationElement.classList.add('user-location');
+                        locationElement.innerText = locationInfo;
+                        locationDiv.appendChild(locationElement);
+                    });
+                } else {
+                    console.warn('No valid location data found.');
+                    document.getElementById('location').innerText = 'No valid location data found.';
+                }
+            })
+            .catch(error => {
+                document.getElementById('location').innerText = 'Error loading location data';
+                console.error(error);
+            });
+
+        // Logout logic
         const logoutButton = document.getElementById('logout');
         logoutButton.addEventListener('click', () => {
             fetch('/logout', { method: 'POST' })
@@ -138,6 +167,58 @@
                 })
                 .catch(error => console.error('Error:', error));
         });
+
+        // Fetch YouTube API Status
+        fetch('/api/check-youtube')
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else if (response.status === 401) {
+                    return response.json().then(data => {
+                        if (data.redirect) {
+                            window.location.href = data.redirect;
+                        }
+                    });
+                } else {
+                    throw new Error('Error checking YouTube API');
+                }
+            })
+            .then(data => {
+                if (data) {
+                    const youtubeStatus = document.getElementById('youtube-status');
+                    youtubeStatus.innerText = data.status;
+                    youtubeStatus.classList.add(data.available ? 'working' : 'unavailable');
+                }
+            })
+            .catch(error => {
+                console.error('Error checking YouTube API:', error);
+            });
+
+        // Fetch Bungie API Status
+        fetch('/api/check-bungie')
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else if (response.status === 401) {
+                    return response.json().then(data => {
+                        if (data.redirect) {
+                            window.location.href = data.redirect;
+                        }
+                    });
+                } else {
+                    throw new Error('Error checking Bungie API');
+                }
+            })
+            .then(data => {
+                if (data) {
+                    const bungieStatus = document.getElementById('bungie-status');
+                    bungieStatus.innerText = data.status;
+                    bungieStatus.classList.add(data.available ? 'working' : 'unavailable');
+                }
+            })
+            .catch(error => {
+                console.error('Error checking Bungie API:', error);
+            });
     </script>
 </body>
 </html>
