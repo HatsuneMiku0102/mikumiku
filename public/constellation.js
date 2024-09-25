@@ -1,162 +1,61 @@
 // constellation.js
 
-// Star Catalog with Real Data (Orion, Ursa Major, Cassiopeia, Cygnus, Scorpius)
+// Star Catalog with Real Data (Orion, Ursa Major, Cassiopeia, Cygnus, Scorpius, etc.)
 const starCatalog = [
-    // Orion Constellation Stars
-    {
-        name: "Betelgeuse",
-        ra: "05h 55m 10.3053s",
-        dec: "+07° 24′ 25.430″",
-        magnitude: 0.42,
-        spectralType: "M1-M2Ia-Iab"
-    },
-    {
-        name: "Bellatrix",
-        ra: "05h 25m 07.863s",
-        dec: "+06° 20′ 58.93″",
-        magnitude: 1.64,
-        spectralType: "B2III"
-    },
-    {
-        name: "Rigel",
-        ra: "05h 14m 32.272s",
-        dec: "-08° 12′ 05.9″",
-        magnitude: 0.13,
-        spectralType: "B8Ia"
-    },
-    {
-        name: "Saiph",
-        ra: "05h 47m 45.391s",
-        dec: "-09° 40′ 10.1″",
-        magnitude: 2.07,
-        spectralType: "B0Ia"
-    },
-    {
-        name: "Alnilam",
-        ra: "05h 36m 12.813s",
-        dec: "-01° 12′ 07.9″",
-        magnitude: 1.69,
-        spectralType: "B0Ia"
-    },
-    {
-        name: "Alnitak",
-        ra: "05h 40m 45.527s",
-        dec: "-01° 56′ 33.2″",
-        magnitude: 1.74,
-        spectralType: "O9.5Ib"
-    },
-    {
-        name: "Mintaka",
-        ra: "05h 32m 00.4s",
-        dec: "-00° 17′ 57″",
-        magnitude: 2.23,
-        spectralType: "B0III"
-    },
-    // Ursa Major Constellation Stars
     {
         name: "Dubhe",
-        ra: "11h 03m 43.671s",
-        dec: "+61° 45′ 03.63″",
+        ra: "11h 03m 43.7s",
+        dec: "+61° 45′ 03″",
         magnitude: 1.79,
-        spectralType: "A1V"
+        spectralType: "A1",
     },
     {
         name: "Merak",
-        ra: "11h 01m 50.749s",
-        dec: "+56° 22′ 57.0″",
-        magnitude: 2.43,
-        spectralType: "A1V"
+        ra: "11h 01m 50.8s",
+        dec: "+56° 22′ 57″",
+        magnitude: 2.37,
+        spectralType: "A1V",
     },
     {
         name: "Phecda",
-        ra: "11h 53m 50.077s",
-        dec: "+53° 41′ 41.24″",
+        ra: "11h 41m 08.3s",
+        dec: "+53° 41′ 41″",
         magnitude: 2.44,
-        spectralType: "A1V"
+        spectralType: "A0V",
     },
     {
         name: "Megrez",
-        ra: "12h 15m 17.393s",
-        dec: "+56° 05′ 03.75″",
+        ra: "12h 15m 18.9s",
+        dec: "+57° 01′ 50″",
         magnitude: 3.31,
-        spectralType: "A3V"
+        spectralType: "A3V",
     },
     {
         name: "Alioth",
-        ra: "12h 54m 01.749s",
-        dec: "+55° 57′ 33.3″",
+        ra: "12h 54m 01.7s",
+        dec: "+55° 51′ 42″",
         magnitude: 1.76,
-        spectralType: "A0V"
+        spectralType: "A0V",
     },
     {
         name: "Mizar",
-        ra: "13h 23m 55.201s",
-        dec: "+54° 55′ 31.93″",
+        ra: "13h 23m 55.2s",
+        dec: "+54° 55′ 31″",
         magnitude: 2.23,
-        spectralType: "A2V"
+        spectralType: "A1V",
     },
     {
         name: "Alkaid",
-        ra: "13h 47m 32.730s",
-        dec: "+49° 18′ 48.6″",
-        magnitude: 1.86,
-        spectralType: "B3V"
+        ra: "13h 47m 32.4s",
+        dec: "+49° 20′ 46″",
+        magnitude: 1.85,
+        spectralType: "B3V",
     },
-    // Cassiopeia Constellation Stars
-    {
-        name: "Schedar",
-        ra: "02h 01m 57.886s",
-        dec: "+56° 32′ 22.3″",
-        magnitude: 2.24,
-        spectralType: "K0III"
-    },
-    {
-        name: "Caph",
-        ra: "02h 07m 10.915s",
-        dec: "+60° 10′ 03.35″",
-        magnitude: 2.28,
-        spectralType: "A0V"
-    },
-    {
-        name: "Gamma Cassiopeiae",
-        ra: "02h 22m 43.144s",
-        dec: "+60° 52′ 15.2″",
-        magnitude: 2.53,
-        spectralType: "B0IVpe"
-    },
-    {
-        name: "Ruchbah",
-        ra: "02h 22m 58.381s",
-        dec: "+63° 39′ 35.0″",
-        magnitude: 3.31,
-        spectralType: "A0V"
-    },
-    {
-        name: "Segin",
-        ra: "02h 40m 02.299s",
-        dec: "+62° 24′ 15.7″",
-        magnitude: 3.09,
-        spectralType: "A5V"
-    },
-    // Add more stars from other constellations as needed
+    // Add more stars as needed
 ];
 
 // Constellation Definitions
 const constellationDefinitions = [
-    {
-        name: "Orion",
-        stars: ["Betelgeuse", "Bellatrix", "Rigel", "Saiph", "Alnilam", "Alnitak", "Mintaka"],
-        connections: [
-            ["Betelgeuse", "Bellatrix"],
-            ["Betelgeuse", "Rigel"],
-            ["Bellatrix", "Alnilam"],
-            ["Rigel", "Saiph"],
-            ["Alnilam", "Alnitak"],
-            ["Alnitak", "Mintaka"],
-            ["Bellatrix", "Rigel"],
-            ["Saiph", "Rigel"]
-        ]
-    },
     {
         name: "Ursa Major",
         stars: ["Dubhe", "Merak", "Phecda", "Megrez", "Alioth", "Mizar", "Alkaid"],
@@ -180,32 +79,6 @@ const constellationDefinitions = [
             ["Segin", "Caph"]
         ]
     },
-    {
-        name: "Cygnus",
-        stars: ["Sadr", "Deneb", "Albireo", "Gienah", "Segin", "Eta Cygni", "Vega Cygni", "Gienah", "Gamma Cygni"],
-        connections: [
-            ["Sadr", "Deneb"],
-            ["Deneb", "Albireo"],
-            ["Albireo", "Gienah"],
-            ["Gienah", "Eta Cygni"],
-            ["Eta Cygni", "Vega Cygni"],
-            ["Vega Cygni", "Gamma Cygni"]
-        ]
-    },
-    {
-        name: "Scorpius",
-        stars: ["Antares", "Shaula", "Sargas", "Dschubba", "Girtab", "Sirr", "Graffias", "Paikauhale", "Sargas"],
-        connections: [
-            ["Antares", "Shaula"],
-            ["Shaula", "Sargas"],
-            ["Sargas", "Dschubba"],
-            ["Dschubba", "Girtab"],
-            ["Girtab", "Sirr"],
-            ["Sirr", "Graffias"],
-            ["Graffias", "Paikauhale"],
-            ["Paikauhale", "Sargas"]
-        ]
-    }
     // Add more constellations as needed
 ];
 
@@ -361,6 +234,8 @@ class Constellation {
 
         // Randomly position and scale the constellation
         this.scale = Math.random() * 100 + 100; // Scale between 100 and 200 pixels
+        // Removed rotation logic to keep constellations static
+        // this.rotation = Math.random() * 2 * Math.PI; // Rotation in radians
 
         // Random position ensuring the constellation fits within the canvas
         this.position = this.getRandomPosition();
@@ -385,6 +260,10 @@ class Constellation {
 
             const { x, y } = raDecToXY(ra, dec, this.canvasWidth, this.canvasHeight, this.scale);
 
+            // Removed rotation adjustment
+            // const rotatedX = (x - this.position.x) * Math.cos(this.rotation) - (y - this.position.y) * Math.sin(this.rotation) + this.position.x;
+            // const rotatedY = (x - this.position.x) * Math.sin(this.rotation) + (y - this.position.y) * Math.cos(this.rotation) + this.position.y;
+
             const appearance = mapMagnitudeToAppearance(starInfo.magnitude);
             const color = mapSpectralTypeToColor(starInfo.spectralType);
 
@@ -395,6 +274,8 @@ class Constellation {
     update() {
         this.stars.forEach(star => star.update());
         // Removed rotation updates to keep constellations static
+        // this.rotation += 0.0005 * deltaTime; // Removed rotation
+        // this.applyRotation(); // Removed rotation application
     }
 
     draw(ctx) {
@@ -458,8 +339,9 @@ class ShootingStar {
 
 // Initialize Canvas and Constellations
 const canvasElement = document.getElementById('techCanvas');
-const ctx = canvasElement.getContext('2d');
+const ctxCanvas = canvasElement.getContext('2d');
 
+// Resize Canvas to Full Screen
 function resizeCanvas() {
     canvasElement.width = window.innerWidth;
     canvasElement.height = window.innerHeight;
@@ -492,7 +374,7 @@ function manageShootingStars() {
 
     for (let i = shootingStars.length - 1; i >= 0; i--) {
         shootingStars[i].update(canvasElement.width, canvasElement.height);
-        shootingStars[i].draw(ctx);
+        shootingStars[i].draw(ctxCanvas);
         if (!shootingStars[i].alive) {
             shootingStars.splice(i, 1);
         }
@@ -513,12 +395,12 @@ function animateBackground() {
     if (elapsed > fpsInterval) {
         lastFrameTime = now - (elapsed % fpsInterval);
 
-        ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        ctxCanvas.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
         // Update and draw constellations
         constellations.forEach(constellation => {
             constellation.update();
-            constellation.draw(ctx);
+            constellation.draw(ctxCanvas);
         });
 
         // Manage shooting stars
