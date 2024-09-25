@@ -127,128 +127,217 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
     <script>
-        // Dynamic Canvas Background Animation
+        // Constellation-Based Canvas Background Animation
         const canvas = document.getElementById('techCanvas');
         const ctx = canvas.getContext('2d');
-
+    
+        // Resize Canvas to Full Screen
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
-
-        const techBlue = '#00e5ff';
-        const techPurple = '#7e57ff';
-        const techPink = '#ff4081';
-        const techCyan = '#00ffff';
-        const techGray = '#4b4b4b';
-
-        const mouse = {
-            x: null,
-            y: null,
-            radius: 100
-        };
-
-        window.addEventListener('mousemove', function(event) {
-            mouse.x = event.clientX;
-            mouse.y = event.clientY;
-        });
-
-        class Node {
-            constructor(x, y, radius, color) {
+    
+        // Star Class
+        class Star {
+            constructor(x, y, radius, twinkleSpeed, color) {
                 this.x = x;
                 this.y = y;
                 this.radius = radius;
-                this.color = color;
-                this.alpha = Math.random() * 0.5 + 0.5;
-                this.speedX = (Math.random() - 0.5) * 0.2;
-                this.speedY = (Math.random() - 0.5) * 0.2;
+                this.twinkleSpeed = twinkleSpeed;
+                this.opacity = Math.random() * 0.7 + 0.3; // Start with opacity between 0.3 and 1
+                this.twinkleDirection = Math.random() > 0.5 ? 1 : -1;
+                this.color = color; // { r, g, b }
             }
-
+    
             update() {
-                const dx = this.x - mouse.x;
-                const dy = this.y - mouse.y;
-                const distance = Math.hypot(dx, dy);
-
-                if (distance < mouse.radius && mouse.x && mouse.y) {
-                    const angle = Math.atan2(dy, dx);
-                    const force = (mouse.radius - distance) / mouse.radius;
-                    const forceX = Math.cos(angle) * force * 2;
-                    const forceY = Math.sin(angle) * force * 2;
-
-                    this.x += this.speedX + forceX;
-                    this.y += this.speedY + forceY;
-                } else {
-                    this.x += this.speedX;
-                    this.y += this.speedY;
+                this.opacity += this.twinkleSpeed * this.twinkleDirection;
+                if (this.opacity <= 0.3) {
+                    this.opacity = 0.3;
+                    this.twinkleDirection = 1;
+                } else if (this.opacity >= 1) {
+                    this.opacity = 1;
+                    this.twinkleDirection = -1;
                 }
-
-                if (this.x > canvas.width) this.x = 0;
-                if (this.x < 0) this.x = canvas.width;
-                if (this.y > canvas.height) this.y = 0;
-                if (this.y < 0) this.y = canvas.height;
             }
-
-            draw() {
+    
+            draw(ctx) {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(${hexToRgb(this.color)}, ${this.alpha})`;
+                ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity})`;
                 ctx.fill();
             }
         }
-
-        function hexToRgb(hex) {
-            const bigint = parseInt(hex.replace('#',''), 16);
-            const r = (bigint >> 16) & 255;
-            const g = (bigint >> 8) & 255;
-            const b = bigint & 255;
-            return `${r}, ${g}, ${b}`;
-        }
-
-        const nodes = [];
-        const nodeCount = 150;
-
-        for (let i = 0; i < nodeCount; i++) {
-            const x = Math.random() * canvas.width;
-            const y = Math.random() * canvas.height;
-            const radius = Math.random() * 2 + 1;
-            const colorOptions = [techBlue, techPurple, techPink, techCyan, techGray];
-            const color = colorOptions[Math.floor(Math.random() * colorOptions.length)];
-            nodes.push(new Node(x, y, radius, color));
-        }
-
-        function connectNodes() {
-            const maxDistance = 120;
-            for (let i = 0; i < nodes.length; i++) {
-                for (let j = i + 1; j < nodes.length; j++) {
-                    const dx = nodes[i].x - nodes[j].x;
-                    const dy = nodes[i].y - nodes[j].y;
-                    const distance = Math.hypot(dx, dy);
-                    if (distance < maxDistance) {
-                        ctx.beginPath();
-                        ctx.strokeStyle = `rgba(${hexToRgb('#00e5ff')}, ${1 - distance / maxDistance})`;
-                        ctx.lineWidth = 0.5;
-                        ctx.moveTo(nodes[i].x, nodes[i].y);
-                        ctx.lineTo(nodes[j].x, nodes[j].y);
-                        ctx.stroke();
+    
+        // Constellation Class
+        class Constellation {
+            constructor(x, y, numStars, spread) {
+                this.x = x;
+                this.y = y;
+                this.numStars = numStars;
+                this.spread = spread; // How spread out the stars are
+                this.stars = [];
+                this.connections = [];
+    
+                this.generateStars();
+                this.generateConnections();
+            }
+    
+            generateStars() {
+                for (let i = 0; i < this.numStars; i++) {
+                    const angle = Math.random() * 2 * Math.PI;
+                    const distance = Math.random() * this.spread;
+                    const x = this.x + distance * Math.cos(angle);
+                    const y = this.y + distance * Math.sin(angle);
+                    const radius = Math.random() * 1.5 + 0.5; // Small stars
+                    const twinkleSpeed = Math.random() * 0.005 + 0.002;
+                    
+                    // Random color assignment (e.g., subtle white to blue hues)
+                    const colorOptions = [
+                        { r: 255, g: 255, b: 255 }, // White
+                        { r: 230, g: 240, b: 255 }, // Light Blue
+                        { r: 200, g: 220, b: 255 }  // Sky Blue
+                    ];
+                    const color = colorOptions[Math.floor(Math.random() * colorOptions.length)];
+    
+                    this.stars.push(new Star(x, y, radius, twinkleSpeed, color));
+                }
+            }
+    
+            generateConnections() {
+                // Connect stars based on proximity to form constellations
+                for (let i = 0; i < this.stars.length; i++) {
+                    for (let j = i + 1; j < this.stars.length; j++) {
+                        const dx = this.stars[i].x - this.stars[j].x;
+                        const dy = this.stars[i].y - this.stars[j].y;
+                        const distance = Math.hypot(dx, dy);
+                        if (distance < this.spread * 0.5) { // Adjust the multiplier for connection density
+                            this.connections.push([i, j]);
+                        }
                     }
                 }
             }
+    
+            update() {
+                this.stars.forEach(star => star.update());
+            }
+    
+            draw(ctx) {
+                // Draw connections
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.lineWidth = 1;
+                this.connections.forEach(connection => {
+                    const [i, j] = connection;
+                    const starA = this.stars[i];
+                    const starB = this.stars[j];
+                    ctx.beginPath();
+                    ctx.moveTo(starA.x, starA.y);
+                    ctx.lineTo(starB.x, starB.y);
+                    ctx.stroke();
+                });
+    
+                // Draw stars
+                this.stars.forEach(star => star.draw(ctx));
+            }
         }
-
+    
+        // Shooting Star Class (Optional Enhancement)
+        class ShootingStar {
+            constructor() {
+                this.reset();
+            }
+    
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height * 0.5; // Appear in the upper half
+                this.length = Math.random() * 80 + 20;
+                this.speed = Math.random() * 10 + 10;
+                this.angle = Math.PI / 4; // 45 degrees
+                this.opacity = 1;
+                this.alive = true;
+            }
+    
+            update() {
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+                this.opacity -= 0.02;
+                if (this.opacity <= 0) {
+                    this.alive = false;
+                }
+            }
+    
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(
+                    this.x - Math.cos(this.angle) * this.length,
+                    this.y - Math.sin(this.angle) * this.length
+                );
+                ctx.strokeStyle = `rgba(255, 255, 255, ${this.opacity})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+    
+        // Generate Random Constellations
+        const constellations = [];
+        const numberOfConstellations = 10; // Adjust based on preference
+    
+        for (let i = 0; i < numberOfConstellations; i++) {
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * canvas.height;
+            const numStars = Math.floor(Math.random() * 5) + 3; // Each constellation has between 3 to 7 stars
+            const spread = Math.random() * 50 + 30; // Spread between 30 to 80 pixels
+            constellations.push(new Constellation(x, y, numStars, spread));
+        }
+    
+        // Shooting Stars Management
+        const shootingStars = [];
+        const shootingStarProbability = 0.002; // Probability per frame to spawn a shooting star
+    
+        // Twinkling Stars and Shooting Stars Animation
         function animateBackground() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            nodes.forEach(node => {
-                node.update();
-                node.draw();
+    
+            // Update and draw constellations
+            constellations.forEach(constellation => {
+                constellation.update();
+                constellation.draw(ctx);
             });
-            connectNodes();
+    
+            // Randomly add shooting stars
+            if (Math.random() < shootingStarProbability) {
+                shootingStars.push(new ShootingStar());
+            }
+    
+            // Update and draw shooting stars
+            for (let i = shootingStars.length - 1; i >= 0; i--) {
+                shootingStars[i].update();
+                shootingStars[i].draw(ctx);
+                if (!shootingStars[i].alive) {
+                    shootingStars.splice(i, 1);
+                }
+            }
+    
             requestAnimationFrame(animateBackground);
         }
-
+    
         animateBackground();
+    
+        // Optional: Regenerate constellations periodically to keep the background dynamic
+        setInterval(() => {
+            constellations.length = 0; // Clear existing constellations
+            for (let i = 0; i < numberOfConstellations; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const numStars = Math.floor(Math.random() * 5) + 3;
+                const spread = Math.random() * 50 + 30;
+                constellations.push(new Constellation(x, y, numStars, spread));
+            }
+        }, 60000); // Regenerate every 60 seconds
     </script>
+
 
     <script>
         // Handle dynamic title and greeting message
