@@ -922,6 +922,22 @@ app.get('/weather', async (req, res) => {
     }
 });
 
+
+app.get('/api/location', async (req, res) => {
+    const ipinfoApiKey = process.env.IPINFO_API_KEY;
+
+    try {
+        // Fetch user location information from IPinfo API
+        const response = await fetch(`https://ipinfo.io?token=${ipinfoApiKey}`);
+        const locationData = await response.json();
+
+        res.json(locationData); // Return the fetched data to the client
+    } catch (error) {
+        console.error('Error fetching IPinfo data:', error);
+        res.status(500).json({ error: 'Error fetching location data' });
+    }
+});
+
 // Start the server
 server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
