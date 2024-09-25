@@ -138,16 +138,8 @@ document.addEventListener('DOMContentLoaded', function () {
         "max-glare": 0.2,
     });
 
-    // Initialize Particles.js for Particle Background (Optional)
-    // Uncomment the following lines if you want to use Particles.js
-    /*
-    particlesJS.load('particles-js', '/path-to-your-particles.json', function() {
-        console.log('Particles.js loaded - callback');
-    });
-    */
-
-    // Initialize Canvas-Based Wave Animation
-    const canvas = document.getElementById('waveCanvas');
+    // Initialize Canvas-Based Molecular Structure Animation
+    const canvas = document.getElementById('molecularCanvas');
     const ctx = canvas.getContext('2d');
 
     let width, height;
@@ -158,39 +150,69 @@ document.addEventListener('DOMContentLoaded', function () {
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    const waves = [];
-    const waveCount = 3;
-    for (let i = 0; i < waveCount; i++) {
-        waves.push({
-            amplitude: 20 + i * 10,
-            wavelength: 100 + i * 50,
-            speed: 0.02 + i * 0.01,
-            phase: 0,
-            color: `rgba(0, 229, 255, ${0.3 + i * 0.2})` // Miku's teal shades
+    // Molecular Node Structure
+    const nodes = [];
+    const nodeCount = 100; // Number of nodes
+
+    // Initialize Nodes
+    for (let i = 0; i < nodeCount; i++) {
+        nodes.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            radius: Math.random() * 2 + 1,
+            color: '#00e5ff',
+            speed: Math.random() * 0.5 - 0.25, // -0.25 to 0.25
+            direction: Math.random() * 2 * Math.PI
         });
     }
 
-    function drawWave(wave) {
-        ctx.beginPath();
-        ctx.moveTo(0, height / 2);
-        for (let x = 0; x < width; x++) {
-            const y = height / 2 + wave.amplitude * Math.sin((x / wave.wavelength) * 2 * Math.PI + wave.phase);
-            ctx.lineTo(x, y);
-        }
-        ctx.strokeStyle = wave.color;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-    }
-
-    function animate() {
+    // Draw Nodes and Connections
+    function drawMolecules() {
         ctx.clearRect(0, 0, width, height);
-        waves.forEach(wave => {
-            drawWave(wave);
-            wave.phase += wave.speed;
+
+        // Move Nodes
+        nodes.forEach(node => {
+            node.x += Math.cos(node.direction) * node.speed;
+            node.y += Math.sin(node.direction) * node.speed;
+
+            // Boundary Conditions
+            if (node.x < 0 || node.x > width) {
+                node.direction = Math.PI - node.direction;
+            }
+            if (node.y < 0 || node.y > height) {
+                node.direction = -node.direction;
+            }
         });
-        requestAnimationFrame(animate);
+
+        // Draw Connections
+        for (let i = 0; i < nodeCount; i++) {
+            for (let j = i + 1; j < nodeCount; j++) {
+                const dx = nodes[i].x - nodes[j].x;
+                const dy = nodes[i].y - nodes[j].y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < 150) { // Connection distance threshold
+                    ctx.strokeStyle = `rgba(0, 229, 255, ${1 - distance / 150})`; // Fading lines
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(nodes[i].x, nodes[i].y);
+                    ctx.lineTo(nodes[j].x, nodes[j].y);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Draw Nodes
+        nodes.forEach(node => {
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
+            ctx.fillStyle = node.color;
+            ctx.fill();
+        });
+
+        requestAnimationFrame(drawMolecules);
     }
-    animate();
+
+    drawMolecules();
 
     // Dynamic Prompt Functionality (Existing)
     document.querySelector('.fancy-title')?.addEventListener('mouseover', function () {
