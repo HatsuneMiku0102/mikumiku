@@ -9,11 +9,9 @@
 </head>
 
 <body>
-    <!-- Canvas for Molecular Structure Background -->
-    <canvas id="molecularCanvas" class="molecular-canvas"></canvas>
+    <canvas id="techCanvas"></canvas>
 
     <div class="page-container">
-        <!-- Title Bar -->
         <div class="title-bar">
             <div class="container">
                 <img src="/logo.webp" alt="Logo" class="logo">
@@ -43,28 +41,28 @@
                             <p id="videoTitle">Loading...</p>
                         </div>
                         
-                        <div class="progress-bar-container">
-                            <span id="pausedIcon" class="paused-icon" aria-label="Video Paused" title="Video Paused">
+                        <div class="progress-bar-container" style="display: flex; align-items: center; gap: 1rem; margin-top: 1rem;">
+                            <span id="pausedIcon" style="display: none; width: 24px; height: 24px;" aria-label="Video Paused" title="Video Paused">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                                     <rect x="6" y="5" width="4" height="14"></rect>
                                     <rect x="14" y="5" width="4" height="14"></rect>
                                 </svg>
                             </span>
 
-                            <div id="progress-bar" class="progress-bar">
+                            <div id="progress-bar-container" style="flex-grow: 1;">
                                 <canvas id="liquidProgressBar" width="400" height="50"></canvas>
                             </div>
                         </div>
 
-                        <img id="videoThumbnail" src="/images/video-thumbnail1.jpg" alt="Thumbnail of currently playing video" class="video-thumbnail">
-
+                        <img id="videoThumbnail" src="" alt="Thumbnail of currently playing video" class="video-thumbnail">
+                        
                         <div class="progress-times-container">
                             <p id="time-elapsed" class="progress-time">Time Elapsed: --:--</p>
                             <p id="total-duration" class="progress-time">Total Duration: --:--</p>
                             <p id="time-remaining" class="progress-time" style="display: none;">Browsing for: --:--</p>
                         </div>
 
-                        <div id="offline-indicator" class="offline-indicator">
+                        <div id="offline-indicator" style="display: none; color: red; font-weight: bold; margin-top: 1rem;">
                             I’m not on YouTube at the moment, soz :(
                         </div>
                     </div>
@@ -86,7 +84,7 @@
                 <div class="weather-widget box-container">
                     <h3>My Current Weather</h3>
                     <div class="weather-info">
-                        <img id="weather-icon" src="/images/weather-icon.png" alt="Weather Icon" onerror="this.src='/images/default-weather-icon.png'">
+                        <img id="weather-icon" src="" alt="Weather Icon">
                         <p id="weather-description">Loading...</p>
                         <p id="temperature">--°C</p>
                         <p id="humidity">Humidity: --%</p>
@@ -95,50 +93,61 @@
                 </div>
             </div>
 
-            <!-- Recently Watched Videos Section with Simplified Design -->
+            <!-- Recently Watched Videos Section -->
             <div class="content-wrapper">
                 <div class="now-playing-about-wrapper">
                     <div class="recent-videos-wrapper box-container">
+                        <!-- Animated SVG Background -->
+                        <svg class="animated-background" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+                            <defs>
+                                <linearGradient id="gradient" gradientTransform="rotate(45)">
+                                    <stop offset="0%" stop-color="#00e5ff"/>
+                                    <stop offset="100%" stop-color="#ff4081"/>
+                                </linearGradient>
+                                <filter id="glow">
+                                    <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                                    <feMerge>
+                                        <feMergeNode in="coloredBlur"/>
+                                        <feMergeNode in="SourceGraphic"/>
+                                    </feMerge>
+                                </filter>
+                            </defs>
+                            <!-- Background Rect -->
+                            <rect width="800" height="600" fill="url(#gradient)" filter="url(#glow)">
+                                <animate attributeName="x" from="0" to="-800" dur="20s" repeatCount="indefinite" />
+                            </rect>
+                            <!-- Moving Lines -->
+                            <g stroke="#00e5ff" stroke-width="2" opacity="0.6">
+                                <line x1="0" y1="0" x2="800" y2="600">
+                                    <animate attributeName="x1" from="0" to="800" dur="15s" repeatCount="indefinite" />
+                                    <animate attributeName="y1" from="0" to="600" dur="15s" repeatCount="indefinite" />
+                                    <animate attributeName="x2" from="800" to="0" dur="15s" repeatCount="indefinite" />
+                                    <animate attributeName="y2" from="600" to="0" dur="15s" repeatCount="indefinite" />
+                                </line>
+                                <line x1="800" y1="0" x2="0" y2="600">
+                                    <animate attributeName="x1" from="800" to="0" dur="15s" repeatCount="indefinite" />
+                                    <animate attributeName="y1" from="0" to="600" dur="15s" repeatCount="indefinite" />
+                                    <animate attributeName="x2" from="0" to="800" dur="15s" repeatCount="indefinite" />
+                                    <animate attributeName="y2" from="600" to="0" dur="15s" repeatCount="indefinite" />
+                                </line>
+                            </g>
+                            <!-- Pulsating Circles -->
+                            <circle cx="400" cy="300" r="100" fill="none" stroke="#00e5ff" stroke-width="4" opacity="0.7">
+                                <animate attributeName="r" values="100;120;100" dur="10s" repeatCount="indefinite" />
+                                <animate attributeName="opacity" values="0.7;1;0.7" dur="10s" repeatCount="indefinite" />
+                            </circle>
+                        </svg>
+
                         <h3 class="recent-videos-title">Recently Watched Videos</h3>
                         <div id="recent-videos-container" class="recent-videos-container">
                             <!-- Example Video Cards -->
-                            <div class="advanced-video-card" data-tilt data-tilt-glare data-tilt-max-glare="0.2" data-progress="75">
-                                <div class="progress-circle" data-progress="75">
-                                    <svg>
-                                        <circle cx="50" cy="50" r="45" stroke="#00e5ff" stroke-width="5" fill="none"/>
-                                        <circle cx="50" cy="50" r="45" stroke="#ffffff" stroke-width="5" fill="none" stroke-dasharray="283" stroke-dashoffset="283"/>
-                                    </svg>
-                                </div>
-                                <img src="/images/video-thumbnail1.jpg" alt="Video 1" class="recent-video-thumbnail" onerror="this.src='/images/default-video-thumbnail.jpg'">
+                            <div class="advanced-video-card">
+                                <img src="video-thumbnail1.jpg" alt="Video 1" class="recent-video-thumbnail">
                                 <p class="recent-video-title">Video Title 1</p>
-                                <div class="video-info-overlay">
-                                    <button class="play-button">
-                                        <svg class="play-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="24" height="24">
-                                            <circle cx="32" cy="32" r="30" stroke="#00e5ff" stroke-width="4" fill="none"/>
-                                            <polygon points="26,20 26,44 46,32" fill="#00e5ff"/>
-                                        </svg>
-                                        Play
-                                    </button>
-                                </div>
                             </div>
-                            <div class="advanced-video-card" data-tilt data-tilt-glare data-tilt-max-glare="0.2" data-progress="50">
-                                <div class="progress-circle" data-progress="50">
-                                    <svg>
-                                        <circle cx="50" cy="50" r="45" stroke="#00e5ff" stroke-width="5" fill="none"/>
-                                        <circle cx="50" cy="50" r="45" stroke="#ffffff" stroke-width="5" fill="none" stroke-dasharray="283" stroke-dashoffset="283"/>
-                                    </svg>
-                                </div>
-                                <img src="/images/video-thumbnail2.jpg" alt="Video 2" class="recent-video-thumbnail" onerror="this.src='/images/default-video-thumbnail.jpg'">
+                            <div class="advanced-video-card">
+                                <img src="video-thumbnail2.jpg" alt="Video 2" class="recent-video-thumbnail">
                                 <p class="recent-video-title">Video Title 2</p>
-                                <div class="video-info-overlay">
-                                    <button class="play-button">
-                                        <svg class="play-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="24" height="24">
-                                            <circle cx="32" cy="32" r="30" stroke="#00e5ff" stroke-width="4" fill="none"/>
-                                            <polygon points="26,20 26,44 46,32" fill="#00e5ff"/>
-                                        </svg>
-                                        Play
-                                    </button>
-                                </div>
                             </div>
                             <!-- Add more video cards as needed -->
                         </div>
@@ -152,13 +161,11 @@
             </div>
         </div>
 
-        <!-- Dynamic Prompt Container -->
-        <div id="dynamic-prompt-container" class="dynamic-prompt" style="display:none;">
+        <div id="dynamic-prompt-container" style="display:none;" class="dynamic-prompt">
             <p id="dynamic-prompt-text"></p>
             <button id="close-prompt" style="cursor:pointer;">Close</button>
         </div>
 
-        <!-- Footer -->
         <footer class="footer">
             <div class="container">
                 <p>&copy; 2024 MikuMiku. All rights reserved.</p>
@@ -166,18 +173,8 @@
             </div>
         </footer>
     </div>
-
-    <!-- Vanilla Tilt.js Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.0/vanilla-tilt.min.js"></script>
-    <!-- Main Script -->
-    <script src="/script.js"></script>
 </body>
 </html>
-
-
-
-
-
 
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
