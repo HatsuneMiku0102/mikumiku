@@ -52,6 +52,13 @@ const logger = winston.createLogger({
     ]
 });
 
+app.get('/api/keys', (req, res) => {
+  res.json({
+    YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY,
+    OPENWEATHER_API_KEY: process.env.OPENWEATHER_API_KEY,
+  });
+});
+
 app.set('trust proxy', 1);
 
 // Middleware
