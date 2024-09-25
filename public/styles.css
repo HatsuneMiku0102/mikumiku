@@ -13,7 +13,7 @@ body {
   height: 100%;
   width: 100%;
   font-family: 'Roboto', sans-serif;
-  background: linear-gradient(145deg, #1e1e1e, #000000);
+  background: #000000; /* Dark background for contrast */
   color: #ffffff;
   overflow-x: hidden;
   scroll-behavior: smooth;
@@ -24,14 +24,14 @@ body {
   flex-direction: column;
 }
 
-/* Canvas-Based Animations */
-.wave-canvas {
+/* Canvas-Based Molecular Structure Background */
+.molecular-canvas {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  z-index: 0;
+  z-index: -1; /* Behind all content */
   pointer-events: none;
 }
 
@@ -101,7 +101,7 @@ body {
   padding-top: 7.5rem; /* To offset fixed title bar */
   background: transparent;
   position: relative;
-  z-index: 2;
+  z-index: 1;
 }
 
 /* Page Container */
@@ -125,12 +125,11 @@ body {
   justify-content: center;
   width: 90%;
   max-width: 900px;
-  background: rgba(30, 30, 30, 0.9);
+  background: rgba(30, 30, 30, 0.6); /* Semi-transparent */
   padding: 2.5rem;
   border-radius: 1rem;
   backdrop-filter: blur(15px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
-  margin-bottom: 3.125rem;
   transition: background 0.5s ease, box-shadow 0.5s ease, transform 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
@@ -139,7 +138,7 @@ body {
 .now-playing:hover {
   box-shadow: 0 12px 40px rgba(0, 255, 255, 0.6);
   transform: scale(1.02);
-  background: rgba(30, 30, 30, 0.95);
+  background: rgba(30, 30, 30, 0.8);
 }
 
 .video-thumbnail {
@@ -265,7 +264,7 @@ body {
   position: relative; /* To contain absolute elements */
   width: 90%;
   max-width: 900px;
-  background: rgba(30, 30, 30, 0.8); /* Transparent box matching theme */
+  background: rgba(30, 30, 30, 0.4); /* More transparent */
   border-radius: 1rem;
   padding: 2rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
@@ -276,56 +275,19 @@ body {
   flex-direction: column;
   align-items: center;
   transition: background 0.5s ease, box-shadow 0.5s ease, transform 0.3s ease;
-  overflow: hidden; /* Hide overflow from SVG */
+  overflow: hidden; /* Hide overflow */
 }
 
 .recent-videos-wrapper:hover {
   box-shadow: 0 12px 40px rgba(0, 255, 255, 0.6);
   transform: scale(1.02);
-  background: rgba(30, 30, 30, 0.95);
+  background: rgba(30, 30, 30, 0.6);
 }
 
-/* Parallax Background SVG */
-.parallax-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  opacity: 0.3;
-  pointer-events: none;
-}
-
-/* Glass Pane Overlay */
-.glass-pane {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border-radius: 1rem;
-  z-index: 1;
-  animation: glassPaneMove 20s linear infinite;
-  background-image: linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent);
-  background-size: 56.57px 56.57px; /* Adjust grid size */
-}
-
-@keyframes glassPaneMove {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: 56.57px 56.57px;
-  }
-}
-
-/* Neon Glow for Titles */
+/* Recent Videos Title */
 .recent-videos-title {
   position: relative;
-  z-index: 2; /* Above SVG and glass pane */
+  z-index: 2; /* Above other elements */
   font-size: 2.5rem;
   color: #00e5ff; /* Miku's teal */
   text-align: center;
@@ -354,9 +316,9 @@ body {
   animation: neonPulse 2s infinite alternate;
 }
 
+/* Remove Hover Effects from Title */
 .recent-videos-title:hover {
-  color: #ff4081; /* Pink accent */
-  transform: scale(1.05);
+  /* No hover effects */
 }
 
 /* Recent Videos Container */
@@ -368,7 +330,7 @@ body {
   margin: 2.5rem auto;
   width: 100%;
   position: relative;
-  z-index: 2; /* Above SVG and glass pane */
+  z-index: 2; /* Above other elements */
 }
 
 /* Advanced Video Card */
@@ -489,7 +451,7 @@ body {
 }
 
 .progress-circle circle:first-child {
-  stroke: #00e5ff;
+  stroke: #00e5ff; /* Miku's teal */
   stroke-linecap: round;
   animation: rotateCircle 2s forwards;
 }
@@ -509,9 +471,8 @@ body {
   }
 }
 
-/* Initialize Progress Circle */
 .advanced-video-card[data-progress] .progress-circle {
-  --progress: attr(data-progress);
+  --progress: attr(data-progress percentage);
 }
 
 /* Recent Video Thumbnails with Glowing Pulse */
@@ -588,7 +549,8 @@ body {
   color: #999;
   font-size: 1rem;
   width: 100%;
-  margin-top: auto;
+  position: relative;
+  z-index: 1000;
 }
 
 .footer a {
@@ -697,83 +659,6 @@ body {
   width: 100%;
 }
 
-/* Circular Progress Indicators */
-.progress-circle {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 100px;
-  height: 100px;
-}
-
-.progress-circle svg {
-  transform: rotate(-90deg);
-  width: 100%;
-  height: 100%;
-}
-
-.progress-circle circle:first-child {
-  stroke: #00e5ff; /* Miku's teal */
-  stroke-linecap: round;
-  animation: rotateCircle 2s forwards;
-}
-
-.progress-circle circle:last-child {
-  stroke: #ffffff;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 1s ease;
-}
-
-@keyframes rotateCircle {
-  from {
-    stroke-dashoffset: 283;
-  }
-  to {
-    stroke-dashoffset: calc(283 - (283 * var(--progress)) / 100);
-  }
-}
-
-.advanced-video-card[data-progress] .progress-circle {
-  --progress: attr(data-progress percentage);
-}
-
-/* Parallax Effect */
-.parallax-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  opacity: 0.3;
-  pointer-events: none;
-}
-
-/* Glass Pane Overlay */
-.glass-pane {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border-radius: 1rem;
-  z-index: 1;
-  animation: glassPaneMove 20s linear infinite;
-  background-image: linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent);
-  background-size: 56.57px 56.57px; /* Adjust grid size */
-}
-
-@keyframes glassPaneMove {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: 56.57px 56.57px;
-  }
-}
-
 /* Neon Glow Animations */
 @keyframes neonGlow {
   0% {
@@ -793,15 +678,26 @@ body {
   }
 }
 
-/* Particle Background */
-.particle-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  pointer-events: none;
+/* Blossom Animation */
+.blossom {
+  position: fixed;
+  bottom: 0;
+  width: 20px;
+  height: 20px;
+  background: url('/path-to-blossom-image.png') no-repeat center center / contain;
+  opacity: 0.8;
+  animation: floatUp 8s linear forwards;
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) scale(1.5);
+    opacity: 0;
+  }
 }
 
 /* Responsive Styles */
@@ -904,8 +800,9 @@ body {
     padding: 0.4rem 0.8rem;
   }
 
-  /* Disable Parallax on Small Screens */
-  .parallax-background {
+  /* Disable Complex Animations on Small Screens */
+  .parallax-background,
+  .progress-circle {
     display: none;
   }
 }
