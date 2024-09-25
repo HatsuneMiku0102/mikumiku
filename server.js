@@ -851,16 +851,43 @@ const IPINFO_API_KEY = process.env.IPINFO_API_KEY; // Using your environment var
 // Function to fetch location data from IPInfo API
 async function fetchLocationData(ip) {
     try {
-        const normalizedIp = normalizeIp(ip);  // Normalize the IP before sending to IP info
-        console.log(`Normalized IP: ${normalizedIp}`); // Log normalized IP for debugging
-        const response = await axios.get(`https://ipinfo.io/${normalizedIp}?token=${IPINFO_API_KEY}`);
+        const response = await axios.get(`https://ipinfo.io/${ip}?token=${IPINFO_API_KEY}`);
         const { ip: userIP, city, region, country } = response.data;
-        return { ip: userIP, city, region, country };
+
+        return {
+            ip: userIP,
+            city: city || 'Unknown',
+            region: region || 'Unknown',
+            country: country || 'Unknown'
+        };
     } catch (error) {
-        console.error(`Error fetching location data for IP ${ip}:`, error.message);
-        return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
+        console.error(`Error fetching location data for IP ${ip}:`, error);
+        return {
+            ip,
+            city: 'Unknown',
+            region: 'Unknown',
+            country: 'Unknown'
+        };
     }
 }
+
+
+async function attachLocationData(req, res, next) {
+    const clientIp = getClientIp(req);
+
+    if (clientIp) {
+        console.log(`Client IP detected: ${clientIp}`);
+
+        const locationData = await fetchLocationData(clientIp);
+        req.location = locationData; // Attach location data to the request object
+    } else {
+        console.log('No valid public IP detected.');
+    }
+
+    next();
+}
+
+module.exports = { attachLocationData };
 
 // Function to normalize IP address (remove "::ffff:" prefix if present)
 function normalizeIp(ip) {
@@ -953,6 +980,28 @@ app.get('/api/location', async (req, res) => {
     }
 });
 
+
+function getClientIp(req) {
+    // Check x-forwarded-for header for public IP if behind proxy or load balancer
+    let ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    
+    if (ip.includes(',')) {
+        // If there are multiple IPs (comma-separated), use the first one
+        ip = ip.split(',')[0].trim();
+    }
+
+    // Remove IPv6 prefix (::ffff:) for IPv4 addresses
+    if (ip.startsWith('::ffff:')) {
+        ip = ip.replace('::ffff:', '');
+    }
+
+    // Check if the IP is private or internal, and return null if it is
+    if (/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1]))/.test(ip)) {
+        return null; // Private IP addresses shouldn't be sent to the public IPInfo API
+    }
+
+    return ip;
+}
 
 async function fetchUserLocation(ip) {
     try {
