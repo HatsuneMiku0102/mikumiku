@@ -89,13 +89,11 @@
         
         fetch('/api/location')
             .then(response => {
-                console.log('Fetched location response:', response);
                 if (response.ok) {
                     return response.json();
                 } else if (response.status === 401) {
                     return response.json().then(data => {
                         if (data.redirect) {
-                            console.log('Redirecting to:', data.redirect);
                             window.location.href = data.redirect;
                         }
                     });
@@ -104,28 +102,35 @@
                 }
             })
             .then(data => {
-                console.log('Location data received:', data); // Log the received data to inspect its structure
+                console.log('Location data received:', data);  // Add console log to see the data structure
         
-                const locationDiv = document.getElementById('location');
-                locationDiv.innerHTML = '';  
+                if (data && Array.isArray(data) && data.length > 0) {
+                    const locationDiv = document.getElementById('location');
+                    locationDiv.innerHTML = '';  // Clear previous content
         
-                // Handle single object data
-                if (data.ip) {
-                    const locationInfo = `IP: ${data.ip}, City: ${data.city || 'Unknown'}, Region: ${data.region || 'Unknown'}, Country: ${data.country || 'Unknown'}`;
+                    data.forEach(user => {
+                        const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
+                        const locationElement = document.createElement('p');
+                        locationElement.innerText = locationInfo;
+                        locationDiv.appendChild(locationElement);
+                    });
+                } else if (data && !Array.isArray(data)) {
+                    // Handle case when data is a single object (single IP)
+                    const locationDiv = document.getElementById('location');
+                    locationDiv.innerHTML = '';  // Clear previous content
+                    const locationInfo = `IP: ${data.ip}, City: ${data.city}, Region: ${data.region}, Country: ${data.country}`;
                     const locationElement = document.createElement('p');
                     locationElement.innerText = locationInfo;
                     locationDiv.appendChild(locationElement);
                 } else {
                     console.warn('No valid location data found.');
-                    locationDiv.innerText = 'No location data available.';
+                    document.getElementById('location').innerText = 'No valid location data found.';
                 }
             })
             .catch(error => {
-                console.error('Error fetching location data:', error);
                 document.getElementById('location').innerText = 'Error loading location data';
+                console.error(error);
             });
-
-
 
   
         const logoutButton = document.getElementById('logout');
