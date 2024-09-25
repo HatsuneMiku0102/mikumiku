@@ -846,36 +846,25 @@ app.post('/api/videos', verifyToken, async (req, res) => {
 });
 
 // Active Users Tracking Helper Functions
+const IPINFO_API_KEY = process.env.IPINFO_API_KEY; // Using your environment variable
+
+// Function to fetch location data from IPInfo API
 async function fetchLocationData(ip) {
-    const token = process.env.IPINFO_API_KEY; // Access the API key from the environment variable
-
-    console.log(`Attempting to fetch location data for IP: ${ip}`); // Log the IP
-
     try {
-        const singleIp = ip.split(',')[0].trim();
-        console.log(`Normalized IP: ${singleIp}`); // Log the normalized IP
-        const response = await axios.get(`https://ipinfo.io/${singleIp}?token=${token}`);
-
-        if (response && response.data) {
-            const { ip: userIP, city, region, country } = response.data;
-            console.log(`Fetched location data: IP: ${userIP}, City: ${city}, Region: ${region}, Country: ${country}`);
-            return { ip: userIP, city, region, country };
-        } else {
-            console.warn(`No data returned for IP: ${singleIp}`);
-            return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
-        }
+        const singleIp = ip.split(',')[0].trim(); // Handle multiple IPs by taking the first one
+        const response = await axios.get(`https://ipinfo.io/${singleIp}?token=${IPINFO_API_KEY}`);
+        const { ip: userIP, city, region, country } = response.data;
+        return { ip: userIP, city, region, country };
     } catch (error) {
-        console.error(`Error fetching location data for IP ${ip}: ${error}`);
+        console.error(`Error fetching location data for IP ${ip}: ${error.message}`);
         return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
     }
 }
 
+// Function to normalize IP address (remove "::ffff:" prefix if present)
 function normalizeIp(ip) {
-    console.log(`Original IP: ${ip}`); // Log original IP
     if (ip.startsWith('::ffff:')) {
-        const normalizedIp = ip.replace('::ffff:', '');
-        console.log(`Normalized IPv4-mapped IPv6 IP: ${normalizedIp}`); // Log normalized IP
-        return normalizedIp;
+        return ip.replace('::ffff:', '');
     }
     return ip;
 }
@@ -940,16 +929,25 @@ app.get('/weather', async (req, res) => {
 
 
 app.get('/api/location', async (req, res) => {
-    const ipinfoApiKey = process.env.IPINFO_API_KEY;
+    let ipAddresses = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+    if (!ipAddresses) {
+        return res.status(400).json({ error: 'IP address not found' });
+    }
+
+    ipAddresses = ipAddresses.split(',').map(ip => normalizeIp(ip.trim()));
 
     try {
-        // Fetch user location information from IPinfo API
-        const response = await fetch(`https://ipinfo.io?token=${ipinfoApiKey}`);
-        const locationData = await response.json();
+        const locationPromises = ipAddresses.map(ip => fetchLocationData(ip));
+        const locationData = await Promise.all(locationPromises);
 
-        res.json(locationData); // Return the fetched data to the client
+        if (locationData.length === 1) {
+            return res.json(locationData[0]); // Return as an object if only one IP
+        }
+
+        return res.json(locationData); // Return an array if multiple IPs
     } catch (error) {
-        console.error('Error fetching IPinfo data:', error);
+        console.error('Error fetching location data:', error);
         res.status(500).json({ error: 'Error fetching location data' });
     }
 });
