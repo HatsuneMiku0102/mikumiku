@@ -93,35 +93,21 @@
     
         // Receive updated list of active users from the server and display it
         socket.on('activeUsersUpdate', (data) => {
-            console.log('Active users data received:', data);
-    
-            if (data && data.users && Array.isArray(data.users)) {
-                const activeUsersCount = data.users.length;
-                document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
-                
-                const locationDiv = document.getElementById('location');
-                locationDiv.innerHTML = '';  // Clear previous content
-    
-                // Loop through the users array and display each user's location info
-                data.users.forEach(user => {
-                    // Check if user has location data
-                    if (user) {
-                        const { ip = 'Unknown', city = 'Unknown', region = 'Unknown', country = 'Unknown' } = user;
-                        
-                        // Log each user for debugging
-                        console.log('User Data:', user);
-    
-                        const locationInfo = `IP: ${ip}, City: ${city}, Region: ${region}, Country: ${country}`;
-                        const locationElement = document.createElement('div');
-                        locationElement.classList.add('user-location');
-                        locationElement.innerText = locationInfo;
-                        locationDiv.appendChild(locationElement);
-                    }
-                });
-            } else {
-                console.warn('No valid active users data found.');
-                document.getElementById('active-users-count').innerText = 'No active users found.';
-            }
+            console.log('Active users data received:', data); // Debugging
+        
+            const activeUsersCount = data.users.length;
+            document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
+        
+            const locationDiv = document.getElementById('location');
+            locationDiv.innerHTML = ''; // Clear previous content
+        
+            // Loop through users array and display location info
+            data.users.forEach(user => {
+                const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
+                const locationElement = document.createElement('p');
+                locationElement.innerText = locationInfo;
+                locationDiv.appendChild(locationElement);
+            });
         });
     
         // Fetch location data from the backend
