@@ -4,11 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MikuMiku | Home</title>
-
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    
-    <!-- External CSS -->
     <link rel="stylesheet" href="/styles.css">
 </head>
 
@@ -43,18 +39,14 @@
                         <p id="videoTitle">Loading...</p>
                     </div>
                     
-                    <!-- Paused Icon and Progress Bar Container -->
                     <div style="display: flex; align-items: center; gap: 1rem; margin-top: 1rem;">
-                        <!-- Paused Icon: Initially hidden -->
                         <span id="pausedIcon" style="display: none; width: 24px; height: 24px;" aria-label="Video Paused" title="Video Paused">
-                            <!-- SVG for Pause Icon -->
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                                 <rect x="6" y="5" width="4" height="14"></rect>
                                 <rect x="14" y="5" width="4" height="14"></rect>
                             </svg>
                         </span>
                         
-                        <!-- Liquid Progress Bar -->
                         <div id="progress-bar-container" style="flex-grow: 1;">
                             <canvas id="liquidProgressBar" width="400" height="50"></canvas>
                         </div>
@@ -62,14 +54,12 @@
                     
                     <img id="videoThumbnail" src="" alt="Thumbnail of currently playing video" class="video-thumbnail">
                     
-                    <!-- Progress Times and Time Remaining -->
                     <div class="progress-times-container">
                         <p id="time-elapsed" class="progress-time">Time Elapsed: --:--</p>
                         <p id="total-duration" class="progress-time">Total Duration: --:--</p>
                         <p id="time-remaining" class="progress-time" style="display: none;">Browsing for: --:--</p>
                     </div>
 
-                    <!-- Offline Indicator -->
                     <div id="offline-indicator" style="display: none; color: red; font-weight: bold; margin-top: 1rem;">
                         YouTube is currently offline.
                     </div>
@@ -117,13 +107,11 @@
                 </div>
             </div>
 
-            <!-- Dynamic Prompt Container -->
             <div id="dynamic-prompt-container" style="display:none;" class="dynamic-prompt">
                 <p id="dynamic-prompt-text"></p>
                 <button id="close-prompt" style="cursor:pointer;">Close</button>
             </div>
 
-            <!-- Footer -->
             <footer class="footer">
                 <div class="container">
                     <p>&copy; 2024 MikuMiku. All rights reserved.</p>
@@ -132,11 +120,9 @@
             </footer>
         </div>
 
-        <!-- Socket.io and Moment.js Libraries -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
-        <!-- Canvas Background Animation Script -->
         <script>
             const canvas = document.getElementById('techCanvas');
             const ctx = canvas.getContext('2d');
@@ -260,7 +246,6 @@
             animateBackground();
         </script>
 
-        <!-- Dynamic Title Script -->
         <script>
             function getTimeOfDay() {
                 const hour = new Date().getHours();
@@ -301,7 +286,6 @@
             });
         </script>
 
-        <!-- Video and Socket.io Integration Script -->
         <script>
         document.addEventListener('DOMContentLoaded', function () {
             let intervalID = null;
@@ -312,7 +296,7 @@
             const MAX_RECENT_VIDEOS = 3;
             let previousVideoData = null;
             const YOUTUBE_API_KEY = 'AIzaSyBylSvnBlU8ZGSzTe3CVHCyyanFi_fNalY'; 
-            const OPENWEATHERMAP_API_KEY = 'ce82286b610208fb4ac780a909455a0e'; // Replace with your actual API key
+            const OPENWEATHERMAP_API_KEY = 'ce82286b610208fb4ac780a909455a0e'; 
             const CITY_NAME = 'Leeds';
             
             function formatTime(seconds) {
@@ -404,20 +388,7 @@
             });
 
             socket.on('nowPlayingUpdate', (data) => {
-                console.log('Received "nowPlayingUpdate" event from server:', data);
-                
-                // Validate the received data
-                if (!data) {
-                    console.error('No data received for nowPlayingUpdate');
-                    return;
-                }
-
                 const { isOffline, videoUrl, title, currentTime, isPaused } = data;
-
-                if (typeof isOffline === 'undefined' || !videoUrl || !title) {
-                    console.error('Incomplete data received for nowPlayingUpdate:', data);
-                    return;
-                }
 
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
@@ -426,8 +397,6 @@
                 const pausedIcon = document.getElementById('pausedIcon');
 
                 if (isOffline) {
-                    // Handle Offline State
-                    console.log('Handling offline status.');
                     videoTitleElement.innerText = 'YouTube Tab Closed';
                     nowPlayingElement.classList.add('offline');
                     videoThumbnailElement.classList.add('offline-thumbnail');
@@ -448,7 +417,6 @@
 
                     const videoID = extractYouTubeVideoID(videoUrl);
                     if (!videoID) {
-                        console.warn('Invalid YouTube Video ID:', videoUrl);
                         return;
                     }
 
@@ -467,8 +435,6 @@
                     videoThumbnailElement.alt = previousVideoData.title;
 
                     if (videoUrl.includes("youtube.com/") && !videoUrl.includes("/watch")) {
-                        // User is browsing YouTube but not watching a video
-                        console.log('User is browsing YouTube.');
                         clearExistingInterval();
                         isBrowsing = true;
                         updateProgress(0);
@@ -480,7 +446,6 @@
                             timeRemaining.style.display = 'none';
                         }
                     } else {
-                        console.log('User is watching a video.');
                         isBrowsing = false;
                         fetchYouTubeVideoDetails(videoID).then((duration) => {
                             if (duration) {
@@ -502,10 +467,8 @@
 
                     if (isPaused) {
                         pausedIcon.style.display = 'inline';
-                        console.log('Video is paused. Showing paused icon.');
                     } else {
                         pausedIcon.style.display = 'none';
-                        console.log('Video is playing. Hiding paused icon.');
                     }
                 }
             });
@@ -540,7 +503,6 @@
                     const data = await response.json();
                     displayWeather(data);
                 } catch (error) {
-                    console.error('Error fetching weather data:', error);
                     document.getElementById('weather-description').innerText = 'Unable to fetch weather data.';
                     document.getElementById('temperature').innerText = '';
                     document.getElementById('humidity').innerText = '';
@@ -594,9 +556,8 @@
             }
 
             fetchWeather();
-            setInterval(fetchWeather, 3600000); // Refresh weather every hour
+            setInterval(fetchWeather, 3600000);
 
-            // Liquid Progress Bar Integration
             const liquidCanvas = document.getElementById('liquidProgressBar');
             const liquidCtx = liquidCanvas.getContext('2d');
             const liquidWidth = liquidCanvas.width;
@@ -667,28 +628,22 @@
                 }
             }
 
-            // Dynamic Prompt Logic
             socket.on('dynamicPrompt', (data) => {
-                console.log('Dynamic prompt received:', data);  // Debug log
-        
                 const promptContainer = document.getElementById('dynamic-prompt-container');
                 const promptText = document.getElementById('dynamic-prompt-text');
         
                 promptText.innerText = data.message || "A new prompt has arrived!";
-                promptContainer.style.display = 'block'; // Show the prompt
+                promptContainer.style.display = 'block';
         
-                // Auto-hide the prompt after 5 seconds
                 setTimeout(() => {
                     promptContainer.style.display = 'none';
                 }, 5000);
         
-                // Allow manual close
                 document.getElementById('close-prompt').addEventListener('click', () => {
                     promptContainer.style.display = 'none';
                 });
             });
-        
-            // Log all incoming events for debugging purposes
+
             socket.onAny((event, data) => {
                 console.log(`Received event: ${event}, Data:`, data);
             });
