@@ -851,7 +851,11 @@ const IPINFO_API_KEY = process.env.IPINFO_API_KEY; // Using your environment var
 // Function to fetch location data from IPInfo API
 async function fetchLocationData(ip) {
     try {
-        const response = await axios.get(`https://ipinfo.io/${ip}?token=${IPINFO_API_KEY}`);
+        // Split IPs in case multiple are forwarded
+        const ipList = ip.split(',');
+        const validIp = ipList[0].trim(); // Take the first valid IP address
+
+        const response = await axios.get(`https://ipinfo.io/${validIp}?token=${IPINFO_API_KEY}`);
         const { ip: userIP, city, region, country } = response.data;
 
         return {
@@ -960,13 +964,19 @@ app.get('/weather', async (req, res) => {
 function getValidIpAddress(req) {
     let ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     if (ipAddress.includes(',')) {
+        // Extract first valid IP from the list (ignoring local/internal IPs if present)
         ipAddress = ipAddress.split(',').map(ip => ip.trim())[0];
     }
+
+    // If IP starts with "::ffff:", it is an IPv6 representation of IPv4, clean it up
     if (ipAddress.startsWith('::ffff:')) {
         ipAddress = ipAddress.replace('::ffff:', '');
     }
+
     return ipAddress;
 }
+
+module.exports = { fetchLocationData, getValidIpAddress };
 
 
 app.get('/api/location', async (req, res) => {
