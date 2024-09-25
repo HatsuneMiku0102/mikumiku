@@ -128,28 +128,18 @@
             .then(response => {
                 if (response.ok) {
                     return response.json();
-                } else if (response.status === 401) {
-                    return response.json().then(data => {
-                        if (data.redirect) {
-                            window.location.href = data.redirect;
-                        }
-                    });
                 } else {
                     throw new Error('Error fetching location data');
                 }
             })
             .then(data => {
-                console.log('Location data received:', data);
-    
-                if (data && Array.isArray(data) && data.length > 0) {
-                    const locationDiv = document.getElementById('location');
-                    locationDiv.innerHTML = '';  // Clear previous content
-    
+                const locationDiv = document.getElementById('location');
+                locationDiv.innerHTML = '';  // Clear previous content
+        
+                if (data && Array.isArray(data)) {
                     data.forEach(user => {
-                        const { ip = 'Unknown', city = 'Unknown', region = 'Unknown', country = 'Unknown' } = user;
-                        const locationInfo = `IP: ${ip}, City: ${city}, Region: ${region}, Country: ${country}`;
-                        const locationElement = document.createElement('div');
-                        locationElement.classList.add('user-location');
+                        const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
+                        const locationElement = document.createElement('p');
                         locationElement.innerText = locationInfo;
                         locationDiv.appendChild(locationElement);
                     });
@@ -162,6 +152,7 @@
                 document.getElementById('location').innerText = 'Error loading location data';
                 console.error(error);
             });
+
     
         // Logout logic
         const logoutButton = document.getElementById('logout');
