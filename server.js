@@ -757,42 +757,48 @@ let videoStartTimestamp = Date.now();
 io.on('connection', (socket) => {
     logger.info('New client connected');
 
-    // Emit current status to the newly connected client
+    // Emit the current status to the newly connected client
     socket.emit('nowPlayingUpdate', { 
         title: currentVideoTitle, 
         videoUrl: currentVideoUrl, 
         startTimestamp: videoStartTimestamp, 
         currentTime: (Date.now() - videoStartTimestamp) / 1000,
-        isPaused: isVideoPaused // Ensure this variable reflects the current paused state
+        isOffline: false, // Assuming initial status is online
+        isPaused: isVideoPaused || false // Initialize with false if undefined
     });
 
     socket.on('updateVideoTitle', ({ title, videoUrl, currentTime, isPaused }) => {
         logger.info('Received "updateVideoTitle" event:', { title, videoUrl, currentTime, isPaused });
 
-        // Update server-side variables
+        // Update server's current status
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
         videoStartTimestamp = Date.now() - (currentTime * 1000);
-        isVideoPaused = isPaused; // Update the paused state
+        isVideoPaused = isPaused; // Update the paused status
 
-        // Emit the updated status to all connected clients
-        io.emit('nowPlayingUpdate', { 
-            title, 
-            videoUrl, 
-            startTimestamp: videoStartTimestamp,
-            currentTime: currentTime,
-            isPaused: isPaused
-        });
-
-        // Handle 'Offline' status separately
+        // Determine if the status is Offline or Paused
         if (title === 'Offline') {
+            // Emit Offline status
             io.emit('nowPlayingUpdate', {
                 title: 'Offline',
                 videoUrl: '',
                 startTimestamp: 0,
                 currentTime: 0,
-                isPaused: false 
+                isOffline: true,
+                isPaused: false // Offline implies not paused, but YouTube is closed
             });
+            logger.info('Emitted "nowPlayingUpdate" with Offline status.');
+        } else {
+            // Emit Paused or Playing status
+            io.emit('nowPlayingUpdate', { 
+                title, 
+                videoUrl, 
+                startTimestamp: videoStartTimestamp,
+                currentTime: currentTime,
+                isOffline: false,
+                isPaused: isPaused || false
+            });
+            logger.info('Emitted "nowPlayingUpdate" with current video status.');
         }
     });
 
