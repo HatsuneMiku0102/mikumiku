@@ -1,3 +1,6 @@
+'use strict';
+
+const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const bodyParser = require('body-parser');
@@ -16,8 +19,6 @@ const fs = require('fs');
 const winston = require('winston');
 const { DateTime } = require('luxon');
 const fetch = require('node-fetch');
-const express = require('express');
-
 
 dotenv.config();
 
@@ -94,7 +95,6 @@ app.use(session({
 }));
 
 // Set CSP headers using helmet
-
 app.use(
   helmet.contentSecurityPolicy({
     directives: {
@@ -163,8 +163,6 @@ app.use(
     }
   })
 );
-
-
 
 // Serve static files from 'public'
 app.use(express.static(path.join(__dirname, 'public'), {
@@ -753,13 +751,31 @@ app.post('/api/videos', verifyToken, async (req, res) => {
 let currentVideoTitle = 'Loading...';
 let currentVideoUrl = '';
 let videoStartTimestamp = Date.now();
-let isVideoPaused = false; 
-let isOffline = false; 
+let isVideoPaused = false; // Initialize as not paused
+let isOffline = false; // Initialize as online
 
+// Active Users Tracking
+let activeUsers = [];
 
 // Socket.IO Connection Handling
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
     logger.info('New client connected');
+
+    // Handle Active Users Tracking
+    let ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
+
+    if (ip.includes(',')) {
+        ip = ip.split(',')[0].trim();
+    }
+
+    ip = normalizeIp(ip);
+
+    if (!activeUsers.some(user => user.ip === ip)) {
+        const locationData = await fetchLocationData(ip);
+        activeUsers.push(locationData);
+    }
+
+    io.emit('activeUsersUpdate', { users: activeUsers });
 
     // Emit the current status to the newly connected client
     socket.emit('nowPlayingUpdate', { 
@@ -767,10 +783,11 @@ io.on('connection', (socket) => {
         videoUrl: currentVideoUrl, 
         startTimestamp: videoStartTimestamp, 
         currentTime: (Date.now() - videoStartTimestamp) / 1000,
-        isOffline: false, // Assuming initial status is online
-        isPaused: isVideoPaused || false // Initialize with false if undefined
+        isOffline: isOffline, // Reflect current offline status
+        isPaused: isVideoPaused || false // Initialize with current pause status
     });
 
+    // Handle video status updates
     socket.on('updateVideoTitle', ({ title, videoUrl, currentTime, isPaused }) => {
         logger.info('Received "updateVideoTitle" event:', { title, videoUrl, currentTime, isPaused });
 
@@ -783,17 +800,19 @@ io.on('connection', (socket) => {
         // Determine if the status is Offline or Paused
         if (title === 'Offline') {
             // Emit Offline status
+            isOffline = true;
             io.emit('nowPlayingUpdate', {
                 title: 'Offline',
                 videoUrl: '',
                 startTimestamp: 0,
                 currentTime: 0,
                 isOffline: true,
-                isPaused: false // Offline implies not paused, but YouTube is closed
+                isPaused: false // Offline implies YouTube is closed, so not paused
             });
             logger.info('Emitted "nowPlayingUpdate" with Offline status.');
         } else {
             // Emit Paused or Playing status
+            isOffline = false;
             io.emit('nowPlayingUpdate', { 
                 title, 
                 videoUrl, 
@@ -806,11 +825,13 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Handle Active Users Tracking Disconnection
     socket.on('disconnect', () => {
         logger.info('Client disconnected');
+        activeUsers = activeUsers.filter(user => user.ip !== ip);
+        io.emit('activeUsersUpdate', { users: activeUsers });
     });
 });
-
 
 // Real-time Data Endpoint
 app.post('/api/update', (req, res) => {
@@ -819,9 +840,7 @@ app.post('/api/update', (req, res) => {
     res.status(200).send({ message: 'Data sent to clients' });
 });
 
-// Active Users Tracking
-let activeUsers = [];
-
+// Active Users Tracking Helper Functions
 async function fetchLocationData(ip) {
     try {
         const singleIp = ip.split(',')[0].trim();
@@ -840,28 +859,6 @@ function normalizeIp(ip) {
     }
     return ip;
 }
-
-io.on('connection', async (socket) => {  
-    let ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
-
-    if (ip.includes(',')) {
-        ip = ip.split(',')[0].trim();
-    }
-
-    ip = normalizeIp(ip);
-
-    if (!activeUsers.some(user => user.ip === ip)) {
-        const locationData = await fetchLocationData(ip);
-        activeUsers.push(locationData);
-    }
-
-    io.emit('activeUsersUpdate', { users: activeUsers });
-
-    socket.on('disconnect', () => {
-        activeUsers = activeUsers.filter(user => user.ip !== ip);
-        io.emit('activeUsersUpdate', { users: activeUsers });
-    });
-});
 
 // Additional Routes
 app.get('/admin-dashboard', verifyToken, (req, res) => {
@@ -901,7 +898,6 @@ app.get('/api/check-bungie', async (req, res) => {
     }
 });
 
-
 app.get('/weather', async (req, res) => {
     const city = req.query.city || 'Leeds';
     const units = 'metric'; // or 'imperial' for Fahrenheit
@@ -920,7 +916,6 @@ app.get('/weather', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
-
 
 // Start the server
 server.listen(PORT, () => {
