@@ -83,28 +83,24 @@
 
         // Listen for active users update from the server
         socket.on('activeUsersUpdate', (data) => {
-            console.log('Active users data received:', data);
-
+            console.log('Received active users data from the server:', data);  // Log the received data for debugging
+        
             // Check if data and users array are valid
             if (data && data.users && Array.isArray(data.users)) {
                 const activeUsersCount = data.users.length;
+                console.log(`Number of active users: ${activeUsersCount}`); // Log user count
+        
                 document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
-                
-                // Update the location div with user location data
+        
                 const locationDiv = document.getElementById('location');
                 locationDiv.innerHTML = '';  // Clear previous content
-
+        
+                // Loop through the users array and display each user's location info
                 data.users.forEach(user => {
-                    const locationInfo = `
-                        <div class="user-location">
-                            <strong>IP:</strong> ${user.ip} <br>
-                            <strong>City:</strong> ${user.city}, 
-                            <strong>Region:</strong> ${user.region}, 
-                            <strong>Country:</strong> ${user.country}
-                        </div>
-                    `;
-                    const locationElement = document.createElement('div');
-                    locationElement.innerHTML = locationInfo;
+                    console.log('User Data:', user);  // Log each user data for debugging
+                    const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
+                    const locationElement = document.createElement('p');
+                    locationElement.innerText = locationInfo;
                     locationDiv.appendChild(locationElement);
                 });
             } else {
