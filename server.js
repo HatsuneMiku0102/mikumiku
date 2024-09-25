@@ -762,6 +762,7 @@ io.on('connection', (socket) => {
         videoUrl: currentVideoUrl, 
         startTimestamp: videoStartTimestamp, 
         currentTime: (Date.now() - videoStartTimestamp) / 1000 
+        isPaused: data.isPaused
     });
 
     socket.on('updateVideoTitle', ({ title, videoUrl, currentTime }) => {
