@@ -91,7 +91,7 @@
                 if (response.ok) {
                     return response.json();
                 } else if (response.status === 401) {
-                 
+                    // Handle unauthorized error
                     return response.json().then(data => {
                         if (data.redirect) {
                             window.location.href = data.redirect;
@@ -104,14 +104,13 @@
             .then(data => {
                 if (data) {
                     const locationDiv = document.getElementById('location');
-                    locationDiv.innerHTML = '';  
-
-                    data.forEach(user => {
-                        const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
-                        const locationElement = document.createElement('p');
-                        locationElement.innerText = locationInfo;
-                        locationDiv.appendChild(locationElement);
-                    });
+                    locationDiv.innerHTML = '';
+    
+                    // Display location data in the dashboard
+                    const locationInfo = `IP: ${data.ip}, City: ${data.city}, Region: ${data.region}, Country: ${data.country}`;
+                    const locationElement = document.createElement('p');
+                    locationElement.innerText = locationInfo;
+                    locationDiv.appendChild(locationElement);
                 }
             })
             .catch(error => {
