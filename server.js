@@ -1002,23 +1002,7 @@ async function getActiveUsersWithLocations() {
 }
 
 
-function getValidIpAddress(req) {
-    let ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-    if (ipAddress.includes(',')) {
-        // Extract first valid IP from the list (ignoring local/internal IPs if present)
-        ipAddress = ipAddress.split(',').map(ip => ip.trim())[0];
-    }
 
-    // If IP starts with "::ffff:", it is an IPv6 representation of IPv4, clean it up
-    if (ipAddress.startsWith('::ffff:')) {
-        ipAddress = ipAddress.replace('::ffff:', '');
-    }
-
-    return ipAddress;
-}
-
-// Use this function when fetching IPs
-const userIp = getValidIpAddress(req);
 
 
 // Socket.io connection handler
