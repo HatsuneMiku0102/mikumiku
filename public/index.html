@@ -139,7 +139,7 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
     
-        // Star Class (Unchanged)
+        // Star Class
         class Star {
             constructor(x, y, radius, twinkleSpeed, color) {
                 this.x = x;
@@ -163,6 +163,13 @@
             }
     
             draw(ctx) {
+                // Draw glow
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius * 3, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity * 0.2})`;
+                ctx.fill();
+    
+                // Draw star
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
                 ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity})`;
@@ -170,7 +177,7 @@
             }
         }
     
-        // Constellation Class (Updated as above)
+        // Constellation Class
         class Constellation {
             constructor(data, x, y, scale, rotation) {
                 this.name = data.name;
@@ -214,8 +221,27 @@
                 });
             }
     
-            update() {
+            update(deltaTime) {
                 this.stars.forEach(star => star.update());
+                this.rotation += 0.0005 * deltaTime; // Slow rotation
+                this.applyRotation();
+            }
+    
+            applyRotation() {
+                // Recalculate star positions based on updated rotation
+                this.stars.forEach((star, index) => {
+                    // Calculate relative position
+                    const relativeX = (star.x - this.x) / this.scale;
+                    const relativeY = (star.y - this.y) / this.scale;
+    
+                    // Apply rotation
+                    const rotatedX = relativeX * Math.cos(this.rotation) - relativeY * Math.sin(this.rotation);
+                    const rotatedY = relativeX * Math.sin(this.rotation) + relativeY * Math.cos(this.rotation);
+    
+                    // Update positions
+                    star.x = this.x + rotatedX * this.scale;
+                    star.y = this.y + rotatedY * this.scale;
+                });
             }
     
             draw(ctx) {
@@ -239,7 +265,7 @@
             }
         }
     
-        // Constellation Definitions (Orion, Ursa Major, Cassiopeia)
+        // Constellation Definitions (Orion, Ursa Major, Cassiopeia, Cygnus, Scorpius)
         const constellationData = [
             {
                 name: "Orion",
@@ -287,22 +313,62 @@
                     [0, 1], [1, 2], [2, 3],
                     [3, 4], [4, 5], [5, 1]
                 ]
+            },
+            {
+                name: "Cygnus",
+                stars: [
+                    { x: 0.2, y: 0.2 },
+                    { x: 0.4, y: 0.3 },
+                    { x: 0.6, y: 0.2 },
+                    { x: 0.8, y: 0.3 },
+                    { x: 0.6, y: 0.4 },
+                    { x: 0.4, y: 0.4 },
+                    { x: 0.3, y: 0.5 },
+                    { x: 0.5, y: 0.6 },
+                    { x: 0.7, y: 0.5 }
+                ],
+                connections: [
+                    [0, 1], [1, 2], [2, 3],
+                    [3, 4], [4, 5], [5, 6],
+                    [6, 7], [7, 8]
+                ]
+            },
+            {
+                name: "Scorpius",
+                stars: [
+                    { x: 0.3, y: 0.2 },
+                    { x: 0.4, y: 0.3 },
+                    { x: 0.5, y: 0.4 },
+                    { x: 0.6, y: 0.3 },
+                    { x: 0.7, y: 0.2 },
+                    { x: 0.8, y: 0.3 },
+                    { x: 0.7, y: 0.4 },
+                    { x: 0.6, y: 0.5 },
+                    { x: 0.5, y: 0.4 },
+                    { x: 0.4, y: 0.5 },
+                    { x: 0.3, y: 0.4 }
+                ],
+                connections: [
+                    [0, 1], [1, 2], [2, 3],
+                    [3, 4], [4, 5], [5, 6],
+                    [6, 7], [7, 8], [8, 9],
+                    [9, 10], [10, 1]
+                ]
             }
-            // Add more constellations as needed
         ];
     
         // Constellation Instances
         const constellations = [];
-        const numberOfConstellations = 3; // Number of each constellation to display
+        const numberOfConstellations = 2; // Number of each constellation to display
     
         // Function to generate random rotation between 0 and 2π
         function getRandomRotation() {
             return Math.random() * 2 * Math.PI;
         }
     
-        // Function to generate random scale between 50 and 150 pixels
+        // Function to generate random scale between 100 and 200 pixels
         function getRandomScale() {
-            return Math.random() * 100 + 50;
+            return Math.random() * 100 + 100;
         }
     
         // Function to generate random position ensuring constellations stay within canvas
@@ -367,12 +433,18 @@
         const shootingStarProbability = 0.002; // Probability per frame to spawn a shooting star
     
         // Animation Loop
+        let lastFrameTime = Date.now();
+    
         function animateBackground() {
+            const now = Date.now();
+            const deltaTime = now - lastFrameTime;
+            lastFrameTime = now;
+    
             ctx.clearRect(0, 0, canvas.width, canvas.height);
     
             // Update and draw constellations
             constellations.forEach(constellation => {
-                constellation.update();
+                constellation.update(deltaTime);
                 constellation.draw(ctx);
             });
     
@@ -412,6 +484,7 @@
             });
         }, 60000); // Regenerate every 60 seconds
     </script>
+
 
 
 
