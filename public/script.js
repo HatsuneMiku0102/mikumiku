@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <circle cx="50" cy="50" r="45" stroke="#ffffff" stroke-width="5" fill="none" stroke-dasharray="283" stroke-dashoffset="283"/>
                             </svg>
                         </div>
-                        <img src="${video.thumbnail || '/video-thumbnail1.jpg'}" alt="${video.title} Thumbnail" class="recent-video-thumbnail">
+                        <img src="${video.thumbnail || '/images/video-thumbnail1.jpg'}" alt="${video.title} Thumbnail" class="recent-video-thumbnail" onerror="this.src='/images/default-video-thumbnail.jpg'">
                         <p class="recent-video-title">${video.title}</p>
                         <div class="video-info-overlay">
                             <button class="play-button">
