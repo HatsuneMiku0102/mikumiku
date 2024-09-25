@@ -176,7 +176,10 @@ class Constellation {
     generateStars(starNames) {
         starNames.forEach(starName => {
             const starInfo = starCatalog.find(star => star.name === starName);
-            if (!starInfo) return;
+            if (!starInfo) {
+                console.warn(`Star "${starName}" not found in starCatalog.`);
+                return;
+            }
 
             const ra = parseRA(starInfo.ra);
             const dec = parseDec(starInfo.dec);
@@ -381,4 +384,52 @@ initializeConstellations();
 
 // Shooting Stars Management (Optional Enhancement)
 const shootingStars = [];
-const shootingStarProbability = 0.002; // Probability
+const shootingStarProbability = 0.002; // Probability per frame to spawn a shooting star
+
+function manageShootingStars() {
+    if (Math.random() < shootingStarProbability) {
+        shootingStars.push(new ShootingStar(canvasElement.width, canvasElement.height));
+    }
+
+    for (let i = shootingStars.length - 1; i >= 0; i--) {
+        shootingStars[i].update(canvasElement.width, canvasElement.height);
+        shootingStars[i].draw(ctx);
+        if (!shootingStars[i].alive) {
+            shootingStars.splice(i, 1);
+        }
+    }
+}
+
+// Animation Loop
+let lastFrameTime = Date.now();
+const fps = 60;
+const fpsInterval = 1000 / fps;
+
+function animateBackground() {
+    requestAnimationFrame(animateBackground);
+
+    const now = Date.now();
+    const elapsed = now - lastFrameTime;
+
+    if (elapsed > fpsInterval) {
+        lastFrameTime = now - (elapsed % fpsInterval);
+
+        ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+        // Update and draw constellations
+        constellationsList.forEach(constellation => {
+            constellation.update();
+            constellation.draw(ctx);
+        });
+
+        // Manage shooting stars
+        manageShootingStars();
+    }
+}
+
+animateBackground();
+
+// Optional: Regenerate constellations periodically to keep the background dynamic
+setInterval(() => {
+    initializeConstellations();
+}, 60000); // Regenerate every 60 seconds
