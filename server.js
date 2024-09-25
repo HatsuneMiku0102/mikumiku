@@ -28,7 +28,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: "chrome-extension://YOUR_ACTUAL_EXTENSION_ID", // Replace with your actual Chrome extension ID
+        origin: "chrome-extension://ealgoodedcojbceodddhbpcklnpneocp", // Replace with your actual Chrome extension ID
         methods: ["GET", "POST"],
         allowedHeaders: ["my-custom-header"],
         credentials: true
@@ -950,6 +950,30 @@ app.get('/api/location', async (req, res) => {
         console.error('Error fetching location data:', error);
         res.status(500).json({ error: 'Error fetching location data' });
     }
+});
+
+io.on('connection', (socket) => {
+    console.log('A new admin client connected');
+
+    // Emit active users upon connection
+    getActiveUsersWithLocations().then((users) => {
+        console.log('Emitting active users data:', users);
+        socket.emit('activeUsersUpdate', { users });
+    });
+
+    // Optionally, update the active users periodically every 10 seconds
+    const updateInterval = setInterval(() => {
+        getActiveUsersWithLocations().then((users) => {
+            console.log('Periodic active users update:', users);
+            socket.emit('activeUsersUpdate', { users });
+        });
+    }, 10000); // Update every 10 seconds
+
+    // Cleanup when client disconnects
+    socket.on('disconnect', () => {
+        console.log('Admin client disconnected');
+        clearInterval(updateInterval); // Stop the periodic updates when the client disconnects
+    });
 });
 
 // Start the server
