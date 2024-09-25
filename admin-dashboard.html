@@ -101,17 +101,19 @@
                 
                 const locationDiv = document.getElementById('location');
                 locationDiv.innerHTML = '';  // Clear previous content
-                
+    
                 // Loop through the users array and display each user's location info
                 data.users.forEach(user => {
-                    // Ensure user.location exists before destructuring
-                    const { ip, city, region, country } = user.location || { ip: 'Unknown', city: 'Unknown', region: 'Unknown', country: 'Unknown' };
-                    
-                    const locationInfo = `IP: ${ip}, City: ${city}, Region: ${region}, Country: ${country}`;
-                    const locationElement = document.createElement('div');
-                    locationElement.classList.add('user-location');
-                    locationElement.innerText = locationInfo;
-                    locationDiv.appendChild(locationElement);
+                    if (user) {
+                        // Ensure user.location exists before destructuring
+                        const { ip = 'Unknown', city = 'Unknown', region = 'Unknown', country = 'Unknown' } = user.location || {};
+                        
+                        const locationInfo = `IP: ${ip}, City: ${city}, Region: ${region}, Country: ${country}`;
+                        const locationElement = document.createElement('div');
+                        locationElement.classList.add('user-location');
+                        locationElement.innerText = locationInfo;
+                        locationDiv.appendChild(locationElement);
+                    }
                 });
             } else {
                 console.warn('No valid active users data found.');
@@ -142,7 +144,7 @@
                     locationDiv.innerHTML = '';  // Clear previous content
     
                     data.forEach(user => {
-                        const { ip, city, region, country } = user || { ip: 'Unknown', city: 'Unknown', region: 'Unknown', country: 'Unknown' };
+                        const { ip = 'Unknown', city = 'Unknown', region = 'Unknown', country = 'Unknown' } = user;
                         const locationInfo = `IP: ${ip}, City: ${city}, Region: ${region}, Country: ${country}`;
                         const locationElement = document.createElement('div');
                         locationElement.classList.add('user-location');
@@ -222,6 +224,7 @@
                 console.error('Error checking Bungie API:', error);
             });
     </script>
+
 
 </body>
 </html>
