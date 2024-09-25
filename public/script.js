@@ -19,7 +19,9 @@ document.addEventListener('DOMContentLoaded', function () {
         type();
     }
 
-    typeFancyWord(fancyTitleElement, fancyText, fancyTypingSpeed);
+    if (fancyTitleElement) {
+        typeFancyWord(fancyTitleElement, fancyText, fancyTypingSpeed);
+    }
 
     // Fetch Videos Data
     fetch('/videos.json')
@@ -31,12 +33,11 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(data => {
             const videoContainer = document.getElementById('recent-videos-container');
-            if (data && data.length) {
+            if (videoContainer && data && data.length) {
                 data.forEach(video => {
                     const videoItem = document.createElement('div');
-                    videoItem.classList.add('video-item');
+                    videoItem.classList.add('video-item', 'advanced-video-card');
                     videoItem.setAttribute('data-video-url', video.url);
-                    videoItem.classList.add('advanced-video-card'); // Ensure video cards have the correct class
                     videoItem.setAttribute('data-progress', video.progress || 0); // Progress percentage
                     videoItem.innerHTML = `
                         <div class="progress-circle" data-progress="${video.progress || 0}">
@@ -45,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <circle cx="50" cy="50" r="45" stroke="#ffffff" stroke-width="5" fill="none" stroke-dasharray="283" stroke-dashoffset="283"/>
                             </svg>
                         </div>
-                        <img src="https://img.youtube.com/vi/${video.url.split('/').pop()}/0.jpg" alt="${video.title} Thumbnail" class="recent-video-thumbnail">
+                        <img src="https://img.youtube.com/vi/${extractYouTubeID(video.url)}/0.jpg" alt="${video.title} Thumbnail" class="recent-video-thumbnail">
                         <p class="recent-video-title">${video.title}</p>
                         <div class="video-info-overlay">
                             <button class="play-button">
@@ -61,14 +62,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
                 initializeVideoLoading();
                 initializeProgressCircles();
-            } else {
+            } else if (videoContainer) {
                 videoContainer.innerHTML = '<p>No videos available</p>';
             }
         })
         .catch(error => {
             console.error('Error fetching video data:', error);
-            document.getElementById('recent-videos-container').innerHTML = '<p>Error loading videos.</p>';
+            const videoContainer = document.getElementById('recent-videos-container');
+            if (videoContainer) {
+                videoContainer.innerHTML = '<p>Error loading videos.</p>';
+            }
         });
+
+    // Function to Extract YouTube Video ID from URL
+    function extractYouTubeID(url) {
+        const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:embed\/|watch\?v=)|youtu\.be\/)([^\s&]+)/;
+        const match = url.match(regex);
+        return match ? match[1] : '';
+    }
 
     // Initialize Video Loading with IntersectionObserver and Click Events
     function initializeVideoLoading() {
@@ -101,7 +112,7 @@ document.addEventListener('DOMContentLoaded', function () {
             threshold: 0.1
         });
 
-        document.querySelectorAll(".video-item").forEach(container => {
+        document.querySelectorAll(".advanced-video-card").forEach(container => {
             observer.observe(container);
         });
 
@@ -123,103 +134,116 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize Circular Progress Indicators
     function initializeProgressCircles() {
         document.querySelectorAll('.progress-circle').forEach(circle => {
-            const progress = circle.getAttribute('data-progress') || 0;
+            const progress = parseInt(circle.getAttribute('data-progress')) || 0;
             const offset = 283 - (283 * progress) / 100;
             const progressCircle = circle.querySelectorAll('circle')[1];
-            progressCircle.style.strokeDashoffset = offset;
+            if (progressCircle) {
+                progressCircle.style.strokeDashoffset = offset;
+            }
         });
     }
 
     // Initialize Vanilla Tilt for 3D Tilt Effect
-    VanillaTilt.init(document.querySelectorAll("[data-tilt]"), {
-        max: 15,
-        speed: 400,
-        glare: true,
-        "max-glare": 0.2,
-    });
+    if (typeof VanillaTilt !== 'undefined') {
+        VanillaTilt.init(document.querySelectorAll("[data-tilt]"), {
+            max: 15,
+            speed: 400,
+            glare: true,
+            "max-glare": 0.2,
+        });
+    } else {
+        console.error('VanillaTilt is not loaded.');
+    }
 
     // Initialize Canvas-Based Molecular Structure Animation
     const canvas = document.getElementById('molecularCanvas');
-    const ctx = canvas.getContext('2d');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
 
-    let width, height;
-    function resizeCanvas() {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
+        let width, height;
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
-    // Molecular Node Structure
-    const nodes = [];
-    const nodeCount = 100; // Number of nodes
+        // Molecular Node Structure
+        const nodes = [];
+        const nodeCount = 100; // Number of nodes
 
-    // Initialize Nodes
-    for (let i = 0; i < nodeCount; i++) {
-        nodes.push({
-            x: Math.random() * width,
-            y: Math.random() * height,
-            radius: Math.random() * 2 + 1,
-            color: '#00e5ff',
-            speed: Math.random() * 0.5 - 0.25, // -0.25 to 0.25
-            direction: Math.random() * 2 * Math.PI
-        });
-    }
-
-    // Draw Nodes and Connections
-    function drawMolecules() {
-        ctx.clearRect(0, 0, width, height);
-
-        // Move Nodes
-        nodes.forEach(node => {
-            node.x += Math.cos(node.direction) * node.speed;
-            node.y += Math.sin(node.direction) * node.speed;
-
-            // Boundary Conditions
-            if (node.x < 0 || node.x > width) {
-                node.direction = Math.PI - node.direction;
-            }
-            if (node.y < 0 || node.y > height) {
-                node.direction = -node.direction;
-            }
-        });
-
-        // Draw Connections
+        // Initialize Nodes
         for (let i = 0; i < nodeCount; i++) {
-            for (let j = i + 1; j < nodeCount; j++) {
-                const dx = nodes[i].x - nodes[j].x;
-                const dy = nodes[i].y - nodes[j].y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < 150) { // Connection distance threshold
-                    ctx.strokeStyle = `rgba(0, 229, 255, ${1 - distance / 150})`; // Fading lines
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    ctx.moveTo(nodes[i].x, nodes[i].y);
-                    ctx.lineTo(nodes[j].x, nodes[j].y);
-                    ctx.stroke();
+            nodes.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                radius: Math.random() * 2 + 1,
+                color: '#00e5ff',
+                speed: Math.random() * 0.5 - 0.25, // -0.25 to 0.25
+                direction: Math.random() * 2 * Math.PI
+            });
+        }
+
+        // Draw Nodes and Connections
+        function drawMolecules() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Move Nodes
+            nodes.forEach(node => {
+                node.x += Math.cos(node.direction) * node.speed;
+                node.y += Math.sin(node.direction) * node.speed;
+
+                // Boundary Conditions
+                if (node.x < 0 || node.x > width) {
+                    node.direction = Math.PI - node.direction;
+                }
+                if (node.y < 0 || node.y > height) {
+                    node.direction = -node.direction;
+                }
+            });
+
+            // Draw Connections
+            for (let i = 0; i < nodeCount; i++) {
+                for (let j = i + 1; j < nodeCount; j++) {
+                    const dx = nodes[i].x - nodes[j].x;
+                    const dy = nodes[i].y - nodes[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < 150) { // Connection distance threshold
+                        ctx.strokeStyle = `rgba(0, 229, 255, ${1 - distance / 150})`; // Fading lines
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(nodes[i].x, nodes[i].y);
+                        ctx.lineTo(nodes[j].x, nodes[j].y);
+                        ctx.stroke();
+                    }
                 }
             }
+
+            // Draw Nodes
+            nodes.forEach(node => {
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
+                ctx.fillStyle = node.color;
+                ctx.fill();
+            });
+
+            requestAnimationFrame(drawMolecules);
         }
 
-        // Draw Nodes
-        nodes.forEach(node => {
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
-            ctx.fillStyle = node.color;
-            ctx.fill();
-        });
-
-        requestAnimationFrame(drawMolecules);
+        drawMolecules();
+    } else {
+        console.error('Canvas element with ID "molecularCanvas" not found.');
     }
 
-    drawMolecules();
-
     // Dynamic Prompt Functionality (Existing)
-    document.querySelector('.fancy-title')?.addEventListener('mouseover', function () {
-        for (let i = 0; i < 50; i++) {
-            createBlossom();
-        }
-    });
+    const fancyTitleElementForBlossom = document.querySelector('.site-title');
+    if (fancyTitleElementForBlossom) {
+        fancyTitleElementForBlossom.addEventListener('mouseover', function () {
+            for (let i = 0; i < 50; i++) {
+                createBlossom();
+            }
+        });
+    }
 
     function createBlossom() {
         const blossom = document.createElement('div');
