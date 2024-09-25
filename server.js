@@ -797,10 +797,6 @@ io.on('connection', async (socket) => {
             `isPaused=${isVideoPaused}, isOffline=${isOffline}`);
     });
 
-    
-        logger.info(`Emitted "nowPlayingUpdate" to all clients: Title="${currentVideoTitle}", URL="${currentVideoUrl}", ` +
-            `isPaused=${isVideoPaused}, isOffline=${isOffline}`);
-    });
 
 
     // Handle disconnection
