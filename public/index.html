@@ -66,7 +66,7 @@
                     <div class="progress-times-container">
                         <p id="time-elapsed" class="progress-time">Time Elapsed: --:--</p>
                         <p id="total-duration" class="progress-time">Total Duration: --:--</p>
-                        <p id="time-remaining" class="progress-time" style="display: none;">Browsing for: --:--</p> <!-- Added time-remaining -->
+                        <p id="time-remaining" class="progress-time" style="display: none;">Browsing for: --:--</p>
                     </div>
 
                     <!-- Offline Indicator -->
@@ -115,6 +115,12 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Dynamic Prompt Container -->
+            <div id="dynamic-prompt-container" style="display:none;" class="dynamic-prompt">
+                <p id="dynamic-prompt-text"></p>
+                <button id="close-prompt" style="cursor:pointer;">Close</button>
             </div>
 
             <!-- Footer -->
@@ -188,7 +194,6 @@
                         this.y += this.speedY;
                     }
 
-                    // Wrap around the canvas edges
                     if (this.x > canvas.width) this.x = 0;
                     if (this.x < 0) this.x = canvas.width;
                     if (this.y > canvas.height) this.y = 0;
@@ -418,7 +423,7 @@
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 const nowPlayingElement = document.querySelector('.now-playing');
                 const offlineIndicator = document.getElementById('offline-indicator');
-                const pausedIcon = document.getElementById('pausedIcon'); // Updated to 'pausedIcon'
+                const pausedIcon = document.getElementById('pausedIcon');
 
                 if (isOffline) {
                     // Handle Offline State
@@ -430,17 +435,13 @@
                     updateProgress(0);
                     document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
                     document.getElementById('total-duration').innerText = `Total Duration: --:--`;
-                    // Hide paused icon when offline
                     pausedIcon.style.display = 'none';
-                    // Hide time-remaining if present
                     const timeRemaining = document.getElementById('time-remaining');
                     if (timeRemaining) {
                         timeRemaining.style.display = 'none';
                     }
-                    // Show Offline Indicator
                     offlineIndicator.style.display = 'block';
                 } else {
-                    // Not Offline
                     nowPlayingElement.classList.remove('offline');
                     videoThumbnailElement.classList.remove('offline-thumbnail');
                     offlineIndicator.style.display = 'none';
@@ -473,15 +474,12 @@
                         updateProgress(0);
                         document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
                         document.getElementById('total-duration').innerText = `Total Duration: --:--`;
-                        // Hide paused icon when browsing
                         pausedIcon.style.display = 'none';
-                        // Hide time-remaining
                         const timeRemaining = document.getElementById('time-remaining');
                         if (timeRemaining) {
                             timeRemaining.style.display = 'none';
                         }
                     } else {
-                        // User is watching a video
                         console.log('User is watching a video.');
                         isBrowsing = false;
                         fetchYouTubeVideoDetails(videoID).then((duration) => {
@@ -494,7 +492,6 @@
                                     intervalID = setInterval(updateProgressBar, 1000);
                                 }
                                 document.getElementById('total-duration').innerText = `Total Duration: ${formatTime(videoDuration)}`;
-                                // Hide time-remaining if present
                                 const timeRemaining = document.getElementById('time-remaining');
                                 if (timeRemaining) {
                                     timeRemaining.style.display = 'none';
@@ -503,7 +500,6 @@
                         });
                     }
 
-                    // Handle Paused State
                     if (isPaused) {
                         pausedIcon.style.display = 'inline';
                         console.log('Video is paused. Showing paused icon.');
@@ -554,7 +550,6 @@
 
             function displayWeather(data) {
                 if (!data || !data.weather) {
-                    console.warn('Weather data is incomplete.');
                     document.getElementById('weather-description').innerText = 'Weather data unavailable.';
                     return;
                 }
@@ -671,6 +666,24 @@
                     }
                 }
             }
+
+            // Dynamic Prompt Logic
+            socket.on('dynamicPrompt', (data) => {
+                const promptContainer = document.getElementById('dynamic-prompt-container');
+                const promptText = document.getElementById('dynamic-prompt-text');
+                promptText.innerText = data.message || "A new prompt has arrived!";
+                promptContainer.style.display = 'block'; // Show the prompt
+
+                // Optional: Auto-hide the prompt after a certain period (e.g., 5 seconds)
+                setTimeout(() => {
+                    promptContainer.style.display = 'none';
+                }, 5000);
+
+                document.getElementById('close-prompt').addEventListener('click', () => {
+                    promptContainer.style.display = 'none'; // Allow the user to close the prompt manually
+                });
+            });
+
         });
         </script>
     </body>
