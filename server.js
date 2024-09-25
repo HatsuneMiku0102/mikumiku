@@ -849,20 +849,33 @@ app.post('/api/videos', verifyToken, async (req, res) => {
 async function fetchLocationData(ip) {
     const token = process.env.IPINFO_API_KEY; // Access the API key from the environment variable
 
+    console.log(`Attempting to fetch location data for IP: ${ip}`); // Log the IP
+
     try {
         const singleIp = ip.split(',')[0].trim();
+        console.log(`Normalized IP: ${singleIp}`); // Log the normalized IP
         const response = await axios.get(`https://ipinfo.io/${singleIp}?token=${token}`);
-        const { ip: userIP, city, region, country } = response.data;
-        return { ip: userIP, city, region, country };
+
+        if (response && response.data) {
+            const { ip: userIP, city, region, country } = response.data;
+            console.log(`Fetched location data: IP: ${userIP}, City: ${city}, Region: ${region}, Country: ${country}`);
+            return { ip: userIP, city, region, country };
+        } else {
+            console.warn(`No data returned for IP: ${singleIp}`);
+            return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
+        }
     } catch (error) {
-        logger.error(`Error fetching location data for IP ${ip}: ${error}`);
+        console.error(`Error fetching location data for IP ${ip}: ${error}`);
         return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
     }
 }
 
 function normalizeIp(ip) {
+    console.log(`Original IP: ${ip}`); // Log original IP
     if (ip.startsWith('::ffff:')) {
-        return ip.replace('::ffff:', '');
+        const normalizedIp = ip.replace('::ffff:', '');
+        console.log(`Normalized IPv4-mapped IPv6 IP: ${normalizedIp}`); // Log normalized IP
+        return normalizedIp;
     }
     return ip;
 }
