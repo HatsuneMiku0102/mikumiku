@@ -973,26 +973,27 @@ async function getActiveUsersWithLocations() {
 
 // Socket.io connection handler
 io.on('connection', (socket) => {
-    console.log('A new admin client connected');
+    console.log(`A new user connected: ${socket.id}`);
+    
+    // Add the user to the active users list
+    activeUsers.push({
+        id: socket.id,
+        ip: socket.request.connection.remoteAddress, // Get IP from connection
+        city: 'Unknown',
+        region: 'Unknown',
+        country: 'Unknown'
+    });
 
-    // Emit the active users and their locations when a client connects
-    getActiveUsersWithLocations().then((users) => {
-        console.log('Emitting active users with locations:', users);
-        socket.emit('activeUsersUpdate', { users });
-    }).catch(err => console.error('Error getting active users:', err));
+    // Emit the active users to all connected clients
+    io.emit('activeUsersUpdate', { users: activeUsers });
 
-    // Optionally, update the active users periodically
-    const updateInterval = setInterval(() => {
-        getActiveUsersWithLocations().then((users) => {
-            console.log('Periodic update of active users with locations:', users);
-            socket.emit('activeUsersUpdate', { users });
-        }).catch(err => console.error('Error during periodic update:', err));
-    }, 10000); // Update every 10 seconds
-
-    // Handle client disconnect
+    // Handle disconnection
     socket.on('disconnect', () => {
-        console.log('Admin client disconnected');
-        clearInterval(updateInterval); // Stop updates when the client disconnects
+        console.log(`User disconnected: ${socket.id}`);
+        activeUsers = activeUsers.filter(user => user.id !== socket.id);
+        
+        // Emit the updated active users list
+        io.emit('activeUsersUpdate', { users: activeUsers });
     });
 });
 
