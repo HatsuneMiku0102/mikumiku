@@ -77,15 +77,20 @@ document.addEventListener('DOMContentLoaded', function() {
      * @returns {number} - Dec in decimal degrees
      */
     function parseDec(decStr) {
-        const decRegex = /([+-]?)(\d+)°\s+(\d+)′\s+([\d.]+)″/;
+        // Updated regex to handle both Unicode and standard symbols for minutes and seconds
+        const decRegex = /([+-]?)(\d+)°\s*(\d+)[′']\s*([\d.]+)[″"]?/;
         const match = decStr.match(decRegex);
-        if (!match) return 0;
+        if (!match) {
+            console.warn(`Failed to parse Declination: "${decStr}"`);
+            return 0;
+        }
         const sign = match[1] === '-' ? -1 : 1;
         const degrees = parseInt(match[2], 10);
         const minutes = parseInt(match[3], 10);
         const seconds = parseFloat(match[4]);
         return sign * (degrees + minutes / 60 + seconds / 3600);
     }
+
 
     /**
      * Converts RA and Dec to Cartesian coordinates.
