@@ -247,6 +247,42 @@ function verifyToken(req, res, next) {
     });
 }
 
+
+app.get('/api/youtube', async (req, res) => {
+    const videoId = req.query.videoId;
+    
+    if (!videoId) {
+        return res.status(400).json({ error: 'videoId parameter is required.' });
+    }
+
+    const apiKey = process.env.YOUTUBE_API_KEY; // Ensure this is set in your .env
+    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${encodeURIComponent(videoId)}&part=snippet,statistics,contentDetails&key=${apiKey}`;
+
+    if (!apiKey) {
+        console.error('YOUTUBE_API_KEY is not set in environment variables.');
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            let errorMsg = 'Failed to fetch YouTube video data';
+            try {
+                const errorData = await response.json();
+                errorMsg = errorData.error.message || errorMsg;
+            } catch (e) {
+                console.error('Error parsing YouTube API error response:', e);
+            }
+            return res.status(response.status).json({ error: errorMsg });
+        }
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error(`Error fetching YouTube video data for videoId ${videoId}:`, error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 // OAuth Configuration
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
