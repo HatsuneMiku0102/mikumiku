@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 5. Star Class
     class Star {
-        constructor(name, x, y, radius, twinkleSpeed, color, baseOpacity) {
+        constructor(name, x, y, radius, twinkleSpeed, color, baseOpacity, constellation) {
             this.name = name;
             this.x = x;
             this.y = y;
@@ -251,6 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.opacity = baseOpacity;
             this.twinkleDirection = Math.random() > 0.5 ? 1 : -1;
             this.color = color; // { r, g, b }
+            this.constellation = constellation; // Name of the constellation
         }
 
         update() {
@@ -266,12 +267,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         draw(ctx) {
             // Draw glow using radial gradient
-            const gradient = ctx.createRadialGradient(this.x, this.y, this.radius, this.x, this.y, this.radius * 5); // Increased multiplier for larger glow
+            const gradient = ctx.createRadialGradient(this.x, this.y, this.radius, this.x, this.y, this.radius * 4);
             gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity})`);
             gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius * 5, 0, Math.PI * 2); // Increased glow size
+            ctx.arc(this.x, this.y, this.radius * 4, 0, Math.PI * 2);
             ctx.fillStyle = gradient;
             ctx.fill();
 
@@ -292,8 +293,8 @@ document.addEventListener('DOMContentLoaded', function() {
             this.canvasWidth = canvasWidth;
             this.canvasHeight = canvasHeight;
 
-            // Randomly position and scale the constellation
-            this.scale = Math.random() * 100 + 150; // Increased minimum scale from 100 to 150 for larger constellations
+            // Increased scale for larger constellations
+            this.scale = Math.random() * 150 + 150; // Scale between 150 and 300 pixels
 
             // Random position ensuring the constellation fits within the canvas
             this.position = this.getRandomPosition();
@@ -324,7 +325,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const appearance = mapMagnitudeToAppearance(starInfo.magnitude);
                 const color = mapSpectralTypeToColor(starInfo.spectralType);
 
-                this.stars.push(new Star(starInfo.name, x, y, appearance.radius, 0.002, color, appearance.baseOpacity));
+                // Pass the constellation name to the Star instance
+                this.stars.push(new Star(starInfo.name, x, y, appearance.radius, 0.002, color, appearance.baseOpacity, this.name));
             });
         }
 
@@ -388,8 +390,8 @@ document.addEventListener('DOMContentLoaded', function() {
         reset(canvasWidth, canvasHeight) {
             this.x = Math.random() * canvasWidth;
             this.y = Math.random() * canvasHeight * 0.5; // Appear in the upper half
-            this.length = Math.random() * 100 + 30; // Increased length for longer shooting stars
-            this.speed = Math.random() * 12 + 12; // Increased speed
+            this.length = Math.random() * 80 + 20;
+            this.speed = Math.random() * 10 + 10;
             this.angle = Math.PI / 4; // 45 degrees
             this.opacity = 1;
             this.alive = true;
@@ -418,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const shootingStars = [];
-    const shootingStarProbability = 0.003; // Increased probability per frame to spawn shooting stars
+    const shootingStarProbability = 0.002; // Probability per frame to spawn a shooting star
 
     function manageShootingStars() {
         if (Math.random() < shootingStarProbability) {
@@ -458,6 +460,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Manage shooting stars
             manageShootingStars();
+
+            // Handle hover-over tooltips
+            handleHover();
         }
     }
 
@@ -467,4 +472,58 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(() => {
         initializeConstellations();
     }, 60000); // Regenerate every 60 seconds
+
+    // 12. Hover-Over Functionality
+    // Create a tooltip element
+    const tooltip = document.createElement('div');
+    tooltip.style.position = 'absolute';
+    tooltip.style.padding = '8px 12px';
+    tooltip.style.background = 'rgba(0, 0, 0, 0.7)';
+    tooltip.style.color = '#fff';
+    tooltip.style.borderRadius = '4px';
+    tooltip.style.pointerEvents = 'none';
+    tooltip.style.opacity = '0';
+    tooltip.style.transition = 'opacity 0.3s';
+    document.body.appendChild(tooltip);
+
+    // Function to handle hover-over
+    function handleHover() {
+        const mousePos = getMousePos(canvasElement, event);
+        let hoveredStar = null;
+
+        constellationsList.forEach(constellation => {
+            constellation.stars.forEach(star => {
+                const dx = mousePos.x - star.x;
+                const dy = mousePos.y - star.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance <= star.radius * 2) { // Adjust the hover radius as needed
+                    hoveredStar = star;
+                }
+            });
+        });
+
+        if (hoveredStar) {
+            tooltip.style.left = `${hoveredStar.x + 10}px`;
+            tooltip.style.top = `${hoveredStar.y + 10}px`;
+            tooltip.innerHTML = `<strong>${hoveredStar.name}</strong><br>${hoveredStar.constellation}`;
+            tooltip.style.opacity = '1';
+        } else {
+            tooltip.style.opacity = '0';
+        }
+    }
+
+    // Helper function to get mouse position relative to the canvas
+    function getMousePos(canvas, evt) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: evt.clientX - rect.left,
+            y: evt.clientY - rect.top
+        };
+    }
+
+    // Add event listener for mousemove
+    canvasElement.addEventListener('mousemove', handleHover);
+    canvasElement.addEventListener('mouseleave', () => {
+        tooltip.style.opacity = '0';
+    });
 });
