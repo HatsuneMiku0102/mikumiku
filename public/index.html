@@ -154,30 +154,31 @@
         ];
     
         let typingIndex = 0;
-        let letterIndex = 0;
+        let wordIndex = 0;
         let typingTimeout;
-        let currentPhrase = "";
+        let currentPhraseWords = [];
         let isTyping = false; // Lock to prevent multiple hovers triggering new phrases
-        const typingSpeed = 100; // Speed of typing individual letters
+        const typingSpeed = 200; // Speed of typing individual words
         const phraseHoldDuration = 2000; // Time to hold the phrase before clearing
     
-        // Function to type out the phrase with character by character typing, including spaces
+        // Function to type out the phrase word by word
         function typePhrase(phrase) {
             typingIndex = 0;
-            letterIndex = 0;
-            currentPhrase = phrase.split('').join(' '); // Add explicit spaces between each character
+            wordIndex = 0;
+            currentPhraseWords = phrase.split(" "); // Split the phrase into words
             personalityPhrase.innerText = ""; // Clear current text
             isTyping = true;
             clearTimeout(typingTimeout); // Clear previous typing timeout
-            typeNextCharacter();
+            typeNextWord();
         }
     
-        // Function to type the next character
-        function typeNextCharacter() {
-            if (letterIndex < currentPhrase.length) {
-                personalityPhrase.innerText += currentPhrase.charAt(letterIndex); // Add each character
-                letterIndex++;
-                typingTimeout = setTimeout(typeNextCharacter, typingSpeed); // Delay between letters
+        // Function to type the next word with a space
+        function typeNextWord() {
+            if (wordIndex < currentPhraseWords.length) {
+                // Add the next word followed by a space
+                personalityPhrase.innerText += currentPhraseWords[wordIndex] + " ";
+                wordIndex++;
+                typingTimeout = setTimeout(typeNextWord, typingSpeed); // Delay between words
             } else {
                 // After the full phrase is typed, hold it for some time
                 typingTimeout = setTimeout(clearPhrase, phraseHoldDuration);
@@ -231,6 +232,7 @@
         // Set default neutral mood on page load
         changeMood('neutral');
     });
+
 
     </script>
 
