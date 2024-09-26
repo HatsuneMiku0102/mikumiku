@@ -114,19 +114,40 @@ document.addEventListener('DOMContentLoaded', function () {
             this.opacity = baseOpacity;
             this.color = color;
         }
-
-        update() {}
-
+    
+        update() {
+            this.opacity += this.twinkleSpeed;
+            if (this.opacity >= 1) {
+                this.twinkleSpeed *= -1;
+            } else if (this.opacity <= this.baseOpacity * 0.5) {
+                this.twinkleSpeed *= -1;
+            }
+        }
+    
         draw(ctx) {
-            const gradient = ctx.createRadialGradient(this.x, this.y, this.radius, this.x, this.y, this.radius * 4);
-            gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity})`);
-            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            // Increase radius and brightness for more vibrant appearance
+            const expandedRadius = this.radius * 1.5; // Increase size
+            const glowRadius = expandedRadius * 4; // Glow size relative to star size
+    
+            // Create a glow effect with increased brightness
+            const gradient = ctx.createRadialGradient(this.x, this.y, expandedRadius, this.x, this.y, glowRadius);
+            gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 1)`); // Full brightness
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)'); // Fade out glow
+    
+            // Draw glow
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius * 4, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, glowRadius, 0, Math.PI * 2);
             ctx.fillStyle = gradient;
+            ctx.fill();
+    
+            // Draw the star with higher opacity and larger radius
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, expandedRadius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 1)`; // Maximum brightness
             ctx.fill();
         }
     }
+
 
     class Constellation {
         constructor(data, canvasWidth, canvasHeight, exclusionZones) {
