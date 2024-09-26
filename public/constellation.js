@@ -75,7 +75,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // Function to get the bounding boxes (exclusion zones) of the widgets
     function getExclusionZones() {
         const exclusionZones = [];
-        const widgets = document.querySelectorAll('.widget-class'); // Update selector to match your widgets
+    
+        // Add specific elements that should be excluded from star placement
+        const widgets = document.querySelectorAll('.now-playing, .live-clock, .weather-widget'); // Add other elements here if needed
+    
         widgets.forEach(widget => {
             const rect = widget.getBoundingClientRect();
             exclusionZones.push({
@@ -85,7 +88,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 height: rect.height
             });
         });
-        console.log('Exclusion Zones:', exclusionZones);
+    
+        console.log('Exclusion Zones:', exclusionZones); // Debug log to ensure zones are captured
         return exclusionZones;
     }
 
