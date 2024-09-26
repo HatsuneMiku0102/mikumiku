@@ -34,59 +34,7 @@ body {
   z-index: -1; /* Ensure the canvas is behind the content */
 }
 
-/* Title Bar */
-.title-bar {
-  position: fixed;
-  top: 0;
-  width: 100%;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(10px);
-  padding: 1rem 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  z-index: 1000;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-}
-
-.title-bar .container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  max-width: 1200px;
-  padding: 0 1.5rem;
-  position: relative;
-}
-
-/* Title and Logo Centered */
-.animated-logo-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.site-title {
-  font-size: 2.5rem;
-  color: #00e5ff;
-  letter-spacing: 0.09375rem;
-  text-shadow: 2px 2px 5px rgba(0, 229, 255, 0.7);
-  transition: color 0.3s ease, transform 0.3s ease;
-  text-align: center;
-  cursor: pointer;
-}
-
-.site-title:hover {
-  transform: perspective(500px) rotateX(0deg) scale(1.1);
-  color: #ff4081;
-}
-
-/* Removed SVG Animation for Cleaner Look */
-.animated-svg {
-  display: none; /* Hide the floating circle animation */
-}
-
-/* Dropdown Menu */
+/* Dropdown Menu Styles */
 .dropdown {
   position: relative;
   display: inline-block;
@@ -140,20 +88,79 @@ body {
   transform: translateY(0);
 }
 
-/* Main Content Positioning */
+/* Title Bar - Transparent and at the top, logo and title centered */
+.title-bar {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  padding: 1rem 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.title-bar .container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 1.5rem;
+  position: relative; /* Ensures dropdown aligns correctly */
+}
+
+.title-bar .logo {
+  width: 4rem;
+  margin-right: 1.25rem;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+
+.title-bar .logo:hover {
+  transform: rotate(360deg) scale(1.1);
+}
+
+.title-bar .site-title {
+  font-size: 2.5rem;
+  color: #00e5ff;
+  letter-spacing: 0.09375rem;
+  text-shadow: 2px 2px 5px rgba(0, 229, 255, 0.7);
+  transition: color 0.3s ease, transform 0.3s ease;
+  text-align: center;
+  animation: neonGlow 2s infinite alternate;
+  cursor: pointer;
+}
+
+.title-bar .site-title:hover {
+  transform: perspective(500px) rotateX(0deg) scale(1.1);
+  color: #ff4081;
+}
+
+/* Dropdown Menu Positioned to the Right in the Title Bar */
+.title-bar .dropdown {
+  position: absolute;
+  right: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Adjust the positioning of the main content to overlap the canvas */
 .page-container {
   position: relative;
   z-index: 1; /* Ensure content is above the canvas */
   padding-top: 6rem; /* Space for title bar */
-  margin-left: 0; /* Reset to center content */
 }
 
-/* Now Playing Section */
+/* Now Playing Section - Centered and Transparent */
 #now-playing-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 1rem; /* Adjust space as needed */
+  margin-top: 0rem; /* Adjust space as needed */
 }
 
 .now-playing {
@@ -170,6 +177,7 @@ body {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
   transition: background 0.5s ease, box-shadow 0.5s ease, transform 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
 }
 
 .now-playing:hover {
@@ -178,13 +186,82 @@ body {
   background: rgba(30, 30, 30, 0.65);
 }
 
-/* Widgets and Other Content */
+/* Progress Bar */
+#progress-bar-container {
+  width: 80%;
+  max-width: 800px;
+  margin: 2rem auto 1rem auto;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 0.625rem;
+  height: 3rem;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 0.125rem 0.625rem rgba(0, 0, 0, 0.7);
+}
+
+#liquidProgressBar {
+  display: block;
+  margin: 0 auto;
+  width: 100%;
+  height: 100%;
+}
+
+.progress-times-container {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+  font-size: 1.2rem;
+  color: #ffffff;
+  font-weight: bold;
+  width: 80%;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Sidebar */
+.now-playing-sidebar {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1.25rem;
+  border-radius: 0.625rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  text-align: left;
+  width: 100%;
+  margin-top: 1.5rem;
+}
+
+.sidebar-item {
+  font-size: 1.1rem;
+  margin-bottom: 0.625rem;
+}
+
+.sidebar-item span {
+  font-weight: bold;
+}
+
+/* Widgets section overlaps the canvas */
 .widgets-container {
   position: relative;
-  margin-top: -1rem; /* Move widgets up to overlap canvas */
+  margin-top: -2rem; /* Move widgets up to overlap canvas */
   z-index: 2; /* Ensure they stay on top of the canvas */
 }
 
+/* Footer remains at the bottom */
+.footer {
+  position: relative;
+  z-index: 2;
+  margin-top: 3rem;
+}
+
+/* Ensure the background gradient for the body remains for contrast */
+body {
+  background: transparent;
+}
+
+/* Recent Videos */
 .recent-videos-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(15.625rem, 1fr));
@@ -236,6 +313,31 @@ body {
   color: #00ffcc;
 }
 
+/* About Section */
+.about {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1.875rem;
+  border-radius: 0.9375rem;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  max-width: 90%;
+  margin: 2.5rem auto;
+}
+
+.about h2 {
+  font-size: 2.5rem;
+  background: linear-gradient(to right, #ff7e5f, #feb47b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 1rem;
+}
+
+.about p {
+  font-size: 1.3rem;
+  color: white;
+  line-height: 1.8;
+}
+
 /* Footer */
 .footer {
   background-color: rgba(0, 0, 0, 0.9);
@@ -249,6 +351,108 @@ body {
 
 .footer a {
   display: none;
+  color: #00ffff;
+  transition: color 0.3s ease;
+  text-decoration: none;
+}
+
+.footer a:hover {
+  color: #ff4081;
+  text-decoration: underline;
+}
+
+/* Widgets */
+.live-clock,
+.weather-widget {
+  width: 100%;
+  max-width: 500px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1.5rem;
+  border-radius: 1.25rem;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  margin: 1.875rem auto;
+  transition: background 0.5s ease, box-shadow 0.5s ease, transform 0.3s ease;
+}
+
+.live-clock:hover,
+.weather-widget:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+}
+
+/* Clock */
+.clock-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.clock {
+  background: rgba(0, 0, 0, 0.5);
+  padding: 1rem;
+  border-radius: 0.625rem;
+  text-align: center;
+  width: 200px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: default;
+}
+
+.clock:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+}
+
+.clock p {
+  font-size: 2rem;
+  color: #ffffff;
+  margin: 0;
+}
+
+/* Weather Widget */
+.weather-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.weather-info p {
+  font-size: 1.2rem;
+  color: #ffffff;
+  margin: 0;
+}
+
+.weather-info img {
+  width: 100px;
+  height: 100px;
+  margin-bottom: 0.625rem;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+
+.weather-info img:hover {
+  transform: scale(1.1);
+}
+
+/* Widgets Container */
+.widgets-container {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Content Wrapper */
+.content-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
 /* Animations */
@@ -261,15 +465,19 @@ body {
   }
 }
 
-.site-title {
-  animation: neonGlow 2s infinite alternate;
-}
-
 /* Responsive Styles */
 @media (max-width: 768px) {
   .title-bar .container {
     flex-direction: column;
     align-items: center;
+  }
+
+  .title-bar .logo {
+    margin-bottom: 0.5rem;
+  }
+
+  .dropdown {
+    position: static;
   }
 
   .now-playing,
@@ -309,11 +517,11 @@ body {
 
 @media (max-width: 480px) {
   .title-bar .logo {
-    width: 3rem;
+    width: 3rem; /* Smaller logo for mobile */
   }
 
   .title-bar .site-title {
-    font-size: 1.4rem;
+    font-size: 1.4rem; /* Smaller title for mobile */
   }
 
   .recent-videos-container {
