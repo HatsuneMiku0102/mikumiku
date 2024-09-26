@@ -153,32 +153,31 @@
             "What's on your mind today?"
         ];
     
-        // Typing Effect Variables
         let typingIndex = 0;
         let letterIndex = 0;
         let typingTimeout;
         let currentPhrase = "";
-        let isTyping = false;
+        let isTyping = false; // Lock to prevent multiple hovers triggering new phrases
         const typingSpeed = 100; // Speed of typing individual letters
         const phraseHoldDuration = 2000; // Time to hold the phrase before clearing
     
-        // Function to type out the phrase
+        // Function to type out the phrase with character by character typing
         function typePhrase(phrase) {
             typingIndex = 0;
             letterIndex = 0;
-            currentPhrase = phrase;
+            currentPhrase = phrase; // Set the full phrase as a string
             personalityPhrase.innerText = ""; // Clear current text
             isTyping = true;
             clearTimeout(typingTimeout); // Clear previous typing timeout
-            typeNextLetter();
+            typeNextCharacter();
         }
     
-        // Function to type the next letter with space handling
-        function typeNextLetter() {
+        // Function to type the next character
+        function typeNextCharacter() {
             if (letterIndex < currentPhrase.length) {
-                personalityPhrase.innerText += currentPhrase[letterIndex]; // Add each letter (including spaces)
+                personalityPhrase.innerText += currentPhrase.charAt(letterIndex); // Add each character
                 letterIndex++;
-                typingTimeout = setTimeout(typeNextLetter, typingSpeed); // Delay between letters
+                typingTimeout = setTimeout(typeNextCharacter, typingSpeed); // Delay between letters
             } else {
                 // After the full phrase is typed, hold it for some time
                 typingTimeout = setTimeout(clearPhrase, phraseHoldDuration);
@@ -232,6 +231,7 @@
         // Set default neutral mood on page load
         changeMood('neutral');
     });
+
     </script>
 
 
