@@ -158,7 +158,7 @@
         let wordIndex = 0;
         let typingTimeout;
         let currentPhrase = "";
-        let isTyping = false;
+        let isTyping = false; // Lock to prevent multiple hovers triggering new phrases
         const typingSpeed = 150; // Speed of typing individual letters
         const wordPauseDuration = 500; // Time to pause between words
         const phraseHoldDuration = 2000; // Time to hold the phrase before clearing
@@ -177,7 +177,7 @@
         // Function to type the next word
         function typeNextWord() {
             if (wordIndex < currentPhrase.length) {
-                const word = currentPhrase[wordIndex];
+                const word = currentPhrase[wordIndex] + " "; // Add a space after each word
                 let letterIndex = 0;
     
                 // Function to type each letter of the word
@@ -187,8 +187,7 @@
                         letterIndex++;
                         typingTimeout = setTimeout(typeLetter, typingSpeed); // Delay between letters
                     } else {
-                        // After finishing a word, add a space and move to the next word
-                        personalityPhrase.innerText += (wordIndex < currentPhrase.length - 1) ? " " : ""; // Add space after word
+                        // After finishing a word, move to the next word
                         wordIndex++;
                         typingTimeout = setTimeout(typeNextWord, wordPauseDuration); // Pause between words
                     }
@@ -248,6 +247,7 @@
         // Set default neutral mood on page load
         changeMood('neutral');
     });
+
 
 
     </script>
