@@ -164,25 +164,24 @@
             let currentPhrase = "";
             let isTyping = false; // Lock to prevent multiple hovers triggering new phrases
             const typingSpeed = 100; // Speed of typing individual letters
-            const wordSetDelay = 500; // Delay between word sets
             const phraseHoldDuration = 2000; // Time to hold the phrase before clearing
     
-            // Function to type out the phrase
+            // Function to type out the phrase with spaces between words
             function typePhrase(phrase) {
                 typingIndex = 0;
-                currentPhrase = phrase.split(" "); // Split the phrase into word sets
+                currentPhrase = phrase.split(" "); // Split the phrase into words
                 personalityPhrase.innerText = ""; // Clear current text
                 isTyping = true;
                 clearTimeout(typingTimeout); // Clear previous typing timeout
-                typeNextWordSet();
+                typeNextWord();
             }
     
-            // Function to type the next word set
-            function typeNextWordSet() {
+            // Function to type the next word
+            function typeNextWord() {
                 if (typingIndex < currentPhrase.length) {
-                    personalityPhrase.innerText += currentPhrase[typingIndex] + " "; // Add a space between word sets
+                    personalityPhrase.innerText += currentPhrase[typingIndex] + " "; // Add space between words
                     typingIndex++;
-                    typingTimeout = setTimeout(typeNextWordSet, wordSetDelay); // Delay between word sets
+                    typingTimeout = setTimeout(typeNextWord, typingSpeed); // Delay between letters
                 } else {
                     // After the full phrase is typed, hold it for some time
                     typingTimeout = setTimeout(clearPhrase, phraseHoldDuration);
@@ -205,17 +204,14 @@
                     case 'excited':
                         personalityCircle.classList.add('personality-excited');
                         break;
-                    case 'relaxed':
-                        personalityCircle.classList.add('personality-relaxed');
-                        break;
-                    default:
+                    case 'neutral':
                         personalityCircle.classList.add('personality-neutral');
                         break;
                 }
             }
     
             // Add event listeners for hover over `.box-container` and `.widget`
-            const hoverElements = document.querySelectorAll('.box-container, .weather-widget');
+            const hoverElements = document.querySelectorAll('.box-container, .widget');
     
             hoverElements.forEach(element => {
                 element.addEventListener('mouseenter', () => {
