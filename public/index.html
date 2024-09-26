@@ -154,34 +154,29 @@
         ];
     
         let typingIndex = 0;
-        let wordIndex = 0;
-        let typingTimeout;
         let currentPhraseWords = [];
-        let isTyping = false; // Lock to prevent multiple hovers triggering new phrases
+        let isTyping = false; // Prevent multiple hovers triggering new phrases
         const typingSpeed = 200; // Speed of typing individual words
         const phraseHoldDuration = 2000; // Time to hold the phrase before clearing
     
-        // Function to type out the phrase word by word
+        // Function to type out the phrase
         function typePhrase(phrase) {
-            typingIndex = 0;
-            wordIndex = 0;
             currentPhraseWords = phrase.split(" "); // Split the phrase into words
+            typingIndex = 0;
             personalityPhrase.innerText = ""; // Clear current text
             isTyping = true;
-            clearTimeout(typingTimeout); // Clear previous typing timeout
             typeNextWord();
         }
     
-        // Function to type the next word with a space
+        // Function to type the next word
         function typeNextWord() {
-            if (wordIndex < currentPhraseWords.length) {
-                // Add the next word followed by a space
-                personalityPhrase.innerText += currentPhraseWords[wordIndex] + " ";
-                wordIndex++;
-                typingTimeout = setTimeout(typeNextWord, typingSpeed); // Delay between words
+            if (typingIndex < currentPhraseWords.length) {
+                const nextWord = currentPhraseWords.slice(0, typingIndex + 1).join(" "); // Join words with spaces
+                personalityPhrase.innerText = nextWord;
+                typingIndex++;
+                setTimeout(typeNextWord, typingSpeed); // Delay between words
             } else {
-                // After the full phrase is typed, hold it for some time
-                typingTimeout = setTimeout(clearPhrase, phraseHoldDuration);
+                setTimeout(clearPhrase, phraseHoldDuration); // Hold the phrase after it's done
             }
         }
     
@@ -220,11 +215,10 @@
             });
     
             element.addEventListener('mouseleave', () => {
-                // Return to neutral mood after the typing finishes and the phrase clears
                 if (!isTyping) {
                     setTimeout(() => {
                         changeMood('neutral');
-                    }, phraseHoldDuration + 500); // Adding extra delay to ensure smooth transition
+                    }, phraseHoldDuration + 500); // Adding extra delay for a smooth transition
                 }
             });
         });
@@ -232,6 +226,7 @@
         // Set default neutral mood on page load
         changeMood('neutral');
     });
+
 
 
     </script>
