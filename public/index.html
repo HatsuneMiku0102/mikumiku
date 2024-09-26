@@ -547,7 +547,7 @@
             canvas.height = height;
         });
     
-        // Star and shooting star generation
+        // Star class
         class Star {
             constructor(x, y, radius, color) {
                 this.x = x;
@@ -582,6 +582,7 @@
             }
         }
     
+        // Shooting Star class
         class ShootingStar extends Star {
             constructor(x, y, radius, color) {
                 super(x, y, radius, color);
@@ -616,9 +617,9 @@
     
         const stars = [];
         const shootingStars = [];
-        const nebulaColors = ['rgba(52, 7, 91, 0.8)', 'rgba(73, 48, 107, 0.7)', 'rgba(118, 24, 120, 0.6)', 'rgba(255, 144, 253, 0.4)', 'rgba(255, 255, 255, 0.1)'];
+        const nebulaParticles = [];
     
-        // Create Stars
+        // Function to create stars
         function createStars(count) {
             for (let i = 0; i < count; i++) {
                 const radius = Math.random() * 2;
@@ -628,7 +629,7 @@
             }
         }
     
-        // Create Shooting Stars
+        // Function to create shooting stars
         function createShootingStars(count) {
             for (let i = 0; i < count; i++) {
                 const radius = Math.random() * 1.5;
@@ -638,24 +639,49 @@
             }
         }
     
-        // Polished Nebula Effect
+        // Function to generate natural-looking nebula particles
+        function createNebulaParticles() {
+            for (let i = 0; i < 200; i++) {
+                const particle = {
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    size: Math.random() * 100 + 50,
+                    color: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 150)}, ${Math.floor(Math.random() * 200)}, ${Math.random() * 0.4})`,
+                    dx: (Math.random() - 0.5) * 0.5,
+                    dy: (Math.random() - 0.5) * 0.5
+                };
+                nebulaParticles.push(particle);
+            }
+        }
+    
+        // Function to draw nebula
         function drawNebula() {
             ctx.save();
             ctx.globalCompositeOperation = "lighter";
-            const gradient = ctx.createRadialGradient(width / 2, height / 2, 100, width / 2, height / 2, width / 2);
-            
-            nebulaColors.forEach((color, index) => {
-                gradient.addColorStop(index / (nebulaColors.length - 1), color);
+            nebulaParticles.forEach(particle => {
+                ctx.fillStyle = particle.color;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                ctx.fill();
             });
-            
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, width, height);
             ctx.restore();
+        }
+    
+        // Function to animate nebula particles (moving them for more organic feel)
+        function animateNebula() {
+            nebulaParticles.forEach(particle => {
+                particle.x += particle.dx;
+                particle.y += particle.dy;
+    
+                if (particle.x > width || particle.x < 0) particle.dx *= -1;
+                if (particle.y > height || particle.y < 0) particle.dy *= -1;
+            });
         }
     
         function animate() {
             ctx.clearRect(0, 0, width, height);
             drawNebula();
+            animateNebula();
     
             stars.forEach(star => star.update());
             shootingStars.forEach(shootingStar => shootingStar.update());
@@ -665,8 +691,10 @@
     
         createStars(200); // More stars for a polished look
         createShootingStars(5);
+        createNebulaParticles(); // Natural-shaped nebula
         animate();
     </script>
+
 
 </body>
 </html>
