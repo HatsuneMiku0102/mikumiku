@@ -141,7 +141,7 @@
 
     <!-- Typing Effect and Mood Change Script -->
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const personalityCircle = document.getElementById('personalityCircle');
         const personalityPhrase = document.getElementById('personalityPhrase');
     
@@ -150,34 +150,38 @@
             "How's it going?", 
             "Welcome to MikuMiku.dev", 
             "Feel free to look around.", 
-            "What's on your mind today?",
-            "Tell Your World"
+            "What's on your mind today?"
         ];
     
+        // Typing Effect Variables
         let typingIndex = 0;
-        let currentPhraseWords = [];
-        let isTyping = false; // Prevent multiple hovers triggering new phrases
-        const typingSpeed = 200; // Speed of typing individual words
-        const phraseHoldDuration = 2000; // Time to hold the phrase before clearing
+        let typingTimeout;
+        let currentPhrase = "";
+        let isTyping = false; // Lock to prevent multiple hovers triggering new phrases
+        let phraseHoldTimeout; // To control when the phrase disappears
+        const typingSpeed = 150; // Slowed typing speed for smoother effect
+        const phraseHoldDuration = 3000; // Increased hold duration
     
-        // Function to type out the phrase
+        // Function to type out the phrase with spaces between words
         function typePhrase(phrase) {
-            currentPhraseWords = phrase.split(" "); // Split the phrase into words
             typingIndex = 0;
+            currentPhrase = phrase.split(""); // Split the phrase into individual characters
             personalityPhrase.innerText = ""; // Clear current text
             isTyping = true;
-            typeNextWord();
+            clearTimeout(typingTimeout); // Clear previous typing timeout
+            clearTimeout(phraseHoldTimeout); // Clear phrase hold timeout to prevent early resets
+            typeNextCharacter();
         }
     
-        // Function to type the next word
-        function typeNextWord() {
-            if (typingIndex < currentPhraseWords.length) {
-                const nextWord = currentPhraseWords.slice(0, typingIndex + 1).join(" "); // Join words with spaces
-                personalityPhrase.innerText = nextWord;
+        // Function to type the next character
+        function typeNextCharacter() {
+            if (typingIndex < currentPhrase.length) {
+                personalityPhrase.innerText += currentPhrase[typingIndex]; // Add next character
                 typingIndex++;
-                setTimeout(typeNextWord, typingSpeed); // Delay between words
+                typingTimeout = setTimeout(typeNextCharacter, typingSpeed); // Delay between characters
             } else {
-                setTimeout(clearPhrase, phraseHoldDuration); // Hold the phrase after it's done
+                // After the full phrase is typed, hold it for some time
+                phraseHoldTimeout = setTimeout(clearPhrase, phraseHoldDuration); // Wait before clearing the phrase
             }
         }
     
@@ -185,6 +189,7 @@
         function clearPhrase() {
             personalityPhrase.innerText = "";
             isTyping = false;
+            changeMood('neutral'); // Only after clearing, reset the mood
         }
     
         // Function to change the mood
@@ -216,10 +221,11 @@
             });
     
             element.addEventListener('mouseleave', () => {
+                // Hold the mood until typing finishes and the phrase clears
                 if (!isTyping) {
-                    setTimeout(() => {
-                        changeMood('neutral');
-                    }, phraseHoldDuration + 500); // Adding extra delay for a smooth transition
+                    phraseHoldTimeout = setTimeout(() => {
+                        changeMood('neutral'); // Return to neutral after the phrase clears
+                    }, phraseHoldDuration);
                 }
             });
         });
