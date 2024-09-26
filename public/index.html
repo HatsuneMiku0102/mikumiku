@@ -153,35 +153,30 @@
             "What's on your mind today?"
         ];
     
-        // Typing Effect Variables
         let typingIndex = 0;
-        let typingTimeout;
-        let currentPhrase = [];
-        let isTyping = false; // Lock to prevent multiple hovers triggering new phrases
-        let phraseHoldTimeout; // To control when the phrase disappears
-        const typingSpeed = 150; // Slowed typing speed for smoother effect
-        const phraseHoldDuration = 3000; // Increased hold duration
+        let currentPhraseWords = []; 
+        let isTyping = false; // Prevent multiple hovers triggering new phrases
+        const typingSpeed = 200; // Speed of typing individual words
+        const phraseHoldDuration = 2000; // Time to hold the phrase before clearing
     
-        // Function to type out the phrase with spaces between words
+        // Function to type out the phrase with correct word spacing
         function typePhrase(phrase) {
+            currentPhraseWords = phrase.split(" "); // Split the phrase into words
             typingIndex = 0;
-            currentPhrase = phrase.split(" "); // Split the phrase into words
             personalityPhrase.innerText = ""; // Clear current text
             isTyping = true;
-            clearTimeout(typingTimeout); // Clear previous typing timeout
-            clearTimeout(phraseHoldTimeout); // Clear phrase hold timeout to prevent early resets
             typeNextWord();
         }
     
-        // Function to type the next word
+        // Function to type the next word with proper spacing
         function typeNextWord() {
-            if (typingIndex < currentPhrase.length) {
-                personalityPhrase.innerText += currentPhrase[typingIndex] + " "; // Add space between words
+            if (typingIndex < currentPhraseWords.length) {
+                const nextWord = currentPhraseWords.slice(0, typingIndex + 1).join(" "); // Join words with spaces
+                personalityPhrase.innerText = nextWord; // Display the phrase with correct spacing
                 typingIndex++;
-                typingTimeout = setTimeout(typeNextWord, typingSpeed * 5); // Delay between words
+                setTimeout(typeNextWord, typingSpeed); // Delay between words
             } else {
-                // After the full phrase is typed, hold it for some time
-                phraseHoldTimeout = setTimeout(clearPhrase, phraseHoldDuration); // Wait before clearing the phrase
+                setTimeout(clearPhrase, phraseHoldDuration); // Hold the phrase after it's done
             }
         }
     
@@ -189,7 +184,7 @@
         function clearPhrase() {
             personalityPhrase.innerText = "";
             isTyping = false;
-            changeMood('neutral'); // Only after clearing, reset the mood
+            changeMood('neutral'); // Return to neutral mood after clearing
         }
     
         // Function to change the mood
@@ -221,11 +216,10 @@
             });
     
             element.addEventListener('mouseleave', () => {
-                // Hold the mood until typing finishes and the phrase clears
                 if (!isTyping) {
-                    phraseHoldTimeout = setTimeout(() => {
+                    setTimeout(() => {
                         changeMood('neutral'); // Return to neutral after the phrase clears
-                    }, phraseHoldDuration);
+                    }, phraseHoldDuration + 500); // Adding extra delay for a smooth transition
                 }
             });
         });
@@ -233,9 +227,6 @@
         // Set default neutral mood on page load
         changeMood('neutral');
     });
-
-
-
 
     </script>
 
