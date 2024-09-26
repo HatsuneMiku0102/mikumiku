@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', function () {
         { name: "Bellatrix", ra: "05h 25m 07.8632s", dec: "+06° 20′ 59.331″", magnitude: 1.64, spectralType: "B2III" },
         { name: "Saiph", ra: "05h 47m 45.3485s", dec: "-09° 40′ 10.146″", magnitude: 2.07, spectralType: "B0Ia" },
         { name: "Rigel", ra: "05h 14m 32.27210s", dec: "-08° 12′ 05.8981″", magnitude: 0.18, spectralType: "B8I" }
-        // Add other stars as necessary
     ];
 
     const constellationData = [
@@ -17,7 +16,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 [0, 1], [0, 2], [1, 3], [2, 3]
             ]
         }
-        // Add other constellations as needed
     ];
 
     function parseRA(raStr) {
@@ -42,24 +40,20 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function raDecToXY(ra, dec, canvasWidth, canvasHeight, scale = 100) {
-        // Adjust scale to a smaller value, and log the canvas dimensions
-        console.log(`Canvas Width: ${canvasWidth}, Canvas Height: ${canvasHeight}`);
-
         const raRad = (ra * Math.PI) / 180;
         const decRad = (dec * Math.PI) / 180;
 
-        // Adjust to center the constellation properly and apply scaling
         const x = (canvasWidth / 2) + scale * (Math.cos(decRad) * Math.sin(raRad));
         const y = (canvasHeight / 2) - scale * (Math.cos(decRad) * Math.cos(raRad));
 
-        // Log adjusted positions
         console.log(`Adjusted Star position: X=${x}, Y=${y}`);
         
         return { x, y };
     }
 
     function mapMagnitudeToAppearance(magnitude) {
-        return { radius: 5, baseOpacity: 1 };
+        // Increase radius and opacity for better visibility
+        return { radius: 15, baseOpacity: 1 };
     }
 
     function mapSpectralTypeToColor(spectralType) {
@@ -106,6 +100,13 @@ document.addEventListener('DOMContentLoaded', function () {
             ctx.arc(this.x, this.y, this.radius * 4, 0, Math.PI * 2);
             ctx.fillStyle = gradient;
             ctx.fill();
+
+            // Draw a simple large circle at the star's position to test visibility
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius * 2, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
         }
     }
 
@@ -115,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function () {
             this.stars = [];
             this.canvasWidth = canvasWidth;
             this.canvasHeight = canvasHeight;
-            this.scale = 100;  // Set a fixed scale for testing visibility
+            this.scale = 100;
             this.generateStars(data.stars);
         }
 
@@ -143,6 +144,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const canvasElement = document.getElementById('techCanvas');
     const ctx = canvasElement.getContext('2d');
+
+    // Make sure the canvas has a visible z-index
+    canvasElement.style.zIndex = 1;
+    canvasElement.style.position = "relative";
 
     function resizeCanvas() {
         canvasElement.width = window.innerWidth;
