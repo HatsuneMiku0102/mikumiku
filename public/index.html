@@ -137,95 +137,114 @@
 
     <!-- Typing Effect and Mood Change Script -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const personalityCircle = document.getElementById('personalityCircle');
-            const personalityPhrase = document.getElementById('personalityPhrase');
+    document.addEventListener('DOMContentLoaded', function() {
+        const personalityCircle = document.getElementById('personalityCircle');
+        const personalityPhrase = document.getElementById('personalityPhrase');
     
-            const customPhrases = [
-                "Hi :)", 
-                "How's it going?", 
-                "Welcome to MikuMiku.dev", 
-                "Feel free to look around.", 
-                "What's on your mind today?"
-            ];
+        const customPhrases = [
+            "Hi :)", 
+            "How's it going?", 
+            "Welcome to MikuMiku.dev", 
+            "Feel free to look around.", 
+            "What's on your mind today?"
+        ];
     
-            // Typing Effect Variables
-            let typingIndex = 0;
-            let typingTimeout;
-            let currentPhrase = "";
-            let isTyping = false; // Lock to prevent multiple hovers triggering new phrases
-            const typingSpeed = 100; // Speed of typing individual letters
-            const phraseHoldDuration = 2000; // Time to hold the phrase before clearing
+        // Typing Effect Variables
+        let typingIndex = 0;
+        let wordIndex = 0;
+        let typingTimeout;
+        let currentPhrase = "";
+        let isTyping = false;
+        const typingSpeed = 150; // Speed of typing individual letters
+        const wordPauseDuration = 500; // Time to pause between words
+        const phraseHoldDuration = 2000; // Time to hold the phrase before clearing
     
-            // Function to type out the phrase with spaces between words
-            function typePhrase(phrase) {
-                typingIndex = 0;
-                currentPhrase = phrase.split(" "); // Split the phrase into words
-                personalityPhrase.innerText = ""; // Clear current text
-                isTyping = true;
-                clearTimeout(typingTimeout); // Clear previous typing timeout
-                typeNextWord();
-            }
+        // Function to type out the phrase word by word
+        function typePhrase(phrase) {
+            typingIndex = 0;
+            wordIndex = 0;
+            currentPhrase = phrase.split(" "); // Split the phrase into words
+            personalityPhrase.innerText = ""; // Clear current text
+            isTyping = true;
+            clearTimeout(typingTimeout); // Clear previous typing timeout
+            typeNextWord();
+        }
     
-            // Function to type the next word
-            function typeNextWord() {
-                if (typingIndex < currentPhrase.length) {
-                    personalityPhrase.innerText += currentPhrase[typingIndex] + " "; // Add space between words
-                    typingIndex++;
-                    typingTimeout = setTimeout(typeNextWord, typingSpeed); // Delay between letters
-                } else {
-                    // After the full phrase is typed, hold it for some time
-                    typingTimeout = setTimeout(clearPhrase, phraseHoldDuration);
-                }
-            }
+        // Function to type the next word
+        function typeNextWord() {
+            if (wordIndex < currentPhrase.length) {
+                const word = currentPhrase[wordIndex];
+                let letterIndex = 0;
     
-            // Function to clear the phrase and reset typing state
-            function clearPhrase() {
-                personalityPhrase.innerText = "";
-                isTyping = false;
-            }
-    
-            // Function to change the mood
-            function changeMood(mood) {
-                personalityCircle.className = 'personality-circle'; // Reset class
-                switch (mood) {
-                    case 'happy':
-                        personalityCircle.classList.add('personality-happy');
-                        break;
-                    case 'excited':
-                        personalityCircle.classList.add('personality-excited');
-                        break;
-                    case 'neutral':
-                        personalityCircle.classList.add('personality-neutral');
-                        break;
-                }
-            }
-    
-            // Add event listeners for hover over `.box-container` and `.widget`
-            const hoverElements = document.querySelectorAll('.box-container, .widget');
-    
-            hoverElements.forEach(element => {
-                element.addEventListener('mouseenter', () => {
-                    if (!isTyping) { // Prevent re-triggering while typing
-                        const randomPhrase = customPhrases[Math.floor(Math.random() * customPhrases.length)];
-                        typePhrase(randomPhrase);
-                        changeMood('excited'); // Mood changes to "excited" on hover
+                // Function to type each letter of the word
+                function typeLetter() {
+                    if (letterIndex < word.length) {
+                        personalityPhrase.innerText += word[letterIndex]; // Append each letter
+                        letterIndex++;
+                        typingTimeout = setTimeout(typeLetter, typingSpeed); // Delay between letters
+                    } else {
+                        // After finishing a word, add a space and move to the next word
+                        personalityPhrase.innerText += " ";
+                        wordIndex++;
+                        typingTimeout = setTimeout(typeNextWord, wordPauseDuration); // Pause between words
                     }
-                });
+                }
     
-                element.addEventListener('mouseleave', () => {
-                    // Return to neutral mood after the typing finishes and the phrase clears
-                    if (!isTyping) {
-                        setTimeout(() => {
-                            changeMood('neutral');
-                        }, phraseHoldDuration + 500); // Adding extra delay to ensure smooth transition
-                    }
-                });
+                typeLetter(); // Start typing letters
+            } else {
+                // After the full phrase is typed, hold it for some time
+                typingTimeout = setTimeout(clearPhrase, phraseHoldDuration);
+            }
+        }
+    
+        // Function to clear the phrase and reset typing state
+        function clearPhrase() {
+            personalityPhrase.innerText = "";
+            isTyping = false;
+        }
+    
+        // Function to change the mood
+        function changeMood(mood) {
+            personalityCircle.className = 'personality-circle'; // Reset class
+            switch (mood) {
+                case 'happy':
+                    personalityCircle.classList.add('personality-happy');
+                    break;
+                case 'excited':
+                    personalityCircle.classList.add('personality-excited');
+                    break;
+                case 'neutral':
+                    personalityCircle.classList.add('personality-neutral');
+                    break;
+            }
+        }
+    
+        // Add event listeners for hover over `.box-container` and `.widget`
+        const hoverElements = document.querySelectorAll('.box-container, .widget');
+    
+        hoverElements.forEach(element => {
+            element.addEventListener('mouseenter', () => {
+                if (!isTyping) { // Prevent re-triggering while typing
+                    const randomPhrase = customPhrases[Math.floor(Math.random() * customPhrases.length)];
+                    typePhrase(randomPhrase);
+                    changeMood('excited'); // Mood changes to "excited" on hover
+                }
             });
     
-            // Set default neutral mood on page load
-            changeMood('neutral');
+            element.addEventListener('mouseleave', () => {
+                // Return to neutral mood after the typing finishes and the phrase clears
+                if (!isTyping) {
+                    setTimeout(() => {
+                        changeMood('neutral');
+                    }, phraseHoldDuration + 500); // Adding extra delay to ensure smooth transition
+                }
+            });
         });
+    
+        // Set default neutral mood on page load
+        changeMood('neutral');
+    });
+
     </script>
 
 
