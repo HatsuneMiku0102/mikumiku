@@ -11,24 +11,12 @@
     <canvas id="techCanvas"></canvas>
 
     <div class="page-container">
-        <!-- Title Bar with Dropdown -->
+        <!-- Title Bar with Dropdown and Dynamic Personality -->
         <div class="title-bar">
             <div class="container">
-                <!-- Animated Circle centered above both logo and title -->
-                <div class="circle-animation">
-                    <svg class="animated-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="60" height="60">
-                        <circle cx="50" cy="50" r="40" stroke="#00e5ff" stroke-width="2" fill="none" />
-                        <circle cx="50" cy="50" r="30" stroke="#ff4081" stroke-width="2" fill="none" />
-                        <!-- Circles pulsing inside -->
-                        <circle cx="50" cy="50" r="10" stroke="none" fill="#00ffcc">
-                            <animate attributeName="r" from="10" to="30" dur="2s" repeatCount="indefinite" />
-                            <animate attributeName="opacity" from="1" to="0" dur="2s" repeatCount="indefinite" />
-                        </circle>
-                        <circle cx="50" cy="50" r="10" stroke="none" fill="#ff4081">
-                            <animate attributeName="r" from="5" to="25" dur="2.5s" repeatCount="indefinite" />
-                            <animate attributeName="opacity" from="1" to="0" dur="2.5s" repeatCount="indefinite" />
-                        </circle>
-                    </svg>
+                <!-- Dynamic Personality Circle centered above both logo and title -->
+                <div class="personality-section">
+                    <div class="personality-circle personality-neutral" id="personalityCircle"></div>
                 </div>
 
                 <!-- Logo and Title Next to Each Other -->
@@ -149,13 +137,47 @@
         </footer>
     </div>
 
-
     <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
+    <!-- Dynamic Personality Circle Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const personalityCircle = document.getElementById('personalityCircle');
+
+            // Function to change the mood
+            function changeMood(mood) {
+                personalityCircle.className = 'personality-circle'; // Reset class
+                switch (mood) {
+                    case 'happy':
+                        personalityCircle.classList.add('personality-happy');
+                        break;
+                    case 'excited':
+                        personalityCircle.classList.add('personality-excited');
+                        break;
+                    case 'relaxed':
+                        personalityCircle.classList.add('personality-relaxed');
+                        break;
+                    default:
+                        personalityCircle.classList.add('personality-neutral');
+                }
+            }
+
+            // Example: Change mood every 10 seconds for demonstration
+            const moods = ['neutral', 'happy', 'excited', 'relaxed'];
+            let moodIndex = 0;
+
+            setInterval(() => {
+                changeMood(moods[moodIndex]);
+                moodIndex = (moodIndex + 1) % moods.length;
+            }, 10000); // Change mood every 10 seconds
+        });
+    </script>
+
     <!-- Additional Scripts -->
     <script>
+        // Time of Day Dynamic Title
         function getTimeOfDay() {
             const hour = new Date().getHours();
             if (hour < 12) {
