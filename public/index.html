@@ -547,16 +547,16 @@
             canvas.height = height;
         });
     
-        // Star class
+        // Star class with varying brightness and color
         class Star {
-            constructor(x, y, radius, color) {
+            constructor(x, y, radius, color, brightness) {
                 this.x = x;
                 this.y = y;
                 this.radius = radius;
                 this.color = color;
-                this.speed = Math.random() * 0.3;
-                this.brightness = Math.random() * 0.5 + 0.5;
-                this.twinkleSpeed = Math.random() * 0.05 + 0.01;
+                this.brightness = brightness;
+                this.twinkleSpeed = Math.random() * 0.02 + 0.005;
+                this.baseBrightness = brightness;
             }
     
             draw() {
@@ -565,17 +565,15 @@
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
                 ctx.fillStyle = this.color;
-                ctx.shadowBlur = 10;
+                ctx.shadowBlur = 8;
                 ctx.shadowColor = this.color;
                 ctx.fill();
                 ctx.restore();
             }
     
             update() {
-                this.x -= this.speed;
-                if (this.x < 0) this.x = width;
                 this.brightness += this.twinkleSpeed;
-                if (this.brightness > 1 || this.brightness < 0.5) {
+                if (this.brightness > this.baseBrightness + 0.2 || this.brightness < this.baseBrightness - 0.2) {
                     this.twinkleSpeed = -this.twinkleSpeed;
                 }
                 this.draw();
@@ -583,10 +581,12 @@
         }
     
         // Shooting Star class
-        class ShootingStar extends Star {
-            constructor(x, y, radius, color) {
-                super(x, y, radius, color);
-                this.length = Math.random() * 150 + 50;
+        class ShootingStar {
+            constructor(x, y, length, color) {
+                this.x = x;
+                this.y = y;
+                this.length = length;
+                this.color = color;
                 this.speed = Math.random() * 10 + 5;
             }
     
@@ -619,59 +619,68 @@
         const shootingStars = [];
         const nebulaParticles = [];
     
-        // Function to create stars
+        // Function to create stars with different brightness and subtle color variation
         function createStars(count) {
             for (let i = 0; i < count; i++) {
-                const radius = Math.random() * 2;
+                const radius = Math.random() * 1.5 + 0.5;
                 const x = Math.random() * width;
                 const y = Math.random() * height;
-                stars.push(new Star(x, y, radius, 'rgba(255, 255, 255, 0.9)'));
+                const brightness = Math.random() * 0.7 + 0.3;
+                const color = Math.random() < 0.5 ? 'rgba(255, 255, 255, 1)' : 'rgba(173, 216, 230, 1)'; // White or light blue stars
+                stars.push(new Star(x, y, radius, color, brightness));
             }
         }
     
         // Function to create shooting stars
         function createShootingStars(count) {
             for (let i = 0; i < count; i++) {
-                const radius = Math.random() * 1.5;
                 const x = Math.random() * width;
                 const y = Math.random() * height * 0.5;
-                shootingStars.push(new ShootingStar(x, y, radius, 'rgba(255, 255, 255, 1)'));
+                const length = Math.random() * 100 + 50;
+                shootingStars.push(new ShootingStar(x, y, length, 'rgba(255, 255, 255, 1)'));
             }
         }
     
-        // Function to generate natural-looking nebula particles
+        // Function to create refined nebula particles
         function createNebulaParticles() {
-            for (let i = 0; i < 200; i++) {
+            for (let i = 0; i < 150; i++) {
                 const particle = {
                     x: Math.random() * width,
                     y: Math.random() * height,
-                    size: Math.random() * 100 + 50,
-                    color: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 150)}, ${Math.floor(Math.random() * 200)}, ${Math.random() * 0.4})`,
-                    dx: (Math.random() - 0.5) * 0.5,
-                    dy: (Math.random() - 0.5) * 0.5
+                    sizeX: Math.random() * 300 + 100,
+                    sizeY: Math.random() * 100 + 50,
+                    angle: Math.random() * Math.PI * 2,
+                    color: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 100 + 50)}, ${Math.floor(Math.random() * 150 + 50)}, ${Math.random() * 0.2 + 0.1})`,
+                    dx: (Math.random() - 0.5) * 0.1,
+                    dy: (Math.random() - 0.5) * 0.1,
+                    rotationSpeed: Math.random() * 0.01 - 0.005
                 };
                 nebulaParticles.push(particle);
             }
         }
     
-        // Function to draw nebula
+        // Function to draw refined nebula with random shapes
         function drawNebula() {
             ctx.save();
             ctx.globalCompositeOperation = "lighter";
             nebulaParticles.forEach(particle => {
                 ctx.fillStyle = particle.color;
+                ctx.translate(particle.x, particle.y);
+                ctx.rotate(particle.angle);
                 ctx.beginPath();
-                ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                ctx.ellipse(0, 0, particle.sizeX, particle.sizeY, 0, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.resetTransform();
             });
             ctx.restore();
         }
     
-        // Function to animate nebula particles (moving them for more organic feel)
+        // Function to animate nebula particles
         function animateNebula() {
             nebulaParticles.forEach(particle => {
                 particle.x += particle.dx;
                 particle.y += particle.dy;
+                particle.angle += particle.rotationSpeed;
     
                 if (particle.x > width || particle.x < 0) particle.dx *= -1;
                 if (particle.y > height || particle.y < 0) particle.dy *= -1;
@@ -689,11 +698,12 @@
             requestAnimationFrame(animate);
         }
     
-        createStars(200); // More stars for a polished look
+        createStars(300); // More stars for better visual variety
         createShootingStars(5);
-        createNebulaParticles(); // Natural-shaped nebula
+        createNebulaParticles(); // Create natural nebula
         animate();
     </script>
+
 
 
 </body>
