@@ -1,4 +1,5 @@
 // constellation.js
+let constellationsList = [];
 
 // Star Catalog with Real Data (Orion, Ursa Major, Cassiopeia, Cygnus, Scorpius)
 const starCatalog = [
@@ -369,8 +370,6 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-// Initialize Constellations
-let constellationsList = [];
 
 function initializeConstellations() {
     constellationsList = [];
