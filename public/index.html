@@ -16,8 +16,9 @@
             <div class="container">
                 <!-- Dynamic Personality Circle centered above both logo and title -->
                 <div class="personality-section">
-                    <div class="personality-circle personality-neutral" id="personalityCircle">
-                        <p id="personalityPhrase"></p>
+                    <div class="personality-circle personality-neutral" id="personalityCircle"></div>
+                    <div class="personality-text-wrapper">
+                        <p class="personality-typing" id="personalityPhrase"></p>
                     </div>
                 </div>
 
@@ -143,13 +144,36 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
-    <!-- Dynamic Personality Circle Script -->
+    <!-- Dynamic Personality Circle with Typing Effect Script -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const personalityCircle = document.getElementById('personalityCircle');
             const personalityPhrase = document.getElementById('personalityPhrase');
 
             const randomPhrases = ["Hi :)", "How are you?", "I'm excited!", "Nice to see you!", "What's up?"];
+
+            // Typing Effect Variables
+            let typingIndex = 0;
+            let typingTimeout;
+            let currentPhrase = "";
+
+            // Function to type out the phrase
+            function typePhrase(phrase) {
+                typingIndex = 0;
+                currentPhrase = phrase;
+                personalityPhrase.innerText = ""; // Clear current text
+                clearTimeout(typingTimeout); // Clear previous typing timeout
+                typeNextLetter();
+            }
+
+            // Function to type the next letter
+            function typeNextLetter() {
+                if (typingIndex < currentPhrase.length) {
+                    personalityPhrase.innerText += currentPhrase[typingIndex];
+                    typingIndex++;
+                    typingTimeout = setTimeout(typeNextLetter, 100); // Typing speed
+                }
+            }
 
             // Function to change the mood
             function changeMood(mood) {
@@ -172,7 +196,7 @@
             // Function to show random phrases in the circle
             function showRandomPhrase() {
                 const randomIndex = Math.floor(Math.random() * randomPhrases.length);
-                personalityPhrase.innerText = randomPhrases[randomIndex];
+                typePhrase(randomPhrases[randomIndex]);
             }
 
             // Add hover events to widgets and boxes to trigger excited mood
@@ -185,12 +209,16 @@
                 });
 
                 element.addEventListener('mouseleave', () => {
+                    // Return to neutral mood after 1 second
                     setTimeout(() => {
                         changeMood('neutral');
-                        personalityPhrase.innerText = '';
-                    }, 1000); // Return to neutral after 1 second
+                        personalityPhrase.innerText = "";
+                    }, 1000);
                 });
             });
+
+            // Set default neutral mood on page load
+            changeMood('neutral');
         });
     </script>
 
