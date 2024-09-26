@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
      * @param {number} scale - Scaling factor for projection
      * @returns {Object} - { x, y } coordinates
      */
-    function raDecToXY(ra, dec, canvasWidth, canvasHeight, scale = 300) {
+    function raDecToXY(ra, dec, canvasWidth, canvasHeight, scale = 400) { // Increased scale from 300 to 400
         // Convert degrees to radians
         const raRad = (ra * Math.PI) / 180;
         const decRad = (dec * Math.PI) / 180;
@@ -115,15 +115,15 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function mapMagnitudeToAppearance(magnitude) {
         if (magnitude <= 1) {
-            return { radius: 3.5, baseOpacity: 1 };
+            return { radius: 5, baseOpacity: 1 }; // Increased radius
         } else if (magnitude <= 2) {
-            return { radius: 2.5, baseOpacity: 0.8 };
+            return { radius: 4, baseOpacity: 0.8 };
         } else if (magnitude <= 3) {
-            return { radius: 2, baseOpacity: 0.6 };
+            return { radius: 3, baseOpacity: 0.6 };
         } else if (magnitude <= 4) {
-            return { radius: 1.5, baseOpacity: 0.4 };
+            return { radius: 2.5, baseOpacity: 0.4 };
         } else {
-            return { radius: 1, baseOpacity: 0.2 };
+            return { radius: 2, baseOpacity: 0.2 };
         }
     }
 
@@ -266,12 +266,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         draw(ctx) {
             // Draw glow using radial gradient
-            const gradient = ctx.createRadialGradient(this.x, this.y, this.radius, this.x, this.y, this.radius * 4);
+            const gradient = ctx.createRadialGradient(this.x, this.y, this.radius, this.x, this.y, this.radius * 5); // Increased multiplier for larger glow
             gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity})`);
             gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius * 4, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, this.radius * 5, 0, Math.PI * 2); // Increased glow size
             ctx.fillStyle = gradient;
             ctx.fill();
 
@@ -293,7 +293,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.canvasHeight = canvasHeight;
 
             // Randomly position and scale the constellation
-            this.scale = Math.random() * 100 + 100; // Scale between 100 and 200 pixels
+            this.scale = Math.random() * 100 + 150; // Increased minimum scale from 100 to 150 for larger constellations
 
             // Random position ensuring the constellation fits within the canvas
             this.position = this.getRandomPosition();
@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 9. Shooting Stars Management (Optional Enhancement)
+    // 9. Shooting Stars Management
     class ShootingStar {
         constructor(canvasWidth, canvasHeight) {
             this.reset(canvasWidth, canvasHeight);
@@ -388,8 +388,8 @@ document.addEventListener('DOMContentLoaded', function() {
         reset(canvasWidth, canvasHeight) {
             this.x = Math.random() * canvasWidth;
             this.y = Math.random() * canvasHeight * 0.5; // Appear in the upper half
-            this.length = Math.random() * 80 + 20;
-            this.speed = Math.random() * 10 + 10;
+            this.length = Math.random() * 100 + 30; // Increased length for longer shooting stars
+            this.speed = Math.random() * 12 + 12; // Increased speed
             this.angle = Math.PI / 4; // 45 degrees
             this.opacity = 1;
             this.alive = true;
@@ -418,7 +418,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const shootingStars = [];
-    const shootingStarProbability = 0.002; // Probability per frame to spawn a shooting star
+    const shootingStarProbability = 0.003; // Increased probability per frame to spawn shooting stars
 
     function manageShootingStars() {
         if (Math.random() < shootingStarProbability) {
