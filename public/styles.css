@@ -24,10 +24,20 @@ body {
   flex-direction: column;
 }
 
+/* Make the canvas fill the entire screen */
+#techCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; /* Ensure the canvas is behind the content */
+}
+
 /* Title Bar */
 .title-bar {
-  position: fixed;
-  top: 0;
+  position: relative;
+  z-index: 2;
   width: 100%;
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(10px);
@@ -80,30 +90,36 @@ body {
   color: #ff4081;
 }
 
-/* Main Content */
-#main-content {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  padding-top: 7.5rem;
-  background: transparent;
-  position: relative;
-  z-index: 2;
+/* Adjust the positioning of the main content to overlap the canvas */
+.page-container {
+    position: relative;
+    z-index: 1; /* Ensure content is above the canvas */
+    padding-top: 4rem; /* Push content slightly below the title bar */
 }
 
-/* Page Container */
-.page-container {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  z-index: 1;
-  padding: 2rem;
-  margin-top: 7rem;
-  gap: 2rem;
-  width: 100%;
+/* Overlap the now-playing section with the canvas */
+#now-playing-container {
+    position: relative;
+    margin-top: -3rem; /* Move up to overlap the canvas */
+}
+
+/* Widgets section overlaps the canvas */
+.widgets-container {
+    position: relative;
+    margin-top: -4rem; /* Move widgets up to overlap canvas */
+    z-index: 2; /* Ensure they stay on top of the canvas */
+}
+
+/* Footer remains at the bottom */
+.footer {
+    position: relative;
+    z-index: 2;
+    margin-top: 3rem;
+}
+
+/* Ensure the background gradient for the body remains for contrast */
+body {
+    background: transparent;
 }
 
 /* Now Playing Section */
@@ -129,54 +145,6 @@ body {
   box-shadow: 0 12px 40px rgba(0, 255, 255, 0.6);
   transform: scale(1.02);
   background: rgba(30, 30, 30, 0.95);
-}
-
-.video-thumbnail {
-  position: absolute;
-  top: -2.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 5rem;
-  height: 5rem;
-  border-radius: 50%;
-  border: 0.25rem solid #00e5ff;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  z-index: 3;
-  object-fit: cover;
-  object-position: center;
-  cursor: pointer;
-}
-
-.video-thumbnail:hover {
-  transform: translateX(-50%) scale(1.1);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
-}
-
-.video-title-container {
-  text-align: center;
-  margin-bottom: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
-
-.video-title-container h2 {
-  font-size: 2.2rem;
-  color: #ffffff;
-  margin-bottom: 1rem;
-  text-shadow: 0 4px 10px rgba(0, 229, 255, 0.8);
-}
-
-.video-title-container p {
-  font-size: 1.4rem;
-  color: #ffffff;
-  margin: 0.3125rem 0;
-  text-align: center;
-  font-weight: bold;
-  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 }
 
 /* Progress Bar */
