@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const hours = parseInt(match[1], 10);
         const minutes = parseInt(match[2], 10);
         const seconds = parseFloat(match[3]);
-        return (hours + minutes / 60 + seconds / 3600) * 15;
+        return (hours + minutes / 60 + seconds / 3600) * 15; // Convert to degrees
     }
 
     function parseDec(decStr) {
@@ -36,15 +36,16 @@ document.addEventListener('DOMContentLoaded', function () {
         const degrees = parseInt(match[2], 10);
         const minutes = parseInt(match[3], 10);
         const seconds = parseFloat(match[4]);
-        return sign * (degrees + minutes / 60 + seconds / 3600);
+        return sign * (degrees + minutes / 60 + seconds / 3600); // Convert to degrees
     }
 
-    function raDecToXY(ra, dec, canvasWidth, canvasHeight, scale = 100) {
-        const raRad = (ra * Math.PI) / 180;
-        const decRad = (dec * Math.PI) / 180;
+    // Adjusted raDecToXY function for proper spreading of stars
+    function raDecToXY(ra, dec, canvasWidth, canvasHeight) {
+        // RA: 0 to 360 degrees, map to 0 to canvasWidth
+        const x = (ra / 360) * canvasWidth;
 
-        const x = (canvasWidth / 2) + scale * (Math.cos(decRad) * Math.sin(raRad));
-        const y = (canvasHeight / 2) - scale * (Math.cos(decRad) * Math.cos(raRad));
+        // Dec: -90 to +90 degrees, map to 0 to canvasHeight
+        const y = ((90 - dec) / 180) * canvasHeight;
 
         console.log(`Adjusted Star position: X=${x}, Y=${y}`);
         
@@ -100,13 +101,6 @@ document.addEventListener('DOMContentLoaded', function () {
             ctx.arc(this.x, this.y, this.radius * 4, 0, Math.PI * 2);
             ctx.fillStyle = gradient;
             ctx.fill();
-
-            // Draw a simple large circle at the star's position to test visibility
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius * 2, 0, Math.PI * 2);
-            ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
         }
     }
 
@@ -126,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!starInfo) return;
                 const ra = parseRA(starInfo.ra);
                 const dec = parseDec(starInfo.dec);
-                const { x, y } = raDecToXY(ra, dec, this.canvasWidth, this.canvasHeight, this.scale);
+                const { x, y } = raDecToXY(ra, dec, this.canvasWidth, this.canvasHeight);
                 const appearance = mapMagnitudeToAppearance(starInfo.magnitude);
                 const color = mapSpectralTypeToColor(starInfo.spectralType);
                 this.stars.push(new Star(starInfo.name, x, y, appearance.radius, 0.002, color, appearance.baseOpacity));
@@ -144,10 +138,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const canvasElement = document.getElementById('techCanvas');
     const ctx = canvasElement.getContext('2d');
-
-    // Make sure the canvas has a visible z-index
-    canvasElement.style.zIndex = 1;
-    canvasElement.style.position = "relative";
 
     function resizeCanvas() {
         canvasElement.width = window.innerWidth;
