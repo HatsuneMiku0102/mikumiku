@@ -97,11 +97,9 @@ document.addEventListener('DOMContentLoaded', function() {
      * @returns {Object} - { x, y } coordinates
      */
     function raDecToXY(ra, dec, canvasWidth, canvasHeight, scale = 300) {
-        // Convert degrees to radians
         const raRad = (ra * Math.PI) / 180;
         const decRad = (dec * Math.PI) / 180;
 
-        // Simple azimuthal equidistant projection
         const x = canvasWidth / 2 + scale * (Math.cos(decRad) * Math.sin(raRad));
         const y = canvasHeight / 2 - scale * (Math.cos(decRad) * Math.cos(raRad));
 
@@ -110,9 +108,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     /**
      * Maps apparent magnitude to star radius and base opacity.
-     * Brighter stars have smaller magnitude values.
-     * @param {number} magnitude 
-     * @returns {Object} - { radius, baseOpacity }
      */
     function mapMagnitudeToAppearance(magnitude) {
         if (magnitude <= 1) {
@@ -130,9 +125,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     /**
      * Maps spectral type to RGB color.
-     * Simplified mapping based on star temperatures.
-     * @param {string} spectralType 
-     * @returns {Object} - { r, g, b }
      */
     function mapSpectralTypeToColor(spectralType) {
         if (spectralType.startsWith("O")) {
@@ -272,12 +264,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const gradient = ctx.createRadialGradient(this.x, this.y, this.radius, this.x, this.y, this.radius * 4);
             gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity})`);
             gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
+    
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius * 4, 0, Math.PI * 2);
             ctx.fillStyle = gradient;
             ctx.fill();
-
+    
             // Draw star
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
@@ -346,8 +338,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 const appearance = mapMagnitudeToAppearance(starInfo.magnitude);
                 const color = mapSpectralTypeToColor(starInfo.spectralType);
 
-                this.stars.push(new Star(starInfo.name, x + this.position.x, y + this.position.y, appearance.radius, 0.002, color, appearance.baseOpacity));
+                this.stars.push(new Star(
+                    starInfo.name, 
+                    x + this.position.x, 
+                    y + this.position.y, 
+                    appearance.radius, 
+                    0.002, 
+                    color, 
+                    appearance.baseOpacity
+                ));
             });
+
+            console.log(`Constellation "${this.name}" generated with ${this.stars.length} stars.`);
         }
 
         update() {
@@ -397,10 +399,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const canvasElement = document.getElementById('techCanvas');
     const ctx = canvasElement.getContext('2d');
 
-    // Function to get exclusion zones based on content boxes
+    /**
+     * Get exclusion zones based on content boxes
+     * @returns {Array} - Array of exclusion zone objects
+     */
     function getExclusionZones() {
         const zones = [];
-        const contentBoxes = document.querySelectorAll('.content-box'); // Adjust selector as needed
+        const contentBoxes = document.querySelectorAll('.box-container'); // Adjust selector as needed
         contentBoxes.forEach(box => {
             const rect = box.getBoundingClientRect();
             zones.push({
@@ -410,13 +415,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 height: rect.height
             });
         });
+        console.log(`Exclusion zones calculated: ${zones.length}`);
         return zones;
     }
 
-    // Function to resize canvas and reinitialize constellations
+    /**
+     * Resize the canvas to fit the window and reinitialize constellations
+     */
     function resizeCanvas() {
         canvasElement.width = window.innerWidth;
         canvasElement.height = window.innerHeight;
+        console.log(`Canvas resized to ${window.innerWidth}x${window.innerHeight}`);
         initializeConstellations(); // Reinitialize constellations after resizing
     }
 
@@ -433,7 +442,9 @@ document.addEventListener('DOMContentLoaded', function() {
         constellationData.forEach(def => {
             const constel = new Constellation(def, canvasElement.width, canvasElement.height, exclusionZones);
             constellationsList.push(constel);
+            console.log(`Constellation "${def.name}" initialized.`);
         });
+        console.log(`Total constellations initialized: ${constellationsList.length}`);
     }
 
     // 9. Shooting Stars Management
@@ -450,6 +461,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.angle = Math.PI / 4; // 45 degrees
             this.opacity = 1;
             this.alive = true;
+            console.log(`Shooting star created at (${this.x.toFixed(2)}, ${this.y.toFixed(2)})`);
         }
 
         update(canvasWidth, canvasHeight) {
@@ -458,6 +470,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.opacity -= 0.02;
             if (this.opacity <= 0 || this.x > canvasWidth || this.y > canvasHeight) {
                 this.alive = false;
+                console.log(`Shooting star at (${this.x.toFixed(2)}, ${this.y.toFixed(2)}) expired.`);
             }
         }
 
@@ -480,6 +493,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function manageShootingStars() {
         if (Math.random() < shootingStarProbability) {
             shootingStars.push(new ShootingStar(canvasElement.width, canvasElement.height));
+            console.log(`Shooting star spawned. Total shooting stars: ${shootingStars.length}`);
         }
 
         for (let i = shootingStars.length - 1; i >= 0; i--) {
@@ -487,6 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
             shootingStars[i].draw(ctx);
             if (!shootingStars[i].alive) {
                 shootingStars.splice(i, 1);
+                console.log(`Shooting star removed. Remaining shooting stars: ${shootingStars.length}`);
             }
         }
     }
@@ -497,6 +512,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Tooltip Element
     const tooltip = document.createElement('div');
+    tooltip.id = 'tooltip'; // Ensure the tooltip has an ID for CSS styling
     tooltip.style.position = 'absolute';
     tooltip.style.background = 'rgba(0, 0, 0, 0.7)';
     tooltip.style.color = '#fff';
@@ -504,11 +520,13 @@ document.addEventListener('DOMContentLoaded', function() {
     tooltip.style.borderRadius = '4px';
     tooltip.style.pointerEvents = 'none';
     tooltip.style.visibility = 'hidden';
-    tooltip.style.zIndex = '1000';
+    tooltip.style.zIndex = '1001'; // Higher than any other elements
     tooltip.style.transition = 'opacity 0.3s';
     tooltip.style.fontSize = '12px';
     tooltip.style.maxWidth = '200px';
+    tooltip.style.whiteSpace = 'nowrap';
     document.body.appendChild(tooltip);
+    console.log("Tooltip element created.");
 
     /**
      * Get mouse position relative to the canvas
@@ -536,7 +554,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (star) {
                 hoveredStar = star;
                 hoveredConstellation = constel;
-                showTooltip(event.clientX, event.clientY, `Star: ${star.name}<br>Constellation: ${constel.name}`);
+                showTooltip(event.clientX, event.clientY, `⭐ ${star.name}<br>Constellation: ${constel.name}`);
                 found = true;
                 break;
             }
@@ -574,6 +592,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add event listener for mouse movement
     canvasElement.addEventListener('mousemove', handleHover);
     canvasElement.addEventListener('mouseleave', hideTooltip);
+    console.log("Event listeners for hover added to canvas.");
 
     // 11. Animation Loop
     let lastFrameTime = Date.now();
@@ -607,14 +626,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
                 ctx.lineWidth = 2;
                 ctx.stroke();
+
+                // Optionally, draw a surrounding glow
+                ctx.beginPath();
+                ctx.arc(hoveredStar.x, hoveredStar.y, hoveredStar.radius * 8, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(0, 229, 255, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
             }
         }
     }
 
     animateBackground();
+    console.log("Animation loop started.");
 
     // 12. Optional: Regenerate constellations periodically to keep the background dynamic
     setInterval(() => {
         initializeConstellations();
+        console.log("Constellations regenerated.");
     }, 60000); // Regenerate every 60 seconds
 });
