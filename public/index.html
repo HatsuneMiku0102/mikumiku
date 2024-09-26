@@ -16,7 +16,9 @@
             <div class="container">
                 <!-- Dynamic Personality Circle centered above both logo and title -->
                 <div class="personality-section">
-                    <div class="personality-circle personality-neutral" id="personalityCircle"></div>
+                    <div class="personality-circle personality-neutral" id="personalityCircle">
+                        <p id="personalityPhrase"></p>
+                    </div>
                 </div>
 
                 <!-- Logo and Title Next to Each Other -->
@@ -145,6 +147,9 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const personalityCircle = document.getElementById('personalityCircle');
+            const personalityPhrase = document.getElementById('personalityPhrase');
+
+            const randomPhrases = ["Hi :)", "How are you?", "I'm excited!", "Nice to see you!", "What's up?"];
 
             // Function to change the mood
             function changeMood(mood) {
@@ -164,14 +169,28 @@
                 }
             }
 
-            // Example: Change mood every 10 seconds for demonstration
-            const moods = ['neutral', 'happy', 'excited', 'relaxed'];
-            let moodIndex = 0;
+            // Function to show random phrases in the circle
+            function showRandomPhrase() {
+                const randomIndex = Math.floor(Math.random() * randomPhrases.length);
+                personalityPhrase.innerText = randomPhrases[randomIndex];
+            }
 
-            setInterval(() => {
-                changeMood(moods[moodIndex]);
-                moodIndex = (moodIndex + 1) % moods.length;
-            }, 10000); // Change mood every 10 seconds
+            // Add hover events to widgets and boxes to trigger excited mood
+            const hoverElements = document.querySelectorAll('.box-container, .widget');
+
+            hoverElements.forEach(element => {
+                element.addEventListener('mouseenter', () => {
+                    changeMood('excited');
+                    showRandomPhrase();
+                });
+
+                element.addEventListener('mouseleave', () => {
+                    setTimeout(() => {
+                        changeMood('neutral');
+                        personalityPhrase.innerText = '';
+                    }, 1000); // Return to neutral after 1 second
+                });
+            });
         });
     </script>
 
