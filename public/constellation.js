@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 2. Star Catalog with Real Data
     const starCatalog = [
+        // [All stars as defined in previous steps]
         // Orion
         { name: "Betelgeuse", ra: "05h 55m 10.3053s", dec: "+07° 24′ 25.430″", magnitude: 0.42, spectralType: "M1-M2" },
         { name: "Rigel", ra: "05h 14m 32.27210s", dec: "-08° 12′ 05.8981″", magnitude: 0.18, spectralType: "B8I" },
@@ -14,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
         { name: "Alnilam", ra: "05h 36m 12.813s", dec: "-01° 12′ 06.939″", magnitude: 1.69, spectralType: "B0Ia" },
         { name: "Alnitak", ra: "05h 40m 45.528s", dec: "-01° 56′ 33.187″", magnitude: 1.76, spectralType: "O9.5Ib" },
         { name: "Mintaka", ra: "05h 32m 00.400s", dec: "-00° 17′ 57.117″", magnitude: 2.23, spectralType: "O9.5II" },
-
+        
         // Ursa Major
         { name: "Dubhe", ra: "11h 03m 43.670s", dec: "+61° 45′ 03.22″", magnitude: 1.79, spectralType: "A1IV" },
         { name: "Merak", ra: "11h 01m 50.490s", dec: "+56° 22′ 57.0″", magnitude: 2.37, spectralType: "A1V" },
@@ -23,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
         { name: "Alioth", ra: "12h 54m 01.72s", dec: "+55° 57′ 34.9″", magnitude: 1.76, spectralType: "A0V" },
         { name: "Mizar", ra: "13h 23m 55.95s", dec: "+54° 55′ 31.3″", magnitude: 2.23, spectralType: "A2V" },
         { name: "Alkaid", ra: "13h 47m 32.49s", dec: "+49° 20′ 48.1″", magnitude: 1.85, spectralType: "B3V" },
-
+        
         // Cassiopeia
         { name: "Schedar", ra: "01h 55m 07.8s", dec: "+56° 22′ 58.4″", magnitude: 2.23, spectralType: "K0III" },
         { name: "Caph", ra: "02h 22m 56.2s", dec: "+56° 36′ 52.2″", magnitude: 2.28, spectralType: "B8III" },
@@ -31,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
         { name: "Ruchbah", ra: "00h 34m 43.7s", dec: "+60° 56′ 46.1″", magnitude: 2.32, spectralType: "K0III" },
         { name: "Segin", ra: "00h 16m 03.0s", dec: "+58° 42′ 44.3″", magnitude: 3.40, spectralType: "F0IV" },
         { name: "Tsih", ra: "00h 38m 37.0s", dec: "+56° 33′ 34.6″", magnitude: 4.51, spectralType: "A5V" },
-
+        
         // Cygnus
         { name: "Deneb", ra: "20h 41m 25.915s", dec: "+45° 16′ 49.2″", magnitude: 1.25, spectralType: "A2Ia" },
         { name: "Albireo", ra: "19h 52m 41.50s", dec: "+27° 57′ 18.0″", magnitude: 3.15, spectralType: "K1V + B8V" },
@@ -41,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
         { name: "Epsilon Cygni", ra: "20h 33m 14.96s", dec: "+42° 16′ 34.5″", magnitude: 3.77, spectralType: "A1V" },
         { name: "Zeta Cygni", ra: "20h 46m 51.53s", dec: "+44° 25′ 25.6″", magnitude: 3.04, spectralType: "B6V" },
         { name: "Eta Cygni", ra: "20h 35m 00.90s", dec: "+40° 55′ 43.2″", magnitude: 4.37, spectralType: "A2V" },
-
+        
         // Scorpius
         { name: "Antares", ra: "16h 29m 24.459s", dec: "-26° 25′ 55.2″", magnitude: 0.96, spectralType: "M1.5Iab-Ib" },
         { name: "Shaula", ra: "17h 33m 34.21s", dec: "-37° 06′ 32.1″", magnitude: 1.62, spectralType: "B0.5IV" },
@@ -53,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function() {
         { name: "Alniyat", ra: "17h 00m 30.0s", dec: "-24° 25′ 00.0″", magnitude: 4.92, spectralType: "F0V" }
         // Add more stars as needed
     ];
-
+    
     // 3. Define Utility Functions
     /**
      * Parses Right Ascension (RA) string to decimal degrees.
@@ -271,12 +272,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const gradient = ctx.createRadialGradient(this.x, this.y, this.radius, this.x, this.y, this.radius * 4);
             gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity})`);
             gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    
+
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius * 4, 0, Math.PI * 2);
             ctx.fillStyle = gradient;
             ctx.fill();
-    
+
             // Draw star
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
@@ -287,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 6. Constellation Class
     class Constellation {
-        constructor(data, canvasWidth, canvasHeight) {
+        constructor(data, canvasWidth, canvasHeight, exclusionZones = []) {
             this.name = data.name;
             this.stars = [];
             this.connections = data.connections;
@@ -295,10 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.canvasHeight = canvasHeight;
 
             // Define exclusion zones (content boxes) to prevent constellations from spawning there
-            this.exclusionZones = [
-                { x: 100, y: 100, width: 600, height: 400 }, // Example: Adjust based on actual content box positions
-                // Add more zones as needed
-            ];
+            this.exclusionZones = exclusionZones;
 
             // Randomly position and scale the constellation
             this.scale = Math.random() * 150 + 150; // Scale between 150 and 300 pixels to make constellations larger
@@ -399,6 +397,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const canvasElement = document.getElementById('techCanvas');
     const ctx = canvasElement.getContext('2d');
 
+    // Function to get exclusion zones based on content boxes
+    function getExclusionZones() {
+        const zones = [];
+        const contentBoxes = document.querySelectorAll('.content-box'); // Adjust selector as needed
+        contentBoxes.forEach(box => {
+            const rect = box.getBoundingClientRect();
+            zones.push({
+                x: rect.left,
+                y: rect.top,
+                width: rect.width,
+                height: rect.height
+            });
+        });
+        return zones;
+    }
+
     // Function to resize canvas and reinitialize constellations
     function resizeCanvas() {
         canvasElement.width = window.innerWidth;
@@ -414,9 +428,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 8. Initialize Constellations
     function initializeConstellations() {
+        const exclusionZones = getExclusionZones();
         constellationsList = []; // Reset the list
         constellationData.forEach(def => {
-            const constel = new Constellation(def, canvasElement.width, canvasElement.height);
+            const constel = new Constellation(def, canvasElement.width, canvasElement.height, exclusionZones);
             constellationsList.push(constel);
         });
     }
@@ -490,6 +505,9 @@ document.addEventListener('DOMContentLoaded', function() {
     tooltip.style.pointerEvents = 'none';
     tooltip.style.visibility = 'hidden';
     tooltip.style.zIndex = '1000';
+    tooltip.style.transition = 'opacity 0.3s';
+    tooltip.style.fontSize = '12px';
+    tooltip.style.maxWidth = '200px';
     document.body.appendChild(tooltip);
 
     /**
@@ -542,6 +560,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tooltip.style.left = `${x + 10}px`;
         tooltip.style.top = `${y + 10}px`;
         tooltip.style.visibility = 'visible';
+        tooltip.style.opacity = '1';
     }
 
     /**
@@ -549,6 +568,7 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function hideTooltip() {
         tooltip.style.visibility = 'hidden';
+        tooltip.style.opacity = '0';
     }
 
     // Add event listener for mouse movement
@@ -580,7 +600,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Manage shooting stars
             manageShootingStars();
 
-            // Optionally, you can highlight the hovered star
+            // Highlight the hovered star
             if (hoveredStar) {
                 ctx.beginPath();
                 ctx.arc(hoveredStar.x, hoveredStar.y, hoveredStar.radius * 6, 0, Math.PI * 2);
