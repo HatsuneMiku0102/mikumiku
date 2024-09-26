@@ -540,12 +540,20 @@
         canvas.width = width;
         canvas.height = height;
     
+        // Offscreen canvas for gas clouds (for performance)
+        const offscreenCanvas = document.createElement('canvas');
+        const offCtx = offscreenCanvas.getContext('2d');
+        offscreenCanvas.width = width;
+        offscreenCanvas.height = height;
+    
         window.addEventListener('resize', () => {
             width = window.innerWidth;
             height = window.innerHeight;
             canvas.width = width;
             canvas.height = height;
-            init(); // Reinitialize on resize to adjust the canvas properly
+            offscreenCanvas.width = width;
+            offscreenCanvas.height = height;
+            init(); // Reinitialize on resize
         });
     
         // Star class with varying brightness and color
@@ -642,36 +650,48 @@
             }
         }
     
-        // Create a gas cloud with varying opacities and soft edges
+        // Create natural gas clouds (offscreen)
         function createGasClouds(count) {
-            gasClouds = []; // Clear existing clouds for resizing
+            gasClouds = []; // Clear existing clouds
             for (let i = 0; i < count; i++) {
                 gasClouds.push({
                     x: Math.random() * width,
                     y: Math.random() * height,
                     size: Math.random() * 300 + 200, // Larger cloud sizes
                     opacity: Math.random() * 0.2 + 0.1,
+                    color: randomNaturalColor(), // Random natural color for gas clouds
                     dx: (Math.random() - 0.5) * 0.1,
                     dy: (Math.random() - 0.5) * 0.1,
                 });
             }
-        }
     
-        // Function to draw the gas clouds
-        function drawGasClouds() {
+            // Render gas clouds onto the offscreen canvas
+            offCtx.clearRect(0, 0, width, height);
             gasClouds.forEach(cloud => {
-                const gradient = ctx.createRadialGradient(cloud.x, cloud.y, cloud.size * 0.3, cloud.x, cloud.y, cloud.size);
-                gradient.addColorStop(0, `rgba(255, 100, 200, ${cloud.opacity})`);
+                const gradient = offCtx.createRadialGradient(cloud.x, cloud.y, cloud.size * 0.3, cloud.x, cloud.y, cloud.size);
+                gradient.addColorStop(0, `rgba(${cloud.color}, ${cloud.opacity})`);
                 gradient.addColorStop(1, `rgba(0, 0, 0, 0)`);
     
-                ctx.save();
-                ctx.globalCompositeOperation = 'lighter';
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
+                offCtx.save();
+                offCtx.globalCompositeOperation = 'lighter';
+                offCtx.fillStyle = gradient;
+                offCtx.beginPath();
+                offCtx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
+                offCtx.fill();
+                offCtx.restore();
             });
+        }
+    
+        // Helper function to get random natural gas cloud color
+        function randomNaturalColor() {
+            const colors = [
+                '255, 204, 153', // Light orange
+                '255, 153, 255', // Pinkish purple
+                '204, 204, 255', // Light blue
+                '153, 255, 204', // Pale green
+                '255, 255, 204', // Light yellow
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
         }
     
         // Function to move the gas clouds slightly for dynamic effect
@@ -683,18 +703,35 @@
                 if (cloud.x > width || cloud.x < 0) cloud.dx *= -1;
                 if (cloud.y > height || cloud.y < 0) cloud.dy *= -1;
             });
+    
+            // Re-render the clouds on the offscreen canvas for dynamic movement
+            offCtx.clearRect(0, 0, width, height);
+            gasClouds.forEach(cloud => {
+                const gradient = offCtx.createRadialGradient(cloud.x, cloud.y, cloud.size * 0.3, cloud.x, cloud.y, cloud.size);
+                gradient.addColorStop(0, `rgba(${cloud.color}, ${cloud.opacity})`);
+                gradient.addColorStop(1, `rgba(0, 0, 0, 0)`);
+    
+                offCtx.save();
+                offCtx.globalCompositeOperation = 'lighter';
+                offCtx.fillStyle = gradient;
+                offCtx.beginPath();
+                offCtx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
+                offCtx.fill();
+                offCtx.restore();
+            });
         }
     
         // Function to animate the entire scene
         function animate() {
             ctx.clearRect(0, 0, width, height);
     
-            drawGasClouds(); // Draw gas clouds
-            moveGasClouds(); // Move gas clouds slightly
+            // Draw the pre-rendered gas clouds from offscreen canvas
+            ctx.drawImage(offscreenCanvas, 0, 0);
     
             stars.forEach(star => star.update()); // Update stars
             shootingStars.forEach(shootingStar => shootingStar.update()); // Update shooting stars
     
+            moveGasClouds(); // Move gas clouds every frame
             requestAnimationFrame(animate); // Recursively call the animate function
         }
     
@@ -705,12 +742,13 @@
     
             createStars(300); // Create stars
             createShootingStars(5); // Create shooting stars
-            createGasClouds(10); // Create 10 gas clouds
+            createGasClouds(10); // Create 10 gas clouds on the offscreen canvas
             animate(); // Start the animation loop
         }
     
         init(); // Initialize the scene when the script loads
     </script>
+
 
 
 
