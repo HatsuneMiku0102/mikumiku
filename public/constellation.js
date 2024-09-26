@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', function () {
         // Add other stars as necessary
     ];
 
-    // Constellation definitions (this was missing earlier)
     const constellationData = [
         {
             name: "Orion",
@@ -17,8 +16,8 @@ document.addEventListener('DOMContentLoaded', function () {
             connections: [
                 [0, 1], [0, 2], [1, 3], [2, 3]
             ]
-        },
-        // Add other constellations like Ursa Major, Cassiopeia, etc.
+        }
+        // Add other constellations as needed
     ];
 
     function parseRA(raStr) {
@@ -42,13 +41,19 @@ document.addEventListener('DOMContentLoaded', function () {
         return sign * (degrees + minutes / 60 + seconds / 3600);
     }
 
-    function raDecToXY(ra, dec, canvasWidth, canvasHeight, scale = 200) {
+    function raDecToXY(ra, dec, canvasWidth, canvasHeight, scale = 100) {
+        // Adjust scale to a smaller value, and log the canvas dimensions
+        console.log(`Canvas Width: ${canvasWidth}, Canvas Height: ${canvasHeight}`);
+
         const raRad = (ra * Math.PI) / 180;
         const decRad = (dec * Math.PI) / 180;
-        const x = canvasWidth / 2 + scale * (Math.cos(decRad) * Math.sin(raRad));
-        const y = canvasHeight / 2 - scale * (Math.cos(decRad) * Math.cos(raRad));
-        
-        console.log(`Star position: X=${x}, Y=${y}`);
+
+        // Adjust to center the constellation properly and apply scaling
+        const x = (canvasWidth / 2) + scale * (Math.cos(decRad) * Math.sin(raRad));
+        const y = (canvasHeight / 2) - scale * (Math.cos(decRad) * Math.cos(raRad));
+
+        // Log adjusted positions
+        console.log(`Adjusted Star position: X=${x}, Y=${y}`);
         
         return { x, y };
     }
@@ -110,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function () {
             this.stars = [];
             this.canvasWidth = canvasWidth;
             this.canvasHeight = canvasHeight;
-            this.scale = 200;  // Set a fixed scale for testing visibility
+            this.scale = 100;  // Set a fixed scale for testing visibility
             this.generateStars(data.stars);
         }
 
