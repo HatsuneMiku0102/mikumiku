@@ -142,11 +142,12 @@ document.addEventListener('DOMContentLoaded', function () {
     function resizeCanvas() {
         canvasElement.width = window.innerWidth;
         canvasElement.height = window.innerHeight;
-        initializeConstellations();
+        initializeConstellations(); // Reinitialize constellations after resizing
     }
-
+    
     window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
+    resizeCanvas(); // Call this to initialize canvas size
+
 
     function initializeConstellations() {
         constellationsList = [];
