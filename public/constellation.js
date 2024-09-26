@@ -298,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.exclusionZones = exclusionZones;
 
             // Randomly position and scale the constellation
-            this.scale = Math.random() * 200 + 200; // Scale between 200 and 400 pixels to make constellations larger
+            this.scale = Math.random() * 200 + 200; // Scale between 200 and 400 pixels
 
             // Random position ensuring the constellation fits within the canvas and avoids exclusion zones
             this.position = this.getRandomPosition();
@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         getRandomPosition() {
-            const padding = this.scale * 2;
+            const padding = this.scale * 2; 
             let x, y;
             let attempts = 0;
             const maxAttempts = 100;
@@ -340,11 +340,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 const ra = parseRA(starInfo.ra);
                 const dec = parseDec(starInfo.dec);
 
-                const { x, y } = raDecToXY(ra, dec, this.canvasWidth, this.canvasHeight, this.scale);
+                // Adjust raDecToXY to center constellations and scale properly
+                const { x, y } = raDecToXY(
+                    ra, 
+                    dec, 
+                    this.canvasWidth / 2, // Center horizontally
+                    this.canvasHeight / 2, // Center vertically
+                    this.scale
+                );
 
-                // Ensure stars are within canvas bounds
-                if (x < 0 || x > this.canvasWidth || y < 0 || y > this.canvasHeight) {
-                    console.warn(`Star "${starName}" position (${x}, ${y}) is out of canvas bounds.`);
+                // Ensure stars are within canvas bounds after centering and scaling
+                if (
+                    x + this.position.x < 0 || 
+                    x + this.position.x > this.canvasWidth || 
+                    y + this.position.y < 0 || 
+                    y + this.position.y > this.canvasHeight
+                ) {
+                    console.warn(`Star "${starName}" position is out of canvas bounds.`);
                     return;
                 }
 
@@ -352,18 +364,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 const color = mapSpectralTypeToColor(starInfo.spectralType);
 
                 this.stars.push(new Star(
-                    starInfo.name, 
+                    starInfo.name,
                     x + this.position.x, 
-                    y + this.position.y, 
-                    appearance.radius, 
+                    y + this.position.y,
+                    appearance.radius,
                     0.002, 
-                    color, 
+                    color,
                     appearance.baseOpacity
                 ));
             });
 
             console.log(`Constellation "${this.name}" generated with ${this.stars.length} stars.`);
         }
+
 
         update() {
             this.stars.forEach(star => star.update());
