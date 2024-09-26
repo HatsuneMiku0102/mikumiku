@@ -540,32 +540,23 @@
         canvas.width = width;
         canvas.height = height;
     
-        // Offscreen canvas for gas clouds (for performance)
-        const offscreenCanvas = document.createElement('canvas');
-        const offCtx = offscreenCanvas.getContext('2d');
-        offscreenCanvas.width = width;
-        offscreenCanvas.height = height;
-    
         window.addEventListener('resize', () => {
             width = window.innerWidth;
             height = window.innerHeight;
             canvas.width = width;
             canvas.height = height;
-            offscreenCanvas.width = width;
-            offscreenCanvas.height = height;
-            init(); // Reinitialize on resize
         });
     
-        // Star class with varying brightness and color
+        // Star class
         class Star {
-            constructor(x, y, radius, color, brightness) {
+            constructor(x, y, radius, color) {
                 this.x = x;
                 this.y = y;
                 this.radius = radius;
                 this.color = color;
-                this.brightness = brightness;
-                this.twinkleSpeed = Math.random() * 0.02 + 0.005;
-                this.baseBrightness = brightness;
+                this.speed = Math.random() * 0.3;
+                this.brightness = Math.random() * 0.5 + 0.5;
+                this.twinkleSpeed = Math.random() * 0.05 + 0.01;
             }
     
             draw() {
@@ -574,15 +565,17 @@
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
                 ctx.fillStyle = this.color;
-                ctx.shadowBlur = 8;
+                ctx.shadowBlur = 10;
                 ctx.shadowColor = this.color;
                 ctx.fill();
                 ctx.restore();
             }
     
             update() {
+                this.x -= this.speed;
+                if (this.x < 0) this.x = width;
                 this.brightness += this.twinkleSpeed;
-                if (this.brightness > this.baseBrightness + 0.2 || this.brightness < this.baseBrightness - 0.2) {
+                if (this.brightness > 1 || this.brightness < 0.5) {
                     this.twinkleSpeed = -this.twinkleSpeed;
                 }
                 this.draw();
@@ -590,12 +583,10 @@
         }
     
         // Shooting Star class
-        class ShootingStar {
-            constructor(x, y, length, color) {
-                this.x = x;
-                this.y = y;
-                this.length = length;
-                this.color = color;
+        class ShootingStar extends Star {
+            constructor(x, y, radius, color) {
+                super(x, y, radius, color);
+                this.length = Math.random() * 150 + 50;
                 this.speed = Math.random() * 10 + 5;
             }
     
@@ -626,128 +617,84 @@
     
         const stars = [];
         const shootingStars = [];
-        let gasClouds = [];
+        const nebulaParticles = [];
     
-        // Function to create stars with different brightness and subtle color variation
+        // Function to create stars
         function createStars(count) {
             for (let i = 0; i < count; i++) {
-                const radius = Math.random() * 1.5 + 0.5;
+                const radius = Math.random() * 2;
                 const x = Math.random() * width;
                 const y = Math.random() * height;
-                const brightness = Math.random() * 0.7 + 0.3;
-                const color = Math.random() < 0.5 ? 'rgba(255, 255, 255, 1)' : 'rgba(173, 216, 230, 1)'; // White or light blue stars
-                stars.push(new Star(x, y, radius, color, brightness));
+                stars.push(new Star(x, y, radius, 'rgba(255, 255, 255, 0.9)'));
             }
         }
     
         // Function to create shooting stars
         function createShootingStars(count) {
             for (let i = 0; i < count; i++) {
+                const radius = Math.random() * 1.5;
                 const x = Math.random() * width;
                 const y = Math.random() * height * 0.5;
-                const length = Math.random() * 100 + 50;
-                shootingStars.push(new ShootingStar(x, y, length, 'rgba(255, 255, 255, 1)'));
+                shootingStars.push(new ShootingStar(x, y, radius, 'rgba(255, 255, 255, 1)'));
             }
         }
     
-        // Create natural gas clouds (offscreen)
-        function createGasClouds(count) {
-            gasClouds = []; // Clear existing clouds
-            for (let i = 0; i < count; i++) {
-                gasClouds.push({
+        // Function to generate natural-looking nebula particles
+        function createNebulaParticles() {
+            for (let i = 0; i < 200; i++) {
+                const particle = {
                     x: Math.random() * width,
                     y: Math.random() * height,
-                    size: Math.random() * 300 + 200, // Larger cloud sizes
-                    opacity: Math.random() * 0.2 + 0.1,
-                    color: randomNaturalColor(), // Random natural color for gas clouds
-                    dx: (Math.random() - 0.5) * 0.1,
-                    dy: (Math.random() - 0.5) * 0.1,
-                });
+                    size: Math.random() * 100 + 50,
+                    color: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 150)}, ${Math.floor(Math.random() * 200)}, ${Math.random() * 0.4})`,
+                    dx: (Math.random() - 0.5) * 0.5,
+                    dy: (Math.random() - 0.5) * 0.5
+                };
+                nebulaParticles.push(particle);
             }
+        }
     
-            // Render gas clouds onto the offscreen canvas
-            offCtx.clearRect(0, 0, width, height);
-            gasClouds.forEach(cloud => {
-                const gradient = offCtx.createRadialGradient(cloud.x, cloud.y, cloud.size * 0.3, cloud.x, cloud.y, cloud.size);
-                gradient.addColorStop(0, `rgba(${cloud.color}, ${cloud.opacity})`);
-                gradient.addColorStop(1, `rgba(0, 0, 0, 0)`);
+        // Function to draw nebula
+        function drawNebula() {
+            ctx.save();
+            ctx.globalCompositeOperation = "lighter";
+            nebulaParticles.forEach(particle => {
+                ctx.fillStyle = particle.color;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.restore();
+        }
     
-                offCtx.save();
-                offCtx.globalCompositeOperation = 'lighter';
-                offCtx.fillStyle = gradient;
-                offCtx.beginPath();
-                offCtx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
-                offCtx.fill();
-                offCtx.restore();
+        // Function to animate nebula particles (moving them for more organic feel)
+        function animateNebula() {
+            nebulaParticles.forEach(particle => {
+                particle.x += particle.dx;
+                particle.y += particle.dy;
+    
+                if (particle.x > width || particle.x < 0) particle.dx *= -1;
+                if (particle.y > height || particle.y < 0) particle.dy *= -1;
             });
         }
     
-        // Helper function to get random natural gas cloud color
-        function randomNaturalColor() {
-            const colors = [
-                '255, 204, 153', // Light orange
-                '255, 153, 255', // Pinkish purple
-                '204, 204, 255', // Light blue
-                '153, 255, 204', // Pale green
-                '255, 255, 204', // Light yellow
-            ];
-            return colors[Math.floor(Math.random() * colors.length)];
-        }
-    
-        // Function to move the gas clouds slightly for dynamic effect
-        function moveGasClouds() {
-            gasClouds.forEach(cloud => {
-                cloud.x += cloud.dx;
-                cloud.y += cloud.dy;
-    
-                if (cloud.x > width || cloud.x < 0) cloud.dx *= -1;
-                if (cloud.y > height || cloud.y < 0) cloud.dy *= -1;
-            });
-    
-            // Re-render the clouds on the offscreen canvas for dynamic movement
-            offCtx.clearRect(0, 0, width, height);
-            gasClouds.forEach(cloud => {
-                const gradient = offCtx.createRadialGradient(cloud.x, cloud.y, cloud.size * 0.3, cloud.x, cloud.y, cloud.size);
-                gradient.addColorStop(0, `rgba(${cloud.color}, ${cloud.opacity})`);
-                gradient.addColorStop(1, `rgba(0, 0, 0, 0)`);
-    
-                offCtx.save();
-                offCtx.globalCompositeOperation = 'lighter';
-                offCtx.fillStyle = gradient;
-                offCtx.beginPath();
-                offCtx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
-                offCtx.fill();
-                offCtx.restore();
-            });
-        }
-    
-        // Function to animate the entire scene
         function animate() {
             ctx.clearRect(0, 0, width, height);
+            drawNebula();
+            animateNebula();
     
-            // Draw the pre-rendered gas clouds from offscreen canvas
-            ctx.drawImage(offscreenCanvas, 0, 0);
+            stars.forEach(star => star.update());
+            shootingStars.forEach(shootingStar => shootingStar.update());
     
-            stars.forEach(star => star.update()); // Update stars
-            shootingStars.forEach(shootingStar => shootingStar.update()); // Update shooting stars
-    
-            moveGasClouds(); // Move gas clouds every frame
-            requestAnimationFrame(animate); // Recursively call the animate function
+            requestAnimationFrame(animate);
         }
     
-        // Function to initialize the scene
-        function init() {
-            stars.length = 0; // Clear the stars array for resizing
-            shootingStars.length = 0; // Clear the shooting stars array
-    
-            createStars(300); // Create stars
-            createShootingStars(5); // Create shooting stars
-            createGasClouds(10); // Create 10 gas clouds on the offscreen canvas
-            animate(); // Start the animation loop
-        }
-    
-        init(); // Initialize the scene when the script loads
+        createStars(200); // More stars for a polished look
+        createShootingStars(5);
+        createNebulaParticles(); // Natural-shaped nebula
+        animate();
     </script>
+
 
 
 
