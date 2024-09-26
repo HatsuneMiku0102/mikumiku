@@ -539,14 +539,14 @@
         let height = window.innerHeight;
         canvas.width = width;
         canvas.height = height;
-
+    
         window.addEventListener('resize', () => {
             width = window.innerWidth;
             height = window.innerHeight;
             canvas.width = width;
             canvas.height = height;
         });
-
+    
         // Star and shooting star generation
         class Star {
             constructor(x, y, radius, color) {
@@ -555,30 +555,54 @@
                 this.radius = radius;
                 this.color = color;
                 this.speed = Math.random() * 0.3;
+                this.brightness = Math.random() * 0.5 + 0.5;
+                this.twinkleSpeed = Math.random() * 0.05 + 0.01;
             }
-
+    
             draw() {
+                ctx.save();
+                ctx.globalAlpha = this.brightness;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
                 ctx.fillStyle = this.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
                 ctx.fill();
-                ctx.closePath();
+                ctx.restore();
             }
-
+    
             update() {
                 this.x -= this.speed;
                 if (this.x < 0) this.x = width;
+                this.brightness += this.twinkleSpeed;
+                if (this.brightness > 1 || this.brightness < 0.5) {
+                    this.twinkleSpeed = -this.twinkleSpeed;
+                }
                 this.draw();
             }
         }
-
+    
         class ShootingStar extends Star {
             constructor(x, y, radius, color) {
                 super(x, y, radius, color);
                 this.length = Math.random() * 150 + 50;
                 this.speed = Math.random() * 10 + 5;
             }
-
+    
+            drawShootingStar() {
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = this.color;
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x + this.length, this.y - this.length * 0.5);
+                ctx.stroke();
+                ctx.restore();
+            }
+    
             update() {
                 this.x -= this.speed;
                 this.y += this.speed * 0.5;
@@ -588,64 +612,61 @@
                 }
                 this.drawShootingStar();
             }
-
-            drawShootingStar() {
-                ctx.beginPath();
-                ctx.moveTo(this.x, this.y);
-                ctx.lineTo(this.x + this.length, this.y - this.length * 0.5);
-                ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            }
         }
-
+    
         const stars = [];
         const shootingStars = [];
-        const nebulaColors = ['#34075b', '#49306b', '#761878'];
-
+        const nebulaColors = ['rgba(52, 7, 91, 0.8)', 'rgba(73, 48, 107, 0.7)', 'rgba(118, 24, 120, 0.6)', 'rgba(255, 144, 253, 0.4)', 'rgba(255, 255, 255, 0.1)'];
+    
+        // Create Stars
         function createStars(count) {
             for (let i = 0; i < count; i++) {
-                const radius = Math.random() * 1.5;
+                const radius = Math.random() * 2;
                 const x = Math.random() * width;
                 const y = Math.random() * height;
-                stars.push(new Star(x, y, radius, "white"));
+                stars.push(new Star(x, y, radius, 'rgba(255, 255, 255, 0.9)'));
             }
         }
-
+    
+        // Create Shooting Stars
         function createShootingStars(count) {
             for (let i = 0; i < count; i++) {
                 const radius = Math.random() * 1.5;
                 const x = Math.random() * width;
                 const y = Math.random() * height * 0.5;
-                shootingStars.push(new ShootingStar(x, y, radius, "white"));
+                shootingStars.push(new ShootingStar(x, y, radius, 'rgba(255, 255, 255, 1)'));
             }
         }
-
+    
+        // Polished Nebula Effect
         function drawNebula() {
+            ctx.save();
             ctx.globalCompositeOperation = "lighter";
-            for (let i = 0; i < nebulaColors.length; i++) {
-                ctx.fillStyle = nebulaColors[i];
-                ctx.beginPath();
-                ctx.arc(width / 2, height / 2, (i + 1) * 200, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.closePath();
-            }
-            ctx.globalCompositeOperation = "source-over";
+            const gradient = ctx.createRadialGradient(width / 2, height / 2, 100, width / 2, height / 2, width / 2);
+            
+            nebulaColors.forEach((color, index) => {
+                gradient.addColorStop(index / (nebulaColors.length - 1), color);
+            });
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+            ctx.restore();
         }
-
+    
         function animate() {
             ctx.clearRect(0, 0, width, height);
             drawNebula();
-
+    
             stars.forEach(star => star.update());
             shootingStars.forEach(shootingStar => shootingStar.update());
-
+    
             requestAnimationFrame(animate);
         }
-
-        createStars(150);
+    
+        createStars(200); // More stars for a polished look
         createShootingStars(5);
         animate();
     </script>
+
 </body>
 </html>
