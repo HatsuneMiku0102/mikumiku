@@ -85,6 +85,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 height: rect.height
             });
         });
+        console.log('Exclusion Zones:', exclusionZones);
         return exclusionZones;
     }
 
@@ -140,14 +141,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 let starPosition;
                 let isExcluded;
+                let attempts = 0;
+                const maxAttempts = 100;
 
-                // Keep generating a new position until it's outside all exclusion zones
+                // Keep generating a new position until it's outside all exclusion zones or attempts max out
                 do {
                     const ra = parseRA(starInfo.ra);
                     const dec = parseDec(starInfo.dec);
                     starPosition = raDecToXY(ra, dec, this.canvasWidth, this.canvasHeight);
                     isExcluded = isInExclusionZone(starPosition.x, starPosition.y, this.exclusionZones);
-                } while (isExcluded);
+                    attempts++;
+                    console.log(`Star: ${starName}, Position: X=${starPosition.x}, Y=${starPosition.y}, Excluded: ${isExcluded}`);
+                } while (isExcluded && attempts < maxAttempts);
+
+                // If after 100 attempts it can't place a star, it will skip that star
+                if (attempts >= maxAttempts) {
+                    console.warn(`Could not place star "${starName}" after ${maxAttempts} attempts.`);
+                    return;
+                }
 
                 const appearance = mapMagnitudeToAppearance(starInfo.magnitude);
                 const color = mapSpectralTypeToColor(starInfo.spectralType);
