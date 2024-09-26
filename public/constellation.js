@@ -1,7 +1,7 @@
 // constellation.js
 
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. Declare constellationsList at the very top using 'let' to allow reassignments
+    // 1. Declare constellationsList at the very top
     let constellationsList = [];
 
     // 2. Star Catalog with Real Data
@@ -14,19 +14,47 @@ document.addEventListener('DOMContentLoaded', function() {
         { name: "Alnilam", ra: "05h 36m 12.813s", dec: "-01° 12′ 06.939″", magnitude: 1.69, spectralType: "B0Ia" },
         { name: "Alnitak", ra: "05h 40m 45.528s", dec: "-01° 56′ 33.187″", magnitude: 1.76, spectralType: "O9.5Ib" },
         { name: "Mintaka", ra: "05h 32m 00.400s", dec: "-00° 17′ 57.117″", magnitude: 2.23, spectralType: "O9.5II" },
+
         // Ursa Major
-        { name: "Dubhe", ra: "11h 03m 43.672s", dec: "+61° 45′ 03.724″", magnitude: 1.79, spectralType: "A1V" },
-        { name: "Merak", ra: "11h 01m 50.489s", dec: "+56° 22′ 57.239″", magnitude: 2.37, spectralType: "A1V" },
-        { name: "Phecda", ra: "11h 47m 40.375s", dec: "+53° 41′ 41.048″", magnitude: 2.41, spectralType: "A0V" },
-        { name: "Megrez", ra: "12h 15m 29.948s", dec: "+56° 05′ 10.120″", magnitude: 3.32, spectralType: "A3V" },
-        { name: "Alioth", ra: "12h 15m 50.458s", dec: "+55° 46′ 48.695″", magnitude: 1.76, spectralType: "A0V" },
-        { name: "Mizar", ra: "13h 23m 55.202s", dec: "+54° 55′ 31.015″", magnitude: 2.23, spectralType: "A2V" },
-        { name: "Alkaid", ra: "13h 47m 32.528s", dec: "+49° 20′ 47.955″", magnitude: 1.85, spectralType: "B3V" },
-        // Add more stars as needed for other constellations
+        { name: "Dubhe", ra: "11h 03m 43.670s", dec: "+61° 45′ 03.22″", magnitude: 1.79, spectralType: "A1IV" },
+        { name: "Merak", ra: "11h 01m 50.490s", dec: "+56° 22′ 57.0″", magnitude: 2.37, spectralType: "A1V" },
+        { name: "Phecda", ra: "11h 47m 41.40s", dec: "+53° 41′ 41.0″", magnitude: 2.43, spectralType: "A0V" },
+        { name: "Megrez", ra: "12h 15m 31.20s", dec: "+56° 22′ 58.0″", magnitude: 3.31, spectralType: "A3V" },
+        { name: "Alioth", ra: "12h 54m 01.72s", dec: "+55° 57′ 34.9″", magnitude: 1.76, spectralType: "A0V" },
+        { name: "Mizar", ra: "13h 23m 55.95s", dec: "+54° 55′ 31.3″", magnitude: 2.23, spectralType: "A2V" },
+        { name: "Alkaid", ra: "13h 47m 32.49s", dec: "+49° 20′ 48.1″", magnitude: 1.85, spectralType: "B3V" },
+
+        // Cassiopeia
+        { name: "Schedar", ra: "01h 55m 07.8s", dec: "+56° 22′ 58.4″", magnitude: 2.23, spectralType: "K0III" },
+        { name: "Caph", ra: "02h 22m 56.2s", dec: "+56° 36′ 52.2″", magnitude: 2.28, spectralType: "B8III" },
+        { name: "Gamma Cassiopeiae", ra: "00h 08m 23.52s", dec: "+60° 43′ 33.1″", magnitude: 2.48, spectralType: "B0.5IVe" },
+        { name: "Ruchbah", ra: "00h 34m 43.7s", dec: "+60° 56′ 46.1″", magnitude: 2.32, spectralType: "K0III" },
+        { name: "Segin", ra: "00h 16m 03.0s", dec: "+58° 42′ 44.3″", magnitude: 3.40, spectralType: "F0IV" },
+        { name: "Tsih", ra: "00h 38m 37.0s", dec: "+56° 33′ 34.6″", magnitude: 4.51, spectralType: "A5V" },
+
+        // Cygnus
+        { name: "Deneb", ra: "20h 41m 25.915s", dec: "+45° 16′ 49.2″", magnitude: 1.25, spectralType: "A2Ia" },
+        { name: "Albireo", ra: "19h 52m 41.50s", dec: "+27° 57′ 18.0″", magnitude: 3.15, spectralType: "K1V + B8V" },
+        { name: "Sadr", ra: "20h 46m 43.27s", dec: "+40° 12′ 56.3″", magnitude: 3.56, spectralType: "A0V" },
+        { name: "Gienah", ra: "20h 42m 42.39s", dec: "+44° 09′ 05.0″", magnitude: 2.11, spectralType: "A5V" },
+        { name: "Delta Cygni", ra: "20h 37m 59.61s", dec: "+38° 06′ 21.5″", magnitude: 2.63, spectralType: "B5V" },
+        { name: "Epsilon Cygni", ra: "20h 33m 14.96s", dec: "+42° 16′ 34.5″", magnitude: 3.77, spectralType: "A1V" },
+        { name: "Zeta Cygni", ra: "20h 46m 51.53s", dec: "+44° 25′ 25.6″", magnitude: 3.04, spectralType: "B6V" },
+        { name: "Eta Cygni", ra: "20h 35m 00.90s", dec: "+40° 55′ 43.2″", magnitude: 4.37, spectralType: "A2V" },
+
+        // Scorpius
+        { name: "Antares", ra: "16h 29m 24.459s", dec: "-26° 25′ 55.2″", magnitude: 0.96, spectralType: "M1.5Iab-Ib" },
+        { name: "Shaula", ra: "17h 33m 34.21s", dec: "-37° 06′ 32.1″", magnitude: 1.62, spectralType: "B0.5IV" },
+        { name: "Sargas", ra: "17h 48m 02.96s", dec: "-40° 47′ 11.1″", magnitude: 2.86, spectralType: "A0III" },
+        { name: "Girtab", ra: "17h 43m 18.29s", dec: "-40° 20′ 30.2″", magnitude: 3.62, spectralType: "K5V" },
+        { name: "Jabbah", ra: "17h 55m 16.44s", dec: "-34° 21′ 37.6″", magnitude: 3.29, spectralType: "G9III" },
+        { name: "Dschubba", ra: "17h 34m 36.28s", dec: "-31° 31′ 14.7″", magnitude: 3.20, spectralType: "K2III" },
+        { name: "Akrab", ra: "16h 56m 28.0s", dec: "-26° 29′ 24.0″", magnitude: 3.85, spectralType: "B2V" },
+        { name: "Alniyat", ra: "17h 00m 30.0s", dec: "-24° 25′ 00.0″", magnitude: 4.92, spectralType: "F0V" }
+        // Add more stars as needed
     ];
 
     // 3. Define Utility Functions
-
     /**
      * Parses Right Ascension (RA) string to decimal degrees.
      * @param {string} raStr - RA in format "05h 55m 10.3053s"
@@ -125,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 4. Constellation Definitions (Orion, Ursa Major, etc.)
+    // 4. Constellation Definitions (Orion, Ursa Major, Cassiopeia, Cygnus, Scorpius)
     const constellationData = [
         {
             name: "Orion",
@@ -181,7 +209,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 "Albireo",
                 "Sadr",
                 "Gienah",
-                "Segin",
                 "Delta Cygni",
                 "Epsilon Cygni",
                 "Zeta Cygni",
@@ -190,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
             connections: [
                 [0, 1], [1, 2], [2, 3],
                 [3, 4], [4, 5], [5, 6],
-                [6, 7], [7, 8]
+                [6, 7]
             ]
         },
         {
@@ -201,18 +228,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 "Sargas",
                 "Girtab",
                 "Jabbah",
-                "Sargas",
                 "Dschubba",
-                "Jabbah",
                 "Akrab",
-                "Dschubba",
                 "Alniyat"
             ],
             connections: [
                 [0, 1], [1, 2], [2, 3],
                 [3, 4], [4, 5], [5, 6],
-                [6, 7], [7, 8],
-                [8, 9], [9, 10], [10, 1]
+                [6, 7], [7, 1]
             ]
         }
     ];
@@ -330,7 +353,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 7. Shooting Star Class
+    // 7. Initialize Canvas and Constellations
+    const canvasElement = document.getElementById('techCanvas');
+    const ctx = canvasElement.getContext('2d');
+
+    // Function to resize canvas and reinitialize constellations
+    function resizeCanvas() {
+        canvasElement.width = window.innerWidth;
+        canvasElement.height = window.innerHeight;
+        initializeConstellations(); // Reinitialize constellations after resizing
+    }
+
+    // Event listener for window resize
+    window.addEventListener('resize', resizeCanvas);
+
+    // Initial canvas setup
+    resizeCanvas();
+
+    // 8. Initialize Constellations
+    function initializeConstellations() {
+        constellationsList = []; // Reset the list
+        constellationData.forEach(def => {
+            const constel = new Constellation(def, canvasElement.width, canvasElement.height);
+            constellationsList.push(constel);
+        });
+    }
+
+    // 9. Shooting Stars Management (Optional Enhancement)
     class ShootingStar {
         constructor(canvasWidth, canvasHeight) {
             this.reset(canvasWidth, canvasHeight);
@@ -368,33 +417,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 8. Initialize Constellations
-    function initializeConstellations() {
-        constellationsList = []; // Reset the list
-        constellationData.forEach(def => {
-            const constel = new Constellation(def, canvasElement.width, canvasElement.height);
-            constellationsList.push(constel);
-        });
-    }
-
-    // 9. Initialize Canvas and Constellations
-    const canvasElement = document.getElementById('techCanvas');
-    const ctx = canvasElement.getContext('2d');
-
-    // Function to resize canvas and reinitialize constellations
-    function resizeCanvas() {
-        canvasElement.width = window.innerWidth;
-        canvasElement.height = window.innerHeight;
-        initializeConstellations(); // Reinitialize constellations after resizing
-    }
-
-    // Event listener for window resize
-    window.addEventListener('resize', resizeCanvas);
-
-    // Initial canvas setup
-    resizeCanvas();
-
-    // 10. Shooting Stars Management (Optional Enhancement)
     const shootingStars = [];
     const shootingStarProbability = 0.002; // Probability per frame to spawn a shooting star
 
@@ -412,7 +434,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 11. Animation Loop
+    // 10. Animation Loop
     let lastFrameTime = Date.now();
     const fps = 60;
     const fpsInterval = 1000 / fps;
@@ -441,7 +463,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     animateBackground();
 
-    // 12. Optional: Regenerate constellations periodically to keep the background dynamic
+    // 11. Optional: Regenerate constellations periodically to keep the background dynamic
     setInterval(() => {
         initializeConstellations();
     }, 60000); // Regenerate every 60 seconds
