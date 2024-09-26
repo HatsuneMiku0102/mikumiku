@@ -9,6 +9,18 @@ document.addEventListener('DOMContentLoaded', function () {
         // Add other stars as necessary
     ];
 
+    // Constellation definitions (this was missing earlier)
+    const constellationData = [
+        {
+            name: "Orion",
+            stars: ["Betelgeuse", "Bellatrix", "Saiph", "Rigel"],
+            connections: [
+                [0, 1], [0, 2], [1, 3], [2, 3]
+            ]
+        },
+        // Add other constellations like Ursa Major, Cassiopeia, etc.
+    ];
+
     function parseRA(raStr) {
         const raRegex = /(\d+)h\s+(\d+)m\s+([\d.]+)s/;
         const match = raStr.match(raRegex);
@@ -36,14 +48,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const x = canvasWidth / 2 + scale * (Math.cos(decRad) * Math.sin(raRad));
         const y = canvasHeight / 2 - scale * (Math.cos(decRad) * Math.cos(raRad));
         
-        // Log star positions to ensure they are within bounds
         console.log(`Star position: X=${x}, Y=${y}`);
         
         return { x, y };
     }
 
     function mapMagnitudeToAppearance(magnitude) {
-        // Temporarily set a fixed size for visibility
         return { radius: 5, baseOpacity: 1 };
     }
 
