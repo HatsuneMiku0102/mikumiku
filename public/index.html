@@ -156,7 +156,7 @@
         // Typing Effect Variables
         let typingIndex = 0;
         let typingTimeout;
-        let currentPhrase = "";
+        let currentPhrase = [];
         let isTyping = false; // Lock to prevent multiple hovers triggering new phrases
         let phraseHoldTimeout; // To control when the phrase disappears
         const typingSpeed = 150; // Slowed typing speed for smoother effect
@@ -165,20 +165,20 @@
         // Function to type out the phrase with spaces between words
         function typePhrase(phrase) {
             typingIndex = 0;
-            currentPhrase = phrase.split(""); // Split the phrase into individual characters
+            currentPhrase = phrase.split(" "); // Split the phrase into words
             personalityPhrase.innerText = ""; // Clear current text
             isTyping = true;
             clearTimeout(typingTimeout); // Clear previous typing timeout
             clearTimeout(phraseHoldTimeout); // Clear phrase hold timeout to prevent early resets
-            typeNextCharacter();
+            typeNextWord();
         }
     
-        // Function to type the next character
-        function typeNextCharacter() {
+        // Function to type the next word
+        function typeNextWord() {
             if (typingIndex < currentPhrase.length) {
-                personalityPhrase.innerText += currentPhrase[typingIndex]; // Add next character
+                personalityPhrase.innerText += currentPhrase[typingIndex] + " "; // Add space between words
                 typingIndex++;
-                typingTimeout = setTimeout(typeNextCharacter, typingSpeed); // Delay between characters
+                typingTimeout = setTimeout(typeNextWord, typingSpeed * 5); // Delay between words
             } else {
                 // After the full phrase is typed, hold it for some time
                 phraseHoldTimeout = setTimeout(clearPhrase, phraseHoldDuration); // Wait before clearing the phrase
@@ -233,6 +233,7 @@
         // Set default neutral mood on page load
         changeMood('neutral');
     });
+
 
 
 
