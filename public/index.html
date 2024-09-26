@@ -149,7 +149,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const personalityCircle = document.getElementById('personalityCircle');
             const personalityPhrase = document.getElementById('personalityPhrase');
-
+    
             const customPhrases = [
                 "Hi :)", 
                 "How's it going?", 
@@ -157,43 +157,44 @@
                 "Feel free to look around.", 
                 "What's on your mind today?"
             ];
-
+    
             // Typing Effect Variables
             let typingIndex = 0;
             let typingTimeout;
             let currentPhrase = "";
             let isTyping = false; // Lock to prevent multiple hovers triggering new phrases
-            const typingSpeed = 100; // Speed of typing
+            const typingSpeed = 100; // Speed of typing individual letters
+            const wordSetDelay = 500; // Delay between word sets
             const phraseHoldDuration = 2000; // Time to hold the phrase before clearing
-
+    
             // Function to type out the phrase
             function typePhrase(phrase) {
                 typingIndex = 0;
-                currentPhrase = phrase;
+                currentPhrase = phrase.split(" "); // Split the phrase into word sets
                 personalityPhrase.innerText = ""; // Clear current text
                 isTyping = true;
                 clearTimeout(typingTimeout); // Clear previous typing timeout
-                typeNextLetter();
+                typeNextWordSet();
             }
-
-            // Function to type the next letter
-            function typeNextLetter() {
+    
+            // Function to type the next word set
+            function typeNextWordSet() {
                 if (typingIndex < currentPhrase.length) {
-                    personalityPhrase.innerText += currentPhrase[typingIndex];
+                    personalityPhrase.innerText += currentPhrase[typingIndex] + " "; // Add a space between word sets
                     typingIndex++;
-                    typingTimeout = setTimeout(typeNextLetter, typingSpeed); // Typing speed
+                    typingTimeout = setTimeout(typeNextWordSet, wordSetDelay); // Delay between word sets
                 } else {
-                    // After phrase is typed, hold it for some time
+                    // After the full phrase is typed, hold it for some time
                     typingTimeout = setTimeout(clearPhrase, phraseHoldDuration);
                 }
             }
-
+    
             // Function to clear the phrase and reset typing state
             function clearPhrase() {
                 personalityPhrase.innerText = "";
                 isTyping = false;
             }
-
+    
             // Function to change the mood
             function changeMood(mood) {
                 personalityCircle.className = 'personality-circle'; // Reset class
@@ -212,10 +213,10 @@
                         break;
                 }
             }
-
+    
             // Add event listeners for hover over `.box-container` and `.widget`
             const hoverElements = document.querySelectorAll('.box-container, .weather-widget');
-
+    
             hoverElements.forEach(element => {
                 element.addEventListener('mouseenter', () => {
                     if (!isTyping) { // Prevent re-triggering while typing
@@ -224,7 +225,7 @@
                         changeMood('excited'); // Mood changes to "excited" on hover
                     }
                 });
-
+    
                 element.addEventListener('mouseleave', () => {
                     // Return to neutral mood after the typing finishes and the phrase clears
                     if (!isTyping) {
@@ -234,11 +235,12 @@
                     }
                 });
             });
-
+    
             // Set default neutral mood on page load
             changeMood('neutral');
         });
     </script>
+
 
 
     <!-- Additional Scripts -->
