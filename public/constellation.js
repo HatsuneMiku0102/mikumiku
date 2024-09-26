@@ -162,42 +162,44 @@ document.addEventListener('DOMContentLoaded', function () {
         generateStars(starNames) {
             starNames.forEach(starName => {
                 const starInfo = starCatalog.find(star => star.name === starName);
-                if (!starInfo) return;
-
-                let starPosition;
-                let isExcluded;
-                let attempts = 0;
-                const maxAttempts = 100;
-
-                // Keep generating a new position until it's outside all exclusion zones or attempts max out
-                do {
-                    const ra = parseRA(starInfo.ra);
-                    const dec = parseDec(starInfo.dec);
-                    starPosition = raDecToXY(ra, dec, this.canvasWidth, this.canvasHeight);
-                    isExcluded = isInExclusionZone(starPosition.x, starPosition.y, this.exclusionZones);
-                    attempts++;
-                    console.log(`Star: ${starName}, Position: X=${starPosition.x}, Y=${starPosition.y}, Excluded: ${isExcluded}`);
-                } while (isExcluded && attempts < maxAttempts);
-
-                // If after 100 attempts it can't place a star, it will skip that star
-                if (attempts >= maxAttempts) {
-                    console.warn(`Could not place star "${starName}" after ${maxAttempts} attempts.`);
+                if (!starInfo) {
+                    console.warn(`Star "${starName}" not found in starCatalog.`);
                     return;
                 }
-
+        
+                const ra = parseRA(starInfo.ra);
+                const dec = parseDec(starInfo.dec);
+        
+                // Convert RA/Dec to X/Y coordinates
+                const { x, y } = raDecToXY(ra, dec, this.canvasWidth, this.canvasHeight);
+        
+                // Clamp positions to canvas size to avoid off-screen rendering
+                const clampedX = Math.min(Math.max(0, x), this.canvasWidth);
+                const clampedY = Math.min(Math.max(0, y), this.canvasHeight);
+        
+                // Exclude stars that are inside the exclusion zones
+                if (isInExclusionZone(clampedX, clampedY, this.exclusionZones)) {
+                    console.log(`Star "${starName}" excluded due to being inside exclusion zone.`);
+                    return;
+                }
+        
                 const appearance = mapMagnitudeToAppearance(starInfo.magnitude);
                 const color = mapSpectralTypeToColor(starInfo.spectralType);
-
+        
                 this.stars.push(new Star(
-                    starInfo.name,
-                    starPosition.x,
-                    starPosition.y,
-                    appearance.radius,
-                    0.002,
-                    color,
+                    starInfo.name, 
+                    clampedX, 
+                    clampedY, 
+                    appearance.radius, 
+                    0.002, 
+                    color, 
                     appearance.baseOpacity
                 ));
+        
+                console.log(`Star: ${starInfo.name}, Position: X=${clampedX}, Y=${clampedY}`);
             });
+        
+            console.log(`Constellation "${this.name}" generated with ${this.stars.length} stars.`);
         }
 
         update() {
