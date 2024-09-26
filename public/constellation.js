@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     ];
 
+    // Function to parse Right Ascension (RA)
     function parseRA(raStr) {
         const raRegex = /(\d+)h\s+(\d+)m\s+([\d.]+)s/;
         const match = raStr.match(raRegex);
@@ -25,9 +26,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const hours = parseInt(match[1], 10);
         const minutes = parseInt(match[2], 10);
         const seconds = parseFloat(match[3]);
-        return (hours + minutes / 60 + seconds / 3600) * 15; // Convert to degrees
+        return (hours + minutes / 60 + seconds / 3600) * 15;
     }
 
+    // Function to parse Declination (Dec)
     function parseDec(decStr) {
         const decRegex = /([+-]?)(\d+)°\s+(\d+)′\s+([\d.]+)″/;
         const match = decStr.match(decRegex);
@@ -36,25 +38,18 @@ document.addEventListener('DOMContentLoaded', function () {
         const degrees = parseInt(match[2], 10);
         const minutes = parseInt(match[3], 10);
         const seconds = parseFloat(match[4]);
-        return sign * (degrees + minutes / 60 + seconds / 3600); // Convert to degrees
+        return sign * (degrees + minutes / 60 + seconds / 3600);
     }
 
-    // Adjusted raDecToXY function for proper spreading of stars
+    // Function to convert RA/Dec to x/y on canvas
     function raDecToXY(ra, dec, canvasWidth, canvasHeight) {
-        // RA: 0 to 360 degrees, map to 0 to canvasWidth
         const x = (ra / 360) * canvasWidth;
-
-        // Dec: -90 to +90 degrees, map to 0 to canvasHeight
         const y = ((90 - dec) / 180) * canvasHeight;
-
-        console.log(`Adjusted Star position: X=${x}, Y=${y}`);
-        
         return { x, y };
     }
 
     function mapMagnitudeToAppearance(magnitude) {
-        // Increase radius and opacity for better visibility
-        return { radius: 15, baseOpacity: 1 };
+        return { radius: 5, baseOpacity: 1 };
     }
 
     function mapSpectralTypeToColor(spectralType) {
@@ -77,6 +72,32 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Function to get the bounding boxes (exclusion zones) of the widgets
+    function getExclusionZones() {
+        const exclusionZones = [];
+        const widgets = document.querySelectorAll('.widget-class'); // Update selector to match your widgets
+        widgets.forEach(widget => {
+            const rect = widget.getBoundingClientRect();
+            exclusionZones.push({
+                x: rect.left,
+                y: rect.top,
+                width: rect.width,
+                height: rect.height
+            });
+        });
+        return exclusionZones;
+    }
+
+    // Helper function to check if a point is inside any exclusion zone
+    function isInExclusionZone(x, y, exclusionZones) {
+        for (let zone of exclusionZones) {
+            if (x > zone.x && x < zone.x + zone.width && y > zone.y && y < zone.y + zone.height) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     class Star {
         constructor(name, x, y, radius, twinkleSpeed, color, baseOpacity) {
             this.name = name;
@@ -89,9 +110,7 @@ document.addEventListener('DOMContentLoaded', function () {
             this.color = color;
         }
 
-        update() {
-            // Twinkling logic
-        }
+        update() {}
 
         draw(ctx) {
             const gradient = ctx.createRadialGradient(this.x, this.y, this.radius, this.x, this.y, this.radius * 4);
@@ -105,12 +124,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     class Constellation {
-        constructor(data, canvasWidth, canvasHeight) {
+        constructor(data, canvasWidth, canvasHeight, exclusionZones) {
             this.name = data.name;
             this.stars = [];
             this.canvasWidth = canvasWidth;
             this.canvasHeight = canvasHeight;
-            this.scale = 100;
+            this.exclusionZones = exclusionZones;
             this.generateStars(data.stars);
         }
 
@@ -118,12 +137,30 @@ document.addEventListener('DOMContentLoaded', function () {
             starNames.forEach(starName => {
                 const starInfo = starCatalog.find(star => star.name === starName);
                 if (!starInfo) return;
-                const ra = parseRA(starInfo.ra);
-                const dec = parseDec(starInfo.dec);
-                const { x, y } = raDecToXY(ra, dec, this.canvasWidth, this.canvasHeight);
+
+                let starPosition;
+                let isExcluded;
+
+                // Keep generating a new position until it's outside all exclusion zones
+                do {
+                    const ra = parseRA(starInfo.ra);
+                    const dec = parseDec(starInfo.dec);
+                    starPosition = raDecToXY(ra, dec, this.canvasWidth, this.canvasHeight);
+                    isExcluded = isInExclusionZone(starPosition.x, starPosition.y, this.exclusionZones);
+                } while (isExcluded);
+
                 const appearance = mapMagnitudeToAppearance(starInfo.magnitude);
                 const color = mapSpectralTypeToColor(starInfo.spectralType);
-                this.stars.push(new Star(starInfo.name, x, y, appearance.radius, 0.002, color, appearance.baseOpacity));
+
+                this.stars.push(new Star(
+                    starInfo.name,
+                    starPosition.x,
+                    starPosition.y,
+                    appearance.radius,
+                    0.002,
+                    color,
+                    appearance.baseOpacity
+                ));
             });
         }
 
@@ -142,17 +179,17 @@ document.addEventListener('DOMContentLoaded', function () {
     function resizeCanvas() {
         canvasElement.width = window.innerWidth;
         canvasElement.height = window.innerHeight;
-        initializeConstellations(); // Reinitialize constellations after resizing
+        initializeConstellations();
     }
-    
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas(); // Call this to initialize canvas size
 
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
 
     function initializeConstellations() {
+        const exclusionZones = getExclusionZones();
         constellationsList = [];
         constellationData.forEach(def => {
-            const constel = new Constellation(def, canvasElement.width, canvasElement.height);
+            const constel = new Constellation(def, canvasElement.width, canvasElement.height, exclusionZones);
             constellationsList.push(constel);
         });
     }
