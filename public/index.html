@@ -150,18 +150,28 @@
             const personalityCircle = document.getElementById('personalityCircle');
             const personalityPhrase = document.getElementById('personalityPhrase');
 
-            const randomPhrases = ["Hi :)", "How are you?", "I'm excited!", "Nice to see you!", "What's up?"];
+            const customPhrases = [
+                "Hi :)", 
+                "How's it going?", 
+                "Welcome to MikuMiku.dev", 
+                "Feel free to look around.", 
+                "What's on your mind today?"
+            ];
 
             // Typing Effect Variables
             let typingIndex = 0;
             let typingTimeout;
             let currentPhrase = "";
+            let isTyping = false; // Lock to prevent multiple hovers triggering new phrases
+            const typingSpeed = 100; // Speed of typing
+            const phraseHoldDuration = 2000; // Time to hold the phrase before clearing
 
             // Function to type out the phrase
             function typePhrase(phrase) {
                 typingIndex = 0;
                 currentPhrase = phrase;
                 personalityPhrase.innerText = ""; // Clear current text
+                isTyping = true;
                 clearTimeout(typingTimeout); // Clear previous typing timeout
                 typeNextLetter();
             }
@@ -171,8 +181,17 @@
                 if (typingIndex < currentPhrase.length) {
                     personalityPhrase.innerText += currentPhrase[typingIndex];
                     typingIndex++;
-                    typingTimeout = setTimeout(typeNextLetter, 100); // Typing speed
+                    typingTimeout = setTimeout(typeNextLetter, typingSpeed); // Typing speed
+                } else {
+                    // After phrase is typed, hold it for some time
+                    typingTimeout = setTimeout(clearPhrase, phraseHoldDuration);
                 }
+            }
+
+            // Function to clear the phrase and reset typing state
+            function clearPhrase() {
+                personalityPhrase.innerText = "";
+                isTyping = false;
             }
 
             // Function to change the mood
@@ -190,30 +209,29 @@
                         break;
                     default:
                         personalityCircle.classList.add('personality-neutral');
+                        break;
                 }
             }
 
-            // Function to show random phrases in the circle
-            function showRandomPhrase() {
-                const randomIndex = Math.floor(Math.random() * randomPhrases.length);
-                typePhrase(randomPhrases[randomIndex]);
-            }
-
-            // Add hover events to widgets and boxes to trigger excited mood
-            const hoverElements = document.querySelectorAll('.box-container, .widget');
+            // Add event listeners for hover over `.box-container` and `.widget`
+            const hoverElements = document.querySelectorAll('.box-container, .weather-widget');
 
             hoverElements.forEach(element => {
                 element.addEventListener('mouseenter', () => {
-                    changeMood('excited');
-                    showRandomPhrase();
+                    if (!isTyping) { // Prevent re-triggering while typing
+                        const randomPhrase = customPhrases[Math.floor(Math.random() * customPhrases.length)];
+                        typePhrase(randomPhrase);
+                        changeMood('excited'); // Mood changes to "excited" on hover
+                    }
                 });
 
                 element.addEventListener('mouseleave', () => {
-                    // Return to neutral mood after 1 second
-                    setTimeout(() => {
-                        changeMood('neutral');
-                        personalityPhrase.innerText = "";
-                    }, 1000);
+                    // Return to neutral mood after the typing finishes and the phrase clears
+                    if (!isTyping) {
+                        setTimeout(() => {
+                            changeMood('neutral');
+                        }, phraseHoldDuration + 500); // Adding extra delay to ensure smooth transition
+                    }
                 });
             });
 
@@ -221,6 +239,7 @@
             changeMood('neutral');
         });
     </script>
+
 
     <!-- Additional Scripts -->
     <script>
