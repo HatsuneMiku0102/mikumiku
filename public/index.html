@@ -155,45 +155,30 @@
     
         // Typing Effect Variables
         let typingIndex = 0;
-        let wordIndex = 0;
+        let letterIndex = 0;
         let typingTimeout;
         let currentPhrase = "";
-        let isTyping = false; // Lock to prevent multiple hovers triggering new phrases
-        const typingSpeed = 150; // Speed of typing individual letters
-        const wordPauseDuration = 500; // Time to pause between words
+        let isTyping = false;
+        const typingSpeed = 100; // Speed of typing individual letters
         const phraseHoldDuration = 2000; // Time to hold the phrase before clearing
     
-        // Function to type out the phrase word by word
+        // Function to type out the phrase
         function typePhrase(phrase) {
             typingIndex = 0;
-            wordIndex = 0;
-            currentPhrase = phrase.split(" "); // Split the phrase into words
+            letterIndex = 0;
+            currentPhrase = phrase;
             personalityPhrase.innerText = ""; // Clear current text
             isTyping = true;
             clearTimeout(typingTimeout); // Clear previous typing timeout
-            typeNextWord();
+            typeNextLetter();
         }
     
-        // Function to type the next word
-        function typeNextWord() {
-            if (wordIndex < currentPhrase.length) {
-                const word = currentPhrase[wordIndex] + " "; // Add a space after each word
-                let letterIndex = 0;
-    
-                // Function to type each letter of the word
-                function typeLetter() {
-                    if (letterIndex < word.length) {
-                        personalityPhrase.innerText += word[letterIndex]; // Append each letter
-                        letterIndex++;
-                        typingTimeout = setTimeout(typeLetter, typingSpeed); // Delay between letters
-                    } else {
-                        // After finishing a word, move to the next word
-                        wordIndex++;
-                        typingTimeout = setTimeout(typeNextWord, wordPauseDuration); // Pause between words
-                    }
-                }
-    
-                typeLetter(); // Start typing letters
+        // Function to type the next letter with space handling
+        function typeNextLetter() {
+            if (letterIndex < currentPhrase.length) {
+                personalityPhrase.innerText += currentPhrase[letterIndex]; // Add each letter (including spaces)
+                letterIndex++;
+                typingTimeout = setTimeout(typeNextLetter, typingSpeed); // Delay between letters
             } else {
                 // After the full phrase is typed, hold it for some time
                 typingTimeout = setTimeout(clearPhrase, phraseHoldDuration);
@@ -247,9 +232,6 @@
         // Set default neutral mood on page load
         changeMood('neutral');
     });
-
-
-
     </script>
 
 
