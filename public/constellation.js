@@ -1,12 +1,14 @@
 // constellation.js
 
 document.addEventListener('DOMContentLoaded', function() {
+    'use strict';
+
     // 1. Declare constellationsList at the very top
     let constellationsList = [];
 
     // 2. Star Catalog with Real Data
     const starCatalog = [
-        // Example Star Data:
+        // Example Star Data for Orion
         { name: "Betelgeuse", ra: "05h 55m 10.3053s", dec: "+07° 24′ 25.430″", magnitude: 0.42, spectralType: "M1-M2" },
         { name: "Rigel", ra: "05h 14m 32.27210s", dec: "-08° 12′ 05.8981″", magnitude: 0.18, spectralType: "B8I" },
         { name: "Bellatrix", ra: "05h 25m 07.8633s", dec: "+06° 20′ 58.931″", magnitude: 1.64, spectralType: "B2III" },
@@ -251,7 +253,75 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 6. Constellation Class
+    // 6. Shooting Star Class
+    class ShootingStar {
+        constructor(canvasWidth, canvasHeight) {
+            this.reset(canvasWidth, canvasHeight);
+        }
+
+        reset(canvasWidth, canvasHeight) {
+            this.x = Math.random() * canvasWidth;
+            this.y = Math.random() * canvasHeight * 0.5; // Appear in the upper half
+            this.length = Math.random() * 80 + 20;
+            this.speed = Math.random() * 10 + 10;
+            this.angle = Math.PI / 4; // 45 degrees
+            this.opacity = 1;
+            this.alive = true;
+        }
+
+        update(canvasWidth, canvasHeight) {
+            this.x += Math.cos(this.angle) * this.speed;
+            this.y += Math.sin(this.angle) * this.speed;
+            this.opacity -= 0.02;
+            if (this.opacity <= 0 || this.x > canvasWidth || this.y > canvasHeight) {
+                this.alive = false;
+            }
+        }
+
+        draw(ctx) {
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(
+                this.x - Math.cos(this.angle) * this.length,
+                this.y - Math.sin(this.angle) * this.length
+            );
+            ctx.strokeStyle = `rgba(255, 255, 255, ${this.opacity})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+    }
+
+    // 7. Initialize Canvas and Constellations
+    const canvasElement = document.getElementById('techCanvas');
+    const ctx = canvasElement.getContext('2d');
+
+    /**
+     * Function to initialize constellations
+     */
+    function initializeConstellations() {
+        constellationsList = []; // Reset the list
+        constellationData.forEach(def => {
+            const constel = new Constellation(def, canvasElement.width, canvasElement.height);
+            constellationsList.push(constel);
+        });
+    }
+
+    /**
+     * Function to resize canvas and reinitialize constellations
+     */
+    function resizeCanvas() {
+        canvasElement.width = window.innerWidth;
+        canvasElement.height = window.innerHeight;
+        initializeConstellations(); // Reinitialize constellations after resizing
+    }
+
+    // Event listener for window resize
+    window.addEventListener('resize', resizeCanvas);
+
+    // Initial canvas setup
+    resizeCanvas();
+
+    // 8. Constellation Class
     class Constellation {
         constructor(data, canvasWidth, canvasHeight) {
             this.name = data.name;
@@ -321,33 +391,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 7. Initialize Canvas and Constellations
-    const canvasElement = document.getElementById('techCanvas');
-    const ctx = canvasElement.getContext('2d');
-
-    // Function to resize canvas and reinitialize constellations
-    function resizeCanvas() {
-        canvasElement.width = window.innerWidth;
-        canvasElement.height = window.innerHeight;
-        initializeConstellations(); // Reinitialize constellations after resizing
-    }
-
-    // Event listener for window resize
-    window.addEventListener('resize', resizeCanvas);
-
-    // Initial canvas setup
-    resizeCanvas();
-
-    // 8. Initialize Constellations
-    function initializeConstellations() {
-        constellationsList = []; // Reset the list
-        constellationData.forEach(def => {
-            const constel = new Constellation(def, canvasElement.width, canvasElement.height);
-            constellationsList.push(constel);
-        });
-    }
-
-    // 9. Shooting Stars Management (Optional Enhancement)
+    // 9. Shooting Stars Management
     const shootingStars = [];
     const shootingStarProbability = 0.002; // Probability per frame to spawn a shooting star
 
@@ -398,42 +442,4 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(() => {
         initializeConstellations();
     }, 60000); // Regenerate every 60 seconds
-
-    // 12. Shooting Star Class (Define this class if not already defined)
-    class ShootingStar {
-        constructor(canvasWidth, canvasHeight) {
-            this.reset(canvasWidth, canvasHeight);
-        }
-
-        reset(canvasWidth, canvasHeight) {
-            this.x = Math.random() * canvasWidth;
-            this.y = Math.random() * canvasHeight * 0.5; // Appear in the upper half
-            this.length = Math.random() * 80 + 20;
-            this.speed = Math.random() * 10 + 10;
-            this.angle = Math.PI / 4; // 45 degrees
-            this.opacity = 1;
-            this.alive = true;
-        }
-
-        update(canvasWidth, canvasHeight) {
-            this.x += Math.cos(this.angle) * this.speed;
-            this.y += Math.sin(this.angle) * this.speed;
-            this.opacity -= 0.02;
-            if (this.opacity <= 0 || this.x > canvasWidth || this.y > canvasHeight) {
-                this.alive = false;
-            }
-        }
-
-        draw(ctx) {
-            ctx.beginPath();
-            ctx.moveTo(this.x, this.y);
-            ctx.lineTo(
-                this.x - Math.cos(this.angle) * this.length,
-                this.y - Math.sin(this.angle) * this.length
-            );
-            ctx.strokeStyle = `rgba(255, 255, 255, ${this.opacity})`;
-            ctx.lineWidth = 2;
-            ctx.stroke();
-        }
-    }
 });
