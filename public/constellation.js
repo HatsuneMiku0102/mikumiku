@@ -6,21 +6,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 2. Star Catalog with Real Data
     const starCatalog = [
-        // [All stars as defined in previous steps]
         // Orion
         { name: "Betelgeuse", ra: "05h 55m 10.3053s", dec: "+07° 24′ 25.430″", magnitude: 0.42, spectralType: "M1-M2" },
+        { name: "Bellatrix", ra: "05h 25m 07.8632s", dec: "+06° 20′ 59.331″", magnitude: 1.64, spectralType: "B2III" },
+        { name: "Saiph", ra: "05h 47m 45.3485s", dec: "-09° 40′ 10.146″", magnitude: 2.07, spectralType: "B0Ia" },
         { name: "Rigel", ra: "05h 14m 32.27210s", dec: "-08° 12′ 05.8981″", magnitude: 0.18, spectralType: "B8I" },
-        { name: "Bellatrix", ra: "05h 25m 07.8633s", dec: "+06° 20′ 58.931″", magnitude: 1.64, spectralType: "B2III" },
-        { name: "Saiph", ra: "05h 47m 45.348s", dec: "-09° 40′ 10.585″", magnitude: 2.07, spectralType: "B0III" },
-        { name: "Alnilam", ra: "05h 36m 12.813s", dec: "-01° 12′ 06.939″", magnitude: 1.69, spectralType: "B0Ia" },
-        { name: "Alnitak", ra: "05h 40m 45.528s", dec: "-01° 56′ 33.187″", magnitude: 1.76, spectralType: "O9.5Ib" },
-        { name: "Mintaka", ra: "05h 32m 00.400s", dec: "-00° 17′ 57.117″", magnitude: 2.23, spectralType: "O9.5II" },
+        { name: "Alnilam", ra: "05h 36m 12.8130s", dec: "-01° 12′ 06.9″", magnitude: 1.69, spectralType: "B0Ia" },
+        { name: "Alnitak", ra: "05h 40m 45.5277s", dec: "-01° 56′ 33.89″", magnitude: 1.74, spectralType: "O9.5I" },
+        { name: "Mintaka", ra: "05h 32m 00.40s", dec: "-00° 17′ 56″", magnitude: 2.23, spectralType: "O9III" },
         
         // Ursa Major
-        { name: "Dubhe", ra: "11h 03m 43.670s", dec: "+61° 45′ 03.22″", magnitude: 1.79, spectralType: "A1IV" },
-        { name: "Merak", ra: "11h 01m 50.490s", dec: "+56° 22′ 57.0″", magnitude: 2.37, spectralType: "A1V" },
-        { name: "Phecda", ra: "11h 47m 41.40s", dec: "+53° 41′ 41.0″", magnitude: 2.43, spectralType: "A0V" },
-        { name: "Megrez", ra: "12h 15m 31.20s", dec: "+56° 22′ 58.0″", magnitude: 3.31, spectralType: "A3V" },
+        { name: "Dubhe", ra: "11h 03m 43.6704s", dec: "+61° 45′ 03.89″", magnitude: 1.79, spectralType: "A1IV" },
+        { name: "Merak", ra: "11h 01m 50.498s", dec: "+56° 22′ 57.5″", magnitude: 2.37, spectralType: "A1IV" },
+        { name: "Phecda", ra: "11h 53m 50.490s", dec: "+53° 41′ 41.9″", magnitude: 2.44, spectralType: "A0IV" },
+        { name: "Megrez", ra: "12h 15m 21.408s", dec: "+56° 05′ 17.3″", magnitude: 3.31, spectralType: "A3V" },
         { name: "Alioth", ra: "12h 54m 01.72s", dec: "+55° 57′ 34.9″", magnitude: 1.76, spectralType: "A0V" },
         { name: "Mizar", ra: "13h 23m 55.95s", dec: "+54° 55′ 31.3″", magnitude: 2.23, spectralType: "A2V" },
         { name: "Alkaid", ra: "13h 47m 32.49s", dec: "+49° 20′ 48.1″", magnitude: 1.85, spectralType: "B3V" },
@@ -62,13 +61,9 @@ document.addEventListener('DOMContentLoaded', function() {
      * @returns {number} - RA in decimal degrees
      */
     function parseRA(raStr) {
-        // Updated regex to be more flexible with spacing
-        const raRegex = /(\d+)h\s*(\d+)m\s*([\d.]+)s/;
+        const raRegex = /(\d+)h\s+(\d+)m\s+([\d.]+)s/;
         const match = raStr.match(raRegex);
-        if (!match) {
-            console.warn(`Failed to parse Right Ascension: "${raStr}"`);
-            return 0;
-        }
+        if (!match) return 0;
         const hours = parseInt(match[1], 10);
         const minutes = parseInt(match[2], 10);
         const seconds = parseFloat(match[3]);
@@ -81,20 +76,15 @@ document.addEventListener('DOMContentLoaded', function() {
      * @returns {number} - Dec in decimal degrees
      */
     function parseDec(decStr) {
-        // Updated regex to handle both Unicode and standard symbols for minutes and seconds
-        const decRegex = /([+-]?)(\d+)°\s*(\d+)[′']\s*([\d.]+)[″"]?/;
+        const decRegex = /([+-]?)(\d+)°\s+(\d+)′\s+([\d.]+)″/;
         const match = decStr.match(decRegex);
-        if (!match) {
-            console.warn(`Failed to parse Declination: "${decStr}"`);
-            return 0;
-        }
+        if (!match) return 0;
         const sign = match[1] === '-' ? -1 : 1;
         const degrees = parseInt(match[2], 10);
         const minutes = parseInt(match[3], 10);
         const seconds = parseFloat(match[4]);
         return sign * (degrees + minutes / 60 + seconds / 3600);
     }
-
 
     /**
      * Converts RA and Dec to Cartesian coordinates.
@@ -106,9 +96,11 @@ document.addEventListener('DOMContentLoaded', function() {
      * @returns {Object} - { x, y } coordinates
      */
     function raDecToXY(ra, dec, canvasWidth, canvasHeight, scale = 300) {
+        // Convert degrees to radians
         const raRad = (ra * Math.PI) / 180;
         const decRad = (dec * Math.PI) / 180;
 
+        // Simple azimuthal equidistant projection
         const x = canvasWidth / 2 + scale * (Math.cos(decRad) * Math.sin(raRad));
         const y = canvasHeight / 2 - scale * (Math.cos(decRad) * Math.cos(raRad));
 
@@ -117,6 +109,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     /**
      * Maps apparent magnitude to star radius and base opacity.
+     * Brighter stars have smaller magnitude values.
+     * @param {number} magnitude 
+     * @returns {Object} - { radius, baseOpacity }
      */
     function mapMagnitudeToAppearance(magnitude) {
         if (magnitude <= 1) {
@@ -134,6 +129,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     /**
      * Maps spectral type to RGB color.
+     * Simplified mapping based on star temperatures.
+     * @param {string} spectralType 
+     * @returns {Object} - { r, g, b }
      */
     function mapSpectralTypeToColor(spectralType) {
         if (spectralType.startsWith("O")) {
@@ -273,12 +271,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const gradient = ctx.createRadialGradient(this.x, this.y, this.radius, this.x, this.y, this.radius * 4);
             gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity})`);
             gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    
+
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius * 4, 0, Math.PI * 2);
             ctx.fillStyle = gradient;
             ctx.fill();
-    
+
             // Draw star
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
@@ -300,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.exclusionZones = exclusionZones;
 
             // Randomly position and scale the constellation
-            this.scale = Math.random() * 150 + 150; // Scale between 150 and 300 pixels to make constellations larger
+            this.scale = Math.random() * 200 + 200; // Scale between 200 and 400 pixels to make constellations larger
 
             // Random position ensuring the constellation fits within the canvas and avoids exclusion zones
             this.position = this.getRandomPosition();
@@ -343,6 +341,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const dec = parseDec(starInfo.dec);
 
                 const { x, y } = raDecToXY(ra, dec, this.canvasWidth, this.canvasHeight, this.scale);
+
+                // Ensure stars are within canvas bounds
+                if (x < 0 || x > this.canvasWidth || y < 0 || y > this.canvasHeight) {
+                    console.warn(`Star "${starName}" position (${x}, ${y}) is out of canvas bounds.`);
+                    return;
+                }
 
                 const appearance = mapMagnitudeToAppearance(starInfo.magnitude);
                 const color = mapSpectralTypeToColor(starInfo.spectralType);
@@ -434,7 +438,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function resizeCanvas() {
         canvasElement.width = window.innerWidth;
         canvasElement.height = window.innerHeight;
-        console.log(`Canvas resized to ${window.innerWidth}x${window.innerHeight}`);
         initializeConstellations(); // Reinitialize constellations after resizing
     }
 
@@ -451,7 +454,7 @@ document.addEventListener('DOMContentLoaded', function() {
         constellationData.forEach(def => {
             const constel = new Constellation(def, canvasElement.width, canvasElement.height, exclusionZones);
             constellationsList.push(constel);
-            console.log(`Constellation "${def.name}" initialized.`);
+            console.log(`Constellation "${constel.name}" initialized.`);
         });
         console.log(`Total constellations initialized: ${constellationsList.length}`);
     }
@@ -470,7 +473,6 @@ document.addEventListener('DOMContentLoaded', function() {
             this.angle = Math.PI / 4; // 45 degrees
             this.opacity = 1;
             this.alive = true;
-            console.log(`Shooting star created at (${this.x.toFixed(2)}, ${this.y.toFixed(2)})`);
         }
 
         update(canvasWidth, canvasHeight) {
@@ -479,7 +481,6 @@ document.addEventListener('DOMContentLoaded', function() {
             this.opacity -= 0.02;
             if (this.opacity <= 0 || this.x > canvasWidth || this.y > canvasHeight) {
                 this.alive = false;
-                console.log(`Shooting star at (${this.x.toFixed(2)}, ${this.y.toFixed(2)}) expired.`);
             }
         }
 
@@ -502,7 +503,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function manageShootingStars() {
         if (Math.random() < shootingStarProbability) {
             shootingStars.push(new ShootingStar(canvasElement.width, canvasElement.height));
-            console.log(`Shooting star spawned. Total shooting stars: ${shootingStars.length}`);
         }
 
         for (let i = shootingStars.length - 1; i >= 0; i--) {
@@ -510,7 +510,6 @@ document.addEventListener('DOMContentLoaded', function() {
             shootingStars[i].draw(ctx);
             if (!shootingStars[i].alive) {
                 shootingStars.splice(i, 1);
-                console.log(`Shooting star removed. Remaining shooting stars: ${shootingStars.length}`);
             }
         }
     }
@@ -520,22 +519,29 @@ document.addEventListener('DOMContentLoaded', function() {
     let hoveredConstellation = null;
 
     // Tooltip Element
-    const tooltip = document.createElement('div');
-    tooltip.id = 'tooltip'; // Ensure the tooltip has an ID for CSS styling
-    tooltip.style.position = 'absolute';
-    tooltip.style.background = 'rgba(0, 0, 0, 0.7)';
-    tooltip.style.color = '#fff';
-    tooltip.style.padding = '5px 10px';
-    tooltip.style.borderRadius = '4px';
-    tooltip.style.pointerEvents = 'none';
-    tooltip.style.visibility = 'hidden';
-    tooltip.style.zIndex = '1001'; // Higher than any other elements
-    tooltip.style.transition = 'opacity 0.3s';
-    tooltip.style.fontSize = '12px';
-    tooltip.style.maxWidth = '200px';
-    tooltip.style.whiteSpace = 'nowrap';
-    document.body.appendChild(tooltip);
-    console.log("Tooltip element created.");
+    const tooltip = document.getElementById('tooltip') || createTooltip();
+
+    /**
+     * Create Tooltip Element if not present
+     */
+    function createTooltip() {
+        const tooltipDiv = document.createElement('div');
+        tooltipDiv.id = 'tooltip';
+        tooltipDiv.style.position = 'absolute';
+        tooltipDiv.style.background = 'rgba(0, 0, 0, 0.7)';
+        tooltipDiv.style.color = '#fff';
+        tooltipDiv.style.padding = '5px 10px';
+        tooltipDiv.style.borderRadius = '4px';
+        tooltipDiv.style.pointerEvents = 'none';
+        tooltipDiv.style.visibility = 'hidden';
+        tooltipDiv.style.zIndex = '1001'; // Higher than any other elements
+        tooltipDiv.style.transition = 'opacity 0.3s';
+        tooltipDiv.style.fontSize = '12px';
+        tooltipDiv.style.maxWidth = '200px';
+        document.body.appendChild(tooltipDiv);
+        console.log('Tooltip element created.');
+        return tooltipDiv;
+    }
 
     /**
      * Get mouse position relative to the canvas
@@ -601,7 +607,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add event listener for mouse movement
     canvasElement.addEventListener('mousemove', handleHover);
     canvasElement.addEventListener('mouseleave', hideTooltip);
-    console.log("Event listeners for hover added to canvas.");
+    console.log('Event listeners for hover added to canvas.');
 
     // 11. Animation Loop
     let lastFrameTime = Date.now();
@@ -636,7 +642,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
-                // Optionally, draw a surrounding glow
+                // Optional: Draw a surrounding glow
                 ctx.beginPath();
                 ctx.arc(hoveredStar.x, hoveredStar.y, hoveredStar.radius * 8, 0, Math.PI * 2);
                 ctx.strokeStyle = 'rgba(0, 229, 255, 0.5)';
@@ -647,11 +653,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     animateBackground();
-    console.log("Animation loop started.");
+    console.log('Animation loop started.');
 
     // 12. Optional: Regenerate constellations periodically to keep the background dynamic
     setInterval(() => {
         initializeConstellations();
-        console.log("Constellations regenerated.");
+        console.log('Constellations regenerated.');
     }, 60000); // Regenerate every 60 seconds
 });
