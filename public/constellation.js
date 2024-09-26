@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
      * @param {number} scale - Scaling factor for projection
      * @returns {Object} - { x, y } coordinates
      */
-    function raDecToXY(ra, dec, canvasWidth, canvasHeight, scale = 400) { // Increased scale from 300 to 400
+    function raDecToXY(ra, dec, canvasWidth, canvasHeight, scale = 300) {
         // Convert degrees to radians
         const raRad = (ra * Math.PI) / 180;
         const decRad = (dec * Math.PI) / 180;
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function mapMagnitudeToAppearance(magnitude) {
         if (magnitude <= 1) {
-            return { radius: 5, baseOpacity: 1 }; // Increased radius
+            return { radius: 5, baseOpacity: 1 };
         } else if (magnitude <= 2) {
             return { radius: 4, baseOpacity: 0.8 };
         } else if (magnitude <= 3) {
@@ -484,10 +484,12 @@ document.addEventListener('DOMContentLoaded', function() {
     tooltip.style.pointerEvents = 'none';
     tooltip.style.opacity = '0';
     tooltip.style.transition = 'opacity 0.3s';
+    tooltip.style.whiteSpace = 'nowrap';
+    tooltip.style.fontSize = '14px';
     document.body.appendChild(tooltip);
 
     // Function to handle hover-over
-    function handleHover() {
+    function handleHover(event) {
         const mousePos = getMousePos(canvasElement, event);
         let hoveredStar = null;
 
