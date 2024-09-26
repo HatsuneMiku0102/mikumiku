@@ -1,14 +1,12 @@
 // constellation.js
 
 document.addEventListener('DOMContentLoaded', function() {
-    'use strict';
-
-    // 1. Declare constellationsList at the very top
+    // 1. Declare constellationsList at the very top using 'let' to allow reassignments
     let constellationsList = [];
 
     // 2. Star Catalog with Real Data
     const starCatalog = [
-        // Example Star Data for Orion
+        // Orion
         { name: "Betelgeuse", ra: "05h 55m 10.3053s", dec: "+07° 24′ 25.430″", magnitude: 0.42, spectralType: "M1-M2" },
         { name: "Rigel", ra: "05h 14m 32.27210s", dec: "-08° 12′ 05.8981″", magnitude: 0.18, spectralType: "B8I" },
         { name: "Bellatrix", ra: "05h 25m 07.8633s", dec: "+06° 20′ 58.931″", magnitude: 1.64, spectralType: "B2III" },
@@ -16,10 +14,19 @@ document.addEventListener('DOMContentLoaded', function() {
         { name: "Alnilam", ra: "05h 36m 12.813s", dec: "-01° 12′ 06.939″", magnitude: 1.69, spectralType: "B0Ia" },
         { name: "Alnitak", ra: "05h 40m 45.528s", dec: "-01° 56′ 33.187″", magnitude: 1.76, spectralType: "O9.5Ib" },
         { name: "Mintaka", ra: "05h 32m 00.400s", dec: "-00° 17′ 57.117″", magnitude: 2.23, spectralType: "O9.5II" },
-        // Add more stars as needed
+        // Ursa Major
+        { name: "Dubhe", ra: "11h 03m 43.672s", dec: "+61° 45′ 03.724″", magnitude: 1.79, spectralType: "A1V" },
+        { name: "Merak", ra: "11h 01m 50.489s", dec: "+56° 22′ 57.239″", magnitude: 2.37, spectralType: "A1V" },
+        { name: "Phecda", ra: "11h 47m 40.375s", dec: "+53° 41′ 41.048″", magnitude: 2.41, spectralType: "A0V" },
+        { name: "Megrez", ra: "12h 15m 29.948s", dec: "+56° 05′ 10.120″", magnitude: 3.32, spectralType: "A3V" },
+        { name: "Alioth", ra: "12h 15m 50.458s", dec: "+55° 46′ 48.695″", magnitude: 1.76, spectralType: "A0V" },
+        { name: "Mizar", ra: "13h 23m 55.202s", dec: "+54° 55′ 31.015″", magnitude: 2.23, spectralType: "A2V" },
+        { name: "Alkaid", ra: "13h 47m 32.528s", dec: "+49° 20′ 47.955″", magnitude: 1.85, spectralType: "B3V" },
+        // Add more stars as needed for other constellations
     ];
 
     // 3. Define Utility Functions
+
     /**
      * Parses Right Ascension (RA) string to decimal degrees.
      * @param {string} raStr - RA in format "05h 55m 10.3053s"
@@ -118,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 4. Constellation Definitions (Orion, Ursa Major, Cassiopeia, Cygnus, Scorpius)
+    // 4. Constellation Definitions (Orion, Ursa Major, etc.)
     const constellationData = [
         {
             name: "Orion",
@@ -253,75 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 6. Shooting Star Class
-    class ShootingStar {
-        constructor(canvasWidth, canvasHeight) {
-            this.reset(canvasWidth, canvasHeight);
-        }
-
-        reset(canvasWidth, canvasHeight) {
-            this.x = Math.random() * canvasWidth;
-            this.y = Math.random() * canvasHeight * 0.5; // Appear in the upper half
-            this.length = Math.random() * 80 + 20;
-            this.speed = Math.random() * 10 + 10;
-            this.angle = Math.PI / 4; // 45 degrees
-            this.opacity = 1;
-            this.alive = true;
-        }
-
-        update(canvasWidth, canvasHeight) {
-            this.x += Math.cos(this.angle) * this.speed;
-            this.y += Math.sin(this.angle) * this.speed;
-            this.opacity -= 0.02;
-            if (this.opacity <= 0 || this.x > canvasWidth || this.y > canvasHeight) {
-                this.alive = false;
-            }
-        }
-
-        draw(ctx) {
-            ctx.beginPath();
-            ctx.moveTo(this.x, this.y);
-            ctx.lineTo(
-                this.x - Math.cos(this.angle) * this.length,
-                this.y - Math.sin(this.angle) * this.length
-            );
-            ctx.strokeStyle = `rgba(255, 255, 255, ${this.opacity})`;
-            ctx.lineWidth = 2;
-            ctx.stroke();
-        }
-    }
-
-    // 7. Initialize Canvas and Constellations
-    const canvasElement = document.getElementById('techCanvas');
-    const ctx = canvasElement.getContext('2d');
-
-    /**
-     * Function to initialize constellations
-     */
-    function initializeConstellations() {
-        constellationsList = []; // Reset the list
-        constellationData.forEach(def => {
-            const constel = new Constellation(def, canvasElement.width, canvasElement.height);
-            constellationsList.push(constel);
-        });
-    }
-
-    /**
-     * Function to resize canvas and reinitialize constellations
-     */
-    function resizeCanvas() {
-        canvasElement.width = window.innerWidth;
-        canvasElement.height = window.innerHeight;
-        initializeConstellations(); // Reinitialize constellations after resizing
-    }
-
-    // Event listener for window resize
-    window.addEventListener('resize', resizeCanvas);
-
-    // Initial canvas setup
-    resizeCanvas();
-
-    // 8. Constellation Class
+    // 6. Constellation Class
     class Constellation {
         constructor(data, canvasWidth, canvasHeight) {
             this.name = data.name;
@@ -391,7 +330,71 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 9. Shooting Stars Management
+    // 7. Shooting Star Class
+    class ShootingStar {
+        constructor(canvasWidth, canvasHeight) {
+            this.reset(canvasWidth, canvasHeight);
+        }
+
+        reset(canvasWidth, canvasHeight) {
+            this.x = Math.random() * canvasWidth;
+            this.y = Math.random() * canvasHeight * 0.5; // Appear in the upper half
+            this.length = Math.random() * 80 + 20;
+            this.speed = Math.random() * 10 + 10;
+            this.angle = Math.PI / 4; // 45 degrees
+            this.opacity = 1;
+            this.alive = true;
+        }
+
+        update(canvasWidth, canvasHeight) {
+            this.x += Math.cos(this.angle) * this.speed;
+            this.y += Math.sin(this.angle) * this.speed;
+            this.opacity -= 0.02;
+            if (this.opacity <= 0 || this.x > canvasWidth || this.y > canvasHeight) {
+                this.alive = false;
+            }
+        }
+
+        draw(ctx) {
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(
+                this.x - Math.cos(this.angle) * this.length,
+                this.y - Math.sin(this.angle) * this.length
+            );
+            ctx.strokeStyle = `rgba(255, 255, 255, ${this.opacity})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+    }
+
+    // 8. Initialize Constellations
+    function initializeConstellations() {
+        constellationsList = []; // Reset the list
+        constellationData.forEach(def => {
+            const constel = new Constellation(def, canvasElement.width, canvasElement.height);
+            constellationsList.push(constel);
+        });
+    }
+
+    // 9. Initialize Canvas and Constellations
+    const canvasElement = document.getElementById('techCanvas');
+    const ctx = canvasElement.getContext('2d');
+
+    // Function to resize canvas and reinitialize constellations
+    function resizeCanvas() {
+        canvasElement.width = window.innerWidth;
+        canvasElement.height = window.innerHeight;
+        initializeConstellations(); // Reinitialize constellations after resizing
+    }
+
+    // Event listener for window resize
+    window.addEventListener('resize', resizeCanvas);
+
+    // Initial canvas setup
+    resizeCanvas();
+
+    // 10. Shooting Stars Management (Optional Enhancement)
     const shootingStars = [];
     const shootingStarProbability = 0.002; // Probability per frame to spawn a shooting star
 
@@ -409,7 +412,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 10. Animation Loop
+    // 11. Animation Loop
     let lastFrameTime = Date.now();
     const fps = 60;
     const fpsInterval = 1000 / fps;
@@ -438,7 +441,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     animateBackground();
 
-    // 11. Optional: Regenerate constellations periodically to keep the background dynamic
+    // 12. Optional: Regenerate constellations periodically to keep the background dynamic
     setInterval(() => {
         initializeConstellations();
     }, 60000); // Regenerate every 60 seconds
