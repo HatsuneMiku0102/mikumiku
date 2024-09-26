@@ -62,9 +62,13 @@ document.addEventListener('DOMContentLoaded', function() {
      * @returns {number} - RA in decimal degrees
      */
     function parseRA(raStr) {
-        const raRegex = /(\d+)h\s+(\d+)m\s+([\d.]+)s/;
+        // Updated regex to be more flexible with spacing
+        const raRegex = /(\d+)h\s*(\d+)m\s*([\d.]+)s/;
         const match = raStr.match(raRegex);
-        if (!match) return 0;
+        if (!match) {
+            console.warn(`Failed to parse Right Ascension: "${raStr}"`);
+            return 0;
+        }
         const hours = parseInt(match[1], 10);
         const minutes = parseInt(match[2], 10);
         const seconds = parseFloat(match[3]);
