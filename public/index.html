@@ -13,22 +13,18 @@
     <canvas id="techCanvas"></canvas>
 
     <div class="page-container">
-        <!-- Title Bar with Dropdown -->
         <div class="title-bar">
             <div class="container">
-                <!-- Animated Circle and Personality Section -->
                 <div class="personality-section">
                     <div id="personalityCircle" class="personality-circle"></div>
                     <div id="personalityPhrase" class="personality-text-wrapper"></div>
                 </div>
 
-                <!-- Logo and Title Next to Each Other -->
                 <div class="logo-title-wrapper">
                     <img src="/logo.webp" alt="Logo" class="logo">
                     <h1 class="site-title" id="dynamicTitle">MikuMiku</h1>
                 </div>
 
-                <!-- Dropdown Menu in Title Bar -->
                 <div class="dropdown">
                     <button class="dropdown-button">Menu</button>
                     <div class="dropdown-content">
@@ -39,7 +35,6 @@
         </div>
 
         <div id="main-content" class="main-content">
-            <!-- Now Playing Section -->
             <div id="now-playing-container" class="box-container">
                 <div id="now-playing" class="now-playing">
                     <div class="now-playing-sidebar">
@@ -88,7 +83,6 @@
                 </div>
             </div>
 
-            <!-- Widgets Section -->
             <div class="widgets-container">
                 <div class="live-clock box-container">
                     <h3>My Current Time</h3>
@@ -112,7 +106,6 @@
                 </div>
             </div>
 
-            <!-- Recently Watched Videos Section -->
             <div class="content-wrapper">
                 <div class="now-playing-about-wrapper">
                     <div class="recent-videos-wrapper box-container">
@@ -135,16 +128,18 @@
         </footer>
     </div>
 
+    <div class="voice-control">
+        <button id="start-voice-btn">🎤 Talk to Me</button>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
-
-    <!-- Typing Effect and Mood Change Script -->
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         const personalityCircle = document.getElementById('personalityCircle');
         const personalityPhrase = document.getElementById('personalityPhrase');
-        
+
         const customPhrases = [
             "Hi :)", 
             "How's it going?", 
@@ -152,86 +147,86 @@
             "Feel free to look around.", 
             "What's on your mind today?"
         ];
-    
+
         let usedPhrases = [];
         let typingIndex = 0;
         let charIndex = 0;
         let typingTimeout;
         let currentPhrase = "";
-        let isTyping = false; // Prevent multiple hover triggers
-        let isMoodChanging = false; // Prevent mood flickers
-        const typingSpeed = 120; // Adjusted typing speed for smoother experience
-        const phraseHoldDuration = 3500; // Hold the phrase for a longer duration
-        const moodChangeInterval = 12000; // Time between random mood changes
-    
-        // Function to select a phrase that hasn't been used recently
+        let isTyping = false;
+        let isMoodChanging = false;
+        const typingSpeed = 120;
+        const phraseHoldDuration = 3500;
+        const moodChangeInterval = 12000;
+
         function getRandomPhrase() {
             if (usedPhrases.length >= customPhrases.length) {
-                usedPhrases = []; // Reset the used phrases array when all have been used
+                usedPhrases = [];
             }
-    
+
             let phrase;
             do {
                 phrase = customPhrases[Math.floor(Math.random() * customPhrases.length)];
             } while (usedPhrases.includes(phrase));
-    
+
             usedPhrases.push(phrase);
             return phrase;
         }
-    
-        // Typing effect with smoother letter spacing and unique form when typing
+
         function typePhrase(phrase) {
             typingIndex = 0;
             charIndex = 0;
             currentPhrase = phrase;
-            personalityPhrase.innerText = ""; // Clear text
+            personalityPhrase.innerText = "";
             isTyping = true;
-            personalityCircle.className = 'personality-circle typing'; // Unique typing form
+            personalityCircle.className = 'personality-circle typing';
             typeNextChar();
         }
-    
-        // Function to type the next character
+
         function typeNextChar() {
             if (charIndex < currentPhrase.length) {
                 personalityPhrase.innerText += currentPhrase[charIndex];
                 charIndex++;
-                typingTimeout = setTimeout(typeNextChar, typingSpeed); // Smooth typing
+                typingTimeout = setTimeout(typeNextChar, typingSpeed);
             } else {
-                typingTimeout = setTimeout(clearPhrase, phraseHoldDuration); // Hold the phrase
+                typingTimeout = setTimeout(clearPhrase, phraseHoldDuration);
             }
         }
-    
-        // Clear the phrase and reset the typing state
+
         function clearPhrase() {
             personalityPhrase.innerText = "";
             isTyping = false;
-            changeMood('neutral'); // Reset to neutral after typing
+            changeMood('neutral');
         }
-    
-        // Function to dynamically change the shape based on mood
+
         function changeMood(mood) {
-            if (isTyping) return; // Don't change mood while typing
-            personalityCircle.className = 'personality-circle'; // Reset shape
+            if (isTyping) return;
+            personalityCircle.className = 'personality-circle';
             switch (mood) {
                 case 'happy':
-                    personalityCircle.classList.add('personality-happy'); // Happy shape
+                    personalityCircle.classList.add('personality-happy');
                     break;
                 case 'excited':
-                    personalityCircle.classList.add('personality-excited'); // Excited shape
+                    personalityCircle.classList.add('personality-excited');
                     break;
                 case 'relaxed':
-                    personalityCircle.classList.add('personality-relaxed'); // Relaxed shape
+                    personalityCircle.classList.add('personality-relaxed');
+                    break;
+                case 'confused':
+                    personalityCircle.classList.add('personality-confused');
+                    break;
+                case 'listening':
+                    personalityCircle.classList.add('personality-listening');
                     break;
                 case 'neutral':
                 default:
-                    personalityCircle.classList.add('personality-neutral'); // Default/Neutral shape
+                    personalityCircle.classList.add('personality-neutral');
                     break;
             }
         }
-    
-        // Add hover event listeners for widgets and boxes
+
         const hoverElements = document.querySelectorAll('.box-container, .widget');
-        
+
         hoverElements.forEach(element => {
             element.addEventListener('mouseenter', () => {
                 if (!isTyping) {
@@ -240,17 +235,16 @@
                     changeMood('excited');
                 }
             });
-    
+
             element.addEventListener('mouseleave', () => {
                 if (!isTyping) {
                     setTimeout(() => {
                         changeMood('neutral');
-                    }, phraseHoldDuration + 500); // Delay to avoid quick mood changes
+                    }, phraseHoldDuration + 500);
                 }
             });
         });
-    
-        // Random mood changes (optional)
+
         setInterval(() => {
             if (!isTyping) {
                 const randomMoods = ['happy', 'relaxed', 'neutral'];
@@ -258,18 +252,78 @@
                 changeMood(randomMood);
             }
         }, moodChangeInterval);
-    
-        // Default to neutral mood on page load
-        changeMood('neutral');
-    });
 
+        changeMood('neutral');
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.continuous = false;
+
+            const startVoiceBtn = document.getElementById('start-voice-btn');
+
+            startVoiceBtn.addEventListener('click', () => {
+                recognition.start();
+                personalityPhrase.innerText = 'Listening...';
+                changeMood('listening');
+            });
+
+            recognition.addEventListener('result', (event) => {
+                const transcript = event.results[0][0].transcript.trim();
+                handleVoiceCommand(transcript.toLowerCase());
+            });
+
+            recognition.addEventListener('speechend', () => {
+                recognition.stop();
+                changeMood('neutral');
+            });
+
+            recognition.addEventListener('error', (event) => {
+                personalityPhrase.innerText = 'Sorry, I did not catch that.';
+                changeMood('confused');
+            });
+
+            function handleVoiceCommand(command) {
+                const responses = {
+                    'hello': 'Hello there!',
+                    'how are you': 'I\'m just a circle, but I\'m feeling great!',
+                    'what is your name': 'I\'m MikuMiku\'s assistant.',
+                    'tell me a joke': 'Why did the programmer quit his job? Because he didn\'t get arrays.'
+                };
+
+                let responseFound = false;
+
+                for (const key in responses) {
+                    if (command.includes(key)) {
+                        personalityPhrase.innerText = responses[key];
+                        changeMood('happy');
+                        responseFound = true;
+                        break;
+                    }
+                }
+
+                if (!responseFound) {
+                    personalityPhrase.innerText = 'I\'m not sure how to respond to that.';
+                    changeMood('confused');
+                }
+
+                setTimeout(() => {
+                    personalityPhrase.innerText = '';
+                    changeMood('neutral');
+                }, 5000);
+            }
+        } else {
+            const startVoiceBtn = document.getElementById('start-voice-btn');
+            if (startVoiceBtn) {
+                startVoiceBtn.style.display = 'none';
+            }
+        }
+    });
     </script>
 
-
-
-    <!-- Additional Scripts -->
     <script>
-        // Time of Day Dynamic Title
         function getTimeOfDay() {
             const hour = new Date().getHours();
             if (hour < 12) {
@@ -342,7 +396,6 @@
                     const data = await response.json();
 
                     if (data.error) {
-                        console.error(data.error);
                         return 0;
                     }
 
@@ -367,13 +420,11 @@
 
                         return videoDuration;
                     } else {
-                        console.error('No video data found for the provided videoId.');
                         return 0;
                     }
                 } catch (error) {
-                    console.error('Error fetching video details:', error);
+                    return 0;
                 }
-                return 0;
             }
 
             function updateRecentVideosUI(recentVideos) {
@@ -409,15 +460,12 @@
             const recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
             updateRecentVideosUI(recentVideos);
 
-            // Initialize Socket.io
             const socket = io();
 
             socket.on('connect', () => {
-                console.log('Frontend connected to server via Socket.io');
             });
 
             socket.on('disconnect', () => {
-                console.log('Frontend disconnected from server');
             });
 
             socket.on('nowPlayingUpdate', (data) => {
@@ -512,7 +560,6 @@
                 return (match && match[2].length === 11) ? match[2] : null;
             }
 
-            // Live Clock
             function updateClocks() {
                 const now = new Date();
                 const localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -524,7 +571,6 @@
             setInterval(updateClocks, 1000);
             updateClocks();
 
-            // Weather Fetching
             async function fetchWeather() {
                 try {
                     const response = await fetch(`${WEATHER_API_URL}?city=${encodeURIComponent(CITY_NAME)}`);
@@ -536,7 +582,6 @@
 
                     displayWeather(data);
                 } catch (error) {
-                    console.error('Error fetching weather data:', error);
                     document.getElementById('weather-description').innerText = 'Unable to fetch weather data.';
                     document.getElementById('temperature').innerText = '';
                     document.getElementById('humidity').innerText = '';
@@ -575,9 +620,8 @@
             }
 
             fetchWeather();
-            setInterval(fetchWeather, 3600000); // Refresh weather every hour
+            setInterval(fetchWeather, 3600000);
 
-            // Liquid Progress Bar Animation
             const liquidCanvas = document.getElementById('liquidProgressBar');
             const liquidCtx = liquidCanvas.getContext('2d');
             const liquidWidth = liquidCanvas.width;
@@ -634,7 +678,6 @@
 
             animateLiquidProgressBar();
 
-            // Animation Loop for Video Progress
             function updateProgressBar() {
                 if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
                     const currentTimestamp = Date.now();
@@ -649,7 +692,6 @@
                 }
             }
 
-            // Handle Dynamic Prompts from Server
             socket.on('dynamicPrompt', (data) => {
                 const promptContainer = document.getElementById('dynamic-prompt-container');
                 const promptText = document.getElementById('dynamic-prompt-text');
@@ -666,14 +708,11 @@
                 });
             });
 
-            // Log All Socket Events (Optional for Debugging)
             socket.onAny((event, data) => {
-                console.log(`Received event: ${event}, Data:`, data);
             });
         });
     </script>
 
-    <!-- Space-Themed Background -->
     <script>
         const canvas = document.getElementById("techCanvas");
         const ctx = canvas.getContext("2d");
@@ -681,15 +720,14 @@
         let height = window.innerHeight;
         canvas.width = width;
         canvas.height = height;
-    
+
         window.addEventListener('resize', () => {
             width = window.innerWidth;
             height = window.innerHeight;
             canvas.width = width;
             canvas.height = height;
         });
-    
-        // Star and shooting star generation
+
         class Star {
             constructor(x, y, radius, color) {
                 this.x = x;
@@ -700,7 +738,7 @@
                 this.brightness = Math.random() * 0.5 + 0.5;
                 this.twinkleSpeed = Math.random() * 0.05 + 0.01;
             }
-    
+
             draw() {
                 ctx.save();
                 ctx.globalAlpha = this.brightness;
@@ -712,7 +750,7 @@
                 ctx.fill();
                 ctx.restore();
             }
-    
+
             update() {
                 this.x -= this.speed;
                 if (this.x < 0) this.x = width;
@@ -723,14 +761,14 @@
                 this.draw();
             }
         }
-    
+
         class ShootingStar extends Star {
             constructor(x, y, radius, color) {
                 super(x, y, radius, color);
                 this.length = Math.random() * 150 + 50;
                 this.speed = Math.random() * 10 + 5;
             }
-    
+
             drawShootingStar() {
                 ctx.save();
                 ctx.globalCompositeOperation = 'lighter';
@@ -744,7 +782,7 @@
                 ctx.stroke();
                 ctx.restore();
             }
-    
+
             update() {
                 this.x -= this.speed;
                 this.y += this.speed * 0.5;
@@ -755,12 +793,11 @@
                 this.drawShootingStar();
             }
         }
-    
+
         const stars = [];
         const shootingStars = [];
         const nebulaColors = ['rgba(52, 7, 91, 0.8)', 'rgba(73, 48, 107, 0.7)', 'rgba(118, 24, 120, 0.6)', 'rgba(255, 144, 253, 0.4)', 'rgba(255, 255, 255, 0.1)'];
-    
-        // Create Stars
+
         function createStars(count) {
             for (let i = 0; i < count; i++) {
                 const radius = Math.random() * 2;
@@ -769,8 +806,7 @@
                 stars.push(new Star(x, y, radius, 'rgba(255, 255, 255, 0.9)'));
             }
         }
-    
-        // Create Shooting Stars
+
         function createShootingStars(count) {
             for (let i = 0; i < count; i++) {
                 const radius = Math.random() * 1.5;
@@ -779,42 +815,32 @@
                 shootingStars.push(new ShootingStar(x, y, radius, 'rgba(255, 255, 255, 1)'));
             }
         }
-    
-        // Polished Nebula Effect
+
         function drawNebula() {
             ctx.save();
             ctx.globalCompositeOperation = "lighter";
             const gradient = ctx.createRadialGradient(width / 2, height / 2, 100, width / 2, height / 2, width / 2);
-            
             nebulaColors.forEach((color, index) => {
                 gradient.addColorStop(index / (nebulaColors.length - 1), color);
             });
-            
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, width, height);
             ctx.restore();
         }
-    
+
         function animate() {
             ctx.clearRect(0, 0, width, height);
             drawNebula();
-    
+
             stars.forEach(star => star.update());
             shootingStars.forEach(shootingStar => shootingStar.update());
-    
+
             requestAnimationFrame(animate);
         }
-    
-        createStars(200); // More stars for a polished look
+
+        createStars(200);
         createShootingStars(5);
         animate();
     </script>
-
-
-
-
-
-
-
 </body>
 </html>
