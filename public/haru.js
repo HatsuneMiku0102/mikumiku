@@ -3,7 +3,8 @@
 document.addEventListener('DOMContentLoaded', function () {
     const personalityCircle = document.getElementById('personalityCircle');
     const personalityPhrase = document.getElementById('personalityPhrase');
-    
+    const personalityTextBox = document.getElementById('personalityTextBox'); // Reference to the speech bubble
+
     const customPhrases = [
         "Hi :)", 
         "How's it going?", 
@@ -45,7 +46,8 @@ document.addEventListener('DOMContentLoaded', function () {
         currentPhrase = phrase;
         personalityPhrase.innerText = ""; // Clear text
         isTyping = true;
-        personalityCircle.className = 'personality-circle typing'; // Unique typing form
+        personalityCircle.classList.add('typing'); // Add typing form
+        personalityTextBox.classList.add('visible'); // Show speech bubble
         typeNextChar();
     }
 
@@ -64,6 +66,8 @@ document.addEventListener('DOMContentLoaded', function () {
     function clearPhrase() {
         personalityPhrase.innerText = "";
         isTyping = false;
+        personalityCircle.classList.remove('typing'); // Remove typing form
+        personalityTextBox.classList.remove('visible'); // Hide speech bubble
         changeMood('neutral'); // Reset to neutral after typing
     }
 
@@ -90,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Add hover event listeners for widgets and boxes
     const hoverElements = document.querySelectorAll('.box-container, .widget');
-    
+
     hoverElements.forEach(element => {
         element.addEventListener('mouseenter', () => {
             if (!isTyping) {
