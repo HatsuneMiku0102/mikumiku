@@ -41,28 +41,23 @@ document.addEventListener('DOMContentLoaded', function () {
         chatContent.scrollTop = chatContent.scrollHeight; // Scroll to bottom
     }
 
-    // Fetch response from GPT-4 API using OpenAI API
+    // Fetch response from your server-side proxy, which connects to GPT-4 API
     async function getGPTResponse(userMessage) {
         try {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            const response = await fetch('/api/gpt', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` // Using Heroku environment variable
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    model: 'gpt-4',
-                    messages: [{ role: 'user', content: userMessage }]
-                })
+                body: JSON.stringify({ message: userMessage })
             });
 
             if (!response.ok) {
-                throw new Error(`Error: ${response.statusText}`);
+                throw new Error('Error connecting to the server.');
             }
 
             const data = await response.json();
-            const botMessage = data.choices[0].message.content;
-            return botMessage;
+            return data.message;
         } catch (error) {
             console.error('Error fetching GPT-4 response:', error);
             return "Sorry, I'm having trouble connecting to the server.";
