@@ -8,7 +8,11 @@ document.addEventListener('DOMContentLoaded', function () {
         "How's it going?", 
         "Welcome to MikuMiku.dev", 
         "Feel free to look around.", 
-        "What's on your mind today?"
+        "What's on your mind today?",
+        "Tell your world"
+        "Css is pure suffering"
+        "Welcome Stranger"
+        "Feel free to browse around, im constantly adding new features to my website :)"
     ];
 
     let usedPhrases = [];
