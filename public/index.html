@@ -13,29 +13,18 @@
     <canvas id="techCanvas"></canvas>
 
     <div class="page-container">
-        <!-- Title Bar with Dropdown -->
         <div class="title-bar">
             <div class="container">
-                <!-- Left Section: Empty for Spacing -->
-                <div class="left-section">
-                    <!-- Reserved for future use or keep empty -->
-                </div>
-
-                <!-- Center Section: Logo and Title -->
+                <div class="left-section"></div>
                 <div class="center-section">
                     <div class="logo-title-wrapper">
-                        <!-- Added loading="lazy" for performance optimization -->
                         <img src="/logo.webp" alt="Logo" class="logo" loading="lazy">
                         <h1 class="site-title" id="dynamicTitle">MikuMiku</h1>
                     </div>
                 </div>
-
-                <!-- Right Section: Personality Circle and Dropdown -->
                 <div class="right-section">
                     <div class="personality-section">
                         <div id="personalityCircle" class="personality-circle"></div>
-
-                        <!-- Speech Bubble Positioned Under the Circle -->
                         <div id="personalityTextBox" class="personality-text-box">
                             <div id="personalityPhrase" class="personality-text-wrapper"></div>
                         </div>
@@ -44,16 +33,13 @@
                         <button class="dropdown-button">Menu</button>
                         <div class="dropdown-content">
                             <a href="/admin-login.html">Admin Login</a>
-                            <!-- Add more dropdown links here if needed -->
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Main Content -->
         <div id="main-content" class="main-content">
-            <!-- Now Playing Section -->
             <div id="now-playing-container" class="now-playing-container">
                 <div id="now-playing" class="now-playing">
                     <div class="now-playing-sidebar">
@@ -66,14 +52,10 @@
                         <div class="sidebar-item">
                             <span>Uploaded:</span> <span id="publishedDate">Loading...</span>
                         </div>
-                        <!-- Added Video Category -->
                         <div class="sidebar-item video-category">
                             <span>Category:</span> <span id="videoCategory">Loading...</span>
                         </div>
-                        <!-- Added Live Stream Indicator -->
-                        <div class="sidebar-item live-indicator" id="liveIndicator" style="display: none;">
-                            🔴 Live Now
-                        </div>
+                        <div class="sidebar-item live-indicator" id="liveIndicator" style="display: none;">🔴 Live Now</div>
                     </div>
 
                     <div class="video-section">
@@ -82,18 +64,14 @@
                             <p id="videoTitle">Loading...</p>
                         </div>
 
-                        <!-- Additional Visual Enhancements: Video Description -->
                         <div class="video-description-container">
                             <p id="videoDescription" class="video-description">Loading description...</p>
-                            <!-- Toggle Button -->
                             <button id="toggleDescription" class="toggle-description-button">Show More</button>
                         </div>
 
-                        <!-- Thumbnail Container with Pause Button -->
                         <div class="thumbnail-container">
                             <img id="videoThumbnail" src="" alt="Thumbnail of currently playing video" class="video-thumbnail" loading="lazy">
                             <button id="pauseButton" class="pause-button" aria-label="Pause Video">
-                                <!-- SVG Icon for Pause -->
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                                     <rect x="6" y="5" width="4" height="14"></rect>
                                     <rect x="14" y="5" width="4" height="14"></rect>
@@ -102,8 +80,6 @@
                         </div>
 
                         <div class="progress-bar-wrapper">
-                            <!-- Removed pausedIcon from here -->
-                            <!-- Updated Progress Bar as a Div -->
                             <div id="progress-bar" class="progress-bar"></div>
                         </div>
 
@@ -113,14 +89,11 @@
                             <p id="time-remaining" class="progress-time" style="display: none;">Browsing for: --:--</p>
                         </div>
 
-                        <div id="offline-indicator" class="offline-indicator" style="display: none;">
-                            I’m not on YouTube at the moment, soz :(
-                        </div>
+                        <div id="offline-indicator" class="offline-indicator" style="display: none;">I’m not on YouTube at the moment, soz :(</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Widgets Section -->
             <div class="widgets-container">
                 <div class="live-clock box-container">
                     <h3>My Current Time</h3>
@@ -135,7 +108,6 @@
                 <div class="weather-widget box-container">
                     <h3>My Current Weather</h3>
                     <div class="weather-info">
-                        <!-- Added loading="lazy" via JavaScript -->
                         <img id="weather-icon" src="" alt="Weather Icon" loading="lazy">
                         <p id="weather-description">Loading...</p>
                         <p id="temperature">--°C</p>
@@ -145,7 +117,6 @@
                 </div>
             </div>
 
-            <!-- About Section -->
             <div class="content-wrapper">
                 <div class="now-playing-about-wrapper">
                     <div class="about box-container" id="aboutMe">
@@ -163,14 +134,11 @@
         </footer>
     </div>
 
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-
     <script src="haru.js"></script>
 
     <script>
-        // Time of Day Dynamic Title
         function getTimeOfDay() {
             const hour = new Date().getHours();
             if (hour < 12) {
@@ -224,7 +192,6 @@
             const WEATHER_API_URL = '/api/weather';
             const CITY_NAME = 'Leeds';
 
-            // Mapping of YouTube category IDs to category names
             const categories = {
                 "1": "Film & Animation",
                 "2": "Autos & Vehicles",
@@ -258,7 +225,6 @@
                 "42": "Shorts",
                 "43": "Shows",
                 "44": "Trailers"
-                // Add more categories as needed
             };
 
             function formatTime(seconds) {
@@ -302,23 +268,18 @@
                         const viewsFormatted = stats.viewCount ? Number(stats.viewCount).toLocaleString() : '0';
                         document.getElementById('viewCount').innerText = `${viewsFormatted} views`;
 
-                        // Added loading="lazy" to videoThumbnail
                         const videoThumbnail = document.getElementById('videoThumbnail');
                         videoThumbnail.src = snippet.thumbnails?.high?.url || '/default-thumbnail.jpg';
                         videoThumbnail.alt = snippet.title || 'Video Thumbnail';
                         videoThumbnail.setAttribute('loading', 'lazy');
 
                         document.getElementById('total-duration').innerText = `Total Duration: ${formattedDuration}`;
-
-                        // Video Description
                         document.getElementById('videoDescription').innerText = snippet.description || 'No Description Available';
 
-                        // Video Category
                         const categoryId = snippet.categoryId;
                         const categoryName = categories[categoryId] || 'Uncategorized';
                         document.getElementById('videoCategory').innerText = categoryName;
 
-                        // Live Stream Indicator
                         const liveIndicator = document.getElementById('liveIndicator');
                         if (liveBroadcastContent === 'live') {
                             liveIndicator.style.display = 'block';
@@ -326,7 +287,6 @@
                             liveIndicator.style.display = 'none';
                         }
 
-                        // Channel Avatar
                         const channelAvatar = document.getElementById('channelAvatar');
                         if (channelAvatar) {
                             channelAvatar.src = snippet.thumbnails?.default?.url || '/default-avatar.jpg';
@@ -355,7 +315,6 @@
                 videoSection.prepend(errorContainer);
             }
 
-            // Initialize Socket.io
             const socket = io();
 
             socket.on('connect', () => {
@@ -412,27 +371,21 @@
                     videoTitleElement.innerText = previousVideoData.title;
                     videoThumbnailElement.src = previousVideoData.thumbnail;
                     videoThumbnailElement.alt = previousVideoData.title;
-
-                    // Added loading="lazy" to videoThumbnail
                     videoThumbnailElement.setAttribute('loading', 'lazy');
 
-                    // Update Video Description
                     if (description) {
                         videoDescriptionElement.innerText = description;
                     }
 
-                    // Update Video Category
                     const categoryName = categories[categoryId] || 'Uncategorized';
                     videoCategoryElement.innerText = categoryName;
 
-                    // Update Live Stream Indicator
                     if (liveBroadcastContent === 'live') {
                         liveIndicator.style.display = 'block';
                     } else {
                         liveIndicator.style.display = 'none';
                     }
 
-                    // Update Channel Information
                     if (channelName) {
                         channelNameElement.innerText = channelName;
                     }
@@ -487,7 +440,6 @@
                 return (match && match[2].length === 11) ? match[2] : null;
             }
 
-            // Live Clock
             function updateClocks() {
                 const now = new Date();
                 const localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -499,7 +451,6 @@
             setInterval(updateClocks, 1000);
             updateClocks();
 
-            // Weather Fetching
             async function fetchWeather() {
                 try {
                     const response = await fetch(`${WEATHER_API_URL}?city=${encodeURIComponent(CITY_NAME)}`);
@@ -531,7 +482,6 @@
                 const windSpeed = data.wind.speed;
                 const iconCode = data.weather[0].icon;
                 const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
-                const weatherMain = data.weather[0].main.toLowerCase();
 
                 document.getElementById('weather-description').innerText = `Condition: ${description}`;
                 document.getElementById('temperature').innerText = `Temperature: ${temperature}°C`;
@@ -543,7 +493,7 @@
                     iconElement = document.createElement('img');
                     iconElement.id = 'weather-icon';
                     iconElement.alt = 'Weather Icon';
-                    iconElement.setAttribute('loading', 'lazy'); // Added for performance optimization
+                    iconElement.setAttribute('loading', 'lazy');
                     document.querySelector('.weather-info').prepend(iconElement);
                 }
                 iconElement.src = iconUrl;
@@ -551,9 +501,8 @@
             }
 
             fetchWeather();
-            setInterval(fetchWeather, 3600000); // Refresh weather every hour
+            setInterval(fetchWeather, 3600000);
 
-            // Progress Bar Functionality (Using Div)
             function updateProgress(newProgress) {
                 const progressBar = document.getElementById('progress-bar');
                 const timeElapsed = document.getElementById('time-elapsed');
@@ -562,11 +511,9 @@
                 if (progressBar && timeElapsed) {
                     progressBar.style.width = `${newProgress}%`;
                     timeElapsed.innerText = `Time Elapsed: ${formattedTime}`;
-                    console.log(`Updated progress bar. Progress: ${newProgress}%, Time Elapsed: ${formattedTime}`);
                 }
             }
 
-            // Animation Loop for Video Progress
             function updateProgressBar() {
                 if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
                     const currentTimestamp = Date.now();
@@ -581,13 +528,11 @@
                 }
             }
 
-            // Handle Dynamic Prompts from Server
             socket.on('dynamicPrompt', (data) => {
                 const promptContainer = document.getElementById('dynamic-prompt-container');
                 const promptText = document.getElementById('dynamic-prompt-text');
 
                 if (!promptContainer || !promptText) {
-                    console.warn('Dynamic prompt elements not found.');
                     return;
                 }
 
@@ -606,12 +551,6 @@
                 }
             });
 
-            // Log All Socket Events (Optional for Debugging)
-            socket.onAny((event, data) => {
-                console.log(`Received event: ${event}, Data:`, data);
-            });
-
-            // Description Toggle Functionality
             const toggleButton = document.getElementById('toggleDescription');
             const videoDescription = document.getElementById('videoDescription');
 
@@ -623,15 +562,10 @@
                     toggleButton.innerText = 'Show More';
                 }
             });
-            <script>
-            <script>
-            // Pause Button Functionality
+
             const pauseButton = document.getElementById('pauseButton');
-            
-            // Disable pointer events to prevent clicking
-            pauseButton.style.pointerEvents = 'none'; 
-            
-            // Optional: you can still visually show the paused state as needed
+            pauseButton.style.pointerEvents = 'none';
+
             function togglePauseState(isPaused) {
                 if (isPaused) {
                     pauseButton.classList.add('paused');
@@ -639,15 +573,11 @@
                     pauseButton.classList.remove('paused');
                 }
             }
-            
-            // Example usage: You can call this function to update the state visually
-            togglePauseState(true); // Pass 'true' or 'false' based on pause state.
-            
 
-            
+            togglePauseState(true);
+        });
+    </script>
 
-
-    <script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const canvas = document.getElementById("techCanvas");
@@ -662,10 +592,9 @@
                 height = window.innerHeight;
                 canvas.width = width;
                 canvas.height = height;
-                preRenderNebula(); // Re-render nebula on resize
+                preRenderNebula();
             });
 
-            // Offscreen Canvas for Nebula
             const offscreenCanvas = document.createElement('canvas');
             const offscreenCtx = offscreenCanvas.getContext('2d');
             offscreenCanvas.width = width;
@@ -698,31 +627,27 @@
                 offscreenCtx.fillRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
             }
 
-            preRenderNebula(); // Initial nebula rendering
+            preRenderNebula();
 
-            // Star Data Structure
             const stars = [];
-            const STAR_COUNT = 100; // Reduced from 200 to 100
+            const STAR_COUNT = 100;
 
-            // Initialize Stars
             for (let i = 0; i < STAR_COUNT; i++) {
                 stars.push({
                     x: Math.random() * width,
                     y: Math.random() * height,
-                    radius: Math.random() * 1.5 + 0.5, // Smaller radii
-                    speed: Math.random() * 0.5 + 0.2, // Adjusted speed
+                    radius: Math.random() * 1.5 + 0.5,
+                    speed: Math.random() * 0.5 + 0.2,
                     brightness: Math.random() * 0.5 + 0.5,
                     twinkleSpeed: Math.random() * 0.02 + 0.01
                 });
             }
 
-            // Shooting Stars Pool
             const shootingStars = [];
-            const SHOOTING_STAR_POOL_SIZE = 10; // Increased pool size for flexibility
-            const MAX_SHOOTING_STARS = 5; // Maximum shooting stars active at once
+            const SHOOTING_STAR_POOL_SIZE = 10;
+            const MAX_SHOOTING_STARS = 5;
             let activeShootingStars = 0;
 
-            // Initialize Shooting Stars Pool
             for (let i = 0; i < SHOOTING_STAR_POOL_SIZE; i++) {
                 shootingStars.push({
                     x: Math.random() * width,
@@ -733,7 +658,6 @@
                 });
             }
 
-            // Function to activate a shooting star
             function activateShootingStar() {
                 for (let star of shootingStars) {
                     if (!star.active) {
@@ -748,48 +672,38 @@
                 }
             }
 
-            // Function to deactivate a shooting star
             function deactivateShootingStar(star) {
                 star.active = false;
                 activeShootingStars--;
             }
 
-            // Trigger shooting stars at random intervals
             setInterval(() => {
                 if (activeShootingStars < MAX_SHOOTING_STARS) {
                     activateShootingStar();
                 }
-            }, 2000); // Every 2 seconds
+            }, 2000);
 
-            // Animation Loop
             function animate() {
                 ctx.clearRect(0, 0, width, height);
-
-                // Draw Pre-rendered Nebula
                 ctx.drawImage(offscreenCanvas, 0, 0, width, height);
 
-                // Draw Stars
                 ctx.fillStyle = 'white';
                 for (let star of stars) {
-                    // Update brightness
                     star.brightness += star.twinkleSpeed;
                     if (star.brightness > 1 || star.brightness < 0.5) {
                         star.twinkleSpeed *= -1;
                     }
 
-                    // Move star
                     star.x -= star.speed;
                     if (star.x < 0) star.x = width;
 
-                    // Draw star
                     ctx.globalAlpha = star.brightness;
                     ctx.beginPath();
                     ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
                     ctx.fill();
                 }
-                ctx.globalAlpha = 1; // Reset alpha
+                ctx.globalAlpha = 1;
 
-                // Draw Shooting Stars
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
                 ctx.lineWidth = 2;
                 ctx.shadowBlur = 10;
@@ -802,11 +716,9 @@
                         ctx.lineTo(star.x + star.length, star.y - star.length * 0.5);
                         ctx.stroke();
 
-                        // Move shooting star
                         star.x -= star.speed;
                         star.y += star.speed * 0.5;
 
-                        // Deactivate if out of bounds
                         if (star.x < 0 || star.y > height) {
                             deactivateShootingStar(star);
                         }
