@@ -99,6 +99,7 @@
                     </div>
                 </div>
             </div>
+
             <!-- Widgets Section -->
             <div class="widgets-container">
                 <div class="live-clock box-container">
@@ -123,14 +124,9 @@
                 </div>
             </div>
 
-            <!-- Recently Watched Videos Section -->
+            <!-- About Section -->
             <div class="content-wrapper">
                 <div class="now-playing-about-wrapper">
-                    <div class="recent-videos-wrapper box-container">
-                        <h3>Recently Watched Videos</h3>
-                        <div id="recent-videos-container" class="recent-videos-container"></div>
-                    </div>
-
                     <div class="about box-container" id="aboutMe">
                         <h2>About Me</h2>
                         <p>Hey there, I'm Hystoriya, a 24-year-old developer. This is my personal website that I made for no apparent reason. If you find yourself here randomly, then hi :)</p>
@@ -261,37 +257,14 @@
             }
 
             function updateRecentVideosUI(recentVideos) {
-                const recentVideosContainer = document.getElementById('recent-videos-container');
-                recentVideosContainer.innerHTML = '';
-                recentVideos.forEach((video, index) => {
-                    const videoElement = document.createElement('div');
-                    videoElement.className = 'recent-video-item advanced-video-card';
-                    videoElement.style.animationDelay = `${index * 0.1}s`;
-                    videoElement.innerHTML = `
-                        <a href="${video.url}" target="_blank">
-                            <div class="card-content">
-                                <img src="${video.thumbnail}" class="recent-video-thumbnail" alt="Thumbnail of ${video.title}">
-                                <p class="recent-video-title">${video.title}</p>
-                            </div>
-                        </a>`;
-                    recentVideosContainer.appendChild(videoElement);
-                });
+                // Since the section is removed, this function is no longer needed.
+                // You can remove or comment it out to clean up the code.
             }
 
             function addVideoToRecent(title, url, thumbnail) {
-                let recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
-                if (!recentVideos.find(video => video.url === url)) {
-                    recentVideos.unshift({ title, url, thumbnail });
-                    if (recentVideos.length > MAX_RECENT_VIDEOS) {
-                        recentVideos = recentVideos.slice(0, MAX_RECENT_VIDEOS);
-                    }
-                    localStorage.setItem('recentVideos', JSON.stringify(recentVideos));
-                    updateRecentVideosUI(recentVideos);
-                }
+                // Similarly, this function is related to the recently watched videos.
+                // You can remove or comment it out to clean up the code.
             }
-
-            const recentVideos = JSON.parse(localStorage.getItem('recentVideos')) || [];
-            updateRecentVideosUI(recentVideos);
 
             // Initialize Socket.io
             const socket = io();
@@ -334,10 +307,6 @@
                     const videoID = extractYouTubeVideoID(videoUrl);
                     if (!videoID) {
                         return;
-                    }
-
-                    if (previousVideoData && previousVideoData.url !== videoUrl) {
-                        addVideoToRecent(previousVideoData.title, previousVideoData.url, previousVideoData.thumbnail);
                     }
 
                     previousVideoData = {
