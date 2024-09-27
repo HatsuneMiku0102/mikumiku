@@ -21,7 +21,7 @@ const fs = require('fs');
 const winston = require('winston');
 const { DateTime } = require('luxon');
 const fetch = require('node-fetch');
-require('dotenv').config();
+
 
 dotenv.config();
 
@@ -264,14 +264,21 @@ app.post('/api/gpt', async (req, res) => {
             })
         });
 
+        if (!response.ok) {
+            const error = await response.json();
+            console.error('OpenAI API Error:', error);
+            return res.status(500).json({ error: 'Error with OpenAI API' });
+        }
+
         const data = await response.json();
         const botMessage = data.choices[0].message.content;
         res.json({ message: botMessage });
     } catch (error) {
-        console.error('Error fetching GPT-4 response:', error);
-        res.status(500).json({ error: 'Failed to fetch response from GPT-4' });
+        console.error('Server Error:', error);
+        res.status(500).json({ error: 'Server failed to fetch response from GPT-4' });
     }
 });
+
 
 
 app.get('/api/youtube', async (req, res) => {
