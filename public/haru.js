@@ -1,20 +1,27 @@
-document.addEventListener('DOMContentLoaded', function () {
-    const chatBox = document.getElementById('chat-box');
-    const chatContent = document.getElementById('chat-content');
-    const chatInput = document.getElementById('chat-input');
-    const sendMessageButton = document.getElementById('send-message');
-    const haruChatTrigger = document.getElementById('haru-chat-trigger');
-    const closeChatButton = document.getElementById('close-chat');
-
-    // Open the chat box when the trigger is clicked
-    haruChatTrigger.addEventListener('click', function () {
-        chatBox.style.display = 'flex';
+    document.addEventListener('DOMContentLoaded', function () {
+        const chatBox = document.getElementById('chat-box');
+        const chatTrigger = document.getElementById('haru-chat-trigger');
+        const closeChatButton = document.getElementById('close-chat');
+        const personalityCircle = document.getElementById('personalityCircle');
+    
+        // Open the chat box when Haru's personality circle or the trigger button is clicked
+        const openChat = () => {
+            chatBox.style.display = 'flex'; // Show the chat box
+        };
+    
+        // Close the chat box when the close button is clicked
+        const closeChat = () => {
+            chatBox.style.display = 'none'; // Hide the chat box
+        };
+    
+        // Add event listener for the Haru circle and trigger button
+        chatTrigger.addEventListener('click', openChat);
+        personalityCircle.addEventListener('click', openChat);
+    
+        // Add event listener for the close button
+        closeChatButton.addEventListener('click', closeChat);
     });
 
-    // Close the chat box when the close button is clicked
-    closeChatButton.addEventListener('click', function () {
-        chatBox.style.display = 'none';
-    });
 
     // Send message when the send button is clicked
     sendMessageButton.addEventListener('click', async function () {
