@@ -89,20 +89,25 @@
                             <button id="toggleDescription" class="toggle-description-button">Show More</button>
                         </div>
 
-                        <div class="progress-bar-wrapper">
-                            <span id="pausedIcon" class="paused-icon" aria-label="Video Paused" title="Video Paused">
+                        <!-- Thumbnail Container with Pause Button -->
+                        <div class="thumbnail-container">
+                            <!-- Added position: relative to position the button absolutely inside -->
+                            <img id="videoThumbnail" src="" alt="Thumbnail of currently playing video" class="video-thumbnail" loading="lazy">
+                            <!-- Converted to button for better accessibility -->
+                            <button id="pauseButton" class="pause-button" aria-label="Pause Video">
+                                <!-- SVG Icon for Pause -->
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                                     <rect x="6" y="5" width="4" height="14"></rect>
                                     <rect x="14" y="5" width="4" height="14"></rect>
                                 </svg>
-                            </span>
+                            </button>
+                        </div>
 
+                        <div class="progress-bar-wrapper">
+                            <!-- Removed pausedIcon from here -->
                             <!-- Updated Progress Bar as a Div -->
                             <div id="progress-bar" class="progress-bar"></div>
                         </div>
-
-                        <!-- Added loading="lazy" for performance optimization -->
-                        <img id="videoThumbnail" src="" alt="Thumbnail of currently playing video" class="video-thumbnail" loading="lazy">
 
                         <div class="progress-times-container">
                             <p id="time-elapsed" class="progress-time">Time Elapsed: --:--</p>
@@ -370,7 +375,7 @@
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 const nowPlayingElement = document.querySelector('.now-playing');
                 const offlineIndicator = document.getElementById('offline-indicator');
-                const pausedIcon = document.getElementById('pausedIcon');
+                const pauseButton = document.getElementById('pauseButton');
                 const videoCategoryElement = document.getElementById('videoCategory');
                 const liveIndicator = document.getElementById('liveIndicator');
                 const videoDescriptionElement = document.getElementById('videoDescription');
@@ -384,7 +389,7 @@
                     clearExistingInterval();
                     document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
                     document.getElementById('total-duration').innerText = `Total Duration: --:--`;
-                    pausedIcon.style.display = 'none';
+                    pauseButton.style.display = 'none';
                     const timeRemaining = document.getElementById('time-remaining');
                     if (timeRemaining) {
                         timeRemaining.style.display = 'none';
@@ -444,7 +449,7 @@
                         isBrowsing = true;
                         document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
                         document.getElementById('total-duration').innerText = `Total Duration: --:--`;
-                        pausedIcon.style.display = 'none';
+                        pauseButton.style.display = 'none';
                         const timeRemaining = document.getElementById('time-remaining');
                         if (timeRemaining) {
                             timeRemaining.style.display = 'none';
@@ -465,14 +470,15 @@
                                 if (timeRemaining) {
                                     timeRemaining.style.display = 'none';
                                 }
+                                pauseButton.style.display = 'inline-block';
                             }
                         });
                     }
 
                     if (isPaused) {
-                        pausedIcon.style.display = 'inline';
+                        pauseButton.classList.add('paused');
                     } else {
-                        pausedIcon.style.display = 'none';
+                        pauseButton.classList.remove('paused');
                     }
                 }
             });
@@ -619,182 +625,197 @@
                     toggleButton.innerText = 'Show More';
                 }
             });
+
+            // Pause Button Functionality
+            const pauseButton = document.getElementById('pauseButton');
+
+            pauseButton.addEventListener('click', () => {
+                isVideoPaused = !isVideoPaused;
+                if (isVideoPaused) {
+                    clearExistingInterval();
+                    pauseButton.classList.add('paused');
+                } else {
+                    videoStartTime = Date.now() - (videoDuration * 1000 * (document.getElementById('progress-bar').offsetWidth / document.querySelector('.progress-bar-wrapper').offsetWidth));
+                    intervalID = setInterval(updateProgressBar, 1000);
+                    pauseButton.classList.remove('paused');
+                }
+            });
         });
     </script>
 
     <!-- Animated Background Canvas -->
     <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const canvas = document.getElementById("techCanvas");
-        const ctx = canvas.getContext("2d");
-        let width = window.innerWidth;
-        let height = window.innerHeight;
-        canvas.width = width;
-        canvas.height = height;
-
-        window.addEventListener('resize', () => {
-            width = window.innerWidth;
-            height = window.innerHeight;
+        document.addEventListener('DOMContentLoaded', function () {
+            const canvas = document.getElementById("techCanvas");
+            const ctx = canvas.getContext("2d");
+            let width = window.innerWidth;
+            let height = window.innerHeight;
             canvas.width = width;
             canvas.height = height;
-            preRenderNebula(); // Re-render nebula on resize
-        });
 
-        // Offscreen Canvas for Nebula
-        const offscreenCanvas = document.createElement('canvas');
-        const offscreenCtx = offscreenCanvas.getContext('2d');
-        offscreenCanvas.width = width;
-        offscreenCanvas.height = height;
-
-        const nebulaColors = [
-            'rgba(52, 7, 91, 0.8)',
-            'rgba(73, 48, 107, 0.7)',
-            'rgba(118, 24, 120, 0.6)',
-            'rgba(255, 144, 253, 0.4)',
-            'rgba(255, 255, 255, 0.1)'
-        ];
-
-        function preRenderNebula() {
-            offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-            const gradient = offscreenCtx.createRadialGradient(
-                width / 2,
-                height / 2,
-                100,
-                width / 2,
-                height / 2,
-                Math.max(width, height) / 2
-            );
-
-            nebulaColors.forEach((color, index) => {
-                gradient.addColorStop(index / (nebulaColors.length - 1), color);
+            window.addEventListener('resize', () => {
+                width = window.innerWidth;
+                height = window.innerHeight;
+                canvas.width = width;
+                canvas.height = height;
+                preRenderNebula(); // Re-render nebula on resize
             });
 
-            offscreenCtx.fillStyle = gradient;
-            offscreenCtx.fillRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-        }
+            // Offscreen Canvas for Nebula
+            const offscreenCanvas = document.createElement('canvas');
+            const offscreenCtx = offscreenCanvas.getContext('2d');
+            offscreenCanvas.width = width;
+            offscreenCanvas.height = height;
 
-        preRenderNebula(); // Initial nebula rendering
+            const nebulaColors = [
+                'rgba(52, 7, 91, 0.8)',
+                'rgba(73, 48, 107, 0.7)',
+                'rgba(118, 24, 120, 0.6)',
+                'rgba(255, 144, 253, 0.4)',
+                'rgba(255, 255, 255, 0.1)'
+            ];
 
-        // Star Data Structure
-        const stars = [];
-        const STAR_COUNT = 100; // Reduced from 200 to 100
+            function preRenderNebula() {
+                offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+                const gradient = offscreenCtx.createRadialGradient(
+                    width / 2,
+                    height / 2,
+                    100,
+                    width / 2,
+                    height / 2,
+                    Math.max(width, height) / 2
+                );
 
-        // Initialize Stars
-        for (let i = 0; i < STAR_COUNT; i++) {
-            stars.push({
-                x: Math.random() * width,
-                y: Math.random() * height,
-                radius: Math.random() * 1.5 + 0.5, // Smaller radii
-                speed: Math.random() * 0.5 + 0.2, // Adjusted speed
-                brightness: Math.random() * 0.5 + 0.5,
-                twinkleSpeed: Math.random() * 0.02 + 0.01
-            });
-        }
+                nebulaColors.forEach((color, index) => {
+                    gradient.addColorStop(index / (nebulaColors.length - 1), color);
+                });
 
-        // Shooting Stars Pool
-        const shootingStars = [];
-        const SHOOTING_STAR_POOL_SIZE = 10; // Increased pool size for flexibility
-        const MAX_SHOOTING_STARS = 5; // Maximum shooting stars active at once
-        let activeShootingStars = 0;
-
-        // Initialize Shooting Stars Pool
-        for (let i = 0; i < SHOOTING_STAR_POOL_SIZE; i++) {
-            shootingStars.push({
-                x: Math.random() * width,
-                y: Math.random() * height * 0.5,
-                length: Math.random() * 100 + 50,
-                speed: Math.random() * 8 + 4,
-                active: false
-            });
-        }
-
-        // Function to activate a shooting star
-        function activateShootingStar() {
-            for (let star of shootingStars) {
-                if (!star.active) {
-                    star.x = Math.random() * width;
-                    star.y = Math.random() * height * 0.5;
-                    star.length = Math.random() * 100 + 50;
-                    star.speed = Math.random() * 8 + 4;
-                    star.active = true;
-                    activeShootingStars++;
-                    break;
-                }
+                offscreenCtx.fillStyle = gradient;
+                offscreenCtx.fillRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
             }
-        }
 
-        // Function to deactivate a shooting star
-        function deactivateShootingStar(star) {
-            star.active = false;
-            activeShootingStars--;
-        }
+            preRenderNebula(); // Initial nebula rendering
 
-        // Trigger shooting stars at random intervals
-        setInterval(() => {
-            if (activeShootingStars < MAX_SHOOTING_STARS) {
-                activateShootingStar();
+            // Star Data Structure
+            const stars = [];
+            const STAR_COUNT = 100; // Reduced from 200 to 100
+
+            // Initialize Stars
+            for (let i = 0; i < STAR_COUNT; i++) {
+                stars.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    radius: Math.random() * 1.5 + 0.5, // Smaller radii
+                    speed: Math.random() * 0.5 + 0.2, // Adjusted speed
+                    brightness: Math.random() * 0.5 + 0.5,
+                    twinkleSpeed: Math.random() * 0.02 + 0.01
+                });
             }
-        }, 2000); // Every 2 seconds
 
-        // Animation Loop
-        function animate() {
-            ctx.clearRect(0, 0, width, height);
+            // Shooting Stars Pool
+            const shootingStars = [];
+            const SHOOTING_STAR_POOL_SIZE = 10; // Increased pool size for flexibility
+            const MAX_SHOOTING_STARS = 5; // Maximum shooting stars active at once
+            let activeShootingStars = 0;
 
-            // Draw Pre-rendered Nebula
-            ctx.drawImage(offscreenCanvas, 0, 0, width, height);
-
-            // Draw Stars
-            ctx.fillStyle = 'white';
-            for (let star of stars) {
-                // Update brightness
-                star.brightness += star.twinkleSpeed;
-                if (star.brightness > 1 || star.brightness < 0.5) {
-                    star.twinkleSpeed *= -1;
-                }
-
-                // Move star
-                star.x -= star.speed;
-                if (star.x < 0) star.x = width;
-
-                // Draw star
-                ctx.globalAlpha = star.brightness;
-                ctx.beginPath();
-                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-                ctx.fill();
+            // Initialize Shooting Stars Pool
+            for (let i = 0; i < SHOOTING_STAR_POOL_SIZE; i++) {
+                shootingStars.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height * 0.5,
+                    length: Math.random() * 100 + 50,
+                    speed: Math.random() * 8 + 4,
+                    active: false
+                });
             }
-            ctx.globalAlpha = 1; // Reset alpha
 
-            // Draw Shooting Stars
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.lineWidth = 2;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = 'white';
-            ctx.globalCompositeOperation = 'lighter';
-            for (let star of shootingStars) {
-                if (star.active) {
-                    ctx.beginPath();
-                    ctx.moveTo(star.x, star.y);
-                    ctx.lineTo(star.x + star.length, star.y - star.length * 0.5);
-                    ctx.stroke();
-
-                    // Move shooting star
-                    star.x -= star.speed;
-                    star.y += star.speed * 0.5;
-
-                    // Deactivate if out of bounds
-                    if (star.x < 0 || star.y > height) {
-                        deactivateShootingStar(star);
+            // Function to activate a shooting star
+            function activateShootingStar() {
+                for (let star of shootingStars) {
+                    if (!star.active) {
+                        star.x = Math.random() * width;
+                        star.y = Math.random() * height * 0.5;
+                        star.length = Math.random() * 100 + 50;
+                        star.speed = Math.random() * 8 + 4;
+                        star.active = true;
+                        activeShootingStars++;
+                        break;
                     }
                 }
             }
-            ctx.shadowBlur = 0;
-            ctx.globalCompositeOperation = 'source-over';
 
-            requestAnimationFrame(animate);
-        }
+            // Function to deactivate a shooting star
+            function deactivateShootingStar(star) {
+                star.active = false;
+                activeShootingStars--;
+            }
 
-        animate();
-    });
+            // Trigger shooting stars at random intervals
+            setInterval(() => {
+                if (activeShootingStars < MAX_SHOOTING_STARS) {
+                    activateShootingStar();
+                }
+            }, 2000); // Every 2 seconds
+
+            // Animation Loop
+            function animate() {
+                ctx.clearRect(0, 0, width, height);
+
+                // Draw Pre-rendered Nebula
+                ctx.drawImage(offscreenCanvas, 0, 0, width, height);
+
+                // Draw Stars
+                ctx.fillStyle = 'white';
+                for (let star of stars) {
+                    // Update brightness
+                    star.brightness += star.twinkleSpeed;
+                    if (star.brightness > 1 || star.brightness < 0.5) {
+                        star.twinkleSpeed *= -1;
+                    }
+
+                    // Move star
+                    star.x -= star.speed;
+                    if (star.x < 0) star.x = width;
+
+                    // Draw star
+                    ctx.globalAlpha = star.brightness;
+                    ctx.beginPath();
+                    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1; // Reset alpha
+
+                // Draw Shooting Stars
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = 'white';
+                ctx.globalCompositeOperation = 'lighter';
+                for (let star of shootingStars) {
+                    if (star.active) {
+                        ctx.beginPath();
+                        ctx.moveTo(star.x, star.y);
+                        ctx.lineTo(star.x + star.length, star.y - star.length * 0.5);
+                        ctx.stroke();
+
+                        // Move shooting star
+                        star.x -= star.speed;
+                        star.y += star.speed * 0.5;
+
+                        // Deactivate if out of bounds
+                        if (star.x < 0 || star.y > height) {
+                            deactivateShootingStar(star);
+                        }
+                    }
+                }
+                ctx.shadowBlur = 0;
+                ctx.globalCompositeOperation = 'source-over';
+
+                requestAnimationFrame(animate);
+            }
+
+            animate();
+        });
     </script>
 
 </body>
