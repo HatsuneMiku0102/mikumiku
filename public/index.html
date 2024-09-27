@@ -152,7 +152,6 @@
 
     <script src="haru.js"></script>
 
-    <!-- Inline Scripts -->
     <script>
         // Time of Day Dynamic Title
         function getTimeOfDay() {
@@ -319,7 +318,6 @@
                     nowPlayingElement.classList.add('offline');
                     videoThumbnailElement.classList.add('offline-thumbnail');
                     clearExistingInterval();
-                    updateProgress(0);
                     document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
                     document.getElementById('total-duration').innerText = `Total Duration: --:--`;
                     pausedIcon.style.display = 'none';
@@ -355,7 +353,6 @@
                     if (videoUrl.includes("youtube.com/") && !videoUrl.includes("/watch")) {
                         clearExistingInterval();
                         isBrowsing = true;
-                        updateProgress(0);
                         document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
                         document.getElementById('total-duration').innerText = `Total Duration: --:--`;
                         pausedIcon.style.display = 'none';
@@ -495,21 +492,16 @@
                 const promptContainer = document.getElementById('dynamic-prompt-container');
                 const promptText = document.getElementById('dynamic-prompt-text');
 
-                if (promptContainer && promptText) {
-                    promptText.innerText = data.message || "A new prompt has arrived!";
-                    promptContainer.style.display = 'block';
+                promptText.innerText = data.message || "A new prompt has arrived!";
+                promptContainer.style.display = 'block';
 
-                    setTimeout(() => {
-                        promptContainer.style.display = 'none';
-                    }, 5000);
+                setTimeout(() => {
+                    promptContainer.style.display = 'none';
+                }, 5000);
 
-                    const closeButton = document.getElementById('close-prompt');
-                    if (closeButton) {
-                        closeButton.addEventListener('click', () => {
-                            promptContainer.style.display = 'none';
-                        });
-                    }
-                }
+                document.getElementById('close-prompt').addEventListener('click', () => {
+                    promptContainer.style.display = 'none';
+                });
             });
 
             // Log All Socket Events (Optional for Debugging)
@@ -659,4 +651,3 @@
 </body>
 
 </html>
-
