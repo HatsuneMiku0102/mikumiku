@@ -1,5 +1,3 @@
-// haru.js
-
 document.addEventListener('DOMContentLoaded', function () {
     const personalityCircle = document.getElementById('personalityCircle');
     const personalityPhrase = document.getElementById('personalityPhrase');
@@ -39,6 +37,20 @@ document.addEventListener('DOMContentLoaded', function () {
         return phrase;
     }
 
+    // Function to calculate text width based on content
+    function calculateTextWidth(text) {
+        const tempSpan = document.createElement('span');
+        tempSpan.style.visibility = 'hidden';
+        tempSpan.style.whiteSpace = 'nowrap';
+        tempSpan.style.fontFamily = window.getComputedStyle(personalityPhrase).fontFamily;
+        tempSpan.style.fontSize = window.getComputedStyle(personalityPhrase).fontSize;
+        tempSpan.innerText = text;
+        document.body.appendChild(tempSpan);
+        const textWidth = tempSpan.offsetWidth;
+        document.body.removeChild(tempSpan);
+        return textWidth;
+    }
+
     // Typing effect with smoother letter spacing and unique form when typing
     function typePhrase(phrase) {
         typingIndex = 0;
@@ -51,11 +63,16 @@ document.addEventListener('DOMContentLoaded', function () {
         typeNextChar();
     }
 
-    // Function to type the next character
+    // Function to type the next character and adjust box size
     function typeNextChar() {
         if (charIndex < currentPhrase.length) {
             personalityPhrase.innerText += currentPhrase[charIndex];
             charIndex++;
+
+            // Adjust the width of the text box dynamically based on text length
+            const textWidth = calculateTextWidth(personalityPhrase.innerText);
+            personalityTextBox.style.width = `${textWidth + 40}px`; // Adjust width dynamically
+
             typingTimeout = setTimeout(typeNextChar, typingSpeed); // Smooth typing
         } else {
             typingTimeout = setTimeout(clearPhrase, phraseHoldDuration); // Hold the phrase
@@ -65,6 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Clear the phrase and reset the typing state
     function clearPhrase() {
         personalityPhrase.innerText = "";
+        personalityTextBox.style.width = ""; // Reset the width after clearing
         isTyping = false;
         personalityCircle.classList.remove('typing'); // Remove typing form
         personalityTextBox.classList.remove('visible'); // Hide speech bubble
