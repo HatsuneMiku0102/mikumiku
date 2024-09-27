@@ -7,9 +7,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const customPhrases = [
         "Hi :)", 
         "How's it going?", 
-        "Welcome to MikuMiku.dev", 
-        "Feel free to look around.", 
-        "What's on your mind today?"
+        "Tell your world", 
+        "Hi im Haru", 
+        "Welcome to mikumiku"
     ];
 
     let usedPhrases = [];
