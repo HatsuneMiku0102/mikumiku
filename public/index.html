@@ -24,7 +24,8 @@
                 <!-- Center Section: Logo and Title -->
                 <div class="center-section">
                     <div class="logo-title-wrapper">
-                        <img src="/logo.webp" alt="Logo" class="logo">
+                        <!-- Added loading="lazy" for performance optimization -->
+                        <img src="/logo.webp" alt="Logo" class="logo" loading="lazy">
                         <h1 class="site-title" id="dynamicTitle">MikuMiku</h1>
                     </div>
                 </div>
@@ -65,12 +66,25 @@
                         <div class="sidebar-item">
                             <span>Uploaded:</span> <span id="publishedDate">Loading...</span>
                         </div>
+                        <!-- Added Video Category -->
+                        <div class="sidebar-item video-category">
+                            <span>Category:</span> <span id="videoCategory">Loading...</span>
+                        </div>
+                        <!-- Added Live Stream Indicator -->
+                        <div class="sidebar-item live-indicator" id="liveIndicator" style="display: none;">
+                            🔴 Live Now
+                        </div>
                     </div>
 
                     <div class="video-section">
                         <div class="video-title-container">
                             <h2>Currently Playing on YouTube</h2>
                             <p id="videoTitle">Loading...</p>
+                        </div>
+
+                        <!-- Additional Visual Enhancements: Video Description -->
+                        <div class="video-description-container">
+                            <p id="videoDescription">Loading description...</p>
                         </div>
 
                         <div class="progress-bar-wrapper">
@@ -85,7 +99,8 @@
                             <div id="progress-bar" class="progress-bar"></div>
                         </div>
 
-                        <img id="videoThumbnail" src="" alt="Thumbnail of currently playing video" class="video-thumbnail">
+                        <!-- Added loading="lazy" for performance optimization -->
+                        <img id="videoThumbnail" src="" alt="Thumbnail of currently playing video" class="video-thumbnail" loading="lazy">
 
                         <div class="progress-times-container">
                             <p id="time-elapsed" class="progress-time">Time Elapsed: --:--</p>
@@ -96,6 +111,17 @@
                         <div id="offline-indicator" class="offline-indicator" style="display: none;">
                             I’m not on YouTube at the moment, soz :(
                         </div>
+
+                        <!-- Added Live Stream Indicator -->
+                        <!-- This is already included above in the sidebar -->
+
+                        <!-- Additional Visual Enhancements: Video Category -->
+                        <!-- Already added above in the sidebar -->
+
+                        <!-- Additional Visual Enhancements: Video Description -->
+                        <!-- Already added above -->
+
+                        <!-- Performance Optimizations: Lazy Loading images are already added -->
                     </div>
                 </div>
             </div>
@@ -115,7 +141,8 @@
                 <div class="weather-widget box-container">
                     <h3>My Current Weather</h3>
                     <div class="weather-info">
-                        <img id="weather-icon" src="" alt="Weather Icon">
+                        <!-- Added loading="lazy" via JavaScript -->
+                        <img id="weather-icon" src="" alt="Weather Icon" loading="lazy">
                         <p id="weather-description">Loading...</p>
                         <p id="temperature">--°C</p>
                         <p id="humidity">Humidity: --%</p>
@@ -203,6 +230,43 @@
             const WEATHER_API_URL = '/api/weather';
             const CITY_NAME = 'Leeds';
 
+            // Mapping of YouTube category IDs to category names
+            const categories = {
+                "1": "Film & Animation",
+                "2": "Autos & Vehicles",
+                "10": "Music",
+                "15": "Pets & Animals",
+                "17": "Sports",
+                "18": "Short Movies",
+                "19": "Travel & Events",
+                "20": "Gaming",
+                "21": "Videoblogging",
+                "22": "People & Blogs",
+                "23": "Comedy",
+                "24": "Entertainment",
+                "25": "News & Politics",
+                "26": "Howto & Style",
+                "27": "Education",
+                "28": "Science & Technology",
+                "29": "Nonprofits & Activism",
+                "30": "Movies",
+                "31": "Anime/Animation",
+                "32": "Action/Adventure",
+                "33": "Classics",
+                "34": "Comedy",
+                "35": "Documentary",
+                "36": "Drama",
+                "37": "Family",
+                "38": "Foreign",
+                "39": "Horror",
+                "40": "Sci-Fi/Fantasy",
+                "41": "Thriller",
+                "42": "Shorts",
+                "43": "Shows",
+                "44": "Trailers"
+                // Add more categories as needed
+            };
+
             function formatTime(seconds) {
                 const minutes = Math.floor(seconds / 60);
                 const secs = Math.floor(seconds % 60);
@@ -223,6 +287,7 @@
 
                     if (data.error) {
                         console.error(data.error);
+                        displayError('Failed to load video details.');
                         return 0;
                     }
 
@@ -231,39 +296,69 @@
                         const snippet = video.snippet;
                         const stats = video.statistics;
                         const durationISO = video.contentDetails.duration;
+                        const liveBroadcastContent = snippet.liveBroadcastContent;
 
                         videoDuration = moment.duration(durationISO).asSeconds();
                         const formattedDuration = formatTime(videoDuration);
 
-                        document.getElementById('videoTitle').innerText = snippet.title;
-                        document.getElementById('channelName').innerText = snippet.channelTitle;
-                        document.getElementById('publishedDate').innerText = new Date(snippet.publishedAt).toLocaleDateString();
+                        document.getElementById('videoTitle').innerText = snippet.title || 'No Title Available';
+                        document.getElementById('channelName').innerText = snippet.channelTitle || 'Unknown Channel';
+                        document.getElementById('publishedDate').innerText = snippet.publishedAt ? new Date(snippet.publishedAt).toLocaleDateString() : 'Unknown Date';
 
-                        const viewsFormatted = Number(stats.viewCount).toLocaleString();
+                        const viewsFormatted = stats.viewCount ? Number(stats.viewCount).toLocaleString() : '0';
                         document.getElementById('viewCount').innerText = `${viewsFormatted} views`;
 
-                        document.getElementById('videoThumbnail').src = snippet.thumbnails.high.url;
+                        // Added loading="lazy" to videoThumbnail
+                        const videoThumbnail = document.getElementById('videoThumbnail');
+                        videoThumbnail.src = snippet.thumbnails?.high?.url || '/default-thumbnail.jpg';
+                        videoThumbnail.alt = snippet.title || 'Video Thumbnail';
+                        videoThumbnail.setAttribute('loading', 'lazy');
+
                         document.getElementById('total-duration').innerText = `Total Duration: ${formattedDuration}`;
+
+                        // Video Description
+                        document.getElementById('videoDescription').innerText = snippet.description || 'No Description Available';
+
+                        // Video Category
+                        const categoryId = snippet.categoryId;
+                        const categoryName = categories[categoryId] || 'Uncategorized';
+                        document.getElementById('videoCategory').innerText = categoryName;
+
+                        // Live Stream Indicator
+                        const liveIndicator = document.getElementById('liveIndicator');
+                        if (liveBroadcastContent === 'live') {
+                            liveIndicator.style.display = 'block';
+                        } else {
+                            liveIndicator.style.display = 'none';
+                        }
+
+                        // Channel Avatar
+                        const channelAvatar = document.getElementById('channelAvatar');
+                        if (channelAvatar) {
+                            channelAvatar.src = snippet.thumbnails?.default?.url || '/default-avatar.jpg';
+                            channelAvatar.alt = `${snippet.channelTitle} Avatar`;
+                            channelAvatar.setAttribute('loading', 'lazy');
+                        }
 
                         return videoDuration;
                     } else {
                         console.error('No video data found for the provided videoId.');
+                        displayError('No video data found.');
                         return 0;
                     }
                 } catch (error) {
                     console.error('Error fetching video details:', error);
+                    displayError('An error occurred while fetching video details.');
                 }
                 return 0;
             }
 
-            function updateRecentVideosUI(recentVideos) {
-                // Since the section is removed, this function is no longer needed.
-                // You can remove or comment it out to clean up the code.
-            }
-
-            function addVideoToRecent(title, url, thumbnail) {
-                // Similarly, this function is related to the recently watched videos.
-                // You can remove or comment it out to clean up the code.
+            function displayError(message) {
+                const videoSection = document.querySelector('.video-section');
+                const errorContainer = document.createElement('div');
+                errorContainer.className = 'error-message';
+                errorContainer.innerText = message;
+                videoSection.prepend(errorContainer);
             }
 
             // Initialize Socket.io
@@ -278,13 +373,18 @@
             });
 
             socket.on('nowPlayingUpdate', (data) => {
-                const { isOffline, videoUrl, title, currentTime, isPaused } = data;
+                const { isOffline, videoUrl, title, currentTime, isPaused, liveBroadcastContent, categoryId } = data;
 
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 const nowPlayingElement = document.querySelector('.now-playing');
                 const offlineIndicator = document.getElementById('offline-indicator');
                 const pausedIcon = document.getElementById('pausedIcon');
+                const videoCategoryElement = document.getElementById('videoCategory');
+                const liveIndicator = document.getElementById('liveIndicator');
+                const videoDescriptionElement = document.getElementById('videoDescription');
+                const channelNameElement = document.getElementById('channelName');
+                const channelAvatarElement = document.getElementById('channelAvatar');
 
                 if (isOffline) {
                     videoTitleElement.innerText = 'YouTube Tab Closed';
@@ -318,6 +418,36 @@
                     videoTitleElement.innerText = previousVideoData.title;
                     videoThumbnailElement.src = previousVideoData.thumbnail;
                     videoThumbnailElement.alt = previousVideoData.title;
+
+                    // Added loading="lazy" to videoThumbnail
+                    videoThumbnailElement.setAttribute('loading', 'lazy');
+
+                    // Update Video Description
+                    // Assuming 'description' is part of the data
+                    if (data.description) {
+                        videoDescriptionElement.innerText = data.description;
+                    }
+
+                    // Update Video Category
+                    const categoryName = categories[categoryId] || 'Uncategorized';
+                    videoCategoryElement.innerText = categoryName;
+
+                    // Update Live Stream Indicator
+                    if (liveBroadcastContent === 'live') {
+                        liveIndicator.style.display = 'block';
+                    } else {
+                        liveIndicator.style.display = 'none';
+                    }
+
+                    // Update Channel Information
+                    if (data.channelName) {
+                        channelNameElement.innerText = data.channelName;
+                    }
+                    if (data.channelAvatarUrl) {
+                        channelAvatarElement.src = data.channelAvatarUrl;
+                        channelAvatarElement.alt = `${data.channelName} Avatar`;
+                        channelAvatarElement.setAttribute('loading', 'lazy');
+                    }
 
                     if (videoUrl.includes("youtube.com/") && !videoUrl.includes("/watch")) {
                         clearExistingInterval();
@@ -419,6 +549,7 @@
                     iconElement = document.createElement('img');
                     iconElement.id = 'weather-icon';
                     iconElement.alt = 'Weather Icon';
+                    iconElement.setAttribute('loading', 'lazy'); // Added for performance optimization
                     document.querySelector('.weather-info').prepend(iconElement);
                 }
                 iconElement.src = iconUrl;
@@ -461,6 +592,11 @@
                 const promptContainer = document.getElementById('dynamic-prompt-container');
                 const promptText = document.getElementById('dynamic-prompt-text');
 
+                if (!promptContainer || !promptText) {
+                    console.warn('Dynamic prompt elements not found.');
+                    return;
+                }
+
                 promptText.innerText = data.message || "A new prompt has arrived!";
                 promptContainer.style.display = 'block';
 
@@ -468,9 +604,12 @@
                     promptContainer.style.display = 'none';
                 }, 5000);
 
-                document.getElementById('close-prompt').addEventListener('click', () => {
-                    promptContainer.style.display = 'none';
-                });
+                const closePromptButton = document.getElementById('close-prompt');
+                if (closePromptButton) {
+                    closePromptButton.addEventListener('click', () => {
+                        promptContainer.style.display = 'none';
+                    });
+                }
             });
 
             // Log All Socket Events (Optional for Debugging)
@@ -592,11 +731,11 @@
             ctx.save();
             ctx.globalCompositeOperation = "lighter";
             const gradient = ctx.createRadialGradient(width / 2, height / 2, 100, width / 2, height / 2, width / 2);
-            
+
             nebulaColors.forEach((color, index) => {
                 gradient.addColorStop(index / (nebulaColors.length - 1), color);
             });
-            
+
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, width, height);
             ctx.restore();
