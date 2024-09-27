@@ -153,17 +153,16 @@
             "What's on your mind today?"
         ];
     
-        let usedPhrases = []; // Store used phrases to avoid repetition
+        let usedPhrases = [];
         let typingIndex = 0;
         let charIndex = 0;
         let typingTimeout;
         let currentPhrase = "";
         let isTyping = false; // Prevent multiple hover triggers
         let isMoodChanging = false; // Prevent mood flickers
-        const typingSpeed = 100; // Speed of typing individual letters
-        const phraseHoldDuration = 3000; // Time to hold the phrase before clearing
-        const moodChangeInterval = 10000; // Time between random mood changes
-        const shapeChangeInterval = 300; // Interval between shape changes while typing
+        const typingSpeed = 120; // Adjusted typing speed for smoother experience
+        const phraseHoldDuration = 3500; // Hold the phrase for a longer duration
+        const moodChangeInterval = 12000; // Time between random mood changes
     
         // Function to select a phrase that hasn't been used recently
         function getRandomPhrase() {
@@ -180,76 +179,54 @@
             return phrase;
         }
     
-        // Typing effect with smoother letter spacing
+        // Typing effect with smoother letter spacing and unique form when typing
         function typePhrase(phrase) {
             typingIndex = 0;
             charIndex = 0;
-            currentPhrase = phrase; // Keep as a single string
-            personalityPhrase.innerText = ""; // Clear current text
+            currentPhrase = phrase;
+            personalityPhrase.innerText = ""; // Clear text
             isTyping = true;
+            personalityCircle.className = 'personality-circle typing'; // Unique typing form
             typeNextChar();
-            changeShapeWhileTyping(); // Start shape changes during typing
         }
     
-        // Function to type the next character smoothly
+        // Function to type the next character
         function typeNextChar() {
             if (charIndex < currentPhrase.length) {
                 personalityPhrase.innerText += currentPhrase[charIndex];
                 charIndex++;
-                typingTimeout = setTimeout(typeNextChar, typingSpeed); // Delay between characters
+                typingTimeout = setTimeout(typeNextChar, typingSpeed); // Smooth typing
             } else {
-                clearTimeout(typingTimeout); // Stop typing after phrase is complete
-                typingTimeout = setTimeout(clearPhrase, phraseHoldDuration); // Hold the phrase for a while
+                typingTimeout = setTimeout(clearPhrase, phraseHoldDuration); // Hold the phrase
             }
         }
     
-        // Clear the phrase and reset typing state
+        // Clear the phrase and reset the typing state
         function clearPhrase() {
             personalityPhrase.innerText = "";
             isTyping = false;
-            if (!isMoodChanging) {
-                changeMood('neutral'); // Return to neutral after phrase is done
-            }
+            changeMood('neutral'); // Reset to neutral after typing
         }
     
-        // Function to dynamically change the mood
+        // Function to dynamically change the shape based on mood
         function changeMood(mood) {
-            isMoodChanging = true;
-            personalityCircle.className = 'personality-circle'; // Reset class
+            if (isTyping) return; // Don't change mood while typing
+            personalityCircle.className = 'personality-circle'; // Reset shape
             switch (mood) {
                 case 'happy':
-                    personalityCircle.classList.add('personality-happy');
+                    personalityCircle.classList.add('personality-happy'); // Happy shape
                     break;
                 case 'excited':
-                    personalityCircle.classList.add('personality-excited');
+                    personalityCircle.classList.add('personality-excited'); // Excited shape
                     break;
                 case 'relaxed':
-                    personalityCircle.classList.add('personality-relaxed');
+                    personalityCircle.classList.add('personality-relaxed'); // Relaxed shape
                     break;
                 case 'neutral':
                 default:
-                    personalityCircle.classList.add('personality-neutral');
+                    personalityCircle.classList.add('personality-neutral'); // Default/Neutral shape
                     break;
             }
-            setTimeout(() => {
-                isMoodChanging = false;
-            }, 500); // Smooth transition between mood changes
-        }
-    
-        // Shape change function while typing
-        function changeShapeWhileTyping() {
-            const shapes = ['circle', 'square', 'triangle'];
-            let shapeIndex = 0;
-    
-            function changeShape() {
-                if (isTyping) {
-                    personalityCircle.className = 'personality-circle ' + shapes[shapeIndex];
-                    shapeIndex = (shapeIndex + 1) % shapes.length;
-                    setTimeout(changeShape, shapeChangeInterval); // Continuously change shapes while typing
-                }
-            }
-    
-            changeShape(); // Initiate the shape change
         }
     
         // Add hover event listeners for widgets and boxes
@@ -268,24 +245,23 @@
                 if (!isTyping) {
                     setTimeout(() => {
                         changeMood('neutral');
-                    }, phraseHoldDuration + 500); // Add delay for smooth mood transition
+                    }, phraseHoldDuration + 500); // Delay to avoid quick mood changes
                 }
             });
         });
     
-        // Set a random mood every 10 seconds (optional)
+        // Random mood changes (optional)
         setInterval(() => {
-            if (!isTyping && !isMoodChanging) {
+            if (!isTyping) {
                 const randomMoods = ['happy', 'relaxed', 'neutral'];
                 const randomMood = randomMoods[Math.floor(Math.random() * randomMoods.length)];
                 changeMood(randomMood);
             }
         }, moodChangeInterval);
     
-        // Set default neutral mood on page load
+        // Default to neutral mood on page load
         changeMood('neutral');
     });
-
 
     </script>
 
