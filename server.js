@@ -248,29 +248,27 @@ function verifyToken(req, res, next) {
 }
 
 app.post('/api/gpt', async (req, res) => {
-    const { prompt } = req.body;
-    const apiKey = process.env.OPENAI_API_KEY;
+    const userMessage = req.body.message;
 
     try {
-        const response = await fetch('https://api.openai.com/v1/completions', {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
+                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
             },
             body: JSON.stringify({
-                model: "gpt-4",
-                prompt: prompt,
-                max_tokens: 150,
-                temperature: 0.7
+                model: 'gpt-4',
+                messages: [{ role: 'user', content: userMessage }]
             })
         });
 
         const data = await response.json();
-        res.json(data.choices[0].text.trim());
+        const botMessage = data.choices[0].message.content;
+        res.json({ message: botMessage });
     } catch (error) {
-        console.error('Error communicating with OpenAI:', error);
-        res.status(500).json({ error: 'Failed to communicate with OpenAI.' });
+        console.error('Error fetching GPT-4 response:', error);
+        res.status(500).json({ error: 'Failed to fetch response from GPT-4' });
     }
 });
 
