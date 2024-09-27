@@ -84,7 +84,9 @@
 
                         <!-- Additional Visual Enhancements: Video Description -->
                         <div class="video-description-container">
-                            <p id="videoDescription">Loading description...</p>
+                            <p id="videoDescription" class="video-description">Loading description...</p>
+                            <!-- Toggle Button -->
+                            <button id="toggleDescription" class="toggle-description-button">Show More</button>
                         </div>
 
                         <div class="progress-bar-wrapper">
@@ -111,17 +113,6 @@
                         <div id="offline-indicator" class="offline-indicator" style="display: none;">
                             I’m not on YouTube at the moment, soz :(
                         </div>
-
-                        <!-- Added Live Stream Indicator -->
-                        <!-- This is already included above in the sidebar -->
-
-                        <!-- Additional Visual Enhancements: Video Category -->
-                        <!-- Already added above in the sidebar -->
-
-                        <!-- Additional Visual Enhancements: Video Description -->
-                        <!-- Already added above -->
-
-                        <!-- Performance Optimizations: Lazy Loading images are already added -->
                     </div>
                 </div>
             </div>
@@ -373,7 +364,7 @@
             });
 
             socket.on('nowPlayingUpdate', (data) => {
-                const { isOffline, videoUrl, title, currentTime, isPaused, liveBroadcastContent, categoryId } = data;
+                const { isOffline, videoUrl, title, currentTime, isPaused, liveBroadcastContent, categoryId, description, channelName, channelAvatarUrl } = data;
 
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
@@ -423,9 +414,8 @@
                     videoThumbnailElement.setAttribute('loading', 'lazy');
 
                     // Update Video Description
-                    // Assuming 'description' is part of the data
-                    if (data.description) {
-                        videoDescriptionElement.innerText = data.description;
+                    if (description) {
+                        videoDescriptionElement.innerText = description;
                     }
 
                     // Update Video Category
@@ -440,12 +430,12 @@
                     }
 
                     // Update Channel Information
-                    if (data.channelName) {
-                        channelNameElement.innerText = data.channelName;
+                    if (channelName) {
+                        channelNameElement.innerText = channelName;
                     }
-                    if (data.channelAvatarUrl) {
-                        channelAvatarElement.src = data.channelAvatarUrl;
-                        channelAvatarElement.alt = `${data.channelName} Avatar`;
+                    if (channelAvatarUrl) {
+                        channelAvatarElement.src = channelAvatarUrl;
+                        channelAvatarElement.alt = `${channelName} Avatar`;
                         channelAvatarElement.setAttribute('loading', 'lazy');
                     }
 
@@ -615,6 +605,19 @@
             // Log All Socket Events (Optional for Debugging)
             socket.onAny((event, data) => {
                 console.log(`Received event: ${event}, Data:`, data);
+            });
+
+            // Description Toggle Functionality
+            const toggleButton = document.getElementById('toggleDescription');
+            const videoDescription = document.getElementById('videoDescription');
+
+            toggleButton.addEventListener('click', () => {
+                videoDescription.classList.toggle('expanded');
+                if (videoDescription.classList.contains('expanded')) {
+                    toggleButton.innerText = 'Show Less';
+                } else {
+                    toggleButton.innerText = 'Show More';
+                }
             });
         });
     </script>
