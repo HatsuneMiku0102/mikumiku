@@ -250,6 +250,10 @@ function verifyToken(req, res, next) {
 
 app.post('/api/gpt', async (req, res) => {
     const userMessage = req.body.message;
+    
+    if (!userMessage) {
+        return res.status(400).json({ error: 'Message is required' });
+    }
 
     try {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -259,25 +263,27 @@ app.post('/api/gpt', async (req, res) => {
                 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'gpt-4',
+                model: 'gpt-3.5-turbo', // Using gpt-3.5-turbo instead of gpt-4
                 messages: [{ role: 'user', content: userMessage }]
             })
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            console.error('OpenAI API Error:', error);
-            return res.status(500).json({ error: 'Error with OpenAI API' });
+            const errorData = await response.json();
+            console.error('OpenAI API Error:', errorData);
+            return res.status(response.status).json({ error: 'Error from OpenAI API' });
         }
 
-        const data = await response.json();
-        const botMessage = data.choices[0].message.content;
+        const responseData = await response.json();
+        const botMessage = responseData.choices[0].message.content;
         res.json({ message: botMessage });
+
     } catch (error) {
         console.error('Server Error:', error);
-        res.status(500).json({ error: 'Server failed to fetch response from GPT-4' });
+        res.status(500).json({ error: 'Server error while processing request.' });
     }
 });
+
 
 
 
