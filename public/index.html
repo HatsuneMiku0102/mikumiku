@@ -155,14 +155,16 @@
     
         let usedPhrases = []; // Store used phrases to avoid repetition
         let typingIndex = 0;
+        let charIndex = 0;
         let typingTimeout;
         let currentPhrase = "";
         let isTyping = false; // Prevent multiple hover triggers
         let isMoodChanging = false; // Prevent mood flickers
-        const typingSpeed = 150; // Adjust typing speed
+        const typingSpeed = 100; // Speed of typing individual letters
         const phraseHoldDuration = 3000; // Time to hold the phrase before clearing
         const moodChangeInterval = 10000; // Time between random mood changes
-        
+        const shapeChangeInterval = 300; // Interval between shape changes while typing
+    
         // Function to select a phrase that hasn't been used recently
         function getRandomPhrase() {
             if (usedPhrases.length >= customPhrases.length) {
@@ -178,23 +180,26 @@
             return phrase;
         }
     
-        // Typing effect with word spacing
+        // Typing effect with smoother letter spacing
         function typePhrase(phrase) {
             typingIndex = 0;
-            currentPhrase = phrase.split(" "); // Split into words
+            charIndex = 0;
+            currentPhrase = phrase; // Keep as a single string
             personalityPhrase.innerText = ""; // Clear current text
             isTyping = true;
-            typeNextWord();
+            typeNextChar();
+            changeShapeWhileTyping(); // Start shape changes during typing
         }
     
-        // Function to type the next word
-        function typeNextWord() {
-            if (typingIndex < currentPhrase.length) {
-                personalityPhrase.innerText += currentPhrase[typingIndex] + " "; // Add space between words
-                typingIndex++;
-                typingTimeout = setTimeout(typeNextWord, typingSpeed); // Delay between words
+        // Function to type the next character smoothly
+        function typeNextChar() {
+            if (charIndex < currentPhrase.length) {
+                personalityPhrase.innerText += currentPhrase[charIndex];
+                charIndex++;
+                typingTimeout = setTimeout(typeNextChar, typingSpeed); // Delay between characters
             } else {
-                typingTimeout = setTimeout(clearPhrase, phraseHoldDuration);
+                clearTimeout(typingTimeout); // Stop typing after phrase is complete
+                typingTimeout = setTimeout(clearPhrase, phraseHoldDuration); // Hold the phrase for a while
             }
         }
     
@@ -231,6 +236,22 @@
             }, 500); // Smooth transition between mood changes
         }
     
+        // Shape change function while typing
+        function changeShapeWhileTyping() {
+            const shapes = ['circle', 'square', 'triangle'];
+            let shapeIndex = 0;
+    
+            function changeShape() {
+                if (isTyping) {
+                    personalityCircle.className = 'personality-circle ' + shapes[shapeIndex];
+                    shapeIndex = (shapeIndex + 1) % shapes.length;
+                    setTimeout(changeShape, shapeChangeInterval); // Continuously change shapes while typing
+                }
+            }
+    
+            changeShape(); // Initiate the shape change
+        }
+    
         // Add hover event listeners for widgets and boxes
         const hoverElements = document.querySelectorAll('.box-container, .widget');
         
@@ -244,7 +265,6 @@
             });
     
             element.addEventListener('mouseleave', () => {
-                // Only change back to neutral if typing is complete
                 if (!isTyping) {
                     setTimeout(() => {
                         changeMood('neutral');
