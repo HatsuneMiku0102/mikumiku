@@ -105,21 +105,23 @@ body {
 
 
 .personality-text-box {
-    position: absolute; /* Positions the bubble relative to the nearest positioned ancestor */
-    top: 70px; /* Adjust this value to position the bubble below the circle */
-    left: 50%; /* Centers the bubble horizontally */
-    transform: translateX(-50%); /* Perfect centering */
-    text-align: center; /* Centers the text inside the bubble */
+    position: absolute; /* Absolute positioning within .personality-section */
+    top: 70px; /* Distance from the top of .personality-section */
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%); /* Perfect horizontal centering */
+    text-align: center; /* Center text */
     font-family: 'Roboto', sans-serif; /* Consistent font */
-    font-size: 1.2em; /* Adjust font size as needed */
-    color: #ffffff; /* Text color */
-    max-width: 300px; /* Limits the width of the speech bubble */
+    font-size: 1.2em; /* Readable font size */
+    color: #ffffff; /* Text color for contrast */
+    max-width: 300px; /* Prevents overly wide bubbles */
     background-color: rgba(0, 229, 255, 0.2); /* Semi-transparent background */
-    padding: 15px 20px; /* Padding inside the bubble */
+    padding: 15px 20px; /* Adequate padding */
     border-radius: 10px; /* Rounded corners */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Subtle shadow for depth */
-    transition: background-color 0.3s ease, transform 0.3s ease; /* Smooth transitions */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Adds depth */
+    transition: opacity 0.3s ease, transform 0.3s ease; /* Smooth transitions */
     z-index: 1001; /* Ensures the bubble appears above other elements */
+    opacity: 0; /* Hidden by default */
+    pointer-events: none; /* Prevents interaction when hidden */
 }
 
 /* Tail of the Speech Bubble */
@@ -132,7 +134,19 @@ body {
     border-width: 0 10px 10px 10px; /* Creates a downward-pointing triangle */
     border-style: solid;
     border-color: transparent transparent rgba(0, 229, 255, 0.2) transparent; /* Matches bubble's background */
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.3s ease;
 }
+
+.personality-text-box.visible {
+    opacity: 1; /* Fully visible */
+    pointer-events: auto; /* Enables interaction if needed */
+}
+
+.personality-text-box.visible::after {
+    opacity: 1; /* Shows the tail */
+}
+
 
 /* Optional: Hover Effect for the Speech Bubble */
 .personality-text-box:hover {
