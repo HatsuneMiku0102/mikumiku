@@ -67,6 +67,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
+
     // Optional: Add enter key support for sending messages
     chatInput.addEventListener('keypress', async function (event) {
         if (event.key === 'Enter') {
