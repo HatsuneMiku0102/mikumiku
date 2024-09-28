@@ -974,7 +974,7 @@ let activeUsers = [];
 
 io.on('connection', async (socket) => {
     const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
-    logger.info(`New client connected: ${socket.id}, IP: ${ip}`);
+    logger.info(`New Youtube client connected: ${socket.id}, IP: ${ip}`);
 
     // Add the new user to the activeUsers list
     activeUsers.push({ id: socket.id, ip });
