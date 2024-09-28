@@ -6,6 +6,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const chatContent = document.getElementById('chat-content');
     const personalityCircle = document.getElementById('personalityCircle');
 
+    // Establish WebSocket connection
+    const socket = io();
+
     // Function to open chat
     const openChat = () => {
         chatBox.style.display = 'flex';
@@ -66,7 +69,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-
+    // Listen for real-time web search results from server
+    socket.on('webSearchResult', (data) => {
+        console.log('Received web search result:', data);
+        if (data && data.response) {
+            addMessageToChat(data.response, 'bot-message');
+        }
+    });
 
     // Optional: Add enter key support for sending messages
     chatInput.addEventListener('keypress', async function (event) {
