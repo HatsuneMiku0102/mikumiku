@@ -76,50 +76,56 @@ app.use(cors());
 app.post('/updateVideoData', async (req, res) => {
     const { videoId } = req.body;
 
-    console.log("[/updateVideoData] Received request at /updateVideoData endpoint");
-    console.log("[/updateVideoData] Request body:", req.body);
-
     if (!videoId) {
-        console.error('[/updateVideoData] Invalid video ID received');
+        logger.error('Invalid video ID received');
         return res.status(400).send('Invalid video ID');
     }
 
     try {
         const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics,contentDetails`;
-        console.log(`[/updateVideoData] Fetching video data from YouTube for video ID: ${videoId}`);
-        console.log(`[/updateVideoData] YouTube API URL: ${apiUrl}`);
-        
         const response = await axios.get(apiUrl);
-        console.log(`[/updateVideoData] Response status: ${response.status}`);
 
         if (response.data.items && response.data.items.length > 0) {
             const videoData = response.data.items[0].snippet;
             const statistics = response.data.items[0].statistics;
             const contentDetails = response.data.items[0].contentDetails;
 
-            console.log('[/updateVideoData] Successfully fetched video data:', {
+            const category = categoryMap[videoData.categoryId] || "Unknown Category";
+
+            currentVideoData = {
+                videoId: videoId,
                 title: videoData.title,
                 description: videoData.description,
-                categoryId: videoData.categoryId,
                 channelTitle: videoData.channelTitle,
                 viewCount: statistics.viewCount,
                 likeCount: statistics.likeCount,
                 duration: contentDetails.duration,
                 publishedAt: videoData.publishedAt,
-            });
+                category: category,
+                thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+            };
 
+            io.emit('nowPlayingUpdate', currentVideoData);
+            logger.info(`Video data updated and emitted to all clients: ${JSON.stringify(currentVideoData)}`);
             res.status(200).send('Video data received successfully');
         } else {
-            console.error('[/updateVideoData] No video data found for the given video ID');
+            logger.error('No video data found for the given video ID');
             res.status(404).send('No video data found');
         }
     } catch (error) {
-        console.error(`[/updateVideoData] Error fetching video data: ${error.message}`);
-        if (error.response) {
-            console.error(`[Error] Response status: ${error.response.status}, Data: ${JSON.stringify(error.response.data)}`);
-        }
+        logger.error(`Error fetching video data: ${error.message}`);
         res.status(500).send('Error fetching video data');
     }
+});
+
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+    logger.info(`[Socket.IO] Youtube Client Connected on socket ID: ${socket.id}`);
+    socket.emit('nowPlayingUpdate', currentVideoData);
+
+    socket.on('disconnect', () => {
+        logger.info(`[Socket.IO] Youtube Client disconnected: ${socket.id}`);
+    });
 });
 
 
