@@ -1148,33 +1148,40 @@ io.on('connection', (socket) => {
     socket.emit('nowPlayingUpdate', currentVideoData);
 
     // Handle video status updates from clients
-    socket.on('updateVideoTitle', (data) => {
+    socket.on('updateVideoTitle', async (data) => {
         logger.info(`[Socket.IO] Received "updateVideoTitle" event from client ${socket.id}: ${JSON.stringify(data)}`);
 
-        // Destructure the incoming data
-        const { videoId, title, description, thumbnail, category, currentTime = 0, isPaused = false, isOffline = false } = data;
+        const { videoId, title, description, currentTime, isPaused, isOffline } = data;
 
-        // Log each piece of data for better debugging
-        logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}, Current Time: ${currentTime}, Is Paused: ${isPaused}, Is Offline: ${isOffline}`);
+        try {
+            // Fetch video data from YouTube API to get thumbnail and category
+            const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet`;
+            const response = await axios.get(apiUrl);
+            const videoData = response.data.items[0].snippet;
 
-        // Update the server state with the new video data
-        currentVideoData = {
-            videoId,
-            title,
-            description,
-            thumbnail,
-            category,
-            currentTime,
-            isPaused,
-            isOffline,
-            videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
-            startTimestamp: Date.now() - (currentTime * 1000)
-        };
+            const thumbnail = videoData.thumbnails.default.url;
+            const category = videoData.categoryId; // or videoData.categoryTitle if you want the title
 
-        // Emit the updated video data to all connected clients
-        io.emit('nowPlayingUpdate', currentVideoData);
+            logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}`);
 
-        logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: Title="${title}", Video ID="${videoId}", isPaused=${isPaused}, isOffline=${isOffline}`);
+            // Update the server state with the new video data
+            currentVideoData = {
+                videoId,
+                title,
+                description,
+                thumbnail,
+                category,
+                currentTime,
+                isPaused,
+                isOffline
+            };
+
+            // Emit the updated video data to all connected clients
+            io.emit('nowPlayingUpdate', currentVideoData);
+            logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: Title="${title}", Video ID="${videoId}", Thumbnail="${thumbnail}", Category="${category}"`);
+        } catch (error) {
+            logger.error(`[Socket.IO] Error fetching video data: ${error.message}`);
+        }
     });
 
     // Handle client disconnection
