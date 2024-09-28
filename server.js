@@ -29,7 +29,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: ["https://mikumiku.dev", "chrome-extension://ealgoodedcojbceodddhbpcklnpneocp"], // Replace with your actual extension ID
+        origin: "*", // Allow all origins
         methods: ["GET", "POST"],
         credentials: true
     }
@@ -57,7 +57,7 @@ app.set('trust proxy', 1);
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-// Helmet for Security
+// Helmet for Security (Adjusted for relaxed CORS)
 app.use(
     helmet.contentSecurityPolicy({
         directives: {
@@ -89,7 +89,8 @@ app.use(
                 "'self'",
                 "https://www.googleapis.com",
                 "https://*.youtube.com",
-                "https://api.openweathermap.org"
+                "https://api.openweathermap.org",
+                "https://mikumiku.dev" // Ensure server can connect back if needed
             ],
             frameSrc: [
                 "'self'",
@@ -974,17 +975,7 @@ let activeUsers = [];
 // Define /background namespace for background scripts (e.g., Chrome extensions)
 const backgroundNamespace = io.of('/background');
 
-backgroundNamespace.use((socket, next) => {
-    const origin = socket.handshake.headers.origin;
-    logger.info(`Background namespace: Connection attempt from origin: ${origin}`);
-    if (origin === undefined || allowedOrigins.includes(origin)) {
-        next();
-    } else {
-        logger.warn(`Background namespace: Connection attempt from disallowed origin: ${origin}`);
-        next(new Error('Not allowed by CORS'));
-    }
-});
-
+// No CORS checks in namespaces, since CORS is relaxed globally
 backgroundNamespace.on('connection', (socket) => {
     const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
     logger.info(`Background client connected: ${socket.id}, IP: ${ip}`);
@@ -1050,17 +1041,7 @@ backgroundNamespace.on('connection', (socket) => {
 // Define /main namespace for main webpage clients
 const mainNamespace = io.of('/main');
 
-mainNamespace.use((socket, next) => {
-    const origin = socket.handshake.headers.origin;
-    logger.info(`Main namespace: Connection attempt from origin: ${origin}`);
-    if (allowedOrigins.includes(origin)) {
-        next();
-    } else {
-        logger.warn(`Main namespace: Connection attempt from disallowed origin: ${origin}`);
-        next(new Error('Not allowed by CORS'));
-    }
-});
-
+// No CORS checks in namespaces, since CORS is relaxed globally
 mainNamespace.on('connection', (socket) => {
     const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
     logger.info(`Main client connected: ${socket.id}, IP: ${ip}`);
