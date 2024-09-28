@@ -27,7 +27,7 @@ const dialogflow = require('@google-cloud/dialogflow');
 const uuid = require('uuid');
 
 dotenv.config();
-app.use(cors());
+
 
 const app = express();
 const server = http.createServer(app);
@@ -69,7 +69,7 @@ app.set('trust proxy', 1);
 // Middleware
 app.use(bodyParser.json());
 app.use(cookieParser());
-
+app.use(cors());
 
 app.post('/updateVideoData', (req, res) => {
     const videoData = req.body;
