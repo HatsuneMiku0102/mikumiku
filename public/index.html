@@ -133,35 +133,28 @@
 
     <!-- Now Playing Update Script -->
     <script>
-        document.addEventListener("DOMContentLoaded", async function () {
-            // Fetch the API key from the server
-            let youtubeApiKey = '';
-
-            try {
-                const response = await fetch('/api/keys');
-                const data = await response.json();
-                youtubeApiKey = data.YOUTUBE_API_KEY;
-
-                if (!youtubeApiKey) {
-                    console.error("YouTube API Key not found.");
-                    return;
-                }
-            } catch (error) {
-                console.error("Error fetching API keys:", error);
-                return;
-            }
-
+        document.addEventListener("DOMContentLoaded", function () {
             const socket = io("https://mikumiku.dev");
-
+    
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
             });
-
-            socket.on("nowPlayingUpdate", async (data) => {
+    
+            socket.on("nowPlayingUpdate", (data) => {
                 console.log("[Socket.IO] Received nowPlayingUpdate:", data);
-
+    
                 // Update Now Playing section with received data
-                const { title, videoUrl, startTimestamp, isPaused, isOffline, videoId } = data;
+                const {
+                    title,
+                    videoId,
+                    thumbnail,
+                    channelTitle,
+                    viewCount,
+                    publishedAt,
+                    category,
+                    isOffline,
+                } = data;
+    
                 const videoTitleElement = document.getElementById("videoTitle");
                 const videoThumbnailElement = document.getElementById("videoThumbnail");
                 const channelNameElement = document.getElementById("channelName");
@@ -169,7 +162,7 @@
                 const publishedDateElement = document.getElementById("publishedDate");
                 const videoCategoryElement = document.getElementById("videoCategory");
                 const offlineIndicatorElement = document.getElementById("offline-indicator");
-
+    
                 if (isOffline) {
                     offlineIndicatorElement.style.display = "block";
                     videoTitleElement.textContent = "Offline";
@@ -177,32 +170,16 @@
                 } else {
                     offlineIndicatorElement.style.display = "none";
                     videoTitleElement.textContent = title || "Unknown Title";
-                    videoThumbnailElement.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                    videoThumbnailElement.src = thumbnail || "";
                     videoThumbnailElement.style.display = "block";
-
-                    // Fetch additional video details using YouTube API
-                    try {
-                        const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${youtubeApiKey}&part=snippet,statistics,contentDetails`;
-                        const videoResponse = await fetch(apiUrl);
-                        const videoData = await videoResponse.json();
-
-                        if (videoData.items && videoData.items.length > 0) {
-                            const snippet = videoData.items[0].snippet;
-                            const statistics = videoData.items[0].statistics;
-
-                            channelNameElement.textContent = snippet.channelTitle || "Unknown Channel";
-                            viewCountElement.textContent = statistics.viewCount || "N/A";
-                            publishedDateElement.textContent = new Date(snippet.publishedAt).toLocaleDateString() || "N/A";
-                            videoCategoryElement.textContent = snippet.categoryId || "N/A";
-                        } else {
-                            console.warn("No video data found for the given video ID.");
-                        }
-                    } catch (error) {
-                        console.error("Error fetching video data from YouTube:", error);
-                    }
+    
+                    channelNameElement.textContent = channelTitle || "Unknown Channel";
+                    viewCountElement.textContent = viewCount || "N/A";
+                    publishedDateElement.textContent = publishedAt || "N/A";
+                    videoCategoryElement.textContent = category || "Unknown Category";
                 }
             });
-
+    
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
             });
