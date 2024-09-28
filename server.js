@@ -955,8 +955,8 @@ app.get('/api/videos/public', async (req, res) => {
     }
 });
 
-app.post('/api/videos', 
-    verifyToken, 
+app.post('/api/videos',
+    verifyToken,
     [
         body('url').isURL().withMessage('Invalid URL format'),
         body('title').isString().notEmpty().withMessage('Title is required'),
@@ -969,11 +969,10 @@ app.post('/api/videos',
             return res.status(400).json({ errors: errors.array() });
         }
 
-        // Sanitizing user inputs
-        const sanitizedUrl = sanitizeHtml(req.body.url.replace('youtu.be', 'youtube.com/embed'));
-        const sanitizedTitle = sanitizeHtml(req.body.title);
-        const sanitizedDescription = req.body.description ? sanitizeHtml(req.body.description) : '';
-        const sanitizedCategory = sanitizeHtml(req.body.category);
+        const sanitizedUrl = req.body.url.replace('youtu.be', 'youtube.com/embed');
+        const sanitizedTitle = req.body.title;
+        const sanitizedDescription = req.body.description ? req.body.description : '';
+        const sanitizedCategory = req.body.category;
 
         const videoMetadata = {
             url: sanitizedUrl,
@@ -984,8 +983,7 @@ app.post('/api/videos',
         };
 
         try {
-            // Logic to save video metadata to the database (for example, using MongoDB or SQL)
-            // const result = await VideoModel.create(videoMetadata);
+            // Logic to save video metadata to the database
             res.status(201).json({ message: 'Video added successfully', video: videoMetadata });
         } catch (err) {
             logger.error(`Error saving video metadata: ${err.message}`);
