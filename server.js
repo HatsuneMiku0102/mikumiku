@@ -1171,20 +1171,31 @@ io.on('connection', (socket) => {
     // Handle video status updates from clients
     socket.on('updateVideoTitle', async (data) => {
         logger.info(`[Socket.IO] Received "updateVideoTitle" event from client ${socket.id}: ${JSON.stringify(data)}`);
-
+    
         const { videoId, title, description, currentTime, isPaused, isOffline } = data;
-
+    
         try {
-            // Fetch video data from YouTube API to get thumbnail and category
-            const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet`;
+            const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics`;
             const response = await axios.get(apiUrl);
-            const videoData = response.data.items[0].snippet;
-
-            const thumbnail = videoData.thumbnails.default.url;
-            const category = videoData.categoryId; // or videoData.categoryTitle if you want the title
-
-            logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}`);
-
+            const videoData = response.data.items[0];
+    
+            if (!videoData) {
+                logger.error('No video data found');
+                return;
+            }
+    
+            const thumbnail = videoData.snippet.thumbnails.default.url;
+            const categoryId = videoData.snippet.categoryId;
+            const channelTitle = videoData.snippet.channelTitle;
+            const viewCount = videoData.statistics.viewCount;
+            const likeCount = videoData.statistics.likeCount; // Get likes if available
+            const publishedAt = videoData.snippet.publishedAt;
+    
+            const category = categoryMappings[categoryId] || 'Unknown Category';
+    
+            // Log video data before emitting
+            logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}, Channel: ${channelTitle}, Views: ${viewCount}, Likes: ${likeCount}, Uploaded: ${publishedAt}`);
+    
             // Update the server state with the new video data
             currentVideoData = {
                 videoId,
@@ -1192,19 +1203,23 @@ io.on('connection', (socket) => {
                 description,
                 thumbnail,
                 category,
+                channelTitle,
+                viewCount,
+                likeCount, // Add likes to the data
+                publishedAt,
                 currentTime,
                 isPaused,
                 isOffline
             };
-
+    
             // Emit the updated video data to all connected clients
             io.emit('nowPlayingUpdate', currentVideoData);
-            logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: Title="${title}", Video ID="${videoId}", Thumbnail="${thumbnail}", Category="${category}"`);
+            logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: Title="${title}", Video ID="${videoId}", Thumbnail="${thumbnail}", Category="${category}", Views="${viewCount}", Likes="${likeCount}"`);
+    
         } catch (error) {
             logger.error(`[Socket.IO] Error fetching video data: ${error.message}`);
         }
     });
-
     // Handle client disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
