@@ -307,10 +307,12 @@ app.get('/api/youtube', async (req, res) => {
             async (bail, attempt) => {
                 try {
                     const response = await axios.get(apiUrl);
+                    
+                    // Handle the response
                     if (response.status === 200) {
                         const responseData = response.data;
-                        
-                        // Ensure the response data contains the expected structure
+
+                        // Validate the response structure
                         if (
                             !responseData.items ||
                             responseData.items.length === 0 ||
@@ -321,28 +323,28 @@ app.get('/api/youtube', async (req, res) => {
 
                         return responseData;
                     } else if (response.status === 403) {
-                        // If it's a 403 error, we should not retry.
-                        bail(new Error('YouTube API quota exceeded or forbidden.'));
+                        // If the error is related to a forbidden request or quota limit, bail and do not retry
+                        bail(new Error('YouTube API quota exceeded or access forbidden.'));
                     } else {
                         throw new Error(`Failed to fetch data from YouTube API. Status: ${response.status}`);
                     }
                 } catch (err) {
                     if (err.response) {
-                        // Check specific status codes and handle accordingly
+                        // Handle HTTP response errors
                         if (err.response.status === 404) {
                             bail(new Error('Video not found.'));
                         } else if (err.response.status >= 500) {
-                            // Retry for server errors (5xx)
+                            // Retry if YouTube's servers are having issues
                             console.warn(`Attempt ${attempt}: YouTube API returned a server error. Retrying...`);
-                            throw err;
+                            throw err; // Retry this error
                         } else {
-                            // Bail on other errors
+                            // For other client-side errors, do not retry
                             bail(err);
                         }
                     } else {
-                        // Network error or unknown error
+                        // Handle network errors or other unknown errors
                         console.warn(`Attempt ${attempt}: Network error or unknown issue occurred. Retrying...`);
-                        throw err;
+                        throw err; // Retry on network errors
                     }
                 }
             },
@@ -355,19 +357,23 @@ app.get('/api/youtube', async (req, res) => {
         );
 
         // Successfully fetched data
-        res.json(data);
+        res.status(200).json(data);
     } catch (error) {
-        console.error(`Error fetching YouTube video data for videoId ${videoId}:`, error.message);
+        console.error(`Error fetching YouTube video data for videoId ${videoId}: ${error.message}`);
 
+        // Differentiate error types for better client handling
         if (error.message.includes('quota')) {
             return res.status(403).json({ error: 'YouTube API quota exceeded. Please try again later.' });
         } else if (error.message.includes('not found')) {
             return res.status(404).json({ error: 'The requested video was not found.' });
+        } else if (error.message.includes('forbidden')) {
+            return res.status(403).json({ error: 'YouTube API access forbidden. Please check your API key.' });
         } else {
             return res.status(500).json({ error: 'Internal Server Error' });
         }
     }
 });
+
 
 // OAuth Configuration
 const CLIENT_ID = process.env.CLIENT_ID;
