@@ -4,48 +4,40 @@ document.addEventListener('DOMContentLoaded', function () {
     const sendMessageButton = document.getElementById('send-message');
     const chatInput = document.getElementById('chat-input');
     const chatContent = document.getElementById('chat-content');
-    const personalityCircle = document.getElementById('personalityCircle'); 
-
+    const personalityCircle = document.getElementById('personalityCircle');
 
     const openChat = () => {
         chatBox.style.display = 'flex';
     };
 
-
     const closeChat = () => {
-        chatBox.style.display = 'none'; 
+        chatBox.style.display = 'none';
     };
 
-
     personalityCircle.addEventListener('click', openChat);
-
-
     closeChatButton.addEventListener('click', closeChat);
-
 
     sendMessageButton.addEventListener('click', async function () {
         const userMessage = chatInput.value.trim();
         if (userMessage) {
             addMessageToChat(userMessage, 'user-message');
             chatInput.value = '';
-            const botResponse = await getGPTResponse(userMessage);
+            const botResponse = await getDeepPavlovResponse(userMessage);
             addMessageToChat(botResponse, 'bot-message');
         }
     });
-
 
     function addMessageToChat(message, className) {
         const messageElement = document.createElement('div');
         messageElement.classList.add('message', className);
         messageElement.textContent = message;
         chatContent.appendChild(messageElement);
-        chatContent.scrollTop = chatContent.scrollHeight; 
+        chatContent.scrollTop = chatContent.scrollHeight;
     }
 
-
-    async function getGPTResponse(message) {
+    async function getDeepPavlovResponse(message) {
         try {
-            const response = await fetch('/api/gpt', {
+            const response = await fetch('/api/deeppavlov', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -53,9 +45,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 body: JSON.stringify({ message }),
             });
             const data = await response.json();
-            return data.message || 'Sorry, something went wrong.';
+            return data.response || 'Sorry, something went wrong.';
         } catch (error) {
-            console.error('Error fetching GPT-4 response:', error);
+            console.error('Error fetching DeepPavlov response:', error);
             return 'Sorry, something went wrong.';
         }
     }
