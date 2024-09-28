@@ -233,12 +233,6 @@ async function performWebSearch(query) {
 }
 
 
-
-
-module.exports = {
-    getFulfillmentResponse,
-};
-
 // Define the web search function
 async function getWebSearchResults(query) {
     const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
