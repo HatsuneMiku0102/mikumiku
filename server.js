@@ -999,27 +999,19 @@ io.on('connection', (socket) => {
     }, 3000);
 });
 
-const ALLOWED_EXTENSION_ID = 'ealgoodedcojbceodddhbpcklnpneocp';
 
-// Define /background namespace for background scripts (e.g., Chrome extensions)
+
 const backgroundNamespace = io.of('/background');
 
 backgroundNamespace.on('connection', (socket) => {
-    const clientExtensionId = socket.handshake.query.extensionId;
+    const clientSecret = socket.handshake.query.secret;
 
-    if (clientExtensionId) {
-        logger.info(`Received connection from client with extension ID: ${clientExtensionId}, Socket ID: ${socket.id}`);
-    } else {
-        logger.warn(`Connection without extension ID from client ${socket.id}`);
-    }
-
-    // Check if the extension ID matches the allowed extension ID
-    if (clientExtensionId === 'ealgoodedcojbceodddhbpcklnpneocp') { // Update this with your correct extension ID
+    if (clientSecret && clientSecret === '39') {
         logger.info(`Authorized background client connected to /background namespace: ${socket.id}, IP: ${socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress}`);
-        
+
         socket.on('progressUpdate', (data) => {
             logger.info(`Received 'progressUpdate' from background client ${socket.id}: ${JSON.stringify(data)}`);
-            
+
             // Handle the data update logic here
             currentVideoTitle = data.title;
             currentVideoUrl = data.videoUrl;
@@ -1043,7 +1035,7 @@ backgroundNamespace.on('connection', (socket) => {
         });
 
     } else {
-        logger.warn(`Unrecognized background client with extension ID: ${clientExtensionId}, Socket ID: ${socket.id}. Disconnecting.`);
+        logger.warn(`Unrecognized or unauthorized client attempted to connect. Socket ID: ${socket.id}, Disconnecting.`);
         setTimeout(() => {
             socket.disconnect(true);
         }, 3000); // Grace period for unrecognized clients
