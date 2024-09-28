@@ -229,6 +229,9 @@ async function getFulfillmentResponse(query) {
                 if (entity && entity.description) {
                     // Return a more direct answer if available
                     return `${entity.name} is ${entity.description}.`;
+                } else if (entity && entity.detailedDescription && entity.detailedDescription.articleBody) {
+                    // Use a detailed description if available
+                    return `${entity.name}: ${entity.detailedDescription.articleBody}`;
                 }
             }
         } catch (error) {
@@ -263,7 +266,6 @@ async function getFulfillmentResponse(query) {
 module.exports = {
     getFulfillmentResponse,
 };
-
 
 // Define the web search function
 async function getWebSearchResults(query) {
