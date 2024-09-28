@@ -283,7 +283,7 @@ app.post('/api/dialogflow', async (req, res) => {
         console.log("Received response from Dialogflow.");
 
         const result = responses[0].queryResult;
-        console.log("Query Result:", JSON.stringify(result, null, 2)); // Print the full query result for debugging
+        console.log("Query Result:", JSON.stringify(result, null, 2));
 
         if (result && result.fulfillmentText) {
             console.log("Sending fulfillment text back to client:", result.fulfillmentText);
@@ -291,15 +291,17 @@ app.post('/api/dialogflow', async (req, res) => {
         } else if (result && result.action === 'web.search') {
             console.log("Handling web search action...");
 
-            // Extract the search query parameter from the Dialogflow parameters
             const parameters = result.parameters.fields;
 
             if (parameters && parameters.q && parameters.q.stringValue) {
                 const searchQuery = parameters.q.stringValue;
                 console.log(`Performing web search for query: "${searchQuery}"`);
 
+                // Perform web search using your Google Custom Search function
                 const webSearchResponse = await getWebSearchResults(searchQuery);
-                console.log("Sending web search response back to client:", webSearchResponse);
+                console.log("Received web search data:", webSearchResponse);
+
+                // Return the web search result back to the client
                 res.json({ response: webSearchResponse });
             } else {
                 console.error("Missing search query parameter.");
