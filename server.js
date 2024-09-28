@@ -982,7 +982,11 @@ backgroundNamespace.on('connection', (socket) => {
 
     // Handle 'progressUpdate' events from background scripts
     socket.on('progressUpdate', (data) => {
-        logger.info(`Received 'progressUpdate' from background client ${socket.id}: ${JSON.stringify(data)}`);
+        try {
+            logger.info(`Received 'progressUpdate' from background client ${socket.id}: ${JSON.stringify(data)}`);
+            // Continue processing the data...
+        } catch (error) {
+            logger.error(`Error processing 'progressUpdate': ${error.message}`);
 
         const { title, videoUrl, currentTime, isPaused, isOffline } = data;
 
