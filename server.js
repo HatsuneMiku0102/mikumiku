@@ -1,4 +1,6 @@
+// server.js
 
+'use strict';
 
 const express = require('express');
 const http = require('http');
@@ -20,8 +22,6 @@ const winston = require('winston');
 const { DateTime } = require('luxon');
 const fetch = require('node-fetch');
 const retry = require('async-retry');
-const { body, validationResult } = require('express-validator');
-const sanitizeHtml = require('sanitize-html');
 
 dotenv.config();
 
@@ -29,15 +29,16 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: "*", // Allow all origins
+        origin: "chrome-extension://ealgoodedcojbceodddhbpcklnpneocp", // Replace with your actual Chrome extension ID
         methods: ["GET", "POST"],
+        allowedHeaders: ["my-custom-header"],
         credentials: true
     }
 });
 
 const PORT = process.env.PORT || 3000;
 
-// Logger Configuration
+// Configure logging using winston
 const logger = winston.createLogger({
     level: 'info',
     format: winston.format.combine(
@@ -52,105 +53,37 @@ const logger = winston.createLogger({
     ]
 });
 
-// Middleware Setup
+app.get('/api/keys', (req, res) => {
+  res.json({
+    YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY,
+    OPENWEATHER_API_KEY: process.env.OPENWEATHER_API_KEY,
+  });
+});
+
 app.set('trust proxy', 1);
+
+// Middleware
 app.use(bodyParser.json());
 app.use(cookieParser());
-
-// Helmet for Security (Adjusted for relaxed CORS)
-app.use(
-    helmet({
-        contentSecurityPolicy: {
-            useDefaults: true,
-            directives: {
-                defaultSrc: ["'self'"],
-                scriptSrc: [
-                    "'self'",
-                    "'unsafe-inline'",
-                    "https://fonts.googleapis.com",
-                    "https://cdnjs.cloudflare.com",
-                    "https://www.youtube.com",
-                    "https://mikumiku.dev", // Allow your own domain to serve scripts
-                ],
-                styleSrc: [
-                    "'self'",
-                    "'unsafe-inline'",
-                    "https://fonts.googleapis.com",
-                ],
-                imgSrc: [
-                    "'self'",
-                    "data:",
-                    "https://i.ytimg.com",
-                    "https://img.youtube.com",
-                    "https://openweathermap.org",
-                ],
-                fontSrc: [
-                    "'self'",
-                    "https://fonts.gstatic.com",
-                ],
-                connectSrc: [
-                    "'self'",
-                    "wss://mikumiku.dev", // Allow WebSocket connections to your domain
-                    "https://mikumiku.dev", // Allow your own domain for data connections
-                    "https://www.googleapis.com",
-                    "https://*.youtube.com",
-                    "https://api.openweathermap.org",
-                ],
-                frameSrc: [
-                    "'self'",
-                    "https://discord.com",
-                    "https://www.youtube.com",
-                ],
-                mediaSrc: [
-                    "'self'",
-                    "https://www.youtube.com",
-                ],
-                frameAncestors: [
-                    "'self'",
-                    "https://discord.com",
-                ],
-                upgradeInsecureRequests: null, // Disable forced upgrade to HTTPS if causing issues
-            },
-        },
-        crossOriginEmbedderPolicy: false, // Allow cross-origin embedding (useful for iframes)
-        crossOriginResourcePolicy: {
-            policy: "cross-origin", // Allow resources to be loaded cross-origin
-        },
-        referrerPolicy: {
-            policy: "no-referrer-when-downgrade", // Allow referrer information only when the protocol security is not downgraded
-        },
-        hsts: {
-            maxAge: 31536000,
-            includeSubDomains: true,
-            preload: true,
-        },
-    })
-);
-
-// Static Files Serving
-app.use(express.static(path.join(__dirname, 'public'), {
-    etag: false,
-    maxAge: 0,
-    lastModified: false
-}));
 
 // MongoDB Connection
 const mongoUrl = process.env.MONGO_URL;
 
 mongoose.connect(mongoUrl, {
     useNewUrlParser: true,
-    useUnifiedTopology: true
+    useUnifiedTopology: true,
+    useFindAndModify: false
 }).then(() => {
     logger.info('Connected to MongoDB');
 }).catch((err) => {
     logger.error(`Error connecting to MongoDB: ${err}`);
 });
 
-// Session Store Configuration
+// Session Store
 const sessionStore = MongoStore.create({
     mongoUrl: mongoUrl,
     collectionName: 'sessions',
-    ttl: 14 * 24 * 60 * 60,
+    ttl: 14 * 24 * 60 * 60, // 14 days
     autoRemove: 'native'
 });
 
@@ -169,13 +102,72 @@ app.use(session({
     saveUninitialized: false,
     store: sessionStore,
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production', // Set to true in production
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000
+        maxAge: 24 * 60 * 60 * 1000 // 1 day
     }
 }));
 
-// Mongoose Schemas and Models
+// Set Content Security Policy using helmet
+app.use(
+    helmet.contentSecurityPolicy({
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: [
+                "'self'",
+                "'unsafe-inline'", // Consider replacing with nonces or hashes for better security
+                "https://fonts.googleapis.com",
+                "https://cdnjs.cloudflare.com",
+                "https://www.youtube.com"
+            ],
+            styleSrc: [
+                "'self'",
+                "'unsafe-inline'", // Consider replacing with nonces or hashes for better security
+                "https://fonts.googleapis.com"
+            ],
+            imgSrc: [
+                "'self'",
+                "data:",
+                "https://i.ytimg.com",
+                "https://img.youtube.com",
+                "https://openweathermap.org"
+            ],
+            fontSrc: [
+                "'self'",
+                "https://fonts.gstatic.com"
+            ],
+            connectSrc: [
+                "'self'",
+                "https://www.googleapis.com",
+                "https://*.youtube.com",
+                "https://api.openweathermap.org"
+            ],
+            frameSrc: [
+                "'self'",
+                "https://discord.com",
+                "https://www.youtube.com"
+            ],
+            mediaSrc: [
+                "'self'",
+                "https://www.youtube.com"
+            ],
+            frameAncestors: [
+                "'self'",
+                "https://discord.com"
+            ],
+            upgradeInsecureRequests: []
+        }
+    })
+);
+
+// Serve static files from 'public'
+app.use(express.static(path.join(__dirname, 'public'), {
+    etag: false,
+    maxAge: 0,
+    lastModified: false
+}));
+
+// MongoDB Schemas and Models
 const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
     bungie_name: { type: String, required: true },
@@ -202,7 +194,7 @@ const sessionSchema = new mongoose.Schema({
     state: { type: String, required: true, unique: true },
     user_id: { type: String, required: true },
     session_id: { type: String, required: true },
-    created_at: { type: Date, default: Date.now, expires: 86400 },
+    created_at: { type: Date, default: Date.now, expires: 86400 }, // Expires after 1 day
     ip_address: { type: String },
     user_agent: { type: String }
 });
@@ -229,7 +221,13 @@ function hashPassword(password, salt) {
         .digest('hex');
 }
 
-// Middleware for Token Verification
+// Example: Hashing a plain password (for demonstration purposes)
+const plainPassword = 'Aria';
+const salt = 'random_salt';
+const hashedPassword = hashPassword(plainPassword, salt);
+logger.info(`Hashed Password: ${hashedPassword}`);
+
+// JWT Verification Middleware
 function verifyToken(req, res, next) {
     const token = req.cookies.token;
     logger.info(`Token from cookie: ${token}`);
@@ -250,12 +248,9 @@ function verifyToken(req, res, next) {
     });
 }
 
-// API Endpoints
-
-// GPT API Endpoint
 app.post('/api/gpt', async (req, res) => {
     const userMessage = req.body.message;
-
+    
     if (!userMessage) {
         return res.status(400).json({ error: 'Message is required' });
     }
@@ -268,14 +263,14 @@ app.post('/api/gpt', async (req, res) => {
                 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
+                model: 'gpt-3.5-turbo', // Using gpt-3.5-turbo instead of gpt-4
                 messages: [{ role: 'user', content: userMessage }]
             })
         });
 
         if (!response.ok) {
             const errorData = await response.json();
-            logger.error('OpenAI API Error:', errorData);
+            console.error('OpenAI API Error:', errorData);
             return res.status(response.status).json({ error: 'Error from OpenAI API' });
         }
 
@@ -284,12 +279,14 @@ app.post('/api/gpt', async (req, res) => {
         res.json({ message: botMessage });
 
     } catch (error) {
-        logger.error('Server Error:', error);
+        console.error('Server Error:', error);
         res.status(500).json({ error: 'Server error while processing request.' });
     }
 });
 
-// YouTube API Endpoint
+
+
+
 app.get('/api/youtube', async (req, res) => {
     const videoId = req.query.videoId;
 
@@ -299,7 +296,7 @@ app.get('/api/youtube', async (req, res) => {
 
     const apiKey = process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
-        logger.error('YOUTUBE_API_KEY is not set in environment variables.');
+        console.error('YOUTUBE_API_KEY is not set in environment variables.');
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 
@@ -309,12 +306,13 @@ app.get('/api/youtube', async (req, res) => {
         const data = await retry(
             async (bail, attempt) => {
                 try {
-                    logger.info(`Attempt ${attempt}: Fetching data from YouTube API for videoId: ${videoId}`);
                     const response = await axios.get(apiUrl);
-
+                    
+                    // Handle the response
                     if (response.status === 200) {
                         const responseData = response.data;
 
+                        // Validate the response structure
                         if (
                             !responseData.items ||
                             responseData.items.length === 0 ||
@@ -323,66 +321,47 @@ app.get('/api/youtube', async (req, res) => {
                             throw new Error('Unexpected response structure from YouTube API.');
                         }
 
-                        logger.info(`YouTube API data fetched successfully for videoId: ${videoId}`);
                         return responseData;
                     } else if (response.status === 403) {
+                        // If the error is related to a forbidden request or quota limit, bail and do not retry
                         bail(new Error('YouTube API quota exceeded or access forbidden.'));
                     } else {
                         throw new Error(`Failed to fetch data from YouTube API. Status: ${response.status}`);
                     }
                 } catch (err) {
                     if (err.response) {
+                        // Handle HTTP response errors
                         if (err.response.status === 404) {
                             bail(new Error('Video not found.'));
                         } else if (err.response.status >= 500) {
-                            logger.warn(`Attempt ${attempt}: YouTube API returned a server error. Retrying...`);
-                            throw err;
+                            // Retry if YouTube's servers are having issues
+                            console.warn(`Attempt ${attempt}: YouTube API returned a server error. Retrying...`);
+                            throw err; // Retry this error
                         } else {
+                            // For other client-side errors, do not retry
                             bail(err);
                         }
                     } else {
-                        logger.warn(`Attempt ${attempt}: Network error or unknown issue occurred. Retrying...`);
-                        throw err;
+                        // Handle network errors or other unknown errors
+                        console.warn(`Attempt ${attempt}: Network error or unknown issue occurred. Retrying...`);
+                        throw err; // Retry on network errors
                     }
                 }
             },
             {
-                retries: 3,
-                factor: 2,
-                minTimeout: 1000,
-                maxTimeout: 5000,
+                retries: 3, // Retry up to 3 times before failing
+                factor: 2, // Exponential backoff factor
+                minTimeout: 1000, // Minimum time between retries (1 second)
+                maxTimeout: 5000, // Maximum time between retries (5 seconds)
             }
         );
 
-        const videoData = data.items[0];
-        const snippet = videoData.snippet;
-        const statistics = videoData.statistics;
-        const contentDetails = videoData.contentDetails;
-
-        const duration = contentDetails.duration;
-        const title = snippet.title;
-        const description = snippet.description;
-        const channelTitle = snippet.channelTitle;
-        const publishedAt = snippet.publishedAt;
-        const viewCount = statistics.viewCount;
-        const thumbnailUrl = snippet.thumbnails.high.url;
-        const categoryId = snippet.categoryId;
-        const liveBroadcastContent = snippet.liveBroadcastContent;
-
-        res.status(200).json({
-            duration,
-            title,
-            description,
-            channelTitle,
-            publishedAt,
-            viewCount,
-            thumbnailUrl,
-            categoryId,
-            liveBroadcastContent
-        });
+        // Successfully fetched data
+        res.status(200).json(data);
     } catch (error) {
-        logger.error(`Error fetching YouTube video data for videoId ${videoId}: ${error.message}`);
+        console.error(`Error fetching YouTube video data for videoId ${videoId}: ${error.message}`);
 
+        // Differentiate error types for better client handling
         if (error.message.includes('quota')) {
             return res.status(403).json({ error: 'YouTube API quota exceeded. Please try again later.' });
         } else if (error.message.includes('not found')) {
@@ -395,14 +374,14 @@ app.get('/api/youtube', async (req, res) => {
     }
 });
 
-// Bungie OAuth Configuration
+
+// OAuth Configuration
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = 'https://mikumiku.dev/callback';
 
 const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
 
-// Update Membership Mapping
 function updateMembershipMapping(discordId, userInfo) {
     let membershipMapping = {};
 
@@ -442,12 +421,12 @@ function updateMembershipMapping(discordId, userInfo) {
     }
 }
 
-// Send User Info to Discord Bot (Placeholder Function)
 async function sendUserInfoToDiscordBot(discordId, userInfo) {
     logger.info(`User info ready to be sent to Discord bot: ${JSON.stringify(userInfo)}`);
+    // Implement the logic to send user info to your Discord bot here
 }
 
-// Login Route
+// OAuth Routes
 app.get('/login', async (req, res) => {
     const state = generateRandomString(16);
     const user_id = req.query.user_id;
@@ -474,7 +453,6 @@ app.get('/login', async (req, res) => {
     }
 });
 
-// OAuth Callback Route
 app.get('/callback', async (req, res) => {
     const state = req.query.state;
     const code = req.query.code;
@@ -571,12 +549,10 @@ app.get('/callback', async (req, res) => {
     }
 });
 
-// Confirmation Page Route
 app.get('/confirmation.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'confirmation.html'));
 });
 
-// Fetch Bungie Name by Token
 app.get('/api/bungie-name', async (req, res) => {
     const token = req.query.token;
 
@@ -593,7 +569,7 @@ app.get('/api/bungie-name', async (req, res) => {
     }
 });
 
-// Comments API Endpoints
+// Comment Routes
 app.post('/api/comments', async (req, res) => {
     try {
         const { username, comment } = req.body;
@@ -627,7 +603,7 @@ app.delete('/api/comments/:id', verifyToken, async (req, res) => {
     }
 });
 
-// Bungie Token Functions
+// Utility Functions
 async function getBungieToken(code) {
     const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
     const payload = new URLSearchParams({
@@ -762,7 +738,6 @@ async function getPendingClanMembers(accessToken, groupId) {
     }
 }
 
-// Clan Pending Members Routes
 app.get('/api/clan/pending', verifyToken, async (req, res) => {
     const userId = req.userId;
 
@@ -800,7 +775,7 @@ app.get('/api/clan/pending/fromdb', verifyToken, async (req, res) => {
     }
 });
 
-// Redirect HTTP to HTTPS in Production
+// Additional Security Configurations
 app.use((req, res, next) => {
     if (process.env.NODE_ENV === 'production') {
         if (req.headers['x-forwarded-proto'] !== 'https') {
@@ -810,17 +785,17 @@ app.use((req, res, next) => {
     next();
 });
 
-// Admin Dashboard Route with Random Identifier
+// Protected Admin Dashboard Route
 app.get('/admin-dashboard-:random.html', verifyToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
 });
 
-// Admin Login Route
+// Login Route
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
     const adminUsername = process.env.ADMIN_USERNAME;
-    const adminPasswordHash = process.env.ADMIN_PASSWORD;
+    const adminPasswordHash = process.env.ADMIN_PASSWORD; // Should be hashed
     const salt = 'random_salt';
 
     if (username !== adminUsername) {
@@ -836,7 +811,7 @@ app.post('/login', async (req, res) => {
     }
 
     const token = jwt.sign({ id: adminUsername }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
-        expiresIn: 86400
+        expiresIn: 86400 // 24 hours
     });
 
     const dashboardURL = `/admin-dashboard-${generateRandomString()}.html`;
@@ -847,10 +822,9 @@ app.post('/login', async (req, res) => {
     res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 86400 * 1000
+        maxAge: 86400 * 1000 // 24 hours
     });
 
-    // Define the dashboard route dynamically
     app.get(dashboardURL, verifyToken, (req, res) => {
         res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
     });
@@ -871,161 +845,21 @@ app.post('/logout', (req, res) => {
     res.redirect('/admin-login.html');
 });
 
-// Weather API Endpoint
-app.get('/api/weather', async (req, res) => {
-    const city = req.query.city || 'Leeds';
-    const units = 'metric';
-    const apiKey = process.env.OPENWEATHER_API_KEY;
-
-    if (!apiKey) {
-        logger.error('OPENWEATHER_API_KEY is not set in environment variables.');
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
-
-    const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=${units}&appid=${apiKey}`;
-
-    try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-            let errorMsg = 'Failed to fetch weather data';
-            try {
-                const errorData = await response.json();
-                errorMsg = errorData.message || errorMsg;
-            } catch (e) {
-                logger.error('Error parsing error response:', e);
-            }
-            return res.status(response.status).json({ error: errorMsg });
-        }
-        const data = await response.json();
-        res.json(data);
-    } catch (error) {
-        logger.error(`Error fetching weather data for city ${city}:`, error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-});
-
-// Location API Endpoint
-const IPINFO_API_KEY = process.env.IPINFO_API_KEY;
-const processedIPs = new Set();
-
-function getClientIp(req) {
-    const forwarded = req.headers['x-forwarded-for'];
-    let ip = forwarded ? forwarded.split(',')[0].trim() : req.connection.remoteAddress;
-
-    if (ip.includes("::ffff:")) {
-        ip = ip.split("::ffff:")[1];
-    }
-
-    return ip;
-}
-
-async function fetchLocationData(ip) {
-    try {
-        const response = await axios.get(`https://ipinfo.io/${ip}/geo?token=${IPINFO_API_KEY}`);
-        const { ip: userIP, city, region, country } = response.data;
-
-        return {
-            ip: userIP,
-            city: city || 'Unknown',
-            region: region || 'Unknown',
-            country: country || 'Unknown'
-        };
-    } catch (error) {
-        logger.error(`Error fetching location data for IP ${ip}:`, error);
-        return {
-            ip,
-            city: 'Unknown',
-            region: 'Unknown',
-            country: 'Unknown'
-        };
-    }
-}
-
-function getValidIpAddress(req) {
-    let ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-
-    if (ipAddress.includes(',')) {
-        ipAddress = ipAddress.split(',').map(ip => ip.trim())[0];
-    }
-
-    if (ipAddress.startsWith('::ffff:')) {
-        ipAddress = ipAddress.replace('::ffff:', '');
-    }
-
-    if (processedIPs.has(ipAddress)) {
-        logger.info(`Duplicate IP detected: ${ipAddress}, skipping processing.`);
-        return null;
-    }
-
-    processedIPs.add(ipAddress);
-    return ipAddress;
-}
-
-app.get('/api/location', async (req, res) => {
-    const clientIp = getValidIpAddress(req);
-
-    if (!clientIp) {
-        return res.status(400).send('Duplicate IP detected, location not processed.');
-    }
-
-    try {
-        const locationData = await fetchLocationData(clientIp);
-        res.json(locationData);
-    } catch (error) {
-        logger.error(`Error fetching location for IP ${clientIp}:`, error);
-        res.status(500).send('Error fetching location data');
-    }
-});
-
-// Socket.io Setup and Handlers
-
-// Initialize current state variables
+// Video Status Variables (Server-Side State)
 let currentVideoTitle = 'Loading...';
 let currentVideoUrl = '';
 let videoStartTimestamp = Date.now();
-let isVideoPaused = false;
-let isOffline = false;
+let isVideoPaused = false; // Initialize as not paused
+let isOffline = false; // Initialize as online
 
-// Background Namespace (for extension background script)
-const backgroundNamespace = io.of('/background');
+// Active Users Tracking (Optional, can be expanded based on requirements)
+let activeUsers = [];
 
-backgroundNamespace.on('connection', (socket) => {
-    logger.info(`Background client connected to /background namespace: ${socket.id}`);
+// Socket.IO Connection Handling
+io.on('connection', async (socket) => {
+    logger.info(`New client connected: ${socket.id}`);
 
-    socket.on('progressUpdate', (data) => {
-        logger.info(`Received 'progressUpdate' from background client ${socket.id}:`, data);
-
-        // Update the current state
-        currentVideoTitle = data.title || 'Loading...';
-        currentVideoUrl = data.videoUrl || '';
-        videoStartTimestamp = Date.now() - (data.currentTime * 1000);
-        isVideoPaused = data.isPaused || false;
-        isOffline = data.isOffline || false;
-
-        // Emit update to main namespace clients
-        logger.info('Broadcasting nowPlayingUpdate to /main namespace clients.');
-        mainNamespace.emit('nowPlayingUpdate', {
-            title: currentVideoTitle,
-            videoUrl: currentVideoUrl,
-            startTimestamp: videoStartTimestamp,
-            currentTime: data.currentTime,
-            isOffline: isOffline,
-            isPaused: isVideoPaused
-        });
-    });
-
-    socket.on('disconnect', (reason) => {
-        logger.info(`Background client disconnected from /background namespace: ${socket.id}, Reason: ${reason}`);
-    });
-});
-
-// Main Namespace (for webpage clients)
-const mainNamespace = io.of('/main');
-
-mainNamespace.on('connection', (socket) => {
-    logger.info(`Main client connected to /main namespace: ${socket.id}`);
-
-    // Emit the current state to the newly connected main client
+    // Emit the current status to the newly connected client
     socket.emit('nowPlayingUpdate', {
         title: currentVideoTitle,
         videoUrl: currentVideoUrl,
@@ -1035,22 +869,85 @@ mainNamespace.on('connection', (socket) => {
         isPaused: isVideoPaused
     });
 
+    // Handle video status updates from clients (Chrome Extension)
+    socket.on('updateVideoTitle', (data) => {
+        logger.info(`Received "updateVideoTitle" event from client ${socket.id}: ${JSON.stringify(data)}`);
+    
+        // Destructure data
+        const { title, videoUrl, currentTime, isPaused, isOffline: offlineStatus } = data;
+    
+        // Log each field for better debugging
+        logger.info(`Title: ${title}, Video URL: ${videoUrl}, Current Time: ${currentTime}, Is Paused: ${isPaused}, Is Offline: ${offlineStatus}`);
+    
+        // Apply a fallback if currentTime is missing or undefined
+        const validCurrentTime = typeof currentTime === 'number' ? currentTime : 0;
+    
+        // Validate incoming data for online state
+        if (!offlineStatus) {
+            if (typeof title !== 'string' || title.trim() === '' || typeof videoUrl !== 'string' || videoUrl.trim() === '' ||
+                typeof validCurrentTime !== 'number' || typeof isPaused !== 'boolean' || typeof offlineStatus !== 'boolean') {
+                
+                logger.warn(`Invalid data received from client ${socket.id}: ${JSON.stringify(data)}`);
+                return;
+            }
+            
+            // Handle valid online data
+            logger.info(`Handling online state: Title="${title}", URL="${videoUrl}", CurrentTime=${validCurrentTime}`);
+        } else {
+            // Handle offline state
+            if (title === 'Offline' && videoUrl === '') {
+                logger.info(`Received valid "offline" state from client ${socket.id}`);
+            } else {
+                logger.warn(`Invalid offline data received from client ${socket.id}: ${JSON.stringify(data)}`);
+                return;
+            }
+        }
+    
+        // Update the server state with valid data
+        currentVideoTitle = title;
+        currentVideoUrl = videoUrl;
+        videoStartTimestamp = Date.now() - (validCurrentTime * 1000);
+        isVideoPaused = isPaused;
+        isOffline = offlineStatus;
+    
+        logger.info(`Updated server state: Title="${currentVideoTitle}", URL="${currentVideoUrl}", ` +
+            `StartTimestamp=${videoStartTimestamp}, isPaused=${isVideoPaused}, isOffline=${isOffline}`);
+    
+        // Emit the updated status to all connected clients
+        io.emit('nowPlayingUpdate', {
+            title: currentVideoTitle,
+            videoUrl: currentVideoUrl,
+            startTimestamp: videoStartTimestamp,
+            currentTime: validCurrentTime,
+            isOffline: isOffline,
+            isPaused: isVideoPaused
+        });
+    
+        logger.info(`Emitted "nowPlayingUpdate" to all clients: Title="${currentVideoTitle}", URL="${currentVideoUrl}", ` +
+            `isPaused=${isVideoPaused}, isOffline=${isOffline}`);
+    });
+
+
+
+
+
+    // Handle disconnection
     socket.on('disconnect', () => {
-        logger.info(`Main client disconnected from /main namespace: ${socket.id}`);
+        logger.info(`Client disconnected: ${socket.id}`);
     });
 });
 
-
-// Update Data Endpoint
+// Real-time Data Endpoint
 app.post('/api/update', (req, res) => {
-  const data = req.body;
-  io.emit('updateData', data);
-  res.status(200).send({ message: 'Data sent to clients' });
+    const data = req.body;
+    io.emit('updateData', data);
+    res.status(200).send({ message: 'Data sent to clients' });
 });
 
-// Public Videos Endpoint
+// Video Routes (You can expand these based on your requirements)
 app.get('/api/videos/public', async (req, res) => {
     try {
+        // Implement logic to retrieve public videos
         res.json([]);
     } catch (err) {
         logger.error(`Error retrieving video metadata: ${err}`);
@@ -1058,9 +955,8 @@ app.get('/api/videos/public', async (req, res) => {
     }
 });
 
-// Add New Video Endpoint
-app.post('/api/videos',
-    verifyToken,
+app.post('/api/videos', 
+    verifyToken, 
     [
         body('url').isURL().withMessage('Invalid URL format'),
         body('title').isString().notEmpty().withMessage('Title is required'),
@@ -1073,6 +969,7 @@ app.post('/api/videos',
             return res.status(400).json({ errors: errors.array() });
         }
 
+        // Sanitizing user inputs
         const sanitizedUrl = sanitizeHtml(req.body.url.replace('youtu.be', 'youtube.com/embed'));
         const sanitizedTitle = sanitizeHtml(req.body.title);
         const sanitizedDescription = req.body.description ? sanitizeHtml(req.body.description) : '';
@@ -1087,7 +984,8 @@ app.post('/api/videos',
         };
 
         try {
-            // Here you can save the videoMetadata to a database if needed
+            // Logic to save video metadata to the database (for example, using MongoDB or SQL)
+            // const result = await VideoModel.create(videoMetadata);
             res.status(201).json({ message: 'Video added successfully', video: videoMetadata });
         } catch (err) {
             logger.error(`Error saving video metadata: ${err.message}`);
@@ -1096,7 +994,247 @@ app.post('/api/videos',
     }
 );
 
-// Start the Server
+// Active Users Tracking Helper Functions
+const IPINFO_API_KEY = process.env.IPINFO_API_KEY; // Using your environment variable
+
+// Function to fetch location data from IPInfo API
+async function fetchLocationData(ip) {
+    try {
+        // Split IPs in case multiple are forwarded
+        const ipList = ip.split(',');
+        const validIp = ipList[0].trim(); // Take the first valid IP address
+
+        const response = await axios.get(`https://ipinfo.io/${validIp}?token=${IPINFO_API_KEY}`);
+        const { ip: userIP, city, region, country } = response.data;
+
+        return {
+            ip: userIP,
+            city: city || 'Unknown',
+            region: region || 'Unknown',
+            country: country || 'Unknown'
+        };
+    } catch (error) {
+        console.error(`Error fetching location data for IP ${ip}:`, error);
+        return {
+            ip,
+            city: 'Unknown',
+            region: 'Unknown',
+            country: 'Unknown'
+        };
+    }
+}
+
+
+
+async function attachLocationData(req, res, next) {
+    const clientIp = getClientIp(req);
+
+    if (clientIp) {
+        console.log(`Client IP detected: ${clientIp}`);
+
+        const locationData = await fetchLocationData(clientIp);
+        req.location = locationData; // Attach location data to the request object
+    } else {
+        console.log('No valid public IP detected.');
+    }
+
+    next();
+}
+
+module.exports = { attachLocationData };
+
+// Function to normalize IP address (remove "::ffff:" prefix if present)
+function normalizeIp(ip) {
+    if (ip.startsWith('::ffff:')) {
+        return ip.replace('::ffff:', '');
+    }
+    return ip;
+}
+
+
+// Additional Routes
+app.get('/admin-dashboard', verifyToken, (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
+});
+
+app.get('/api/check-youtube', async (req, res) => {
+    try {
+        const youtubeApiStatus = true;
+        res.json({
+            available: youtubeApiStatus,
+            status: youtubeApiStatus ? 'YouTube API is working' : 'YouTube API is unavailable'
+        });
+    } catch (error) {
+        logger.error(`Error checking YouTube API: ${error}`);
+        res.status(500).json({
+            available: false,
+            status: 'Error checking YouTube API'
+        });
+    }
+});
+
+app.get('/api/check-bungie', async (req, res) => {
+    const bungieApiKey = process.env.X_API_KEY;
+    const url = 'https://www.bungie.net/Platform/Destiny2/Manifest/';
+
+    try {
+        const response = await axios.get(url, {
+            headers: { 'X-API-Key': bungieApiKey }
+        });
+        if (response.status === 200) {
+            return res.json({ status: 'Bungie API is working', available: true });
+        }
+    } catch (error) {
+        logger.error(`Error checking Bungie API: ${error}`);
+        return res.json({ status: 'Bungie API is unavailable', available: false });
+    }
+});
+
+app.get('/api/weather', async (req, res) => {
+    const city = req.query.city || 'Leeds';
+    const units = 'metric'; // or 'imperial' for Fahrenheit
+    const apiKey = process.env.OPENWEATHER_API_KEY;
+
+    if (!apiKey) {
+        console.error('OPENWEATHER_API_KEY is not set in environment variables.');
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+
+    const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=${units}&appid=${apiKey}`;
+
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            // Attempt to parse error message from response
+            let errorMsg = 'Failed to fetch weather data';
+            try {
+                const errorData = await response.json();
+                errorMsg = errorData.message || errorMsg;
+            } catch (e) {
+                console.error('Error parsing error response:', e);
+            }
+            return res.status(response.status).json({ error: errorMsg });
+        }
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error(`Error fetching weather data for city ${city}:`, error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+
+const processedIPs = new Set(); // Set to store unique IPs
+
+function getValidIpAddress(req) {
+    let ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+    if (ipAddress.includes(',')) {
+        // Extract first valid IP from the list (ignoring local/internal IPs if present)
+        ipAddress = ipAddress.split(',').map(ip => ip.trim())[0];
+    }
+
+    // If IP starts with "::ffff:", it is an IPv6 representation of IPv4, clean it up
+    if (ipAddress.startsWith('::ffff:')) {
+        ipAddress = ipAddress.replace('::ffff:', '');
+    }
+
+    // Check if the IP has already been processed to avoid duplicates
+    if (processedIPs.has(ipAddress)) {
+        console.log(`Duplicate IP detected: ${ipAddress}, skipping processing.`);
+        return null; // Return null to indicate a duplicate IP
+    }
+
+    // Add the new IP to the set of processed IPs
+    processedIPs.add(ipAddress);
+    return ipAddress;
+}
+
+module.exports = { fetchLocationData, getValidIpAddress };
+
+
+app.get('/api/location', async (req, res) => {
+    const clientIp = getValidIpAddress(req);
+
+    if (!clientIp) {
+        return res.status(400).send('Duplicate IP detected, location not processed.');
+    }
+
+    try {
+        const locationData = await fetchLocationData(clientIp); // Fetch the location using the public IP
+        res.json(locationData);
+    } catch (error) {
+        console.error(`Error fetching location for IP ${clientIp}:`, error);
+        res.status(500).send('Error fetching location data');
+    }
+});
+
+
+function getClientIp(req) {
+    const forwarded = req.headers['x-forwarded-for'];
+    let ip = forwarded ? forwarded.split(',')[0] : req.connection.remoteAddress;
+    
+    // Strip the ::ffff: IPv6 prefix if present
+    if (ip.includes("::ffff:")) {
+        ip = ip.split("::ffff:")[1];
+    }
+    
+    return ip;
+}
+
+
+async function fetchUserLocation(ip) {
+    try {
+        const response = await axios.get(`https://ipinfo.io/${ip}/geo?token=${process.env.IPINFO_API_KEY}`);
+        const { city, region, country } = response.data;
+        return { ip, city, region, country };
+    } catch (error) {
+        console.error(`Error fetching location data for IP ${ip}:`, error);
+        return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
+    }
+}
+
+// Function to get all active users with their locations
+async function getActiveUsersWithLocations() {
+    // Fetch all active users' location data asynchronously
+    const userPromises = activeUsers.map(user => fetchUserLocation(user.ip));
+    return await Promise.all(userPromises);
+}
+
+
+
+
+
+// Socket.io connection handler
+io.on('connection', async (socket) => {
+    const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
+    console.log(`New client connected: ${socket.id}, IP: ${ip}`);
+
+    // Fetch location data
+    const locationData = await fetchLocationData(ip);
+    console.log(`Location data fetched:`, locationData);
+
+    // Add the user with location data to active users list
+    const user = {
+        id: socket.id,
+        ip: locationData.ip,
+        city: locationData.city,
+        region: locationData.region,
+        country: locationData.country
+    };
+
+    activeUsers.push(user);
+    io.emit('activeUsersUpdate', { users: activeUsers });
+
+    // On disconnect, remove user from active list
+    socket.on('disconnect', () => {
+        activeUsers = activeUsers.filter(u => u.id !== socket.id);
+        io.emit('activeUsersUpdate', { users: activeUsers });
+    });
+});
+
+// Start the server
 server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
+
