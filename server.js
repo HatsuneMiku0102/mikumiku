@@ -984,12 +984,6 @@ backgroundNamespace.use((socket, next) => {
     }
 });
 
-let currentVideoTitle = 'Loading...';
-let currentVideoUrl = '';
-let videoStartTimestamp = Date.now();
-let isVideoPaused = false;
-let isOffline = false;
-
 backgroundNamespace.on('connection', (socket) => {
     const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
     logger.info(`Background client connected: ${socket.id}, IP: ${ip}`);
