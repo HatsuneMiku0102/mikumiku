@@ -318,49 +318,63 @@
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 const nowPlayingElement = document.querySelector('.now-playing');
-                const offlineIndicator = document.getElementById('offlineIndicator');
+                const offlineIndicator = document.getElementById('offline-indicator'); // Corrected ID
                 const pauseButton = document.getElementById('pauseButton');
 
                 if (isOffline) {
-                    videoTitleElement.innerText = 'I’m not on YouTube at the moment, soz :(';
-                    nowPlayingElement.classList.add('offline');
-                    videoThumbnailElement.classList.add('offline-thumbnail');
+                    if (videoTitleElement) videoTitleElement.innerText = 'I’m not on YouTube at the moment, soz :(';
+                    if (nowPlayingElement) nowPlayingElement.classList.add('offline');
+                    if (videoThumbnailElement) videoThumbnailElement.classList.add('offline-thumbnail');
                     clearExistingInterval();
-                    document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
-                    document.getElementById('total-duration').innerText = `Total Duration: --:--`;
-                    pauseButton.style.display = 'none';
-                    offlineIndicator.style.display = 'block';
+                    const timeElapsed = document.getElementById('time-elapsed');
+                    const totalDuration = document.getElementById('total-duration');
+                    if (timeElapsed) timeElapsed.innerText = `Time Elapsed: --:--`;
+                    if (totalDuration) totalDuration.innerText = `Total Duration: --:--`;
+                    if (pauseButton) pauseButton.style.display = 'none';
+                    if (offlineIndicator) offlineIndicator.style.display = 'block';
                 } else {
-                    nowPlayingElement.classList.remove('offline');
-                    videoThumbnailElement.classList.remove('offline-thumbnail');
-                    offlineIndicator.style.display = 'none';
+                    if (nowPlayingElement) nowPlayingElement.classList.remove('offline');
+                    if (videoThumbnailElement) videoThumbnailElement.classList.remove('offline-thumbnail');
+                    if (offlineIndicator) offlineIndicator.style.display = 'none';
 
                     const videoID = extractYouTubeVideoID(videoUrl);
                     if (!videoID) {
                         return;
                     }
 
-                    videoTitleElement.innerText = title || 'No Title Available';
-                    videoThumbnailElement.src = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
-                    videoThumbnailElement.alt = title || 'Video Thumbnail';
+                    if (videoTitleElement) videoTitleElement.innerText = title || 'No Title Available';
+                    if (videoThumbnailElement) {
+                        videoThumbnailElement.src = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
+                        videoThumbnailElement.alt = title || 'Video Thumbnail';
+                    }
 
                     fetchYouTubeVideoDetails(videoID).then((videoDetails) => {
                         if (videoDetails) {
                             videoDuration = videoDetails.duration;
-                            document.getElementById('total-duration').innerText = `Total Duration: ${formatTime(videoDuration)}`;
-                            document.getElementById('videoDescription').innerText = videoDetails.description || 'No Description Available';
-                            document.getElementById('channelName').innerText = videoDetails.channelTitle || 'Unknown Channel';
-                            document.getElementById('publishedDate').innerText = videoDetails.publishedAt ? new Date(videoDetails.publishedAt).toLocaleDateString() : 'Unknown Date';
-                            document.getElementById('viewCount').innerText = `${Number(videoDetails.viewCount).toLocaleString()} views`;
+                            const totalDurationElement = document.getElementById('total-duration');
+                            if (totalDurationElement) totalDurationElement.innerText = `Total Duration: ${formatTime(videoDuration)}`;
+                            const videoDescription = document.getElementById('videoDescription');
+                            if (videoDescription) videoDescription.innerText = videoDetails.description || 'No Description Available';
+                            const channelName = document.getElementById('channelName');
+                            if (channelName) channelName.innerText = videoDetails.channelTitle || 'Unknown Channel';
+                            const publishedDate = document.getElementById('publishedDate');
+                            if (publishedDate) publishedDate.innerText = videoDetails.publishedAt ? new Date(videoDetails.publishedAt).toLocaleDateString() : 'Unknown Date';
+                            const viewCount = document.getElementById('viewCount');
+                            if (viewCount) viewCount.innerText = `${Number(videoDetails.viewCount).toLocaleString()} views`;
 
-                            const categoryName = categories[videoDetails.categoryId] || 'Uncategorized';
-                            document.getElementById('videoCategory').innerText = categoryName;
+                            const videoCategory = document.getElementById('videoCategory');
+                            if (videoCategory) {
+                                const categoryName = categories[videoDetails.categoryId] || 'Uncategorized';
+                                videoCategory.innerText = categoryName;
+                            }
 
                             const liveIndicator = document.getElementById('liveIndicator');
-                            if (videoDetails.liveBroadcastContent === 'live') {
-                                liveIndicator.style.display = 'block';
-                            } else {
-                                liveIndicator.style.display = 'none';
+                            if (liveIndicator) {
+                                if (videoDetails.liveBroadcastContent === 'live') {
+                                    liveIndicator.style.display = 'block';
+                                } else {
+                                    liveIndicator.style.display = 'none';
+                                }
                             }
                         }
 
@@ -370,7 +384,7 @@
                         if (!isVideoPaused) {
                             intervalID = setInterval(updateProgressBar, 1000);
                         }
-                        pauseButton.style.display = 'inline-block';
+                        if (pauseButton) pauseButton.style.display = 'inline-block';
                         togglePauseState(isPaused);
                     });
                 }
@@ -385,9 +399,11 @@
             function updateClocks() {
                 const now = new Date();
                 const localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                document.getElementById('local-time').textContent = localTime;
+                const localTimeElement = document.getElementById('local-time');
+                if (localTimeElement) localTimeElement.textContent = localTime;
                 const currentDate = now.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-                document.getElementById('current-date').textContent = currentDate;
+                const currentDateElement = document.getElementById('current-date');
+                if (currentDateElement) currentDateElement.textContent = currentDate;
             }
 
             setInterval(updateClocks, 1000);
@@ -405,16 +421,21 @@
                     displayWeather(data);
                 } catch (error) {
                     console.error('Error fetching weather data:', error);
-                    document.getElementById('weather-description').innerText = 'Unable to fetch weather data.';
-                    document.getElementById('temperature').innerText = '';
-                    document.getElementById('humidity').innerText = '';
-                    document.getElementById('wind-speed').innerText = '';
+                    const weatherDescription = document.getElementById('weather-description');
+                    const temperature = document.getElementById('temperature');
+                    const humidity = document.getElementById('humidity');
+                    const windSpeed = document.getElementById('wind-speed');
+                    if (weatherDescription) weatherDescription.innerText = 'Unable to fetch weather data.';
+                    if (temperature) temperature.innerText = '';
+                    if (humidity) humidity.innerText = '';
+                    if (windSpeed) windSpeed.innerText = '';
                 }
             }
 
             function displayWeather(data) {
                 if (!data || !data.weather) {
-                    document.getElementById('weather-description').innerText = 'Weather data unavailable.';
+                    const weatherDescription = document.getElementById('weather-description');
+                    if (weatherDescription) weatherDescription.innerText = 'Weather data unavailable.';
                     return;
                 }
 
@@ -425,21 +446,21 @@
                 const iconCode = data.weather[0].icon;
                 const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
 
-                document.getElementById('weather-description').innerText = `Condition: ${description}`;
-                document.getElementById('temperature').innerText = `Temperature: ${temperature}°C`;
-                document.getElementById('humidity').innerText = `Humidity: ${humidity}%`;
-                document.getElementById('wind-speed').innerText = `Wind: ${windSpeed} m/s`;
+                const weatherDescription = document.getElementById('weather-description');
+                const temperatureElement = document.getElementById('temperature');
+                const humidityElement = document.getElementById('humidity');
+                const windSpeedElement = document.getElementById('wind-speed');
+                const weatherIcon = document.getElementById('weather-icon');
 
-                let iconElement = document.getElementById('weather-icon');
-                if (!iconElement) {
-                    iconElement = document.createElement('img');
-                    iconElement.id = 'weather-icon';
-                    iconElement.alt = 'Weather Icon';
-                    iconElement.setAttribute('loading', 'lazy');
-                    document.querySelector('.weather-info').prepend(iconElement);
+                if (weatherDescription) weatherDescription.innerText = `Condition: ${description}`;
+                if (temperatureElement) temperatureElement.innerText = `Temperature: ${temperature}°C`;
+                if (humidityElement) humidityElement.innerText = `Humidity: ${humidity}%`;
+                if (windSpeedElement) windSpeedElement.innerText = `Wind: ${windSpeed} m/s`;
+
+                if (weatherIcon) {
+                    weatherIcon.src = iconUrl;
+                    weatherIcon.style.display = 'block';
                 }
-                iconElement.src = iconUrl;
-                iconElement.style.display = 'block';
             }
 
             fetchWeather();
@@ -450,10 +471,8 @@
                 const timeElapsed = document.getElementById('time-elapsed');
                 const formattedTime = formatTime((newProgress / 100) * videoDuration);
 
-                if (progressBar && timeElapsed) {
-                    progressBar.style.width = `${newProgress}%`;
-                    timeElapsed.innerText = `Time Elapsed: ${formattedTime}`;
-                }
+                if (progressBar) progressBar.style.width = `${newProgress}%`;
+                if (timeElapsed) timeElapsed.innerText = `Time Elapsed: ${formattedTime}`;
             }
 
             function updateProgressBar() {
@@ -473,23 +492,27 @@
             const toggleButton = document.getElementById('toggleDescription');
             const videoDescription = document.getElementById('videoDescription');
 
-            toggleButton.addEventListener('click', () => {
-                videoDescription.classList.toggle('expanded');
-                if (videoDescription.classList.contains('expanded')) {
-                    toggleButton.innerText = 'Show Less';
-                } else {
-                    toggleButton.innerText = 'Show More';
-                }
-            });
+            if (toggleButton && videoDescription) {
+                toggleButton.addEventListener('click', () => {
+                    videoDescription.classList.toggle('expanded');
+                    if (videoDescription.classList.contains('expanded')) {
+                        toggleButton.innerText = 'Show Less';
+                    } else {
+                        toggleButton.innerText = 'Show More';
+                    }
+                });
+            }
 
             const pauseButton = document.getElementById('pauseButton');
-            pauseButton.style.pointerEvents = 'none';
+            if (pauseButton) pauseButton.style.pointerEvents = 'none';
 
             function togglePauseState(isPaused) {
-                if (isPaused) {
-                    pauseButton.classList.add('paused');
-                } else {
-                    pauseButton.classList.remove('paused');
+                if (pauseButton) {
+                    if (isPaused) {
+                        pauseButton.classList.add('paused');
+                    } else {
+                        pauseButton.classList.remove('paused');
+                    }
                 }
             }
 
