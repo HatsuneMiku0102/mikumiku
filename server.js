@@ -173,23 +173,52 @@ app.use(express.static(path.join(__dirname, 'public'), {
 
 
 
-const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+console.log("Loading credentials from environment variable...");
+let credentials;
+
+try {
+    credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+    console.log("Credentials loaded successfully.");
+} catch (error) {
+    console.error("Error parsing credentials JSON from environment variable:", error);
+    process.exit(1); // Exit the application if credentials are missing or incorrect
+}
+
+
 
 // Create a new Dialogflow session client with credentials
-const sessionClient = new dialogflow.SessionsClient({
-    credentials: {
-        client_email: credentials.client_email,
-        private_key: credentials.private_key,
-    },
-});
+let sessionClient;
+
+try {
+    sessionClient = new dialogflow.SessionsClient({
+        credentials: {
+            client_email: credentials.client_email,
+            private_key: credentials.private_key,
+        },
+    });
+    console.log("Dialogflow session client initialized successfully.");
+} catch (error) {
+    console.error("Error initializing Dialogflow session client:", error);
+    process.exit(1); // Exit the application if the session client cannot be initialized
+}
 
 // Set the project ID explicitly to ensure we're using the correct Dialogflow agent
 const projectId = 'haru-ai-sxjr'; // Set the project ID explicitly here
+console.log(`Using project ID: ${projectId}`);
 
 app.post('/api/dialogflow', async (req, res) => {
     const userMessage = req.body.message;
+    console.log(`Received user message: ${userMessage}`);
+
+    if (!userMessage) {
+        console.error("No user message provided in request.");
+        res.status(400).json({ response: 'No message provided.' });
+        return;
+    }
+
     const sessionId = uuid.v4(); // Generate a unique session ID for each request
     const sessionPath = sessionClient.projectAgentSessionPath(projectId, sessionId);
+    console.log(`Generated session path: ${sessionPath}`);
 
     const request = {
         session: sessionPath,
@@ -201,10 +230,20 @@ app.post('/api/dialogflow', async (req, res) => {
         },
     };
 
+    console.log("Sending request to Dialogflow...");
     try {
         const responses = await sessionClient.detectIntent(request);
+        console.log("Received response from Dialogflow.");
+        
         const result = responses[0].queryResult;
-        res.json({ response: result.fulfillmentText });
+        console.log("Query Result:", result);
+
+        if (result && result.fulfillmentText) {
+            res.json({ response: result.fulfillmentText });
+        } else {
+            console.warn("Dialogflow response did not contain fulfillment text.");
+            res.json({ response: 'Sorry, I couldn’t understand that.' });
+        }
     } catch (error) {
         console.error('Dialogflow API error:', error);
         res.status(500).json({ response: 'Sorry, something went wrong.' });
