@@ -255,6 +255,7 @@ app.post('/api/dialogflow', async (req, res) => {
 });
 
 // Function to perform a web search using Google Custom Search API
+// Function to perform a web search using Google Custom Search API
 async function getWebSearchResults(query) {
     const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
     const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
@@ -264,12 +265,14 @@ async function getWebSearchResults(query) {
         return 'Configuration error: Missing Google API Key or CSE ID.';
     }
 
+    // Constructing the endpoint URL
     const SEARCH_ENDPOINT = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}`;
 
     try {
         console.log(`Fetching web search results for query: "${query}"`);
         const response = await fetch(SEARCH_ENDPOINT);
 
+        // Handle non-OK responses more explicitly
         if (!response.ok) {
             console.error(`Error fetching web search results: ${response.status} - ${response.statusText}`);
             if (response.status === 400) {
@@ -278,7 +281,7 @@ async function getWebSearchResults(query) {
             if (response.status === 403) {
                 return 'Forbidden: Please verify your API key and ensure it has the correct permissions.';
             }
-            return 'Sorry, I couldn’t find anything relevant.';
+            return `Error: Received status code ${response.status}. Please check the request or try again later.`;
         }
 
         const data = await response.json();
@@ -290,7 +293,7 @@ async function getWebSearchResults(query) {
             let responseMessage = `Here are the top results I found for "${query}":\n\n`;
 
             topResults.forEach((result, index) => {
-                responseMessage += `${index + 1}. ${result.title} - ${result.link}\n`;
+                responseMessage += `${index + 1}. ${result.title}\n${result.link}\n\n`;
             });
 
             return responseMessage;
@@ -302,6 +305,7 @@ async function getWebSearchResults(query) {
         return 'Sorry, something went wrong while searching the web.';
     }
 }
+
 
 
 
