@@ -125,12 +125,57 @@
             <button id="send-message" class="send-message">Send</button>
         </div>
     </div>
-</body>
 
-    <!-- Socket.io Client Library Without Integrity Attribute (Immediate Fix) -->
+    <!-- Socket.io Client Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="haru.js"></script>
+
+    <!-- Now Playing Update Script -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const socket = io("https://mikumiku.dev");
+
+            socket.on("connect", () => {
+                console.log("[Socket.IO] Connected to server.");
+            });
+
+            socket.on("nowPlayingUpdate", (data) => {
+                console.log("[Socket.IO] Received nowPlayingUpdate:", data);
+
+                // Update Now Playing section with received data
+                const { title, videoUrl, startTimestamp, isPaused, isOffline, currentTime } = data;
+                const videoTitleElement = document.getElementById("videoTitle");
+                const videoThumbnailElement = document.getElementById("videoThumbnail");
+                const channelNameElement = document.getElementById("channelName");
+                const viewCountElement = document.getElementById("viewCount");
+                const publishedDateElement = document.getElementById("publishedDate");
+                const videoCategoryElement = document.getElementById("videoCategory");
+                const offlineIndicatorElement = document.getElementById("offline-indicator");
+
+                if (isOffline) {
+                    offlineIndicatorElement.style.display = "block";
+                    videoTitleElement.textContent = "Offline";
+                    videoThumbnailElement.style.display = "none";
+                } else {
+                    offlineIndicatorElement.style.display = "none";
+                    videoTitleElement.textContent = title || "Unknown Title";
+                    videoThumbnailElement.src = `https://img.youtube.com/vi/${data.videoId}/hqdefault.jpg`;
+                    videoThumbnailElement.style.display = "block";
+
+                    // Assuming these are included in the data payload
+                    channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+                    viewCountElement.textContent = data.viewCount || "N/A";
+                    publishedDateElement.textContent = data.publishedAt || "N/A";
+                    videoCategoryElement.textContent = data.categoryId || "N/A";
+                }
+            });
+
+            socket.on("disconnect", () => {
+                console.warn("[Socket.IO] Disconnected from server.");
+            });
+        });
+    </script>
 
     <!-- Dynamic Title Script -->
     <script>
