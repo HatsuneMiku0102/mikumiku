@@ -41,6 +41,7 @@ const io = socketIo(server, {
 
 const PORT = process.env.PORT || 3000;
 
+// Logger Configuration
 const logger = winston.createLogger({
     level: 'info',
     format: winston.format.combine(
@@ -55,56 +56,12 @@ const logger = winston.createLogger({
     ]
 });
 
-app.get('/api/keys', (req, res) => {
-    res.json({
-        YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY,
-        OPENWEATHER_API_KEY: process.env.OPENWEATHER_API_KEY,
-    });
-});
-
+// Middleware Setup
 app.set('trust proxy', 1);
-
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const mongoUrl = process.env.MONGO_URL;
-
-mongoose.connect(mongoUrl, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => {
-    logger.info('Connected to MongoDB');
-}).catch((err) => {
-    logger.error(`Error connecting to MongoDB: ${err}`);
-});
-
-const sessionStore = MongoStore.create({
-    mongoUrl: mongoUrl,
-    collectionName: 'sessions',
-    ttl: 14 * 24 * 60 * 60,
-    autoRemove: 'native'
-});
-
-sessionStore.on('connected', () => {
-    logger.info('Session store connected to MongoDB');
-});
-
-sessionStore.on('error', (error) => {
-    logger.error(`Session store error: ${error}`);
-});
-
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-session-secret',
-    resave: false,
-    saveUninitialized: false,
-    store: sessionStore,
-    cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000
-    }
-}));
-
+// Helmet for Security
 app.use(
     helmet.contentSecurityPolicy({
         directives: {
@@ -156,12 +113,55 @@ app.use(
     })
 );
 
+// Static Files Serving
 app.use(express.static(path.join(__dirname, 'public'), {
     etag: false,
     maxAge: 0,
     lastModified: false
 }));
 
+// MongoDB Connection
+const mongoUrl = process.env.MONGO_URL;
+
+mongoose.connect(mongoUrl, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => {
+    logger.info('Connected to MongoDB');
+}).catch((err) => {
+    logger.error(`Error connecting to MongoDB: ${err}`);
+});
+
+// Session Store Configuration
+const sessionStore = MongoStore.create({
+    mongoUrl: mongoUrl,
+    collectionName: 'sessions',
+    ttl: 14 * 24 * 60 * 60,
+    autoRemove: 'native'
+});
+
+sessionStore.on('connected', () => {
+    logger.info('Session store connected to MongoDB');
+});
+
+sessionStore.on('error', (error) => {
+    logger.error(`Session store error: ${error}`);
+});
+
+// Session Middleware
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-session-secret',
+    resave: false,
+    saveUninitialized: false,
+    store: sessionStore,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000
+    }
+}));
+
+// Mongoose Schemas and Models
 const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
     bungie_name: { type: String, required: true },
@@ -204,6 +204,7 @@ const commentSchema = new mongoose.Schema({
 
 const Comment = mongoose.model('Comment', commentSchema);
 
+// Helper Functions
 function generateRandomString(size = 16) {
     return crypto.randomBytes(size).toString('hex');
 }
@@ -214,11 +215,13 @@ function hashPassword(password, salt) {
         .digest('hex');
 }
 
+// Hashing an Example Password (Can be removed in production)
 const plainPassword = 'Aria';
 const salt = 'random_salt';
 const hashedPassword = hashPassword(plainPassword, salt);
 logger.info(`Hashed Password: ${hashedPassword}`);
 
+// Middleware for Token Verification
 function verifyToken(req, res, next) {
     const token = req.cookies.token;
     logger.info(`Token from cookie: ${token}`);
@@ -239,6 +242,9 @@ function verifyToken(req, res, next) {
     });
 }
 
+// API Endpoints
+
+// GPT API Endpoint
 app.post('/api/gpt', async (req, res) => {
     const userMessage = req.body.message;
 
@@ -275,6 +281,7 @@ app.post('/api/gpt', async (req, res) => {
     }
 });
 
+// YouTube API Endpoint
 app.get('/api/youtube', async (req, res) => {
     const videoId = req.query.videoId;
 
@@ -380,12 +387,14 @@ app.get('/api/youtube', async (req, res) => {
     }
 });
 
+// Bungie OAuth Configuration
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = 'https://mikumiku.dev/callback';
 
 const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
 
+// Update Membership Mapping
 function updateMembershipMapping(discordId, userInfo) {
     let membershipMapping = {};
 
@@ -425,10 +434,12 @@ function updateMembershipMapping(discordId, userInfo) {
     }
 }
 
+// Send User Info to Discord Bot (Placeholder Function)
 async function sendUserInfoToDiscordBot(discordId, userInfo) {
     logger.info(`User info ready to be sent to Discord bot: ${JSON.stringify(userInfo)}`);
 }
 
+// Login Route
 app.get('/login', async (req, res) => {
     const state = generateRandomString(16);
     const user_id = req.query.user_id;
@@ -455,6 +466,7 @@ app.get('/login', async (req, res) => {
     }
 });
 
+// OAuth Callback Route
 app.get('/callback', async (req, res) => {
     const state = req.query.state;
     const code = req.query.code;
@@ -551,10 +563,12 @@ app.get('/callback', async (req, res) => {
     }
 });
 
+// Confirmation Page Route
 app.get('/confirmation.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'confirmation.html'));
 });
 
+// Fetch Bungie Name by Token
 app.get('/api/bungie-name', async (req, res) => {
     const token = req.query.token;
 
@@ -571,6 +585,7 @@ app.get('/api/bungie-name', async (req, res) => {
     }
 });
 
+// Comments API Endpoints
 app.post('/api/comments', async (req, res) => {
     try {
         const { username, comment } = req.body;
@@ -604,6 +619,7 @@ app.delete('/api/comments/:id', verifyToken, async (req, res) => {
     }
 });
 
+// Bungie Token Functions
 async function getBungieToken(code) {
     const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
     const payload = new URLSearchParams({
@@ -738,6 +754,7 @@ async function getPendingClanMembers(accessToken, groupId) {
     }
 }
 
+// Clan Pending Members Routes
 app.get('/api/clan/pending', verifyToken, async (req, res) => {
     const userId = req.userId;
 
@@ -775,6 +792,7 @@ app.get('/api/clan/pending/fromdb', verifyToken, async (req, res) => {
     }
 });
 
+// Redirect HTTP to HTTPS in Production
 app.use((req, res, next) => {
     if (process.env.NODE_ENV === 'production') {
         if (req.headers['x-forwarded-proto'] !== 'https') {
@@ -784,10 +802,12 @@ app.use((req, res, next) => {
     next();
 });
 
+// Admin Dashboard Route with Random Identifier
 app.get('/admin-dashboard-:random.html', verifyToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
 });
 
+// Admin Login Route
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
@@ -822,6 +842,7 @@ app.post('/login', async (req, res) => {
         maxAge: 86400 * 1000
     });
 
+    // Define the dashboard route dynamically
     app.get(dashboardURL, verifyToken, (req, res) => {
         res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
     });
@@ -835,41 +856,206 @@ app.post('/login', async (req, res) => {
     });
 });
 
+// Logout Route
 app.post('/logout', (req, res) => {
     res.clearCookie('token');
     req.session.destroy();
     res.redirect('/admin-login.html');
 });
 
+// Weather API Endpoint
+app.get('/api/weather', async (req, res) => {
+    const city = req.query.city || 'Leeds';
+    const units = 'metric';
+    const apiKey = process.env.OPENWEATHER_API_KEY;
+
+    if (!apiKey) {
+        logger.error('OPENWEATHER_API_KEY is not set in environment variables.');
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+
+    const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=${units}&appid=${apiKey}`;
+
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            let errorMsg = 'Failed to fetch weather data';
+            try {
+                const errorData = await response.json();
+                errorMsg = errorData.message || errorMsg;
+            } catch (e) {
+                logger.error('Error parsing error response:', e);
+            }
+            return res.status(response.status).json({ error: errorMsg });
+        }
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        logger.error(`Error fetching weather data for city ${city}:`, error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// Location API Endpoint
+const IPINFO_API_KEY = process.env.IPINFO_API_KEY;
+const processedIPs = new Set();
+
+function getClientIp(req) {
+    const forwarded = req.headers['x-forwarded-for'];
+    let ip = forwarded ? forwarded.split(',')[0].trim() : req.connection.remoteAddress;
+
+    if (ip.includes("::ffff:")) {
+        ip = ip.split("::ffff:")[1];
+    }
+
+    return ip;
+}
+
+async function fetchLocationData(ip) {
+    try {
+        const response = await axios.get(`https://ipinfo.io/${ip}/geo?token=${IPINFO_API_KEY}`);
+        const { ip: userIP, city, region, country } = response.data;
+
+        return {
+            ip: userIP,
+            city: city || 'Unknown',
+            region: region || 'Unknown',
+            country: country || 'Unknown'
+        };
+    } catch (error) {
+        logger.error(`Error fetching location data for IP ${ip}:`, error);
+        return {
+            ip,
+            city: 'Unknown',
+            region: 'Unknown',
+            country: 'Unknown'
+        };
+    }
+}
+
+function getValidIpAddress(req) {
+    let ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+    if (ipAddress.includes(',')) {
+        ipAddress = ipAddress.split(',').map(ip => ip.trim())[0];
+    }
+
+    if (ipAddress.startsWith('::ffff:')) {
+        ipAddress = ipAddress.replace('::ffff:', '');
+    }
+
+    if (processedIPs.has(ipAddress)) {
+        logger.info(`Duplicate IP detected: ${ipAddress}, skipping processing.`);
+        return null;
+    }
+
+    processedIPs.add(ipAddress);
+    return ipAddress;
+}
+
+app.get('/api/location', async (req, res) => {
+    const clientIp = getValidIpAddress(req);
+
+    if (!clientIp) {
+        return res.status(400).send('Duplicate IP detected, location not processed.');
+    }
+
+    try {
+        const locationData = await fetchLocationData(clientIp);
+        res.json(locationData);
+    } catch (error) {
+        logger.error(`Error fetching location for IP ${clientIp}:`, error);
+        res.status(500).send('Error fetching location data');
+    }
+});
+
+// Clan Members API Endpoints
+app.get('/api/clan/pending', verifyToken, async (req, res) => {
+    const userId = req.userId;
+
+    try {
+        const user = await User.findOne({ discord_id: userId });
+        if (!user) {
+            return res.status(400).send({ error: 'User not found' });
+        }
+
+        const accessToken = await getAccessTokenForUser(user);
+        const pendingMembers = await getPendingClanMembers(accessToken, '5236471');
+
+        await PendingMember.deleteMany();
+        const pendingMemberDocs = pendingMembers.map(member => ({
+            membershipId: member.destinyUserInfo.membershipId,
+            displayName: member.destinyUserInfo.displayName,
+            joinDate: new Date(member.joinDate)
+        }));
+        await PendingMember.insertMany(pendingMemberDocs);
+
+        res.send({ pending_members: pendingMembers });
+    } catch (err) {
+        logger.error(`Error fetching pending clan members: ${err}`);
+        res.status(500).send({ error: 'Internal Server Error' });
+    }
+});
+
+app.get('/api/clan/pending/fromdb', verifyToken, async (req, res) => {
+    try {
+        const pendingMembers = await PendingMember.find();
+        res.send({ pending_members: pendingMembers });
+    } catch (err) {
+        logger.error(`Error retrieving pending clan members from DB: ${err}`);
+        res.status(500).send({ error: 'Internal Server Error' });
+    }
+});
+
+// Admin Dashboard Route
+app.get('/admin-dashboard', verifyToken, (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
+});
+
+// YouTube API Status Check
+app.get('/api/check-youtube', async (req, res) => {
+    try {
+        const youtubeApiStatus = true; // Placeholder: Implement actual status check if needed
+        res.json({
+            available: youtubeApiStatus,
+            status: youtubeApiStatus ? 'YouTube API is working' : 'YouTube API is unavailable'
+        });
+    } catch (error) {
+        logger.error(`Error checking YouTube API: ${error}`);
+        res.status(500).json({
+            available: false,
+            status: 'Error checking YouTube API'
+        });
+    }
+});
+
+// Bungie API Status Check
+app.get('/api/check-bungie', async (req, res) => {
+    const bungieApiKey = process.env.X_API_KEY;
+    const url = 'https://www.bungie.net/Platform/Destiny2/Manifest/';
+
+    try {
+        const response = await axios.get(url, {
+            headers: { 'X-API-Key': bungieApiKey }
+        });
+        if (response.status === 200) {
+            return res.json({ status: 'Bungie API is working', available: true });
+        }
+    } catch (error) {
+        logger.error(`Error checking Bungie API: ${error}`);
+        return res.json({ status: 'Bungie API is unavailable', available: false });
+    }
+});
+
+// GPT API Endpoint (Placeholder)
+// If you have implementation details, ensure they are correctly placed here.
+
+// Socket.io Setup and Handlers
 let currentVideoTitle = 'Loading...';
 let currentVideoUrl = '';
 let videoStartTimestamp = Date.now();
 let isVideoPaused = false;
 let isOffline = false;
-
-let activeUsers = [];
-
-
-io.on('connection', async (socket) => {
-    const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
-    logger.info(`New client connected: ${socket.id}, IP: ${ip}`);
-
-    // Emit the initial state to the connected client
-    socket.emit('nowPlayingUpdate', {
-        title: currentVideoTitle,
-        videoUrl: currentVideoUrl,
-        startTimestamp: videoStartTimestamp,
-        currentTime: (Date.now() - videoStartTimestamp) / 1000,
-        isOffline: isOffline,
-        isPaused: isVideoPaused
-    });
-
-    // Handle 'updateVideoTitle' events from the background script
-let currentVideoTitle = 'Loading...';
-let currentVideoUrl = '';
-let videoStartTimestamp = Date.now();
-let isVideoPaused = false;
-let isOffline = false; // Changed 'const' to 'let' to allow reassignment
 
 let activeUsers = [];
 
@@ -955,33 +1141,43 @@ io.on('connection', async (socket) => {
         logger.info(`Emitted "nowPlayingUpdate" to all clients: Title="${currentVideoTitle}", URL="${currentVideoUrl}", isPaused=${isVideoPaused}, isOffline=${isOffline}`);
     });
 
-    const locationData = await fetchLocationData(ip);
-    logger.info(`Location data fetched: ${JSON.stringify(locationData)}`);
+    // Fetch and Emit Location Data (Optional)
+    try {
+        const locationData = await fetchLocationData(ip);
+        logger.info(`Location data fetched: ${JSON.stringify(locationData)}`);
 
-    const user = {
-        id: socket.id,
-        ip: locationData.ip,
-        city: locationData.city,
-        region: locationData.region,
-        country: locationData.country
-    };
+        const user = {
+            id: socket.id,
+            ip: locationData.ip,
+            city: locationData.city,
+            region: locationData.region,
+            country: locationData.country
+        };
 
-    activeUsers.push(user);
-    io.emit('activeUsersUpdate', { users: activeUsers });
+        activeUsers.push(user);
+        io.emit('activeUsersUpdate', { users: activeUsers });
+    } catch (error) {
+        logger.error(`Error fetching location data for IP ${ip}:`, error);
+    }
 
+    // Handle Client Disconnection
     socket.on('disconnect', () => {
-        logger.info(`Client disconnected: ${socket.id}`);
+        logger.info(`Client disconnected: ${socket.id}, IP: ${ip}`);
         activeUsers = activeUsers.filter(u => u.id !== socket.id);
         io.emit('activeUsersUpdate', { users: activeUsers });
     });
 });
 
+// Additional API Endpoints
+
+// Update Data Endpoint
 app.post('/api/update', (req, res) => {
     const data = req.body;
     io.emit('updateData', data);
     res.status(200).send({ message: 'Data sent to clients' });
 });
 
+// Public Videos Endpoint
 app.get('/api/videos/public', async (req, res) => {
     try {
         res.json([]);
@@ -991,6 +1187,7 @@ app.get('/api/videos/public', async (req, res) => {
     }
 });
 
+// Add New Video Endpoint
 app.post('/api/videos',
     verifyToken,
     [
@@ -1027,189 +1224,7 @@ app.post('/api/videos',
     }
 );
 
-const IPINFO_API_KEY = process.env.IPINFO_API_KEY;
-
-async function fetchLocationData(ip) {
-    try {
-        const ipList = ip.split(',');
-        const validIp = ipList[0].trim();
-
-        const response = await axios.get(`https://ipinfo.io/${validIp}?token=${IPINFO_API_KEY}`);
-        const { ip: userIP, city, region, country } = response.data;
-
-        return {
-            ip: userIP,
-            city: city || 'Unknown',
-            region: region || 'Unknown',
-            country: country || 'Unknown'
-        };
-    } catch (error) {
-        logger.error(`Error fetching location data for IP ${ip}:`, error);
-        return {
-            ip,
-            city: 'Unknown',
-            region: 'Unknown',
-            country: 'Unknown'
-        };
-    }
-}
-
-async function attachLocationData(req, res, next) {
-    const clientIp = getClientIp(req);
-
-    if (clientIp) {
-        logger.info(`Client IP detected: ${clientIp}`);
-
-        const locationData = await fetchLocationData(clientIp);
-        req.location = locationData;
-    } else {
-        logger.info('No valid public IP detected.');
-    }
-
-    next();
-}
-
-function normalizeIp(ip) {
-    if (ip.startsWith('::ffff:')) {
-        return ip.replace('::ffff:', '');
-    }
-    return ip;
-}
-
-app.get('/admin-dashboard', verifyToken, (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
-});
-
-app.get('/api/check-youtube', async (req, res) => {
-    try {
-        const youtubeApiStatus = true;
-        res.json({
-            available: youtubeApiStatus,
-            status: youtubeApiStatus ? 'YouTube API is working' : 'YouTube API is unavailable'
-        });
-    } catch (error) {
-        logger.error(`Error checking YouTube API: ${error}`);
-        res.status(500).json({
-            available: false,
-            status: 'Error checking YouTube API'
-        });
-    }
-});
-
-app.get('/api/check-bungie', async (req, res) => {
-    const bungieApiKey = process.env.X_API_KEY;
-    const url = 'https://www.bungie.net/Platform/Destiny2/Manifest/';
-
-    try {
-        const response = await axios.get(url, {
-            headers: { 'X-API-Key': bungieApiKey }
-        });
-        if (response.status === 200) {
-            return res.json({ status: 'Bungie API is working', available: true });
-        }
-    } catch (error) {
-        logger.error(`Error checking Bungie API: ${error}`);
-        return res.json({ status: 'Bungie API is unavailable', available: false });
-    }
-});
-
-app.get('/api/weather', async (req, res) => {
-    const city = req.query.city || 'Leeds';
-    const units = 'metric';
-    const apiKey = process.env.OPENWEATHER_API_KEY;
-
-    if (!apiKey) {
-        logger.error('OPENWEATHER_API_KEY is not set in environment variables.');
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
-
-    const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=${units}&appid=${apiKey}`;
-
-    try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-            let errorMsg = 'Failed to fetch weather data';
-            try {
-                const errorData = await response.json();
-                errorMsg = errorData.message || errorMsg;
-            } catch (e) {
-                logger.error('Error parsing error response:', e);
-            }
-            return res.status(response.status).json({ error: errorMsg });
-        }
-        const data = await response.json();
-        res.json(data);
-    } catch (error) {
-        logger.error(`Error fetching weather data for city ${city}:`, error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-});
-
-const processedIPs = new Set();
-
-function getValidIpAddress(req) {
-    let ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-
-    if (ipAddress.includes(',')) {
-        ipAddress = ipAddress.split(',').map(ip => ip.trim())[0];
-    }
-
-    if (ipAddress.startsWith('::ffff:')) {
-        ipAddress = ipAddress.replace('::ffff:', '');
-    }
-
-    if (processedIPs.has(ipAddress)) {
-        logger.info(`Duplicate IP detected: ${ipAddress}, skipping processing.`);
-        return null;
-    }
-
-    processedIPs.add(ipAddress);
-    return ipAddress;
-}
-
-app.get('/api/location', async (req, res) => {
-    const clientIp = getValidIpAddress(req);
-
-    if (!clientIp) {
-        return res.status(400).send('Duplicate IP detected, location not processed.');
-    }
-
-    try {
-        const locationData = await fetchLocationData(clientIp);
-        res.json(locationData);
-    } catch (error) {
-        logger.error(`Error fetching location for IP ${clientIp}:`, error);
-        res.status(500).send('Error fetching location data');
-    }
-});
-
-function getClientIp(req) {
-    const forwarded = req.headers['x-forwarded-for'];
-    let ip = forwarded ? forwarded.split(',')[0] : req.connection.remoteAddress;
-
-    if (ip.includes("::ffff:")) {
-        ip = ip.split("::ffff:")[1];
-    }
-
-    return ip;
-}
-
-async function fetchUserLocation(ip) {
-    try {
-        const response = await axios.get(`https://ipinfo.io/${ip}/geo?token=${process.env.IPINFO_API_KEY}`);
-        const { city, region, country } = response.data;
-        return { ip, city, region, country };
-    } catch (error) {
-        logger.error(`Error fetching location data for IP ${ip}:`, error);
-        return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
-    }
-}
-
-async function getActiveUsersWithLocations() {
-    const userPromises = activeUsers.map(user => fetchUserLocation(user.ip));
-    return await Promise.all(userPromises);
-}
-
+// Start the Server
 server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
