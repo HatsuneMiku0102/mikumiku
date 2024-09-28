@@ -989,55 +989,30 @@ io.on('connection', async (socket) => {
         isPaused: isVideoPaused
     });
 
-    // Handle 'updateVideoTitle' events from the background script
-    socket.on('updateVideoTitle', (data) => {
-        logger.info(`Received 'updateVideoTitle' event from client ${socket.id}: ${JSON.stringify(data)}`);
+    // Handle 'progressUpdate' events from the client
+    socket.on('progressUpdate', (data) => {
+        logger.info(`Received 'progressUpdate' event from client ${socket.id}: ${JSON.stringify(data)}`);
 
-        // Destructure data with consistent property names, renaming 'isOffline' to avoid shadowing
-        const {
-            title,
-            videoUrl,
-            currentTime,
-            isPaused,
-            isOffline: clientIsOffline // Renamed to avoid shadowing
-        } = data;
+        const { title, videoUrl, currentTime, isPaused, isOffline } = data;
 
-        logger.info(`Title: ${title}, Video URL: ${videoUrl}, Current Time: ${currentTime}, Is Paused: ${isPaused}, Is Offline: ${clientIsOffline}`);
-
-        // Validate currentTime to ensure it's a number
-        const validCurrentTime = typeof currentTime === 'number' && !isNaN(currentTime) ? currentTime : 0;
-
-        // Enhanced validation with detailed logging
-        if (!clientIsOffline) {
-            const invalidFields = [];
-            if (typeof title !== 'string' || title.trim() === '') invalidFields.push('title');
-            if (typeof videoUrl !== 'string' || videoUrl.trim() === '') invalidFields.push('videoUrl');
-            if (typeof validCurrentTime !== 'number' || isNaN(validCurrentTime)) invalidFields.push('currentTime');
-            if (typeof isPaused !== 'boolean') invalidFields.push('isPaused');
-            if (typeof clientIsOffline !== 'boolean') invalidFields.push('isOffline');
-
-            if (invalidFields.length > 0) {
-                logger.warn(`Invalid data received from client ${socket.id}: ${JSON.stringify(data)}. Invalid fields: ${invalidFields.join(', ')}`);
-                return;
-            }
-
-            logger.info(`Handling online state: Title="${title}", URL="${videoUrl}", CurrentTime=${validCurrentTime}`);
-        } else {
-            // For the offline state, check if title and videoUrl are as expected
-            if (title === 'Offline' && videoUrl === '') {
-                logger.info(`Received valid "offline" state from client ${socket.id}`);
-            } else {
-                logger.warn(`Invalid offline data received from client ${socket.id}: ${JSON.stringify(data)}`);
-                return;
-            }
+        // Validate incoming data
+        if (
+            typeof title !== 'string' ||
+            typeof videoUrl !== 'string' ||
+            typeof currentTime !== 'number' ||
+            typeof isPaused !== 'boolean' ||
+            typeof isOffline !== 'boolean'
+        ) {
+            logger.warn(`Invalid data received from client ${socket.id}: ${JSON.stringify(data)}`);
+            return;
         }
 
-        // Update the server's current state using 'clientIsOffline'
+        // Update server's current state
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
-        videoStartTimestamp = Date.now() - (validCurrentTime * 1000);
+        videoStartTimestamp = Date.now() - (currentTime * 1000);
         isVideoPaused = isPaused;
-        isOffline = clientIsOffline;
+        isOffline = isOffline;
 
         logger.info(`Updated server state: Title="${currentVideoTitle}", URL="${currentVideoUrl}", StartTimestamp=${videoStartTimestamp}, isPaused=${isVideoPaused}, isOffline=${isOffline}`);
 
@@ -1046,17 +1021,17 @@ io.on('connection', async (socket) => {
             title: currentVideoTitle,
             videoUrl: currentVideoUrl,
             startTimestamp: videoStartTimestamp,
-            currentTime: validCurrentTime,
+            currentTime: currentTime,
             isOffline: isOffline,
-            isPaused: isVideoPaused
+            isPaused: isPaused
         });
 
-        logger.info(`Emitted "nowPlayingUpdate" to all clients: Title="${currentVideoTitle}", URL="${currentVideoUrl}", isPaused=${isVideoPaused}, isOffline=${isOffline}`);
+        logger.info(`Emitted 'nowPlayingUpdate' to all clients: Title="${currentVideoTitle}", URL="${currentVideoUrl}", isPaused=${isPaused}, isOffline=${isOffline}`);
     });
 
     // Handle client disconnection
     socket.on('disconnect', () => {
-        logger.info(`Client disconnected: ${socket.id}`);
+        logger.info(`Youtube Client disconnected: ${socket.id}`);
         activeUsers = activeUsers.filter(u => u.id !== socket.id);
         io.emit('activeUsersUpdate', { users: activeUsers });
     });
