@@ -974,6 +974,22 @@ let activeUsers = [];
 // Define /background namespace for background scripts (e.g., Chrome extensions)
 const backgroundNamespace = io.of('/background');
 
+backgroundNamespace.use((socket, next) => {
+    const origin = socket.handshake.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        next();
+    } else {
+        logger.warn(`Background namespace: Connection attempt from disallowed origin: ${origin}`);
+        next(new Error('Not allowed by CORS'));
+    }
+});
+
+let currentVideoTitle = 'Loading...';
+let currentVideoUrl = '';
+let videoStartTimestamp = Date.now();
+let isVideoPaused = false;
+let isOffline = false;
+
 backgroundNamespace.on('connection', (socket) => {
     const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
     logger.info(`Background client connected: ${socket.id}, IP: ${ip}`);
@@ -1031,8 +1047,8 @@ backgroundNamespace.on('connection', (socket) => {
     });
 
     // Handle background client disconnection
-    socket.on('disconnect', () => {
-        logger.info(`Background client disconnected: ${socket.id}`);
+    socket.on('disconnect', (reason) => {
+        logger.info(`Background client disconnected: ${socket.id}, Reason: ${reason}`);
     });
 });
 
