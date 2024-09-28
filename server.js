@@ -235,20 +235,43 @@ async function getWebSearchResults(query) {
         console.log("Received web search data:", data);
 
         if (data.items && data.items.length > 0) {
-            const topResults = data.items.slice(0, 3);
-            let responseMessage = `Here are the top results I found for "${query}":\n\n`;
+            for (let item of data.items) {
+                if (item.link.includes('wikipedia.org')) {
+                    const wikiSummary = await fetchWikipediaSummary(item.link);
+                    if (wikiSummary) {
+                        return wikiSummary;
+                    }
+                }
+            }
 
-            topResults.forEach((result, index) => {
-                responseMessage += `${index + 1}. ${result.title}\n${result.link}\n\n`;
-            });
-
-            return responseMessage;
+            const topResult = data.items[0];
+            return `Here's what I found: ${topResult.title}\n${topResult.snippet}\n${topResult.link}`;
         } else {
             return 'Sorry, I couldn’t find anything relevant.';
         }
     } catch (error) {
         console.error('Error fetching web search results:', error);
         return 'Sorry, something went wrong while searching the web.';
+    }
+}
+
+async function fetchWikipediaSummary(wikiUrl) {
+    try {
+        const response = await fetch(wikiUrl);
+        if (!response.ok) {
+            console.error(`Error fetching Wikipedia summary: ${response.status}`);
+            return null;
+        }
+
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const paragraph = doc.querySelector('p');
+
+        return paragraph ? paragraph.textContent.trim() : null;
+    } catch (error) {
+        console.error('Error while fetching Wikipedia summary:', error);
+        return null;
     }
 }
 
