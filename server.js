@@ -202,10 +202,67 @@ try {
 }
 
 // Set the project ID explicitly to ensure we're using the correct Dialogflow agent
-const projectId = 'haru-ai-sxjr'; // Set the project ID explicitly here
+const projectId = 'haru-ai-sxjr';
 console.log(`Using project ID: ${projectId}`);
 
-// Endpoint to handle user messages and communicate with Dialogflow
+// Endpoint for Dialogflow webhook
+app.post('/api/dialogflow', async (req, res) => {
+    const userMessage = req.body.message;
+    console.log(`Received user message: ${userMessage}`);
+
+    if (!userMessage) {
+        console.error("No user message provided in request.");
+        res.status(400).json({ response: 'No message provided.' });
+        return;
+    }
+
+    const sessionId = uuid.v4(); // Generate a unique session ID for each request
+    const sessionPath = sessionClient.projectAgentSessionPath(projectId, sessionId);
+    console.log(`Generated session path: ${sessionPath}`);
+
+    const request = {
+        session: sessionPath,
+        queryInput: {
+            text: {
+                text: userMessage,
+                languageCode: 'en-US',
+            },
+        },
+    };
+
+
+console.log("Loading credentials from environment variable...");
+let credentials;
+
+try {
+    credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+    console.log("Credentials loaded successfully.");
+} catch (error) {
+    console.error("Error parsing credentials JSON from environment variable:", error);
+    process.exit(1); // Exit the application if credentials are missing or incorrect
+}
+
+// Create a new Dialogflow session client with credentials
+let sessionClient;
+
+try {
+    sessionClient = new dialogflow.SessionsClient({
+        credentials: {
+            client_email: credentials.client_email,
+            private_key: credentials.private_key,
+        },
+    });
+    console.log("Dialogflow session client initialized successfully.");
+} catch (error) {
+    console.error("Error initializing Dialogflow session client:", error);
+    process.exit(1); // Exit the application if the session client cannot be initialized
+}
+
+// Set the project ID explicitly to ensure we're using the correct Dialogflow agent
+const projectId = 'haru-ai-sxjr';
+console.log(`Using project ID: ${projectId}`);
+
+// Endpoint for Dialogflow webhook
 app.post('/api/dialogflow', async (req, res) => {
     const userMessage = req.body.message;
     console.log(`Received user message: ${userMessage}`);
@@ -234,12 +291,20 @@ app.post('/api/dialogflow', async (req, res) => {
     try {
         const responses = await sessionClient.detectIntent(request);
         console.log("Received response from Dialogflow.");
-        
+
         const result = responses[0].queryResult;
         console.log("Query Result:", result);
 
         if (result && result.fulfillmentText) {
-            res.json({ response: result.fulfillmentText });
+            if (result.action === 'web.search') {
+                // Handle web search action
+                console.log("Handling web search action...");
+                const searchQuery = result.parameters.fields.q.stringValue || "something";
+                const searchResults = await getWebSearchResults(searchQuery);
+                res.json({ response: searchResults });
+            } else {
+                res.json({ response: result.fulfillmentText });
+            }
         } else {
             console.warn("Dialogflow response did not contain fulfillment text.");
             res.json({ response: 'Sorry, I couldn’t understand that.' });
@@ -250,6 +315,42 @@ app.post('/api/dialogflow', async (req, res) => {
     }
 });
 
+// Function to perform a web search using Google Custom Search API
+async function getWebSearchResults(query) {
+    const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+    const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
+    const SEARCH_ENDPOINT = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}`;
+
+    try {
+        console.log(`Fetching web search results for query: "${query}"`);
+        const response = await fetch(SEARCH_ENDPOINT);
+
+        if (!response.ok) {
+            console.error(`Error fetching web search results: ${response.statusText}`);
+            return 'Sorry, I couldn’t find anything relevant.';
+        }
+
+        const data = await response.json();
+        console.log("Received web search data:", data);
+
+        if (data.items && data.items.length > 0) {
+            // Get the top 3 results to provide to the user
+            const topResults = data.items.slice(0, 3);
+            let responseMessage = `Here are the top results I found for "${query}":\n\n`;
+
+            topResults.forEach((result, index) => {
+                responseMessage += `${index + 1}. ${result.title} - ${result.link}\n`;
+            });
+
+            return responseMessage;
+        } else {
+            return 'Sorry, I couldn’t find anything relevant.';
+        }
+    } catch (error) {
+        console.error('Error fetching web search results:', error);
+        return 'Sorry, something went wrong while searching the web.';
+    }
+}
 
 
 
