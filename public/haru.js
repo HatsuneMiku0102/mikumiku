@@ -51,14 +51,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const messageElement = document.createElement('div');
         messageElement.classList.add('message', className);
 
-        if (className === 'bot-message' && isValidURL(message)) {
-            // Handle messages with links by creating a clickable anchor element
-            const linkElement = document.createElement('a');
-            linkElement.href = message;
-            linkElement.textContent = message;
-            linkElement.target = '_blank';
-            linkElement.rel = 'noopener noreferrer';
-            messageElement.appendChild(linkElement);
+        if (className === 'bot-message' && containsLinks(message)) {
+            // If message contains links, format them as clickable anchor tags
+            messageElement.innerHTML = formatLinksAsHTML(message);
         } else {
             messageElement.textContent = message;
         }
@@ -67,14 +62,17 @@ document.addEventListener('DOMContentLoaded', function () {
         chatContent.scrollTop = chatContent.scrollHeight;
     }
 
-    // Function to check if a string is a valid URL
-    function isValidURL(string) {
-        try {
-            new URL(string);
-            return true;
-        } catch (_) {
-            return false;
-        }
+    // Function to check if a message contains links
+    function containsLinks(message) {
+        return message.includes("http://") || message.includes("https://");
+    }
+
+    // Function to format URLs in a message as HTML anchor tags
+    function formatLinksAsHTML(message) {
+        // Replace URLs with HTML anchor tags
+        return message.replace(/(https?:\/\/[^\s]+)/g, function(url) {
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        });
     }
 
     // Function to send the user's message to Dialogflow and get the response
