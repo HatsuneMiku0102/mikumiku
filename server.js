@@ -181,7 +181,7 @@ try {
     console.log("Credentials loaded successfully.");
 } catch (error) {
     console.error("Error parsing credentials JSON from environment variable:", error);
-    process.exit(1); // Exit the application if credentials are missing or incorrect
+    process.exit(1);
 }
 
 // Create a new Dialogflow session client with credentials
@@ -197,7 +197,7 @@ try {
     console.log("Dialogflow session client initialized successfully.");
 } catch (error) {
     console.error("Error initializing Dialogflow session client:", error);
-    process.exit(1); // Exit the application if the session client cannot be initialized
+    process.exit(1);
 }
 
 // Set the project ID explicitly to ensure we're using the correct Dialogflow agent
@@ -237,16 +237,13 @@ app.post('/api/dialogflow', async (req, res) => {
         const result = responses[0].queryResult;
         console.log("Query Result:", result);
 
-        if (result && result.fulfillmentText) {
-            if (result.action === 'web.search') {
-                // Handle web search action
-                console.log("Handling web search action...");
-                const searchQuery = result.parameters.fields.q.stringValue || "something";
-                const searchResults = await getWebSearchResults(searchQuery);
-                res.json({ response: searchResults });
-            } else {
-                res.json({ response: result.fulfillmentText });
-            }
+        if (result && result.action === 'web.search') {
+            console.log("Handling web search action...");
+            const searchQuery = result.parameters.fields.q ? result.parameters.fields.q.stringValue : userMessage;
+            const searchResults = await getWebSearchResults(searchQuery);
+            res.json({ response: searchResults });
+        } else if (result && result.fulfillmentText) {
+            res.json({ response: result.fulfillmentText });
         } else {
             console.warn("Dialogflow response did not contain fulfillment text.");
             res.json({ response: 'Sorry, I couldn’t understand that.' });
@@ -261,6 +258,12 @@ app.post('/api/dialogflow', async (req, res) => {
 async function getWebSearchResults(query) {
     const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
     const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
+
+    if (!GOOGLE_API_KEY || !GOOGLE_CSE_ID) {
+        console.error("Missing Google API Key or CSE ID.");
+        return 'Configuration error: Missing Google API Key or CSE ID.';
+    }
+
     const SEARCH_ENDPOINT = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}`;
 
     try {
@@ -268,7 +271,13 @@ async function getWebSearchResults(query) {
         const response = await fetch(SEARCH_ENDPOINT);
 
         if (!response.ok) {
-            console.error(`Error fetching web search results: ${response.statusText}`);
+            console.error(`Error fetching web search results: ${response.status} - ${response.statusText}`);
+            if (response.status === 400) {
+                return 'Bad Request: Please verify the request parameters and ensure the query is properly formatted.';
+            }
+            if (response.status === 403) {
+                return 'Forbidden: Please verify your API key and ensure it has the correct permissions.';
+            }
             return 'Sorry, I couldn’t find anything relevant.';
         }
 
