@@ -1132,62 +1132,51 @@ app.post('/logout', (req, res) => {
 });
 
 // Video Status Variables (Server-Side State)
-let currentVideoTitle = 'Loading...';
-let currentVideoUrl = '';
-let videoStartTimestamp = Date.now();
-let isVideoPaused = false; // Initialize as not paused
-let isOffline = false; // Initialize as online
+let currentVideoData = {};
 
 // Socket.IO Connection Handling
-io.on('connection', async (socket) => {
+io.on('connection', (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
-    // Emit the current status to the newly connected client
-    socket.emit('nowPlayingUpdate', {
-        title: currentVideoTitle,
-        videoUrl: currentVideoUrl,
-        startTimestamp: videoStartTimestamp,
-        currentTime: (Date.now() - videoStartTimestamp) / 1000,
-        isOffline: isOffline,
-        isPaused: isVideoPaused
-    });
+    // Emit the current video status to the newly connected client
+    socket.emit('nowPlayingUpdate', currentVideoData);
 
     // Handle video status updates from clients
     socket.on('updateVideoTitle', (data) => {
         logger.info(`[Socket.IO] Received "updateVideoTitle" event from client ${socket.id}: ${JSON.stringify(data)}`);
 
-        const { videoId, title, description, currentTime = 0, isPaused = false, isOffline: offlineStatus = false } = data;
+        // Destructure the incoming data
+        const { videoId, title, description, thumbnail, category, currentTime = 0, isPaused = false, isOffline = false } = data;
 
-        // Log the received data for better debugging
-        logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Current Time: ${currentTime}, Is Paused: ${isPaused}, Is Offline: ${offlineStatus}`);
+        // Log each piece of data for better debugging
+        logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}, Current Time: ${currentTime}, Is Paused: ${isPaused}, Is Offline: ${isOffline}`);
 
-        // Update the server state with valid data
-        currentVideoTitle = title;
-        currentVideoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-        videoStartTimestamp = Date.now() - (currentTime * 1000);
-        isVideoPaused = isPaused;
-        isOffline = offlineStatus;
+        // Update the server state with the new video data
+        currentVideoData = {
+            videoId,
+            title,
+            description,
+            thumbnail,
+            category,
+            currentTime,
+            isPaused,
+            isOffline,
+            videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
+            startTimestamp: Date.now() - (currentTime * 1000)
+        };
 
-        logger.info(`[Socket.IO] Handling online state: Video ID="${videoId}", Title="${title}", Description="${description}", CurrentTime=${currentTime}`);
+        // Emit the updated video data to all connected clients
+        io.emit('nowPlayingUpdate', currentVideoData);
 
-        // Emit the updated status to all connected clients
-        io.emit('nowPlayingUpdate', {
-            title: currentVideoTitle,
-            videoUrl: currentVideoUrl,
-            startTimestamp: videoStartTimestamp,
-            currentTime: currentTime,
-            isOffline: isOffline,
-            isPaused: isVideoPaused
-        });
-
-        logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: Title="${currentVideoTitle}", URL="${currentVideoUrl}", isPaused=${isVideoPaused}, isOffline=${isOffline}`);
+        logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: Title="${title}", Video ID="${videoId}", isPaused=${isPaused}, isOffline=${isOffline}`);
     });
 
-    // Handle disconnection
+    // Handle client disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
     });
 });
+
 
 
 
