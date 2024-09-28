@@ -284,25 +284,7 @@ async function getWebSearchResults(query) {
     }
 }
 
-async function fetchWikipediaSummary(wikiUrl) {
-    try {
-        const response = await fetch(wikiUrl);
-        if (!response.ok) {
-            console.error(`Error fetching Wikipedia summary: ${response.status}`);
-            return null;
-        }
 
-        const html = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const paragraph = doc.querySelector('p');
-
-        return paragraph ? paragraph.textContent.trim() : null;
-    } catch (error) {
-        console.error('Error while fetching Wikipedia summary:', error);
-        return null;
-    }
-}
 
 // Handle incoming Dialogflow requests
 app.post('/api/dialogflow', async (req, res) => {
@@ -391,12 +373,6 @@ async function getWebSearchResults(query) {
 
         if (!response.ok) {
             console.error(`Error fetching web search results: ${response.status} - ${response.statusText}`);
-            if (response.status === 400) {
-                return 'Bad Request: Please verify the request parameters and ensure the query is properly formatted.';
-            }
-            if (response.status === 403) {
-                return 'Forbidden: Please verify your API key and ensure it has the correct permissions.';
-            }
             return `Error: Received status code ${response.status}. Please check the request or try again later.`;
         }
 
@@ -404,14 +380,11 @@ async function getWebSearchResults(query) {
         console.log("Received web search data:", data);
 
         if (data.items && data.items.length > 0) {
-            const topResults = data.items.slice(0, 3);
-            let responseMessage = `Here are the top results I found for "${query}":\n\n`;
+            const topResults = data.items.slice(0, 3).map((item, index) => {
+                return `<b>${index + 1}. <a href="${item.link}" target="_blank">${item.title}</a></b><br>${item.snippet}`;
+            }).join("<br><br>");
 
-            topResults.forEach((result, index) => {
-                responseMessage += `${index + 1}. ${result.title}\n${result.link}\n\n`;
-            });
-
-            return responseMessage;
+            return `Here are the top results I found for "${query}":<br><br>${topResults}`;
         } else {
             return 'Sorry, I couldn’t find anything relevant.';
         }
@@ -420,6 +393,7 @@ async function getWebSearchResults(query) {
         return 'Sorry, something went wrong while searching the web.';
     }
 }
+
 
 
 
