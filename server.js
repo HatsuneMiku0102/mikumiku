@@ -29,7 +29,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: "https://mikumiku.dev", // Replace with your actual origin
+        origin: ["https://mikumiku.dev", "chrome-extension://ealgoodedcojbceodddhbpcklnpneocp"], // Replace with your actual extension ID
         methods: ["GET", "POST"],
         credentials: true
     }
