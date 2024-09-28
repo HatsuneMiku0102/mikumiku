@@ -29,9 +29,8 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: "https://mikumiku.dev", // Removed "*" and trailing slash
+        origin: "https://mikumiku.dev", // Replace with your actual origin
         methods: ["GET", "POST"],
-        allowedHeaders: ["my-custom-header"], // Added "Content-Type"
         credentials: true
     }
 });
@@ -961,37 +960,30 @@ app.get('/api/location', async (req, res) => {
 });
 
 // Socket.io Setup and Handlers
+
+// Initialize current state variables
 let currentVideoTitle = 'Loading...';
 let currentVideoUrl = '';
 let videoStartTimestamp = Date.now();
 let isVideoPaused = false;
 let isOffline = false;
 
+// Active users tracking (optional, can be used for monitoring)
 let activeUsers = [];
 
-io.on('connection', async (socket) => {
+// Define /background namespace for background scripts (e.g., Chrome extensions)
+const backgroundNamespace = io.of('/background');
+
+backgroundNamespace.on('connection', (socket) => {
     const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
-    logger.info(`New Youtube client connected: ${socket.id}, IP: ${ip}`);
+    logger.info(`Background client connected: ${socket.id}, IP: ${ip}`);
 
-    // Add the new user to the activeUsers list
-    activeUsers.push({ id: socket.id, ip });
-
-    // Emit the initial state to the connected client
-    socket.emit('nowPlayingUpdate', {
-        title: currentVideoTitle,
-        videoUrl: currentVideoUrl,
-        startTimestamp: videoStartTimestamp,
-        currentTime: (Date.now() - videoStartTimestamp) / 1000,
-        isOffline: isOffline,
-        isPaused: isVideoPaused
-    });
-
-    // Handle 'progressUpdate' events from the client
+    // Handle 'progressUpdate' events from background scripts
     socket.on('progressUpdate', (data) => {
-        logger.info(`Received 'progressUpdate' from client ${socket.id}: ${JSON.stringify(data)}`);
-    
+        logger.info(`Received 'progressUpdate' from background client ${socket.id}: ${JSON.stringify(data)}`);
+
         const { title, videoUrl, currentTime, isPaused, isOffline } = data;
-    
+
         // Validate incoming data
         if (
             typeof title !== 'string' ||
@@ -1000,21 +992,21 @@ io.on('connection', async (socket) => {
             typeof isPaused !== 'boolean' ||
             typeof isOffline !== 'boolean'
         ) {
-            logger.warn(`Invalid 'progressUpdate' data from client ${socket.id}: ${JSON.stringify(data)}`);
+            logger.warn(`Invalid 'progressUpdate' data from background client ${socket.id}: ${JSON.stringify(data)}`);
             return;
         }
-    
+
         // Update server's current state
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
         videoStartTimestamp = Date.now() - (currentTime * 1000);
         isVideoPaused = isPaused;
         isOffline = isOffline;
-    
+
         logger.info(`Updated server state: Title="${currentVideoTitle}", URL="${currentVideoUrl}", StartTimestamp=${videoStartTimestamp}, isPaused=${isVideoPaused}, isOffline=${isOffline}`);
-    
-        // Emit the updated state to all connected clients
-        io.emit('nowPlayingUpdate', {
+
+        // Emit the updated state to all clients in the /main namespace
+        mainNamespace.emit('nowPlayingUpdate', {
             title: currentVideoTitle,
             videoUrl: currentVideoUrl,
             startTimestamp: videoStartTimestamp,
@@ -1022,8 +1014,8 @@ io.on('connection', async (socket) => {
             isOffline: isOffline,
             isPaused: isPaused
         });
-    
-        logger.info(`Emitted 'nowPlayingUpdate' to all clients: ${JSON.stringify({
+
+        logger.info(`Emitted 'nowPlayingUpdate' to /main namespace clients: ${JSON.stringify({
             title: currentVideoTitle,
             videoUrl: currentVideoUrl,
             startTimestamp: videoStartTimestamp,
@@ -1033,12 +1025,49 @@ io.on('connection', async (socket) => {
         })}`);
     });
 
-    // Handle client disconnection
-    socket.on('disconnect', () => {
-        logger.info(`Youtube Client disconnected: ${socket.id}`);
-        activeUsers = activeUsers.filter(u => u.id !== socket.id);
-        io.emit('activeUsersUpdate', { users: activeUsers });
+    // Catch-all for unexpected events in /background namespace
+    socket.onAny((event, ...args) => {
+        logger.warn(`Background namespace: Received unexpected event '${event}' from client ${socket.id}: ${JSON.stringify(args)}`);
     });
+
+    // Handle background client disconnection
+    socket.on('disconnect', () => {
+        logger.info(`Background client disconnected: ${socket.id}`);
+    });
+});
+
+// Define /main namespace for main webpage clients
+const mainNamespace = io.of('/main');
+
+mainNamespace.on('connection', (socket) => {
+    const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
+    logger.info(`Main client connected: ${socket.id}, IP: ${ip}`);
+
+    // Emit the current state to the newly connected main client
+    socket.emit('nowPlayingUpdate', {
+        title: currentVideoTitle,
+        videoUrl: currentVideoUrl,
+        startTimestamp: videoStartTimestamp,
+        currentTime: (Date.now() - videoStartTimestamp) / 1000,
+        isOffline: isOffline,
+        isPaused: isVideoPaused
+    });
+
+    // Catch-all for unexpected events in /main namespace
+    socket.onAny((event, ...args) => {
+        logger.warn(`Main namespace: Received unexpected event '${event}' from client ${socket.id}: ${JSON.stringify(args)}`);
+    });
+
+    // Handle main client disconnection
+    socket.on('disconnect', () => {
+        logger.info(`Main client disconnected: ${socket.id}`);
+    });
+});
+
+// Root namespace handler for unexpected connections
+io.on('connection', (socket) => {
+    logger.warn(`Root namespace: Received unexpected connection from client ${socket.id}. Disconnecting.`);
+    socket.disconnect(true);
 });
 
 // Update Data Endpoint
