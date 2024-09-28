@@ -27,6 +27,7 @@ const dialogflow = require('@google-cloud/dialogflow');
 const uuid = require('uuid');
 
 dotenv.config();
+app.use(cors());
 
 const app = express();
 const server = http.createServer(app);
@@ -68,6 +69,25 @@ app.set('trust proxy', 1);
 // Middleware
 app.use(bodyParser.json());
 app.use(cookieParser());
+
+
+app.post('/updateVideoData', (req, res) => {
+    const videoData = req.body;
+
+    if (!videoData || typeof videoData !== 'object') {
+        console.error('Invalid video data received');
+        return res.status(400).send('Invalid video data');
+    }
+
+    // Log the received video data
+    console.log('Received video data:', videoData);
+
+    // You can implement additional logic here, like saving the data to a database
+
+    res.status(200).send('Video data received successfully');
+});
+
+
 
 // MongoDB Connection
 const mongoUrl = process.env.MONGO_URL;
