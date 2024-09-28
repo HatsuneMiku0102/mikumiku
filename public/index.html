@@ -3,16 +3,21 @@
 
 <head>
     <meta charset="UTF-8">
+    <!-- Meta tags for responsiveness and SEO -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MikuMiku | Home</title>
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="/styles.css">
 </head>
 
 <body>
+    <!-- Background Canvas for Nebula Effect -->
     <canvas id="techCanvas"></canvas>
 
     <div class="page-container">
+        <!-- Title Bar -->
         <div class="title-bar">
             <div class="container">
                 <div class="left-section"></div>
@@ -39,7 +44,9 @@
             </div>
         </div>
 
+        <!-- Main Content -->
         <div id="main-content" class="main-content">
+            <!-- Now Playing Section -->
             <div id="now-playing-container" class="now-playing-container">
                 <div id="now-playing" class="now-playing">
                     <div class="now-playing-sidebar">
@@ -94,7 +101,9 @@
                 </div>
             </div>
 
+            <!-- Widgets Section -->
             <div class="widgets-container">
+                <!-- Live Clock -->
                 <div class="live-clock box-container">
                     <h3>My Current Time</h3>
                     <div class="clock-container">
@@ -105,6 +114,7 @@
                     </div>
                 </div>
 
+                <!-- Weather Widget -->
                 <div class="weather-widget box-container">
                     <h3>My Current Weather</h3>
                     <div class="weather-info">
@@ -117,6 +127,7 @@
                 </div>
             </div>
 
+            <!-- About Me Section -->
             <div class="content-wrapper">
                 <div class="now-playing-about-wrapper">
                     <div class="about box-container" id="aboutMe">
@@ -127,6 +138,7 @@
             </div>
         </div>
 
+        <!-- Footer -->
         <footer class="footer">
             <div class="container">
                 <p>&copy; 2024 MikuMiku. All rights reserved.</p>
@@ -135,14 +147,13 @@
     </div>
 
     <!-- Chat Box for Haru -->
-
     <div id="chat-box" class="chat-box">
         <div class="chat-header">
             <h3>Haru AI</h3>
             <button id="close-chat" class="close-chat">X</button>
         </div>
         <div id="chat-content" class="chat-content">
-            <div class="message bot-message">Hi! Im Haru, how can I help you today.</div>
+            <div class="message bot-message">Hi! I'm Haru, how can I help you today?</div>
         </div>
         <div class="chat-input-container">
             <input type="text" id="chat-input" class="chat-input" placeholder="Type your message..." />
@@ -150,11 +161,12 @@
         </div>
     </div>
 
-
+    <!-- External Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="haru.js"></script>
 
+    <!-- Dynamic Title Script -->
     <script>
         function getTimeOfDay() {
             const hour = new Date().getHours();
@@ -195,6 +207,7 @@
         });
     </script>
 
+    <!-- Main JavaScript Code -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             let intervalID = null;
@@ -202,8 +215,6 @@
             let videoDuration = 0;
             let isVideoPaused = true;
             let isBrowsing = false;
-            const MAX_RECENT_VIDEOS = 3;
-            let previousVideoData = null;
 
             const YOUTUBE_API_URL = '/api/youtube';
             const WEATHER_API_URL = '/api/weather';
@@ -265,7 +276,7 @@
                     if (data.error) {
                         console.error(data.error);
                         displayError('Failed to load video details.');
-                        return 0;
+                        return null;
                     }
 
                     if (data && data.items && data.items.length > 0) {
@@ -273,55 +284,30 @@
                         const snippet = video.snippet;
                         const stats = video.statistics;
                         const durationISO = video.contentDetails.duration;
-                        const liveBroadcastContent = snippet.liveBroadcastContent;
 
-                        videoDuration = moment.duration(durationISO).asSeconds();
-                        const formattedDuration = formatTime(videoDuration);
+                        const videoDetails = {
+                            duration: moment.duration(durationISO).asSeconds(),
+                            title: snippet.title,
+                            description: snippet.description,
+                            channelTitle: snippet.channelTitle,
+                            publishedAt: snippet.publishedAt,
+                            viewCount: stats.viewCount,
+                            thumbnailUrl: snippet.thumbnails?.high?.url || '/default-thumbnail.jpg',
+                            categoryId: snippet.categoryId,
+                            liveBroadcastContent: snippet.liveBroadcastContent
+                        };
 
-                        document.getElementById('videoTitle').innerText = snippet.title || 'No Title Available';
-                        document.getElementById('channelName').innerText = snippet.channelTitle || 'Unknown Channel';
-                        document.getElementById('publishedDate').innerText = snippet.publishedAt ? new Date(snippet.publishedAt).toLocaleDateString() : 'Unknown Date';
-
-                        const viewsFormatted = stats.viewCount ? Number(stats.viewCount).toLocaleString() : '0';
-                        document.getElementById('viewCount').innerText = `${viewsFormatted} views`;
-
-                        const videoThumbnail = document.getElementById('videoThumbnail');
-                        videoThumbnail.src = snippet.thumbnails?.high?.url || '/default-thumbnail.jpg';
-                        videoThumbnail.alt = snippet.title || 'Video Thumbnail';
-                        videoThumbnail.setAttribute('loading', 'lazy');
-
-                        document.getElementById('total-duration').innerText = `Total Duration: ${formattedDuration}`;
-                        document.getElementById('videoDescription').innerText = snippet.description || 'No Description Available';
-
-                        const categoryId = snippet.categoryId;
-                        const categoryName = categories[categoryId] || 'Uncategorized';
-                        document.getElementById('videoCategory').innerText = categoryName;
-
-                        const liveIndicator = document.getElementById('liveIndicator');
-                        if (liveBroadcastContent === 'live') {
-                            liveIndicator.style.display = 'block';
-                        } else {
-                            liveIndicator.style.display = 'none';
-                        }
-
-                        const channelAvatar = document.getElementById('channelAvatar');
-                        if (channelAvatar) {
-                            channelAvatar.src = snippet.thumbnails?.default?.url || '/default-avatar.jpg';
-                            channelAvatar.alt = `${snippet.channelTitle} Avatar`;
-                            channelAvatar.setAttribute('loading', 'lazy');
-                        }
-
-                        return videoDuration;
+                        return videoDetails;
                     } else {
                         console.error('No video data found for the provided videoId.');
                         displayError('No video data found.');
-                        return 0;
+                        return null;
                     }
                 } catch (error) {
                     console.error('Error fetching video details:', error);
                     displayError('An error occurred while fetching video details.');
+                    return null;
                 }
-                return 0;
             }
 
             function displayError(message) {
@@ -343,31 +329,23 @@
             });
 
             socket.on('nowPlayingUpdate', (data) => {
-                const { isOffline, videoUrl, title, currentTime, isPaused, liveBroadcastContent, categoryId, description, channelName, channelAvatarUrl } = data;
+                const { isOffline, videoUrl, title, currentTime, isPaused } = data;
 
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 const nowPlayingElement = document.querySelector('.now-playing');
                 const offlineIndicator = document.getElementById('offline-indicator');
                 const pauseButton = document.getElementById('pauseButton');
-                const videoCategoryElement = document.getElementById('videoCategory');
-                const liveIndicator = document.getElementById('liveIndicator');
-                const videoDescriptionElement = document.getElementById('videoDescription');
-                const channelNameElement = document.getElementById('channelName');
-                const channelAvatarElement = document.getElementById('channelAvatar');
 
                 if (isOffline) {
-                    videoTitleElement.innerText = 'Im either out or asleep, sorry :)';
+                    // Handle offline state
+                    videoTitleElement.innerText = 'I’m not on YouTube at the moment, soz :(';
                     nowPlayingElement.classList.add('offline');
                     videoThumbnailElement.classList.add('offline-thumbnail');
                     clearExistingInterval();
                     document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
                     document.getElementById('total-duration').innerText = `Total Duration: --:--`;
                     pauseButton.style.display = 'none';
-                    const timeRemaining = document.getElementById('time-remaining');
-                    if (timeRemaining) {
-                        timeRemaining.style.display = 'none';
-                    }
                     offlineIndicator.style.display = 'block';
                 } else {
                     nowPlayingElement.classList.remove('offline');
@@ -379,82 +357,49 @@
                         return;
                     }
 
-                    previousVideoData = {
-                        title: title || 'No video playing',
-                        url: videoUrl,
-                        thumbnail: `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`
-                    };
+                    // Update with initial data
+                    videoTitleElement.innerText = title || 'No Title Available';
+                    videoThumbnailElement.src = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
+                    videoThumbnailElement.alt = title || 'Video Thumbnail';
 
-                    videoTitleElement.innerText = previousVideoData.title;
-                    videoThumbnailElement.src = previousVideoData.thumbnail;
-                    videoThumbnailElement.alt = previousVideoData.title;
-                    videoThumbnailElement.setAttribute('loading', 'lazy');
+                    // Fetch additional video details
+                    fetchYouTubeVideoDetails(videoID).then((videoDetails) => {
+                        if (videoDetails) {
+                            videoDuration = videoDetails.duration;
+                            document.getElementById('total-duration').innerText = `Total Duration: ${formatTime(videoDuration)}`;
+                            document.getElementById('videoDescription').innerText = videoDetails.description || 'No Description Available';
+                            document.getElementById('channelName').innerText = videoDetails.channelTitle || 'Unknown Channel';
+                            document.getElementById('publishedDate').innerText = videoDetails.publishedAt ? new Date(videoDetails.publishedAt).toLocaleDateString() : 'Unknown Date';
+                            document.getElementById('viewCount').innerText = `${Number(videoDetails.viewCount).toLocaleString()} views`;
 
-                    if (description) {
-                        videoDescriptionElement.innerText = description;
-                    }
+                            const categoryName = categories[videoDetails.categoryId] || 'Uncategorized';
+                            document.getElementById('videoCategory').innerText = categoryName;
 
-                    const categoryName = categories[categoryId] || 'Uncategorized';
-                    videoCategoryElement.innerText = categoryName;
-
-                    if (liveBroadcastContent === 'live') {
-                        liveIndicator.style.display = 'block';
-                    } else {
-                        liveIndicator.style.display = 'none';
-                    }
-
-                    if (channelName) {
-                        channelNameElement.innerText = channelName;
-                    }
-                    if (channelAvatarUrl) {
-                        channelAvatarElement.src = channelAvatarUrl;
-                        channelAvatarElement.alt = `${channelName} Avatar`;
-                        channelAvatarElement.setAttribute('loading', 'lazy');
-                    }
-
-                    if (videoUrl.includes("youtube.com/") && !videoUrl.includes("/watch")) {
-                        clearExistingInterval();
-                        isBrowsing = true;
-                        document.getElementById('time-elapsed').innerText = `Time Elapsed: --:--`;
-                        document.getElementById('total-duration').innerText = `Total Duration: --:--`;
-                        pauseButton.style.display = 'none';
-                        const timeRemaining = document.getElementById('time-remaining');
-                        if (timeRemaining) {
-                            timeRemaining.style.display = 'none';
-                        }
-                    } else {
-                        isBrowsing = false;
-                        fetchYouTubeVideoDetails(videoID).then((duration) => {
-                            if (duration) {
-                                videoDuration = duration;
-                                videoStartTime = Date.now() - (currentTime * 1000);
-                                clearExistingInterval();
-                                isVideoPaused = isPaused;
-                                if (!isVideoPaused) {
-                                    intervalID = setInterval(updateProgressBar, 1000);
-                                }
-                                document.getElementById('total-duration').innerText = `Total Duration: ${formatTime(videoDuration)}`;
-                                const timeRemaining = document.getElementById('time-remaining');
-                                if (timeRemaining) {
-                                    timeRemaining.style.display = 'none';
-                                }
-                                pauseButton.style.display = 'inline-block';
+                            const liveIndicator = document.getElementById('liveIndicator');
+                            if (videoDetails.liveBroadcastContent === 'live') {
+                                liveIndicator.style.display = 'block';
+                            } else {
+                                liveIndicator.style.display = 'none';
                             }
-                        });
-                    }
+                        }
 
-                    if (isPaused) {
-                        pauseButton.classList.add('paused');
-                    } else {
-                        pauseButton.classList.remove('paused');
-                    }
+                        // Handle progress bar and playback state
+                        videoStartTime = Date.now() - (currentTime * 1000);
+                        clearExistingInterval();
+                        isVideoPaused = isPaused;
+                        if (!isVideoPaused) {
+                            intervalID = setInterval(updateProgressBar, 1000);
+                        }
+                        pauseButton.style.display = 'inline-block';
+                        togglePauseState(isPaused);
+                    });
                 }
             });
 
             function extractYouTubeVideoID(url) {
-                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|youtube\.com\/shorts\/)([^#&?]*).*/;
+                const regExp = /^.*(?:youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|youtube\.com\/shorts\/)([^#&?]*).*/;
                 const match = url.match(regExp);
-                return (match && match[2].length === 11) ? match[2] : null;
+                return (match && match[1].length === 11) ? match[1] : null;
             }
 
             function updateClocks() {
@@ -545,29 +490,6 @@
                 }
             }
 
-            socket.on('dynamicPrompt', (data) => {
-                const promptContainer = document.getElementById('dynamic-prompt-container');
-                const promptText = document.getElementById('dynamic-prompt-text');
-
-                if (!promptContainer || !promptText) {
-                    return;
-                }
-
-                promptText.innerText = data.message || "A new prompt has arrived!";
-                promptContainer.style.display = 'block';
-
-                setTimeout(() => {
-                    promptContainer.style.display = 'none';
-                }, 5000);
-
-                const closePromptButton = document.getElementById('close-prompt');
-                if (closePromptButton) {
-                    closePromptButton.addEventListener('click', () => {
-                        promptContainer.style.display = 'none';
-                    });
-                }
-            });
-
             const toggleButton = document.getElementById('toggleDescription');
             const videoDescription = document.getElementById('videoDescription');
 
@@ -595,6 +517,7 @@
         });
     </script>
 
+    <!-- Nebula Background Animation Script -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const canvas = document.getElementById("techCanvas");
