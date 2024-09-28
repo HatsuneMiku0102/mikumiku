@@ -73,6 +73,28 @@ app.use(cookieParser());
 app.use(cors());
 
 
+// Define category mappings
+const categoryMappings = {
+    "1": "Film & Animation",
+    "2": "Autos & Vehicles",
+    "10": "Music",
+    "15": "Pets & Animals",
+    "17": "Sports",
+    "19": "Travel & Events",
+    "20": "Gaming",
+    "21": "Videoblogging",
+    "22": "People & Blogs",
+    "23": "Comedy",
+    "24": "Entertainment",
+    "25": "News & Politics",
+    "26": "Howto & Style",
+    "27": "Education",
+    "28": "Science & Technology",
+    "29": "Nonprofits & Activism",
+    // Add more mappings as necessary
+};
+
+// Your existing updateVideoData function
 app.post('/updateVideoData', async (req, res) => {
     const { videoId, title, description, currentTime, isPaused, isOffline } = req.body;
 
@@ -127,6 +149,7 @@ app.post('/updateVideoData', async (req, res) => {
         res.status(500).send('Error fetching video data');
     }
 });
+
 
 
 
