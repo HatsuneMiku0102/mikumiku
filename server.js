@@ -973,8 +973,13 @@ let isOffline = false;
 let activeUsers = [];
 
 io.on('connection', (socket) => {
-    logger.info(`Unexpected connection from client ${socket.id}. Disconnecting.`);
-    socket.disconnect(true);
+    logger.info(`Unexpected connection from client ${socket.id}. Disconnecting in 3 seconds if not recognized.`);
+    setTimeout(() => {
+        if (!socket.rooms.has('/main') && !socket.rooms.has('/background')) {
+            logger.info(`Client ${socket.id} still unrecognized. Disconnecting.`);
+            socket.disconnect(true);
+        }
+    }, 3000);
 });
 
 // Define /background namespace for background scripts (e.g., Chrome extensions)
