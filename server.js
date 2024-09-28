@@ -1,5 +1,3 @@
-// server.js
-
 'use strict';
 
 const express = require('express');
@@ -22,6 +20,8 @@ const winston = require('winston');
 const { DateTime } = require('luxon');
 const fetch = require('node-fetch');
 const retry = require('async-retry');
+const { body, validationResult } = require('express-validator');
+const sanitizeHtml = require('sanitize-html');
 
 dotenv.config();
 
@@ -29,7 +29,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: "chrome-extension://ealgoodedcojbceodddhbpcklnpneocp", // Replace with your actual Chrome extension ID
+        origin: "chrome-extension://ealgoodedcojbceodddhbpcklnpneocp",
         methods: ["GET", "POST"],
         allowedHeaders: ["my-custom-header"],
         credentials: true
@@ -38,7 +38,6 @@ const io = socketIo(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// Configure logging using winston
 const logger = winston.createLogger({
     level: 'info',
     format: winston.format.combine(
@@ -54,19 +53,17 @@ const logger = winston.createLogger({
 });
 
 app.get('/api/keys', (req, res) => {
-  res.json({
-    YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY,
-    OPENWEATHER_API_KEY: process.env.OPENWEATHER_API_KEY,
-  });
+    res.json({
+        YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY,
+        OPENWEATHER_API_KEY: process.env.OPENWEATHER_API_KEY,
+    });
 });
 
 app.set('trust proxy', 1);
 
-// Middleware
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-// MongoDB Connection
 const mongoUrl = process.env.MONGO_URL;
 
 mongoose.connect(mongoUrl, {
@@ -79,11 +76,10 @@ mongoose.connect(mongoUrl, {
     logger.error(`Error connecting to MongoDB: ${err}`);
 });
 
-// Session Store
 const sessionStore = MongoStore.create({
     mongoUrl: mongoUrl,
     collectionName: 'sessions',
-    ttl: 14 * 24 * 60 * 60, // 14 days
+    ttl: 14 * 24 * 60 * 60,
     autoRemove: 'native'
 });
 
@@ -95,34 +91,32 @@ sessionStore.on('error', (error) => {
     logger.error(`Session store error: ${error}`);
 });
 
-// Session Middleware
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret',
     resave: false,
     saveUninitialized: false,
     store: sessionStore,
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // Set to true in production
+        secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 1 day
+        maxAge: 24 * 60 * 60 * 1000
     }
 }));
 
-// Set Content Security Policy using helmet
 app.use(
     helmet.contentSecurityPolicy({
         directives: {
             defaultSrc: ["'self'"],
             scriptSrc: [
                 "'self'",
-                "'unsafe-inline'", // Consider replacing with nonces or hashes for better security
+                "'unsafe-inline'",
                 "https://fonts.googleapis.com",
                 "https://cdnjs.cloudflare.com",
                 "https://www.youtube.com"
             ],
             styleSrc: [
                 "'self'",
-                "'unsafe-inline'", // Consider replacing with nonces or hashes for better security
+                "'unsafe-inline'",
                 "https://fonts.googleapis.com"
             ],
             imgSrc: [
@@ -160,14 +154,12 @@ app.use(
     })
 );
 
-// Serve static files from 'public'
 app.use(express.static(path.join(__dirname, 'public'), {
     etag: false,
     maxAge: 0,
     lastModified: false
 }));
 
-// MongoDB Schemas and Models
 const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
     bungie_name: { type: String, required: true },
@@ -194,7 +186,7 @@ const sessionSchema = new mongoose.Schema({
     state: { type: String, required: true, unique: true },
     user_id: { type: String, required: true },
     session_id: { type: String, required: true },
-    created_at: { type: Date, default: Date.now, expires: 86400 }, // Expires after 1 day
+    created_at: { type: Date, default: Date.now, expires: 86400 },
     ip_address: { type: String },
     user_agent: { type: String }
 });
@@ -210,7 +202,6 @@ const commentSchema = new mongoose.Schema({
 
 const Comment = mongoose.model('Comment', commentSchema);
 
-// Helper Functions
 function generateRandomString(size = 16) {
     return crypto.randomBytes(size).toString('hex');
 }
@@ -221,13 +212,11 @@ function hashPassword(password, salt) {
         .digest('hex');
 }
 
-// Example: Hashing a plain password (for demonstration purposes)
 const plainPassword = 'Aria';
 const salt = 'random_salt';
 const hashedPassword = hashPassword(plainPassword, salt);
 logger.info(`Hashed Password: ${hashedPassword}`);
 
-// JWT Verification Middleware
 function verifyToken(req, res, next) {
     const token = req.cookies.token;
     logger.info(`Token from cookie: ${token}`);
@@ -250,7 +239,7 @@ function verifyToken(req, res, next) {
 
 app.post('/api/gpt', async (req, res) => {
     const userMessage = req.body.message;
-    
+
     if (!userMessage) {
         return res.status(400).json({ error: 'Message is required' });
     }
@@ -263,7 +252,7 @@ app.post('/api/gpt', async (req, res) => {
                 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'gpt-3.5-turbo', // Using gpt-3.5-turbo instead of gpt-4
+                model: 'gpt-3.5-turbo',
                 messages: [{ role: 'user', content: userMessage }]
             })
         });
@@ -283,9 +272,6 @@ app.post('/api/gpt', async (req, res) => {
         res.status(500).json({ error: 'Server error while processing request.' });
     }
 });
-
-
-
 
 app.get('/api/youtube', async (req, res) => {
     const videoId = req.query.videoId;
@@ -307,12 +293,10 @@ app.get('/api/youtube', async (req, res) => {
             async (bail, attempt) => {
                 try {
                     const response = await axios.get(apiUrl);
-                    
-                    // Handle the response
+
                     if (response.status === 200) {
                         const responseData = response.data;
 
-                        // Validate the response structure
                         if (
                             !responseData.items ||
                             responseData.items.length === 0 ||
@@ -323,45 +307,38 @@ app.get('/api/youtube', async (req, res) => {
 
                         return responseData;
                     } else if (response.status === 403) {
-                        // If the error is related to a forbidden request or quota limit, bail and do not retry
                         bail(new Error('YouTube API quota exceeded or access forbidden.'));
                     } else {
                         throw new Error(`Failed to fetch data from YouTube API. Status: ${response.status}`);
                     }
                 } catch (err) {
                     if (err.response) {
-                        // Handle HTTP response errors
                         if (err.response.status === 404) {
                             bail(new Error('Video not found.'));
                         } else if (err.response.status >= 500) {
-                            // Retry if YouTube's servers are having issues
                             console.warn(`Attempt ${attempt}: YouTube API returned a server error. Retrying...`);
-                            throw err; // Retry this error
+                            throw err;
                         } else {
-                            // For other client-side errors, do not retry
                             bail(err);
                         }
                     } else {
-                        // Handle network errors or other unknown errors
                         console.warn(`Attempt ${attempt}: Network error or unknown issue occurred. Retrying...`);
-                        throw err; // Retry on network errors
+                        throw err;
                     }
                 }
             },
             {
-                retries: 3, // Retry up to 3 times before failing
-                factor: 2, // Exponential backoff factor
-                minTimeout: 1000, // Minimum time between retries (1 second)
-                maxTimeout: 5000, // Maximum time between retries (5 seconds)
+                retries: 3,
+                factor: 2,
+                minTimeout: 1000,
+                maxTimeout: 5000,
             }
         );
 
-        // Successfully fetched data
         res.status(200).json(data);
     } catch (error) {
         console.error(`Error fetching YouTube video data for videoId ${videoId}: ${error.message}`);
 
-        // Differentiate error types for better client handling
         if (error.message.includes('quota')) {
             return res.status(403).json({ error: 'YouTube API quota exceeded. Please try again later.' });
         } else if (error.message.includes('not found')) {
@@ -374,8 +351,6 @@ app.get('/api/youtube', async (req, res) => {
     }
 });
 
-
-// OAuth Configuration
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = 'https://mikumiku.dev/callback';
@@ -423,10 +398,8 @@ function updateMembershipMapping(discordId, userInfo) {
 
 async function sendUserInfoToDiscordBot(discordId, userInfo) {
     logger.info(`User info ready to be sent to Discord bot: ${JSON.stringify(userInfo)}`);
-    // Implement the logic to send user info to your Discord bot here
 }
 
-// OAuth Routes
 app.get('/login', async (req, res) => {
     const state = generateRandomString(16);
     const user_id = req.query.user_id;
@@ -569,7 +542,6 @@ app.get('/api/bungie-name', async (req, res) => {
     }
 });
 
-// Comment Routes
 app.post('/api/comments', async (req, res) => {
     try {
         const { username, comment } = req.body;
@@ -603,7 +575,6 @@ app.delete('/api/comments/:id', verifyToken, async (req, res) => {
     }
 });
 
-// Utility Functions
 async function getBungieToken(code) {
     const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
     const payload = new URLSearchParams({
@@ -775,7 +746,6 @@ app.get('/api/clan/pending/fromdb', verifyToken, async (req, res) => {
     }
 });
 
-// Additional Security Configurations
 app.use((req, res, next) => {
     if (process.env.NODE_ENV === 'production') {
         if (req.headers['x-forwarded-proto'] !== 'https') {
@@ -785,17 +755,15 @@ app.use((req, res, next) => {
     next();
 });
 
-// Protected Admin Dashboard Route
 app.get('/admin-dashboard-:random.html', verifyToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
 });
 
-// Login Route
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
     const adminUsername = process.env.ADMIN_USERNAME;
-    const adminPasswordHash = process.env.ADMIN_PASSWORD; // Should be hashed
+    const adminPasswordHash = process.env.ADMIN_PASSWORD;
     const salt = 'random_salt';
 
     if (username !== adminUsername) {
@@ -811,7 +779,7 @@ app.post('/login', async (req, res) => {
     }
 
     const token = jwt.sign({ id: adminUsername }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
-        expiresIn: 86400 // 24 hours
+        expiresIn: 86400
     });
 
     const dashboardURL = `/admin-dashboard-${generateRandomString()}.html`;
@@ -822,7 +790,7 @@ app.post('/login', async (req, res) => {
     res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 86400 * 1000 // 24 hours
+        maxAge: 86400 * 1000
     });
 
     app.get(dashboardURL, verifyToken, (req, res) => {
@@ -838,28 +806,23 @@ app.post('/login', async (req, res) => {
     });
 });
 
-// Logout Route
 app.post('/logout', (req, res) => {
     res.clearCookie('token');
     req.session.destroy();
     res.redirect('/admin-login.html');
 });
 
-// Video Status Variables (Server-Side State)
 let currentVideoTitle = 'Loading...';
 let currentVideoUrl = '';
 let videoStartTimestamp = Date.now();
-let isVideoPaused = false; // Initialize as not paused
-let isOffline = false; // Initialize as online
+let isVideoPaused = false;
+let isOffline = false;
 
-// Active Users Tracking (Optional, can be expanded based on requirements)
 let activeUsers = [];
 
-// Socket.IO Connection Handling
 io.on('connection', async (socket) => {
     logger.info(`New client connected: ${socket.id}`);
 
-    // Emit the current status to the newly connected client
     socket.emit('nowPlayingUpdate', {
         title: currentVideoTitle,
         videoUrl: currentVideoUrl,
@@ -869,32 +832,25 @@ io.on('connection', async (socket) => {
         isPaused: isVideoPaused
     });
 
-    // Handle video status updates from clients (Chrome Extension)
     socket.on('updateVideoTitle', (data) => {
         logger.info(`Received "updateVideoTitle" event from client ${socket.id}: ${JSON.stringify(data)}`);
-    
-        // Destructure data
+
         const { title, videoUrl, currentTime, isPaused, isOffline: offlineStatus } = data;
-    
-        // Log each field for better debugging
+
         logger.info(`Title: ${title}, Video URL: ${videoUrl}, Current Time: ${currentTime}, Is Paused: ${isPaused}, Is Offline: ${offlineStatus}`);
-    
-        // Apply a fallback if currentTime is missing or undefined
+
         const validCurrentTime = typeof currentTime === 'number' ? currentTime : 0;
-    
-        // Validate incoming data for online state
+
         if (!offlineStatus) {
             if (typeof title !== 'string' || title.trim() === '' || typeof videoUrl !== 'string' || videoUrl.trim() === '' ||
                 typeof validCurrentTime !== 'number' || typeof isPaused !== 'boolean' || typeof offlineStatus !== 'boolean') {
-                
+
                 logger.warn(`Invalid data received from client ${socket.id}: ${JSON.stringify(data)}`);
                 return;
             }
-            
-            // Handle valid online data
+
             logger.info(`Handling online state: Title="${title}", URL="${videoUrl}", CurrentTime=${validCurrentTime}`);
         } else {
-            // Handle offline state
             if (title === 'Offline' && videoUrl === '') {
                 logger.info(`Received valid "offline" state from client ${socket.id}`);
             } else {
@@ -902,18 +858,16 @@ io.on('connection', async (socket) => {
                 return;
             }
         }
-    
-        // Update the server state with valid data
+
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
         videoStartTimestamp = Date.now() - (validCurrentTime * 1000);
         isVideoPaused = isPaused;
         isOffline = offlineStatus;
-    
+
         logger.info(`Updated server state: Title="${currentVideoTitle}", URL="${currentVideoUrl}", ` +
             `StartTimestamp=${videoStartTimestamp}, isPaused=${isVideoPaused}, isOffline=${isOffline}`);
-    
-        // Emit the updated status to all connected clients
+
         io.emit('nowPlayingUpdate', {
             title: currentVideoTitle,
             videoUrl: currentVideoUrl,
@@ -922,32 +876,24 @@ io.on('connection', async (socket) => {
             isOffline: isOffline,
             isPaused: isVideoPaused
         });
-    
+
         logger.info(`Emitted "nowPlayingUpdate" to all clients: Title="${currentVideoTitle}", URL="${currentVideoUrl}", ` +
             `isPaused=${isVideoPaused}, isOffline=${isOffline}`);
     });
 
-
-
-
-
-    // Handle disconnection
     socket.on('disconnect', () => {
         logger.info(`Client disconnected: ${socket.id}`);
     });
 });
 
-// Real-time Data Endpoint
 app.post('/api/update', (req, res) => {
     const data = req.body;
     io.emit('updateData', data);
     res.status(200).send({ message: 'Data sent to clients' });
 });
 
-// Video Routes (You can expand these based on your requirements)
 app.get('/api/videos/public', async (req, res) => {
     try {
-        // Implement logic to retrieve public videos
         res.json([]);
     } catch (err) {
         logger.error(`Error retrieving video metadata: ${err}`);
@@ -955,8 +901,8 @@ app.get('/api/videos/public', async (req, res) => {
     }
 });
 
-app.post('/api/videos', 
-    verifyToken, 
+app.post('/api/videos',
+    verifyToken,
     [
         body('url').isURL().withMessage('Invalid URL format'),
         body('title').isString().notEmpty().withMessage('Title is required'),
@@ -969,7 +915,6 @@ app.post('/api/videos',
             return res.status(400).json({ errors: errors.array() });
         }
 
-        // Sanitizing user inputs
         const sanitizedUrl = sanitizeHtml(req.body.url.replace('youtu.be', 'youtube.com/embed'));
         const sanitizedTitle = sanitizeHtml(req.body.title);
         const sanitizedDescription = req.body.description ? sanitizeHtml(req.body.description) : '';
@@ -984,8 +929,6 @@ app.post('/api/videos',
         };
 
         try {
-            // Logic to save video metadata to the database (for example, using MongoDB or SQL)
-            // const result = await VideoModel.create(videoMetadata);
             res.status(201).json({ message: 'Video added successfully', video: videoMetadata });
         } catch (err) {
             logger.error(`Error saving video metadata: ${err.message}`);
@@ -994,15 +937,12 @@ app.post('/api/videos',
     }
 );
 
-// Active Users Tracking Helper Functions
-const IPINFO_API_KEY = process.env.IPINFO_API_KEY; // Using your environment variable
+const IPINFO_API_KEY = process.env.IPINFO_API_KEY;
 
-// Function to fetch location data from IPInfo API
 async function fetchLocationData(ip) {
     try {
-        // Split IPs in case multiple are forwarded
         const ipList = ip.split(',');
-        const validIp = ipList[0].trim(); // Take the first valid IP address
+        const validIp = ipList[0].trim();
 
         const response = await axios.get(`https://ipinfo.io/${validIp}?token=${IPINFO_API_KEY}`);
         const { ip: userIP, city, region, country } = response.data;
@@ -1024,8 +964,6 @@ async function fetchLocationData(ip) {
     }
 }
 
-
-
 async function attachLocationData(req, res, next) {
     const clientIp = getClientIp(req);
 
@@ -1033,7 +971,7 @@ async function attachLocationData(req, res, next) {
         console.log(`Client IP detected: ${clientIp}`);
 
         const locationData = await fetchLocationData(clientIp);
-        req.location = locationData; // Attach location data to the request object
+        req.location = locationData;
     } else {
         console.log('No valid public IP detected.');
     }
@@ -1043,7 +981,6 @@ async function attachLocationData(req, res, next) {
 
 module.exports = { attachLocationData };
 
-// Function to normalize IP address (remove "::ffff:" prefix if present)
 function normalizeIp(ip) {
     if (ip.startsWith('::ffff:')) {
         return ip.replace('::ffff:', '');
@@ -1051,8 +988,6 @@ function normalizeIp(ip) {
     return ip;
 }
 
-
-// Additional Routes
 app.get('/admin-dashboard', verifyToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
 });
@@ -1092,7 +1027,7 @@ app.get('/api/check-bungie', async (req, res) => {
 
 app.get('/api/weather', async (req, res) => {
     const city = req.query.city || 'Leeds';
-    const units = 'metric'; // or 'imperial' for Fahrenheit
+    const units = 'metric';
     const apiKey = process.env.OPENWEATHER_API_KEY;
 
     if (!apiKey) {
@@ -1105,7 +1040,6 @@ app.get('/api/weather', async (req, res) => {
     try {
         const response = await fetch(apiUrl);
         if (!response.ok) {
-            // Attempt to parse error message from response
             let errorMsg = 'Failed to fetch weather data';
             try {
                 const errorData = await response.json();
@@ -1123,35 +1057,29 @@ app.get('/api/weather', async (req, res) => {
     }
 });
 
-
-const processedIPs = new Set(); // Set to store unique IPs
+const processedIPs = new Set();
 
 function getValidIpAddress(req) {
     let ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
     if (ipAddress.includes(',')) {
-        // Extract first valid IP from the list (ignoring local/internal IPs if present)
         ipAddress = ipAddress.split(',').map(ip => ip.trim())[0];
     }
 
-    // If IP starts with "::ffff:", it is an IPv6 representation of IPv4, clean it up
     if (ipAddress.startsWith('::ffff:')) {
         ipAddress = ipAddress.replace('::ffff:', '');
     }
 
-    // Check if the IP has already been processed to avoid duplicates
     if (processedIPs.has(ipAddress)) {
         console.log(`Duplicate IP detected: ${ipAddress}, skipping processing.`);
-        return null; // Return null to indicate a duplicate IP
+        return null;
     }
 
-    // Add the new IP to the set of processed IPs
     processedIPs.add(ipAddress);
     return ipAddress;
 }
 
 module.exports = { fetchLocationData, getValidIpAddress };
-
 
 app.get('/api/location', async (req, res) => {
     const clientIp = getValidIpAddress(req);
@@ -1161,7 +1089,7 @@ app.get('/api/location', async (req, res) => {
     }
 
     try {
-        const locationData = await fetchLocationData(clientIp); // Fetch the location using the public IP
+        const locationData = await fetchLocationData(clientIp);
         res.json(locationData);
     } catch (error) {
         console.error(`Error fetching location for IP ${clientIp}:`, error);
@@ -1169,19 +1097,16 @@ app.get('/api/location', async (req, res) => {
     }
 });
 
-
 function getClientIp(req) {
     const forwarded = req.headers['x-forwarded-for'];
     let ip = forwarded ? forwarded.split(',')[0] : req.connection.remoteAddress;
-    
-    // Strip the ::ffff: IPv6 prefix if present
+
     if (ip.includes("::ffff:")) {
         ip = ip.split("::ffff:")[1];
     }
-    
+
     return ip;
 }
-
 
 async function fetchUserLocation(ip) {
     try {
@@ -1194,27 +1119,18 @@ async function fetchUserLocation(ip) {
     }
 }
 
-// Function to get all active users with their locations
 async function getActiveUsersWithLocations() {
-    // Fetch all active users' location data asynchronously
     const userPromises = activeUsers.map(user => fetchUserLocation(user.ip));
     return await Promise.all(userPromises);
 }
 
-
-
-
-
-// Socket.io connection handler
 io.on('connection', async (socket) => {
     const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
     console.log(`New client connected: ${socket.id}, IP: ${ip}`);
 
-    // Fetch location data
     const locationData = await fetchLocationData(ip);
     console.log(`Location data fetched:`, locationData);
 
-    // Add the user with location data to active users list
     const user = {
         id: socket.id,
         ip: locationData.ip,
@@ -1226,14 +1142,12 @@ io.on('connection', async (socket) => {
     activeUsers.push(user);
     io.emit('activeUsersUpdate', { users: activeUsers });
 
-    // On disconnect, remove user from active list
     socket.on('disconnect', () => {
         activeUsers = activeUsers.filter(u => u.id !== socket.id);
         io.emit('activeUsersUpdate', { users: activeUsers });
     });
 });
 
-// Start the server
 server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
