@@ -29,12 +29,9 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: [
-            "*",
-            "https://mikumiku.dev/"
-        ],
+        origin: "https://mikumiku.dev", // Removed "*" and trailing slash
         methods: ["GET", "POST"],
-        allowedHeaders: ["my-custom-header"],
+        allowedHeaders: ["my-custom-header"], // Added "Content-Type"
         credentials: true
     }
 });
@@ -991,10 +988,10 @@ io.on('connection', async (socket) => {
 
     // Handle 'progressUpdate' events from the client
     socket.on('progressUpdate', (data) => {
-        logger.info(`Received 'progressUpdate' event from client ${socket.id}: ${JSON.stringify(data)}`);
-
+        logger.info(`Received 'progressUpdate' from ${socket.id}: ${JSON.stringify(data)}`);
+    
         const { title, videoUrl, currentTime, isPaused, isOffline } = data;
-
+    
         // Validate incoming data
         if (
             typeof title !== 'string' ||
@@ -1003,19 +1000,19 @@ io.on('connection', async (socket) => {
             typeof isPaused !== 'boolean' ||
             typeof isOffline !== 'boolean'
         ) {
-            logger.warn(`Invalid data received from client ${socket.id}: ${JSON.stringify(data)}`);
+            logger.warn(`Invalid 'progressUpdate' data from ${socket.id}: ${JSON.stringify(data)}`);
             return;
         }
-
+    
         // Update server's current state
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
         videoStartTimestamp = Date.now() - (currentTime * 1000);
         isVideoPaused = isPaused;
         isOffline = isOffline;
-
-        logger.info(`Updated server state: Title="${currentVideoTitle}", URL="${currentVideoUrl}", StartTimestamp=${videoStartTimestamp}, isPaused=${isVideoPaused}, isOffline=${isOffline}`);
-
+    
+        logger.info(`Updated state: Title="${currentVideoTitle}", URL="${currentVideoUrl}", StartTimestamp=${videoStartTimestamp}, isPaused=${isVideoPaused}, isOffline=${isOffline}`);
+    
         // Emit the updated state to all connected clients
         io.emit('nowPlayingUpdate', {
             title: currentVideoTitle,
@@ -1025,8 +1022,15 @@ io.on('connection', async (socket) => {
             isOffline: isOffline,
             isPaused: isPaused
         });
-
-        logger.info(`Emitted 'nowPlayingUpdate' to all clients: Title="${currentVideoTitle}", URL="${currentVideoUrl}", isPaused=${isPaused}, isOffline=${isOffline}`);
+    
+        logger.info(`Emitted 'nowPlayingUpdate' to all clients: ${JSON.stringify({
+            title: currentVideoTitle,
+            videoUrl: currentVideoUrl,
+            startTimestamp: videoStartTimestamp,
+            currentTime: currentTime,
+            isOffline: isOffline,
+            isPaused: isPaused
+        })}`);
     });
 
     // Handle client disconnection
