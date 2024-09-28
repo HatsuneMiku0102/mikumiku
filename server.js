@@ -988,7 +988,7 @@ io.on('connection', async (socket) => {
 
     // Handle 'progressUpdate' events from the client
     socket.on('progressUpdate', (data) => {
-        logger.info(`Received 'progressUpdate' from ${socket.id}: ${JSON.stringify(data)}`);
+        logger.info(`Received 'progressUpdate' from client ${socket.id}: ${JSON.stringify(data)}`);
     
         const { title, videoUrl, currentTime, isPaused, isOffline } = data;
     
@@ -1000,7 +1000,7 @@ io.on('connection', async (socket) => {
             typeof isPaused !== 'boolean' ||
             typeof isOffline !== 'boolean'
         ) {
-            logger.warn(`Invalid 'progressUpdate' data from ${socket.id}: ${JSON.stringify(data)}`);
+            logger.warn(`Invalid 'progressUpdate' data from client ${socket.id}: ${JSON.stringify(data)}`);
             return;
         }
     
@@ -1011,7 +1011,7 @@ io.on('connection', async (socket) => {
         isVideoPaused = isPaused;
         isOffline = isOffline;
     
-        logger.info(`Updated state: Title="${currentVideoTitle}", URL="${currentVideoUrl}", StartTimestamp=${videoStartTimestamp}, isPaused=${isVideoPaused}, isOffline=${isOffline}`);
+        logger.info(`Updated server state: Title="${currentVideoTitle}", URL="${currentVideoUrl}", StartTimestamp=${videoStartTimestamp}, isPaused=${isVideoPaused}, isOffline=${isOffline}`);
     
         // Emit the updated state to all connected clients
         io.emit('nowPlayingUpdate', {
