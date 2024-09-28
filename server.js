@@ -863,7 +863,7 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('updateVideoTitle', (data) => {
-        logger.info(`Received "updateVideoTitle" event from client ${socket.id}: ${JSON.stringify(data)}`);
+        logger.info(`Received 'updateVideoTitle' event from client ${socket.id}: ${JSON.stringify(data)}`);
 
         const { title, videoUrl, currentTime, isPaused, isOffline: offlineStatus } = data;
 
