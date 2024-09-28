@@ -59,54 +59,71 @@ app.use(cookieParser());
 
 // Helmet for Security (Adjusted for relaxed CORS)
 app.use(
-    helmet.contentSecurityPolicy({
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: [
-                "'self'",
-                "'unsafe-inline'",
-                "https://fonts.googleapis.com",
-                "https://cdnjs.cloudflare.com",
-                "https://www.youtube.com"
-            ],
-            styleSrc: [
-                "'self'",
-                "'unsafe-inline'",
-                "https://fonts.googleapis.com"
-            ],
-            imgSrc: [
-                "'self'",
-                "data:",
-                "https://i.ytimg.com",
-                "https://img.youtube.com",
-                "https://openweathermap.org"
-            ],
-            fontSrc: [
-                "'self'",
-                "https://fonts.gstatic.com"
-            ],
-            connectSrc: [
-                "'self'",
-                "https://www.googleapis.com",
-                "https://*.youtube.com",
-                "https://api.openweathermap.org",
-                "https://mikumiku.dev" // Ensure server can connect back if needed
-            ],
-            frameSrc: [
-                "'self'",
-                "https://discord.com",
-                "https://www.youtube.com"
-            ],
-            mediaSrc: [
-                "'self'",
-                "https://www.youtube.com"
-            ],
-            frameAncestors: [
-                "'self'",
-                "https://discord.com"
-            ],
-            upgradeInsecureRequests: []
-        }
+    helmet({
+        contentSecurityPolicy: {
+            useDefaults: true,
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: [
+                    "'self'",
+                    "'unsafe-inline'",
+                    "https://fonts.googleapis.com",
+                    "https://cdnjs.cloudflare.com",
+                    "https://www.youtube.com",
+                    "https://mikumiku.dev", // Allow your own domain to serve scripts
+                ],
+                styleSrc: [
+                    "'self'",
+                    "'unsafe-inline'",
+                    "https://fonts.googleapis.com",
+                ],
+                imgSrc: [
+                    "'self'",
+                    "data:",
+                    "https://i.ytimg.com",
+                    "https://img.youtube.com",
+                    "https://openweathermap.org",
+                ],
+                fontSrc: [
+                    "'self'",
+                    "https://fonts.gstatic.com",
+                ],
+                connectSrc: [
+                    "'self'",
+                    "wss://mikumiku.dev", // Allow WebSocket connections to your domain
+                    "https://mikumiku.dev", // Allow your own domain for data connections
+                    "https://www.googleapis.com",
+                    "https://*.youtube.com",
+                    "https://api.openweathermap.org",
+                ],
+                frameSrc: [
+                    "'self'",
+                    "https://discord.com",
+                    "https://www.youtube.com",
+                ],
+                mediaSrc: [
+                    "'self'",
+                    "https://www.youtube.com",
+                ],
+                frameAncestors: [
+                    "'self'",
+                    "https://discord.com",
+                ],
+                upgradeInsecureRequests: null, // Disable forced upgrade to HTTPS if causing issues
+            },
+        },
+        crossOriginEmbedderPolicy: false, // Allow cross-origin embedding (useful for iframes)
+        crossOriginResourcePolicy: {
+            policy: "cross-origin", // Allow resources to be loaded cross-origin
+        },
+        referrerPolicy: {
+            policy: "no-referrer-when-downgrade", // Allow referrer information only when the protocol security is not downgraded
+        },
+        hsts: {
+            maxAge: 31536000,
+            includeSubDomains: true,
+            preload: true,
+        },
     })
 );
 
