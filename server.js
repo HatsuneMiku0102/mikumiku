@@ -210,27 +210,22 @@ async function getFulfillmentResponse(query) {
     const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
     const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
 
-    // Step 1: Identify if the query is a "Who is" question
     const isWhoIsQuery = query.toLowerCase().startsWith('who is');
 
     if (isWhoIsQuery) {
-        // Step 2: Use Google Knowledge Graph API to find the answer
+        // Step 1: Query Google Knowledge Graph API
         const KNOWLEDGE_GRAPH_API_URL = `https://kgsearch.googleapis.com/v1/entities:search?query=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&limit=1&indent=True`;
 
         try {
             const kgResponse = await fetch(KNOWLEDGE_GRAPH_API_URL);
-            if (!kgResponse.ok) {
-                throw new Error(`Knowledge Graph API error: ${kgResponse.statusText}`);
-            }
-
             const kgData = await kgResponse.json();
+            console.log('Knowledge Graph Response:', kgData); // Log the response for debugging
+
             if (kgData.itemListElement && kgData.itemListElement.length > 0) {
                 const entity = kgData.itemListElement[0].result;
                 if (entity && entity.description) {
-                    // Return a more direct answer if available
                     return `${entity.name} is ${entity.description}.`;
                 } else if (entity && entity.detailedDescription && entity.detailedDescription.articleBody) {
-                    // Use a detailed description if available
                     return `${entity.name}: ${entity.detailedDescription.articleBody}`;
                 }
             }
@@ -239,19 +234,15 @@ async function getFulfillmentResponse(query) {
         }
     }
 
-    // Step 3: If Knowledge Graph does not yield results, fall back to Google Custom Search
+    // Step 2: Fallback to Google Custom Search if Knowledge Graph fails or provides no result
     const SEARCH_ENDPOINT = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}`;
 
     try {
         const response = await fetch(SEARCH_ENDPOINT);
-
-        if (!response.ok) {
-            throw new Error(`Custom Search API error: ${response.statusText}`);
-        }
-
         const data = await response.json();
+        console.log('Custom Search Response:', data); // Log Custom Search response for debugging
+
         if (data.items && data.items.length > 0) {
-            // Get the top search result
             const topResult = data.items[0];
             return `${topResult.title}: ${topResult.snippet}\nMore at: ${topResult.link}`;
         } else {
