@@ -1003,6 +1003,7 @@ backgroundNamespace.on('connection', (socket) => {
         isOffline = data.isOffline || false;
 
         // Emit update to main namespace clients
+        logger.info('Broadcasting nowPlayingUpdate to /main namespace clients.');
         mainNamespace.emit('nowPlayingUpdate', {
             title: currentVideoTitle,
             videoUrl: currentVideoUrl,
