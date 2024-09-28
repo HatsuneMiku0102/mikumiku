@@ -201,10 +201,58 @@ try {
 }
 
 // Set the project ID explicitly to ensure we're using the correct Dialogflow agent
-const projectId = 'haru-ai-sxjr';
+const projectId = 'haru-ai-sxjr'; // Set the project ID explicitly here
 console.log(`Using project ID: ${projectId}`);
 
-// Endpoint for Dialogflow webhook
+// Define the web search function
+async function getWebSearchResults(query) {
+    const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+    const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
+
+    if (!GOOGLE_API_KEY || !GOOGLE_CSE_ID) {
+        console.error("Missing Google API Key or CSE ID.");
+        return 'Configuration error: Missing Google API Key or CSE ID.';
+    }
+
+    const SEARCH_ENDPOINT = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}`;
+
+    try {
+        console.log(`Fetching web search results for query: "${query}"`);
+        const response = await fetch(SEARCH_ENDPOINT);
+
+        if (!response.ok) {
+            console.error(`Error fetching web search results: ${response.status} - ${response.statusText}`);
+            if (response.status === 400) {
+                return 'Bad Request: Please verify the request parameters and ensure the query is properly formatted.';
+            }
+            if (response.status === 403) {
+                return 'Forbidden: Please verify your API key and ensure it has the correct permissions.';
+            }
+            return `Error: Received status code ${response.status}. Please check the request or try again later.`;
+        }
+
+        const data = await response.json();
+        console.log("Received web search data:", data);
+
+        if (data.items && data.items.length > 0) {
+            const topResults = data.items.slice(0, 3);
+            let responseMessage = `Here are the top results I found for "${query}":\n\n`;
+
+            topResults.forEach((result, index) => {
+                responseMessage += `${index + 1}. ${result.title}\n${result.link}\n\n`;
+            });
+
+            return responseMessage;
+        } else {
+            return 'Sorry, I couldn’t find anything relevant.';
+        }
+    } catch (error) {
+        console.error('Error fetching web search results:', error);
+        return 'Sorry, something went wrong while searching the web.';
+    }
+}
+
+// Handle incoming Dialogflow requests
 app.post('/api/dialogflow', async (req, res) => {
     const userMessage = req.body.message;
     console.log(`Received user message: ${userMessage}`);
@@ -215,7 +263,7 @@ app.post('/api/dialogflow', async (req, res) => {
         return;
     }
 
-    const sessionId = uuid.v4(); // Generate a unique session ID for each request
+    const sessionId = uuid.v4();
     const sessionPath = sessionClient.projectAgentSessionPath(projectId, sessionId);
     console.log(`Generated session path: ${sessionPath}`);
 
@@ -237,13 +285,13 @@ app.post('/api/dialogflow', async (req, res) => {
         const result = responses[0].queryResult;
         console.log("Query Result:", result);
 
-        if (result && result.action === 'web.search') {
-            console.log("Handling web search action...");
-            const searchQuery = result.parameters.fields.q ? result.parameters.fields.q.stringValue : userMessage;
-            const searchResults = await getWebSearchResults(searchQuery);
-            res.json({ response: searchResults });
-        } else if (result && result.fulfillmentText) {
+        if (result && result.fulfillmentText) {
             res.json({ response: result.fulfillmentText });
+        } else if (result && result.action === 'web.search' && result.parameters.fields.q) {
+            console.log("Handling web search action...");
+            const searchQuery = result.parameters.fields.q.stringValue;
+            const webSearchResponse = await getWebSearchResults(searchQuery);
+            res.json({ response: webSearchResponse });
         } else {
             console.warn("Dialogflow response did not contain fulfillment text.");
             res.json({ response: 'Sorry, I couldn’t understand that.' });
@@ -254,7 +302,8 @@ app.post('/api/dialogflow', async (req, res) => {
     }
 });
 
-// Function to perform a web search using Google Custom Search API
+
+
 // Function to perform a web search using Google Custom Search API
 async function getWebSearchResults(query) {
     const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
