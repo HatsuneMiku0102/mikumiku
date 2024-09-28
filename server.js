@@ -217,6 +217,7 @@ async function getFulfillmentResponse(query) {
         const KNOWLEDGE_GRAPH_API_URL = `https://kgsearch.googleapis.com/v1/entities:search?query=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&limit=1&indent=True`;
 
         try {
+            console.log(`Attempting Knowledge Graph search for query: "${query}"`); // Log the search intent
             const kgResponse = await fetch(KNOWLEDGE_GRAPH_API_URL);
             const kgData = await kgResponse.json();
             console.log('Knowledge Graph Response:', kgData); // Log the response for debugging
@@ -238,6 +239,7 @@ async function getFulfillmentResponse(query) {
     const SEARCH_ENDPOINT = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}`;
 
     try {
+        console.log(`Performing Google Custom Search for query: "${query}"`); // Log the fallback search
         const response = await fetch(SEARCH_ENDPOINT);
         const data = await response.json();
         console.log('Custom Search Response:', data); // Log Custom Search response for debugging
@@ -253,6 +255,7 @@ async function getFulfillmentResponse(query) {
         return 'Sorry, something went wrong while searching the web.';
     }
 }
+
 
 module.exports = {
     getFulfillmentResponse,
