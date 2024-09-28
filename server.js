@@ -949,23 +949,44 @@ app.get('/api/videos/public', async (req, res) => {
     }
 });
 
-app.post('/api/videos', verifyToken, async (req, res) => {
-    const videoMetadata = {
-        url: req.body.url.replace('youtu.be', 'youtube.com/embed'),
-        title: req.body.title,
-        description: req.body.description,
-        category: req.body.category,
-        uploadedAt: new Date()
-    };
+app.post('/api/videos', 
+    verifyToken, 
+    [
+        body('url').isURL().withMessage('Invalid URL format'),
+        body('title').isString().notEmpty().withMessage('Title is required'),
+        body('description').isString().optional(),
+        body('category').isString().notEmpty().withMessage('Category is required')
+    ],
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
 
-    try {
-        // Implement logic to save video metadata to the database
-        res.status(201).send({ message: 'Video added', video: videoMetadata });
-    } catch (err) {
-        logger.error(`Error saving video metadata: ${err}`);
-        res.status(500).send({ error: 'Error saving video metadata' });
+        // Sanitizing user inputs
+        const sanitizedUrl = sanitizeHtml(req.body.url.replace('youtu.be', 'youtube.com/embed'));
+        const sanitizedTitle = sanitizeHtml(req.body.title);
+        const sanitizedDescription = req.body.description ? sanitizeHtml(req.body.description) : '';
+        const sanitizedCategory = sanitizeHtml(req.body.category);
+
+        const videoMetadata = {
+            url: sanitizedUrl,
+            title: sanitizedTitle,
+            description: sanitizedDescription,
+            category: sanitizedCategory,
+            uploadedAt: new Date()
+        };
+
+        try {
+            // Logic to save video metadata to the database (for example, using MongoDB or SQL)
+            // const result = await VideoModel.create(videoMetadata);
+            res.status(201).json({ message: 'Video added successfully', video: videoMetadata });
+        } catch (err) {
+            logger.error(`Error saving video metadata: ${err.message}`);
+            res.status(500).json({ error: 'Error saving video metadata' });
+        }
     }
-});
+);
 
 // Active Users Tracking Helper Functions
 const IPINFO_API_KEY = process.env.IPINFO_API_KEY; // Using your environment variable
