@@ -287,25 +287,28 @@ app.post('/api/dialogflow', async (req, res) => {
 
         if (result && result.fulfillmentText) {
             console.log("Sending fulfillment text back to client:", result.fulfillmentText);
+            // Send the interim response back while search is being performed
             res.json({ response: result.fulfillmentText });
-        } else if (result && result.action === 'web.search') {
-            console.log("Handling web search action...");
 
-            const parameters = result.parameters.fields;
+            // If the action is web.search, initiate the search
+            if (result.action === 'web.search') {
+                console.log("Handling web search action...");
+                const parameters = result.parameters.fields;
 
-            if (parameters && parameters.q && parameters.q.stringValue) {
-                const searchQuery = parameters.q.stringValue;
-                console.log(`Performing web search for query: "${searchQuery}"`);
+                if (parameters && parameters.q && parameters.q.stringValue) {
+                    const searchQuery = parameters.q.stringValue;
+                    console.log(`Performing web search for query: "${searchQuery}"`);
 
-                // Perform web search using your Google Custom Search function
-                const webSearchResponse = await getWebSearchResults(searchQuery);
-                console.log("Received web search data:", webSearchResponse);
+                    // Perform web search using Google Custom Search API
+                    const webSearchResponse = await getWebSearchResults(searchQuery);
+                    console.log("Received web search data:", webSearchResponse);
 
-                // Return the web search result back to the client
-                res.json({ response: webSearchResponse });
-            } else {
-                console.error("Missing search query parameter.");
-                res.json({ response: 'Sorry, I couldn’t understand what to search for.' });
+                    // After obtaining the search result, notify the client via a WebSocket or another POST request to update the response.
+                    // Assuming you're using WebSockets to maintain real-time updates:
+                    io.emit('webSearchResult', { userMessage, response: webSearchResponse });
+                } else {
+                    console.error("Missing search query parameter.");
+                }
             }
         } else {
             console.warn("Dialogflow response did not contain fulfillment text or actionable intent.");
@@ -316,6 +319,7 @@ app.post('/api/dialogflow', async (req, res) => {
         res.status(500).json({ response: 'Sorry, something went wrong.' });
     }
 });
+
 
 // Web search function
 async function getWebSearchResults(query) {
