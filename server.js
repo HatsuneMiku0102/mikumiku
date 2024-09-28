@@ -29,7 +29,10 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: "chrome-extension://ealgoodedcojbceodddhbpcklnpneocp",
+        origin: [
+            "chrome-extension://ealgoodedcojbceodddhbpcklnpneocp",
+            "https://mikumiku.dev/"
+        ],
         methods: ["GET", "POST"],
         allowedHeaders: ["my-custom-header"],
         credentials: true
@@ -68,8 +71,7 @@ const mongoUrl = process.env.MONGO_URL;
 
 mongoose.connect(mongoUrl, {
     useNewUrlParser: true,
-    useUnifiedTopology: true,
-    useFindAndModify: false
+    useUnifiedTopology: true
 }).then(() => {
     logger.info('Connected to MongoDB');
 }).catch((err) => {
@@ -259,7 +261,7 @@ app.post('/api/gpt', async (req, res) => {
 
         if (!response.ok) {
             const errorData = await response.json();
-            console.error('OpenAI API Error:', errorData);
+            logger.error('OpenAI API Error:', errorData);
             return res.status(response.status).json({ error: 'Error from OpenAI API' });
         }
 
@@ -268,7 +270,7 @@ app.post('/api/gpt', async (req, res) => {
         res.json({ message: botMessage });
 
     } catch (error) {
-        console.error('Server Error:', error);
+        logger.error('Server Error:', error);
         res.status(500).json({ error: 'Server error while processing request.' });
     }
 });
@@ -282,7 +284,7 @@ app.get('/api/youtube', async (req, res) => {
 
     const apiKey = process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
-        console.error('YOUTUBE_API_KEY is not set in environment variables.');
+        logger.error('YOUTUBE_API_KEY is not set in environment variables.');
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 
@@ -292,6 +294,7 @@ app.get('/api/youtube', async (req, res) => {
         const data = await retry(
             async (bail, attempt) => {
                 try {
+                    logger.info(`Attempt ${attempt}: Fetching data from YouTube API for videoId: ${videoId}`);
                     const response = await axios.get(apiUrl);
 
                     if (response.status === 200) {
@@ -305,6 +308,7 @@ app.get('/api/youtube', async (req, res) => {
                             throw new Error('Unexpected response structure from YouTube API.');
                         }
 
+                        logger.info(`YouTube API data fetched successfully for videoId: ${videoId}`);
                         return responseData;
                     } else if (response.status === 403) {
                         bail(new Error('YouTube API quota exceeded or access forbidden.'));
@@ -316,13 +320,13 @@ app.get('/api/youtube', async (req, res) => {
                         if (err.response.status === 404) {
                             bail(new Error('Video not found.'));
                         } else if (err.response.status >= 500) {
-                            console.warn(`Attempt ${attempt}: YouTube API returned a server error. Retrying...`);
+                            logger.warn(`Attempt ${attempt}: YouTube API returned a server error. Retrying...`);
                             throw err;
                         } else {
                             bail(err);
                         }
                     } else {
-                        console.warn(`Attempt ${attempt}: Network error or unknown issue occurred. Retrying...`);
+                        logger.warn(`Attempt ${attempt}: Network error or unknown issue occurred. Retrying...`);
                         throw err;
                     }
                 }
@@ -335,13 +339,12 @@ app.get('/api/youtube', async (req, res) => {
             }
         );
 
-        // Extract the necessary data
         const videoData = data.items[0];
         const snippet = videoData.snippet;
         const statistics = videoData.statistics;
         const contentDetails = videoData.contentDetails;
 
-        const duration = contentDetails.duration; // ISO 8601 duration
+        const duration = contentDetails.duration;
         const title = snippet.title;
         const description = snippet.description;
         const channelTitle = snippet.channelTitle;
@@ -351,7 +354,6 @@ app.get('/api/youtube', async (req, res) => {
         const categoryId = snippet.categoryId;
         const liveBroadcastContent = snippet.liveBroadcastContent;
 
-        // Send the extracted data
         res.status(200).json({
             duration,
             title,
@@ -364,7 +366,7 @@ app.get('/api/youtube', async (req, res) => {
             liveBroadcastContent
         });
     } catch (error) {
-        console.error(`Error fetching YouTube video data for videoId ${videoId}: ${error.message}`);
+        logger.error(`Error fetching YouTube video data for videoId ${videoId}: ${error.message}`);
 
         if (error.message.includes('quota')) {
             return res.status(403).json({ error: 'YouTube API quota exceeded. Please try again later.' });
@@ -377,7 +379,6 @@ app.get('/api/youtube', async (req, res) => {
         }
     }
 });
-
 
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
@@ -849,7 +850,8 @@ let isOffline = false;
 let activeUsers = [];
 
 io.on('connection', async (socket) => {
-    logger.info(`New client connected: ${socket.id}`);
+    const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
+    logger.info(`New client connected: ${socket.id}, IP: ${ip}`);
 
     socket.emit('nowPlayingUpdate', {
         title: currentVideoTitle,
@@ -886,17 +888,15 @@ io.on('connection', async (socket) => {
                 return;
             }
         }
-
-
+    
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
         videoStartTimestamp = Date.now() - (validCurrentTime * 1000);
         isVideoPaused = isPaused;
         isOffline = offlineStatus;
-
-        logger.info(`Updated server state: Title="${currentVideoTitle}", URL="${currentVideoUrl}", ` +
-            `StartTimestamp=${videoStartTimestamp}, isPaused=${isVideoPaused}, isOffline=${isOffline}`);
-
+    
+        logger.info(`Updated server state: Title="${currentVideoTitle}", URL="${currentVideoUrl}", StartTimestamp=${videoStartTimestamp}, isPaused=${isVideoPaused}, isOffline=${isOffline}`);
+    
         io.emit('nowPlayingUpdate', {
             title: currentVideoTitle,
             videoUrl: currentVideoUrl,
@@ -905,13 +905,28 @@ io.on('connection', async (socket) => {
             isOffline: isOffline,
             isPaused: isVideoPaused
         });
-
-        logger.info(`Emitted "nowPlayingUpdate" to all clients: Title="${currentVideoTitle}", URL="${currentVideoUrl}", ` +
-            `isPaused=${isVideoPaused}, isOffline=${isOffline}`);
+    
+        logger.info(`Emitted "nowPlayingUpdate" to all clients: Title="${currentVideoTitle}", URL="${currentVideoUrl}", isPaused=${isVideoPaused}, isOffline=${isOffline}`);
     });
+
+    const locationData = await fetchLocationData(ip);
+    logger.info(`Location data fetched: ${JSON.stringify(locationData)}`);
+
+    const user = {
+        id: socket.id,
+        ip: locationData.ip,
+        city: locationData.city,
+        region: locationData.region,
+        country: locationData.country
+    };
+
+    activeUsers.push(user);
+    io.emit('activeUsersUpdate', { users: activeUsers });
 
     socket.on('disconnect', () => {
         logger.info(`Client disconnected: ${socket.id}`);
+        activeUsers = activeUsers.filter(u => u.id !== socket.id);
+        io.emit('activeUsersUpdate', { users: activeUsers });
     });
 });
 
@@ -983,7 +998,7 @@ async function fetchLocationData(ip) {
             country: country || 'Unknown'
         };
     } catch (error) {
-        console.error(`Error fetching location data for IP ${ip}:`, error);
+        logger.error(`Error fetching location data for IP ${ip}:`, error);
         return {
             ip,
             city: 'Unknown',
@@ -997,18 +1012,16 @@ async function attachLocationData(req, res, next) {
     const clientIp = getClientIp(req);
 
     if (clientIp) {
-        console.log(`Client IP detected: ${clientIp}`);
+        logger.info(`Client IP detected: ${clientIp}`);
 
         const locationData = await fetchLocationData(clientIp);
         req.location = locationData;
     } else {
-        console.log('No valid public IP detected.');
+        logger.info('No valid public IP detected.');
     }
 
     next();
 }
-
-module.exports = { attachLocationData };
 
 function normalizeIp(ip) {
     if (ip.startsWith('::ffff:')) {
@@ -1060,7 +1073,7 @@ app.get('/api/weather', async (req, res) => {
     const apiKey = process.env.OPENWEATHER_API_KEY;
 
     if (!apiKey) {
-        console.error('OPENWEATHER_API_KEY is not set in environment variables.');
+        logger.error('OPENWEATHER_API_KEY is not set in environment variables.');
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 
@@ -1074,14 +1087,14 @@ app.get('/api/weather', async (req, res) => {
                 const errorData = await response.json();
                 errorMsg = errorData.message || errorMsg;
             } catch (e) {
-                console.error('Error parsing error response:', e);
+                logger.error('Error parsing error response:', e);
             }
             return res.status(response.status).json({ error: errorMsg });
         }
         const data = await response.json();
         res.json(data);
     } catch (error) {
-        console.error(`Error fetching weather data for city ${city}:`, error);
+        logger.error(`Error fetching weather data for city ${city}:`, error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
@@ -1100,15 +1113,13 @@ function getValidIpAddress(req) {
     }
 
     if (processedIPs.has(ipAddress)) {
-        console.log(`Duplicate IP detected: ${ipAddress}, skipping processing.`);
+        logger.info(`Duplicate IP detected: ${ipAddress}, skipping processing.`);
         return null;
     }
 
     processedIPs.add(ipAddress);
     return ipAddress;
 }
-
-module.exports = { fetchLocationData, getValidIpAddress };
 
 app.get('/api/location', async (req, res) => {
     const clientIp = getValidIpAddress(req);
@@ -1121,7 +1132,7 @@ app.get('/api/location', async (req, res) => {
         const locationData = await fetchLocationData(clientIp);
         res.json(locationData);
     } catch (error) {
-        console.error(`Error fetching location for IP ${clientIp}:`, error);
+        logger.error(`Error fetching location for IP ${clientIp}:`, error);
         res.status(500).send('Error fetching location data');
     }
 });
@@ -1143,7 +1154,7 @@ async function fetchUserLocation(ip) {
         const { city, region, country } = response.data;
         return { ip, city, region, country };
     } catch (error) {
-        console.error(`Error fetching location data for IP ${ip}:`, error);
+        logger.error(`Error fetching location data for IP ${ip}:`, error);
         return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
     }
 }
@@ -1152,30 +1163,6 @@ async function getActiveUsersWithLocations() {
     const userPromises = activeUsers.map(user => fetchUserLocation(user.ip));
     return await Promise.all(userPromises);
 }
-
-io.on('connection', async (socket) => {
-    const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
-    console.log(`New client connected: ${socket.id}, IP: ${ip}`);
-
-    const locationData = await fetchLocationData(ip);
-    console.log(`Location data fetched:`, locationData);
-
-    const user = {
-        id: socket.id,
-        ip: locationData.ip,
-        city: locationData.city,
-        region: locationData.region,
-        country: locationData.country
-    };
-
-    activeUsers.push(user);
-    io.emit('activeUsersUpdate', { users: activeUsers });
-
-    socket.on('disconnect', () => {
-        activeUsers = activeUsers.filter(u => u.id !== socket.id);
-        io.emit('activeUsersUpdate', { users: activeUsers });
-    });
-});
 
 server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
