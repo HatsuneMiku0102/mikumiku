@@ -142,19 +142,8 @@
 
             socket.on("nowPlayingUpdate", (data) => {
                 console.log("[Socket.IO] Received nowPlayingUpdate:", data);
-
-                // Update Now Playing section with received data
-                const {
-                    title,
-                    videoId,
-                    thumbnail,
-                    channelTitle,
-                    viewCount,
-                    publishedAt,
-                    category,
-                    isOffline,
-                } = data;
-
+            
+                const { title, videoId, thumbnail, category, channelTitle, viewCount, publishedAt, isOffline } = data;
                 const videoTitleElement = document.getElementById("videoTitle");
                 const videoThumbnailElement = document.getElementById("videoThumbnail");
                 const channelNameElement = document.getElementById("channelName");
@@ -162,7 +151,7 @@
                 const publishedDateElement = document.getElementById("publishedDate");
                 const videoCategoryElement = document.getElementById("videoCategory");
                 const offlineIndicatorElement = document.getElementById("offline-indicator");
-
+            
                 if (isOffline) {
                     offlineIndicatorElement.style.display = "block";
                     videoTitleElement.textContent = "Offline";
@@ -170,15 +159,16 @@
                 } else {
                     offlineIndicatorElement.style.display = "none";
                     videoTitleElement.textContent = title || "Unknown Title";
-                    videoThumbnailElement.src = thumbnail || "";
+                    videoThumbnailElement.src = thumbnail;
                     videoThumbnailElement.style.display = "block";
-
+                    
                     channelNameElement.textContent = channelTitle || "Unknown Channel";
                     viewCountElement.textContent = viewCount || "N/A";
-                    publishedDateElement.textContent = publishedAt || "N/A";
-                    videoCategoryElement.textContent = category || "Unknown Category";
+                    publishedDateElement.textContent = new Date(publishedAt).toLocaleDateString() || "N/A"; // Format the date appropriately
+                    videoCategoryElement.textContent = category || "N/A";
                 }
             });
+
 
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
