@@ -1007,8 +1007,15 @@ const backgroundNamespace = io.of('/background');
 backgroundNamespace.on('connection', (socket) => {
     const clientExtensionId = socket.handshake.query.extensionId;
 
+    if (clientExtensionId) {
+        logger.info(`Received connection from client with extension ID: ${clientExtensionId}, Socket ID: ${socket.id}`);
+    } else {
+        logger.warn(`Connection without extension ID from client ${socket.id}`);
+    }
+
+    // Check if the extension ID matches the allowed extension ID
     if (clientExtensionId === ALLOWED_EXTENSION_ID) {
-        logger.info(`Background client connected to /background namespace: ${socket.id}, IP: ${socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress}`);
+        logger.info(`Authorized background client connected to /background namespace: ${socket.id}, IP: ${socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress}`);
         
         // Handle 'progressUpdate' events from the background client
         socket.on('progressUpdate', (data) => {
@@ -1037,8 +1044,10 @@ backgroundNamespace.on('connection', (socket) => {
         });
 
     } else {
-        logger.info(`Unrecognized background client ${socket.id}. Disconnecting.`);
-        socket.disconnect(true);
+        logger.warn(`Unrecognized background client with extension ID: ${clientExtensionId}, Socket ID: ${socket.id}. Disconnecting.`);
+        setTimeout(() => {
+            socket.disconnect(true);
+        }, 3000); // Grace period for unrecognized clients
     }
 });
 
