@@ -986,85 +986,65 @@ let videoStartTimestamp = Date.now();
 let isVideoPaused = false;
 let isOffline = false;
 
-// Active users tracking (optional, can be used for monitoring)
-let activeUsers = [];
-
-io.on('connection', (socket) => {
-    logger.info(`Unexpected connection from client ${socket.id}. Disconnecting in 3 seconds if not recognized.`);
-    setTimeout(() => {
-        if (!socket.rooms.has('/main') && !socket.rooms.has('/background')) {
-            logger.info(`Client ${socket.id} still unrecognized. Disconnecting.`);
-            socket.disconnect(true);
-        }
-    }, 3000);
-});
-
-
-
-// Define /background namespace for background scripts (e.g., Chrome extensions)
+// Define /background namespace for background scripts
 const backgroundNamespace = io.of('/background');
 
 backgroundNamespace.on('connection', (socket) => {
-    logger.info(`Background client connected to /background namespace: ${socket.id}, IP: ${socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress}`);
+  console.log(`Background client connected to /background namespace: ${socket.id}`);
 
-    // Additional logic for when a background client connects
-    socket.on('progressUpdate', (data) => {
-        logger.info(`Received 'progressUpdate' from background client ${socket.id}: ${JSON.stringify(data)}`);
+  socket.on('progressUpdate', (data) => {
+    console.log(`Received 'progressUpdate' from background client ${socket.id}:`, data);
 
-        // Handle the data update logic here
-        currentVideoTitle = data.title;
-        currentVideoUrl = data.videoUrl;
-        videoStartTimestamp = Date.now() - (data.currentTime * 1000);
-        isVideoPaused = data.isPaused;
-        isOffline = data.isOffline;
+    // Update the current state
+    currentVideoTitle = data.title || 'Loading...';
+    currentVideoUrl = data.videoUrl || '';
+    videoStartTimestamp = Date.now() - (data.currentTime * 1000);
+    isVideoPaused = data.isPaused || false;
+    isOffline = data.isOffline || false;
 
-        // Emit update to main namespace clients
-        mainNamespace.emit('nowPlayingUpdate', {
-            title: currentVideoTitle,
-            videoUrl: currentVideoUrl,
-            startTimestamp: videoStartTimestamp,
-            currentTime: data.currentTime,
-            isOffline: data.isOffline,
-            isPaused: data.isPaused,
-        });
+    // Emit update to main namespace clients
+    mainNamespace.emit('nowPlayingUpdate', {
+      title: currentVideoTitle,
+      videoUrl: currentVideoUrl,
+      startTimestamp: videoStartTimestamp,
+      currentTime: data.currentTime,
+      isOffline: isOffline,
+      isPaused: isVideoPaused,
     });
+  });
 
-    socket.on('disconnect', (reason) => {
-        logger.info(`Background client disconnected from /background namespace: ${socket.id}, Reason: ${reason}`);
-    });
+  socket.on('disconnect', (reason) => {
+    console.log(`Background client disconnected from /background namespace: ${socket.id}, Reason: ${reason}`);
+  });
 });
-
-
-
 
 // Define /main namespace for main webpage clients
 const mainNamespace = io.of('/main');
 
 mainNamespace.on('connection', (socket) => {
-    const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
-    logger.info(`Main client connected: ${socket.id}, IP: ${ip}`);
+  console.log(`Main client connected: ${socket.id}`);
 
-    // Emit the current state to the newly connected main client
-    socket.emit('nowPlayingUpdate', {
-        title: currentVideoTitle,
-        videoUrl: currentVideoUrl,
-        startTimestamp: videoStartTimestamp,
-        currentTime: (Date.now() - videoStartTimestamp) / 1000,
-        isOffline: isOffline,
-        isPaused: isVideoPaused
-    });
+  // Emit the current state to the newly connected main client
+  socket.emit('nowPlayingUpdate', {
+    title: currentVideoTitle,
+    videoUrl: currentVideoUrl,
+    startTimestamp: videoStartTimestamp,
+    currentTime: (Date.now() - videoStartTimestamp) / 1000,
+    isOffline: isOffline,
+    isPaused: isVideoPaused
+  });
 
-    socket.on('disconnect', () => {
-        logger.info(`Main client disconnected: ${socket.id}`);
-    });
+  socket.on('disconnect', () => {
+    console.log(`Main client disconnected: ${socket.id}`);
+  });
 });
 
 
 // Update Data Endpoint
 app.post('/api/update', (req, res) => {
-    const data = req.body;
-    io.emit('updateData', data);
-    res.status(200).send({ message: 'Data sent to clients' });
+  const data = req.body;
+  io.emit('updateData', data);
+  res.status(200).send({ message: 'Data sent to clients' });
 });
 
 // Public Videos Endpoint
