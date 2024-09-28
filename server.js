@@ -204,6 +204,64 @@ try {
 const projectId = 'haru-ai-sxjr'; // Set the project ID explicitly here
 console.log(`Using project ID: ${projectId}`);
 
+
+
+async function getFulfillmentResponse(query) {
+    const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+    const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
+    const KNOWLEDGE_GRAPH_API_URL = `https://kgsearch.googleapis.com/v1/entities:search?query=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&limit=1&indent=True`;
+
+    // Check if the query is a "Who is" type query
+    if (query.toLowerCase().startsWith('who is')) {
+        try {
+            // Fetch entity data from Knowledge Graph API
+            const kgResponse = await fetch(KNOWLEDGE_GRAPH_API_URL);
+            if (!kgResponse.ok) {
+                throw new Error(`Knowledge Graph API error: ${kgResponse.statusText}`);
+            }
+
+            const kgData = await kgResponse.json();
+            if (kgData.itemListElement && kgData.itemListElement.length > 0) {
+                const entity = kgData.itemListElement[0].result;
+                if (entity && entity.description) {
+                    // Return the entity description if available
+                    return `${entity.name} is ${entity.description}.`;
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching Knowledge Graph data:', error);
+        }
+    }
+
+    // Fallback to Google Custom Search if Knowledge Graph doesn't provide an answer
+    const SEARCH_ENDPOINT = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}`;
+    
+    try {
+        const response = await fetch(SEARCH_ENDPOINT);
+
+        if (!response.ok) {
+            throw new Error(`Custom Search API error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        if (data.items && data.items.length > 0) {
+            // Get the top search result
+            const topResult = data.items[0];
+            return `${topResult.title}: ${topResult.snippet}\nMore at: ${topResult.link}`;
+        } else {
+            return 'Sorry, I couldn’t find anything relevant.';
+        }
+    } catch (error) {
+        console.error('Error fetching web search results:', error);
+        return 'Sorry, something went wrong while searching the web.';
+    }
+}
+
+module.exports = {
+    getFulfillmentResponse,
+};
+
+
 // Define the web search function
 async function getWebSearchResults(query) {
     const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
