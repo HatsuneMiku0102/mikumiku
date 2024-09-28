@@ -132,7 +132,6 @@ app.post('/updateVideoData', async (req, res) => {
 
 
 
-
 // MongoDB Connection
 const mongoUrl = process.env.MONGO_URL;
 
