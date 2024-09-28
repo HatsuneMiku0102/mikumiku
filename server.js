@@ -847,7 +847,8 @@ let videoStartTimestamp = Date.now();
 let isVideoPaused = false;
 let isOffline = false;
 
-const activeUsers = [];
+let activeUsers = [];
+
 
 io.on('connection', async (socket) => {
     const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
