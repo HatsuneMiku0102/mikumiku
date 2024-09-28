@@ -173,6 +173,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 
 
 
+// Loading credentials from the environment variable
 console.log("Loading credentials from environment variable...");
 let credentials;
 
@@ -183,8 +184,6 @@ try {
     console.error("Error parsing credentials JSON from environment variable:", error);
     process.exit(1); // Exit the application if credentials are missing or incorrect
 }
-
-
 
 // Create a new Dialogflow session client with credentials
 let sessionClient;
@@ -206,6 +205,7 @@ try {
 const projectId = 'haru-ai-sxjr'; // Set the project ID explicitly here
 console.log(`Using project ID: ${projectId}`);
 
+// Endpoint to handle user messages and communicate with Dialogflow
 app.post('/api/dialogflow', async (req, res) => {
     const userMessage = req.body.message;
     console.log(`Received user message: ${userMessage}`);
