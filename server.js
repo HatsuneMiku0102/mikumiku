@@ -34,7 +34,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: "chrome-extension://ealgoodedcojbceodddhbpcklnpneocp", // Replace with your actual Chrome extension ID
+        origin: "*", // Temporarily allow all origins
         methods: ["GET", "POST"],
         allowedHeaders: ["my-custom-header"],
         credentials: true
