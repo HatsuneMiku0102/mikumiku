@@ -74,7 +74,7 @@ app.use(cors());
 
 
 app.post('/updateVideoData', async (req, res) => {
-    const { videoId } = req.body;
+    const { videoId, title, description, currentTime, isPaused, isOffline } = req.body;
 
     if (!videoId) {
         logger.error('Invalid video ID received');
@@ -86,15 +86,20 @@ app.post('/updateVideoData', async (req, res) => {
         const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics`;
         const response = await axios.get(apiUrl);
         const videoData = response.data.items[0];
-    
+
+        if (!videoData) {
+            logger.error('No video data found');
+            return res.status(404).send('Video not found');
+        }
+
         const thumbnail = videoData.snippet.thumbnails.default.url;
         const category = videoData.snippet.categoryId; // Category ID
         const channelTitle = videoData.snippet.channelTitle; // Channel name
         const viewCount = videoData.statistics.viewCount; // View count
         const publishedAt = videoData.snippet.publishedAt; // Upload date
-    
+
         logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}, Channel: ${channelTitle}, Views: ${viewCount}, Uploaded: ${publishedAt}`);
-    
+
         // Update the server state with the new video data
         currentVideoData = {
             videoId,
@@ -109,23 +114,30 @@ app.post('/updateVideoData', async (req, res) => {
             isPaused,
             isOffline
         };
-    
+
         // Emit the updated video data to all connected clients
         io.emit('nowPlayingUpdate', currentVideoData);
         logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: Title="${title}", Video ID="${videoId}", Thumbnail="${thumbnail}", Category="${category}", Channel="${channelTitle}", Views="${viewCount}", Uploaded="${publishedAt}"`);
+
+        res.status(200).send('Video data updated successfully');
     } catch (error) {
         logger.error(`[Socket.IO] Error fetching video data: ${error.message}`);
+        res.status(500).send('Error fetching video data');
     }
+});
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
     logger.info(`[Socket.IO] Youtube Client Connected on socket ID: ${socket.id}`);
+    
+    // Emit the current video data to the newly connected client
     socket.emit('nowPlayingUpdate', currentVideoData);
 
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Youtube Client disconnected: ${socket.id}`);
     });
 });
+
 
 
 
