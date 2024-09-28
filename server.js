@@ -114,17 +114,15 @@ app.post('/updateVideoData', async (req, res) => {
         }
 
         const thumbnail = videoData.snippet.thumbnails.default.url;
-        const categoryId = videoData.snippet.categoryId; // Category ID
-        const channelTitle = videoData.snippet.channelTitle; // Channel name
-        const viewCount = videoData.statistics.viewCount; // View count
-        const publishedAt = videoData.snippet.publishedAt; // Upload date
+        const categoryId = videoData.snippet.categoryId;
+        const channelTitle = videoData.snippet.channelTitle;
+        const viewCount = videoData.statistics.viewCount;
+        const publishedAt = videoData.snippet.publishedAt;
 
-        // Map category ID to name
         const category = categoryMappings[categoryId] || 'Unknown Category';
 
         logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}, Channel: ${channelTitle}, Views: ${viewCount}, Uploaded: ${publishedAt}`);
 
-        // Update the server state with the new video data
         currentVideoData = {
             videoId,
             title,
@@ -139,7 +137,6 @@ app.post('/updateVideoData', async (req, res) => {
             isOffline
         };
 
-        // Emit the updated video data to all connected clients
         io.emit('nowPlayingUpdate', currentVideoData);
         logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: Title="${title}", Video ID="${videoId}", Thumbnail="${thumbnail}", Category="${category}", Channel="${channelTitle}", Views="${viewCount}", Uploaded="${publishedAt}"`);
 
@@ -149,6 +146,7 @@ app.post('/updateVideoData', async (req, res) => {
         res.status(500).send('Error fetching video data');
     }
 });
+
 
 
 
