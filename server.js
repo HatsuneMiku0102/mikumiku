@@ -287,13 +287,25 @@ app.post('/api/dialogflow', async (req, res) => {
 
         if (result && result.fulfillmentText) {
             res.json({ response: result.fulfillmentText });
-        } else if (result && result.action === 'web.search' && result.parameters.fields.q) {
+        } else if (result && result.action === 'web.search') {
             console.log("Handling web search action...");
-            const searchQuery = result.parameters.fields.q.stringValue;
+
+            // Extract the search query parameter from the Dialogflow parameters
+            const parameters = result.parameters.fields;
+            let searchQuery = '';
+            if (parameters && parameters.q) {
+                searchQuery = parameters.q.stringValue;
+            } else {
+                console.error("Missing search query parameter.");
+                res.json({ response: 'Sorry, I couldn’t understand what to search for.' });
+                return;
+            }
+
+            console.log(`Performing web search for query: "${searchQuery}"`);
             const webSearchResponse = await getWebSearchResults(searchQuery);
             res.json({ response: webSearchResponse });
         } else {
-            console.warn("Dialogflow response did not contain fulfillment text.");
+            console.warn("Dialogflow response did not contain fulfillment text or actionable intent.");
             res.json({ response: 'Sorry, I couldn’t understand that.' });
         }
     } catch (error) {
