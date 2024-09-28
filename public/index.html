@@ -40,8 +40,8 @@
         </div>
 
         <div id="main-content" class="main-content">
-            <div id="now-playing-container" class="now-playing-container">
-                <div id="now-playing" class="now-playing">
+            <div class="now-playing-container">
+                <div class="now-playing">
                     <div class="now-playing-sidebar">
                         <div class="sidebar-item">
                             <span>Channel:</span> <span id="channelName">Loading...</span>
@@ -55,38 +55,16 @@
                         <div class="sidebar-item video-category">
                             <span>Category:</span> <span id="videoCategory">Loading...</span>
                         </div>
-                        <div class="sidebar-item live-indicator" id="liveIndicator" style="display: none;">🔴 Live Now</div>
                     </div>
 
                     <div class="video-section">
                         <div class="video-title-container">
-                            <h2>Currently Playing on YouTube</h2>
+                            <h2>Currently Playing</h2>
                             <p id="videoTitle">Loading...</p>
                         </div>
 
-                        <div class="video-description-container">
-                            <p id="videoDescription" class="video-description">Loading description...</p>
-                            <button id="toggleDescription" class="toggle-description-button">Show More</button>
-                        </div>
-
                         <div class="thumbnail-container">
-                            <img id="videoThumbnail" src="" alt="Thumbnail of currently playing video" class="video-thumbnail" loading="lazy">
-                            <button id="pauseButton" class="pause-button" aria-label="Pause Video">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                    <rect x="6" y="5" width="4" height="14"></rect>
-                                    <rect x="14" y="5" width="4" height="14"></rect>
-                                </svg>
-                            </button>
-                        </div>
-
-                        <div class="progress-bar-wrapper">
-                            <div id="progress-bar" class="progress-bar"></div>
-                        </div>
-
-                        <div class="progress-times-container">
-                            <p id="time-elapsed" class="progress-time">Time Elapsed: --:--</p>
-                            <p id="total-duration" class="progress-time">Total Duration: --:--</p>
-                            <p id="time-remaining" class="progress-time" style="display: none;">Browsing for: --:--</p>
+                            <img id="videoThumbnail" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
                         </div>
 
                         <div id="offline-indicator" class="offline-indicator" style="display: none;">I’m not on YouTube at the moment, soz :(</div>
@@ -194,60 +172,9 @@
         });
     </script>
 
-    <!-- Main Socket.io and Video Handling Script -->
+    <!-- Clock Update Script -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const socket = io('/main'); // Connect to the '/main' namespace
-
-            socket.on('connect', () => {
-                console.log('Frontend connected to server via Socket.io /main namespace');
-            });
-
-            socket.on('disconnect', () => {
-                console.log('Frontend disconnected from server');
-            });
-
-            socket.on('error', (error) => {
-                console.error('Socket.io error:', error);
-            });
-
-            socket.on('nowPlayingUpdate', (data) => {
-                console.log('Received nowPlayingUpdate:', data);
-                const { isOffline, videoUrl, title, currentTime, isPaused } = data;
-
-                const videoTitleElement = document.getElementById('videoTitle');
-                const videoThumbnailElement = document.getElementById('videoThumbnail');
-                const nowPlayingElement = document.querySelector('.now-playing');
-                const offlineIndicator = document.getElementById('offline-indicator');
-                const pauseButton = document.getElementById('pauseButton');
-
-                if (isOffline) {
-                    if (videoTitleElement) videoTitleElement.innerText = 'I’m not on YouTube at the moment, soz :(';
-                    if (nowPlayingElement) nowPlayingElement.classList.add('offline');
-                    if (videoThumbnailElement) videoThumbnailElement.classList.add('offline-thumbnail');
-                    if (offlineIndicator) offlineIndicator.style.display = 'block';
-                    if (pauseButton) pauseButton.style.display = 'none';
-                } else {
-                    if (videoUrl) {
-                        const videoID = extractYouTubeVideoID(videoUrl);
-                        if (videoTitleElement) videoTitleElement.innerText = title || 'No Title Available';
-                        if (videoThumbnailElement) {
-                            videoThumbnailElement.src = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
-                            videoThumbnailElement.alt = title || 'Video Thumbnail';
-                        }
-                        if (nowPlayingElement) nowPlayingElement.classList.remove('offline');
-                        if (offlineIndicator) offlineIndicator.style.display = 'none';
-                        if (pauseButton) pauseButton.style.display = 'inline-block';
-                    }
-                }
-            });
-
-            function extractYouTubeVideoID(url) {
-                const regExp = /^.*(?:youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|youtube\.com\/shorts\/)([^#&?]*).*/;
-                const match = url.match(regExp);
-                return (match && match[1].length === 11) ? match[1] : null;
-            }
-
             function updateClocks() {
                 const now = new Date();
                 const localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -317,71 +244,6 @@
 
             fetchWeather();
             setInterval(fetchWeather, 3600000); // Update weather every hour
-
-            function updateProgress(newProgress) {
-                const progressBar = document.getElementById('progress-bar');
-                const timeElapsed = document.getElementById('time-elapsed');
-                const formattedTime = formatTime((newProgress / 100) * videoDuration);
-
-                if (progressBar) progressBar.style.width = `${newProgress}%`;
-                if (timeElapsed) timeElapsed.innerText = `Time Elapsed: ${formattedTime}`;
-            }
-
-            function updateProgressBar() {
-                if (!isVideoPaused && !isBrowsing && videoDuration > 0) {
-                    const currentTimestamp = Date.now();
-                    const elapsedTime = (currentTimestamp - videoStartTime) / 1000;
-                    if (elapsedTime >= 0 && elapsedTime <= videoDuration) {
-                        const progressPercent = (elapsedTime / videoDuration) * 100;
-                        updateProgress(progressPercent);
-                    } else {
-                        clearExistingInterval();
-                        updateProgress(100);
-                    }
-                }
-            }
-
-            const toggleButton = document.getElementById('toggleDescription');
-            const videoDescription = document.getElementById('videoDescription');
-
-            if (toggleButton && videoDescription) {
-                toggleButton.addEventListener('click', () => {
-                    videoDescription.classList.toggle('expanded');
-                    if (videoDescription.classList.contains('expanded')) {
-                        toggleButton.innerText = 'Show Less';
-                    } else {
-                        toggleButton.innerText = 'Show More';
-                    }
-                });
-            }
-
-            const pauseButton = document.getElementById('pauseButton');
-            if (pauseButton) pauseButton.style.pointerEvents = 'none';
-
-            function togglePauseState(isPaused) {
-                if (pauseButton) {
-                    if (isPaused) {
-                        pauseButton.classList.add('paused');
-                        pauseButton.setAttribute('aria-label', 'Play Video');
-                        pauseButton.innerHTML = `
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                <polygon points="5,3 19,12 5,21" />
-                            </svg>
-                        `;
-                    } else {
-                        pauseButton.classList.remove('paused');
-                        pauseButton.setAttribute('aria-label', 'Pause Video');
-                        pauseButton.innerHTML = `
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                <rect x="6" y="5" width="4" height="14"></rect>
-                                <rect x="14" y="5" width="4" height="14"></rect>
-                            </svg>
-                        `;
-                    }
-                }
-            }
-
-            togglePauseState(true);
         });
     </script>
 
