@@ -72,20 +72,47 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(cors());
 
-app.post('/updateVideoData', (req, res) => {
-    const videoData = req.body;
 
-    if (!videoData || typeof videoData !== 'object') {
-        console.error('Invalid video data received');
-        return res.status(400).send('Invalid video data');
+app.post('/updateVideoData', async (req, res) => {
+    const { videoId } = req.body;
+
+    if (!videoId) {
+        console.error('Invalid video ID received');
+        return res.status(400).send('Invalid video ID');
     }
 
-    // Log the received video data
-    console.log('Received video data:', videoData);
+    try {
+        // Fetch video details from YouTube Data API
+        const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${YOUTUBE_API_KEY}&part=snippet,statistics,contentDetails`;
+        const response = await axios.get(apiUrl);
 
-    // You can implement additional logic here, like saving the data to a database
+        if (response.data.items && response.data.items.length > 0) {
+            const videoData = response.data.items[0].snippet;
+            const statistics = response.data.items[0].statistics;
+            const contentDetails = response.data.items[0].contentDetails;
 
-    res.status(200).send('Video data received successfully');
+            // Log the received video data
+            console.log('Received video data:', {
+                title: videoData.title,
+                description: videoData.description,
+                categoryId: videoData.categoryId,
+                channelTitle: videoData.channelTitle,
+                viewCount: statistics.viewCount,
+                likeCount: statistics.likeCount,
+                duration: contentDetails.duration,
+                publishedAt: videoData.publishedAt,
+            });
+
+            // Respond with a success message
+            res.status(200).send('Video data received successfully');
+        } else {
+            console.error('No video data found for the given video ID');
+            res.status(404).send('No video data found');
+        }
+    } catch (error) {
+        console.error('Error fetching video data:', error.message);
+        res.status(500).send('Error fetching video data');
+    }
 });
 
 
