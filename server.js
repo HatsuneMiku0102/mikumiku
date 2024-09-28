@@ -972,16 +972,20 @@ let isOffline = false;
 // Active users tracking (optional, can be used for monitoring)
 let activeUsers = [];
 
+io.on('connection', (socket) => {
+    logger.info(`Unexpected connection from client ${socket.id}. Disconnecting.`);
+    socket.disconnect(true);
+});
+
 // Define /background namespace for background scripts (e.g., Chrome extensions)
 const backgroundNamespace = io.of('/background');
 
 backgroundNamespace.on('connection', (socket) => {
     logger.info(`Background client connected: ${socket.id}, IP: ${socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress}`);
 
-    // Additional logic for when a background client connects
     socket.on('progressUpdate', (data) => {
         logger.info(`Received 'progressUpdate' from background client ${socket.id}: ${JSON.stringify(data)}`);
-        
+
         // Handle the data update logic here
         currentVideoTitle = data.title;
         currentVideoUrl = data.videoUrl;
@@ -1009,7 +1013,6 @@ backgroundNamespace.on('connection', (socket) => {
 // Define /main namespace for main webpage clients
 const mainNamespace = io.of('/main');
 
-// No CORS checks in namespaces, since CORS is relaxed globally
 mainNamespace.on('connection', (socket) => {
     const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
     logger.info(`Main client connected: ${socket.id}, IP: ${ip}`);
@@ -1024,17 +1027,10 @@ mainNamespace.on('connection', (socket) => {
         isPaused: isVideoPaused
     });
 
-    // Catch-all for unexpected events in /main namespace
-    socket.onAny((event, ...args) => {
-        logger.warn(`Main namespace: Received unexpected event '${event}' from client ${socket.id}: ${JSON.stringify(args)}`);
-    });
-
-    // Handle main client disconnection
     socket.on('disconnect', () => {
         logger.info(`Main client disconnected: ${socket.id}`);
     });
 });
-
 
 
 // Update Data Endpoint
