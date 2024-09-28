@@ -871,23 +871,6 @@ io.on('connection', async (socket) => {
 
         const validCurrentTime = typeof currentTime === 'number' ? currentTime : 0;
 
-        if (!offlineStatus) {
-            if (typeof title !== 'string' || title.trim() === '' || typeof videoUrl !== 'string' || videoUrl.trim() === '' ||
-                typeof validCurrentTime !== 'number' || typeof isPaused !== 'boolean' || typeof offlineStatus !== 'boolean') {
-
-                logger.warn(`Invalid data received from client ${socket.id}: ${JSON.stringify(data)}`);
-                return;
-            }
-
-            logger.info(`Handling online state: Title="${title}", URL="${videoUrl}", CurrentTime=${validCurrentTime}`);
-        } else {
-            if (title === 'Offline' && videoUrl === '') {
-                logger.info(`Received valid "offline" state from client ${socket.id}`);
-            } else {
-                logger.warn(`Invalid offline data received from client ${socket.id}: ${JSON.stringify(data)}`);
-                return;
-            }
-        }
 
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
