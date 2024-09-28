@@ -30,7 +30,7 @@ const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
         origin: [
-            "chrome-extension://ealgoodedcojbceodddhbpcklnpneocp",
+            "*",
             "https://mikumiku.dev/"
         ],
         methods: ["GET", "POST"],
