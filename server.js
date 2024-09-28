@@ -981,11 +981,12 @@ io.on('connection', (socket) => {
 const backgroundNamespace = io.of('/background');
 
 backgroundNamespace.on('connection', (socket) => {
-    logger.info(`Background client connected: ${socket.id}, IP: ${socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress}`);
+    logger.info(`Background client connected to /background namespace: ${socket.id}, IP: ${socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress}`);
 
+    // Additional logic for when a background client connects
     socket.on('progressUpdate', (data) => {
         logger.info(`Received 'progressUpdate' from background client ${socket.id}: ${JSON.stringify(data)}`);
-
+        
         // Handle the data update logic here
         currentVideoTitle = data.title;
         currentVideoUrl = data.videoUrl;
@@ -1005,7 +1006,7 @@ backgroundNamespace.on('connection', (socket) => {
     });
 
     socket.on('disconnect', (reason) => {
-        logger.info(`Background client disconnected: ${socket.id}, Reason: ${reason}`);
+        logger.info(`Background client disconnected from /background namespace: ${socket.id}, Reason: ${reason}`);
     });
 });
 
