@@ -76,26 +76,28 @@ app.use(cors());
 app.post('/updateVideoData', async (req, res) => {
     const { videoId } = req.body;
 
-    console.log("Received request at /updateVideoData endpoint");
-    console.log("Request body:", req.body);
+    console.log("[/updateVideoData] Received request at /updateVideoData endpoint");
+    console.log("[/updateVideoData] Request body:", req.body);
 
     if (!videoId) {
-        console.error('Invalid video ID received');
+        console.error('[/updateVideoData] Invalid video ID received');
         return res.status(400).send('Invalid video ID');
     }
 
     try {
-        // Fetch video details from YouTube Data API
-        console.log(`Fetching video data from YouTube for video ID: ${videoId}`);
-        const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${YOUTUBE_API_KEY}&part=snippet,statistics,contentDetails`;
+        const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics,contentDetails`;
+        console.log(`[/updateVideoData] Fetching video data from YouTube for video ID: ${videoId}`);
+        console.log(`[/updateVideoData] YouTube API URL: ${apiUrl}`);
+        
         const response = await axios.get(apiUrl);
+        console.log(`[/updateVideoData] Response status: ${response.status}`);
 
         if (response.data.items && response.data.items.length > 0) {
             const videoData = response.data.items[0].snippet;
             const statistics = response.data.items[0].statistics;
             const contentDetails = response.data.items[0].contentDetails;
 
-            console.log('Successfully fetched video data:', {
+            console.log('[/updateVideoData] Successfully fetched video data:', {
                 title: videoData.title,
                 description: videoData.description,
                 categoryId: videoData.categoryId,
@@ -108,14 +110,18 @@ app.post('/updateVideoData', async (req, res) => {
 
             res.status(200).send('Video data received successfully');
         } else {
-            console.error('No video data found for the given video ID');
+            console.error('[/updateVideoData] No video data found for the given video ID');
             res.status(404).send('No video data found');
         }
     } catch (error) {
-        console.error('Error fetching video data:', error.message);
+        console.error(`[/updateVideoData] Error fetching video data: ${error.message}`);
+        if (error.response) {
+            console.error(`[Error] Response status: ${error.response.status}, Data: ${JSON.stringify(error.response.data)}`);
+        }
         res.status(500).send('Error fetching video data');
     }
 });
+
 
 
 
@@ -1137,7 +1143,7 @@ let activeUsers = [];
 
 // Socket.IO Connection Handling
 io.on('connection', async (socket) => {
-    logger.info(`New client connected: ${socket.id}`);
+    logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
     // Emit the current status to the newly connected client
     socket.emit('nowPlayingUpdate', {
