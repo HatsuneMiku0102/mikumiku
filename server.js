@@ -1001,46 +1001,50 @@ io.on('connection', (socket) => {
 
 
 
+const validToken = process.env.AUTH_TOKEN;
+
+// Define /background namespace for background scripts (e.g., Chrome extensions)
 const backgroundNamespace = io.of('/background');
 
-backgroundNamespace.on('connection', (socket) => {
-    const clientSecret = socket.handshake.query.secret;
-
-    if (clientSecret && clientSecret === '39') {
-        logger.info(`Authorized background client connected to /background namespace: ${socket.id}, IP: ${socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress}`);
-
-        socket.on('progressUpdate', (data) => {
-            logger.info(`Received 'progressUpdate' from background client ${socket.id}: ${JSON.stringify(data)}`);
-
-            // Handle the data update logic here
-            currentVideoTitle = data.title;
-            currentVideoUrl = data.videoUrl;
-            videoStartTimestamp = Date.now() - (data.currentTime * 1000);
-            isVideoPaused = data.isPaused;
-            isOffline = data.isOffline;
-
-            // Emit update to main namespace clients
-            mainNamespace.emit('nowPlayingUpdate', {
-                title: currentVideoTitle,
-                videoUrl: currentVideoUrl,
-                startTimestamp: videoStartTimestamp,
-                currentTime: data.currentTime,
-                isOffline: data.isOffline,
-                isPaused: data.isPaused,
-            });
-        });
-
-        socket.on('disconnect', (reason) => {
-            logger.info(`Background client disconnected from /background namespace: ${socket.id}, Reason: ${reason}`);
-        });
-
+backgroundNamespace.use((socket, next) => {
+    const clientToken = socket.handshake.auth.token;
+    if (clientToken === validToken) {
+        return next();
     } else {
-        logger.warn(`Unrecognized or unauthorized client attempted to connect. Socket ID: ${socket.id}, Disconnecting.`);
-        setTimeout(() => {
-            socket.disconnect(true);
-        }, 3000); // Grace period for unrecognized clients
+        logger.info(`Client ${socket.id} provided invalid token. Disconnecting.`);
+        return next(new Error('Authentication error'));
     }
 });
+
+backgroundNamespace.on('connection', (socket) => {
+    logger.info(`Background client connected to /background namespace: ${socket.id}, IP: ${socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress}`);
+
+    socket.on('progressUpdate', (data) => {
+        logger.info(`Received 'progressUpdate' from background client ${socket.id}: ${JSON.stringify(data)}`);
+        
+        // Handle the data update logic here
+        currentVideoTitle = data.title;
+        currentVideoUrl = data.videoUrl;
+        videoStartTimestamp = Date.now() - (data.currentTime * 1000);
+        isVideoPaused = data.isPaused;
+        isOffline = data.isOffline;
+
+        // Emit update to main namespace clients
+        mainNamespace.emit('nowPlayingUpdate', {
+            title: currentVideoTitle,
+            videoUrl: currentVideoUrl,
+            startTimestamp: videoStartTimestamp,
+            currentTime: data.currentTime,
+            isOffline: data.isOffline,
+            isPaused: data.isPaused,
+        });
+    });
+
+    socket.on('disconnect', (reason) => {
+        logger.info(`Background client disconnected from /background namespace: ${socket.id}, Reason: ${reason}`);
+    });
+});
+
 
 
 // Define /main namespace for main webpage clients
