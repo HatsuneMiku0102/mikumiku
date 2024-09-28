@@ -283,7 +283,7 @@ app.post('/api/dialogflow', async (req, res) => {
         console.log("Received response from Dialogflow.");
 
         const result = responses[0].queryResult;
-        console.log("Query Result:", result);
+        console.log("Query Result:", JSON.stringify(result, null, 2)); // Print the full query result for debugging
 
         if (result && result.fulfillmentText) {
             res.json({ response: result.fulfillmentText });
@@ -292,18 +292,17 @@ app.post('/api/dialogflow', async (req, res) => {
 
             // Extract the search query parameter from the Dialogflow parameters
             const parameters = result.parameters.fields;
-            let searchQuery = '';
-            if (parameters && parameters.q) {
-                searchQuery = parameters.q.stringValue;
+
+            if (parameters && parameters.q && parameters.q.stringValue) {
+                const searchQuery = parameters.q.stringValue;
+                console.log(`Performing web search for query: "${searchQuery}"`);
+
+                const webSearchResponse = await getWebSearchResults(searchQuery);
+                res.json({ response: webSearchResponse });
             } else {
                 console.error("Missing search query parameter.");
                 res.json({ response: 'Sorry, I couldn’t understand what to search for.' });
-                return;
             }
-
-            console.log(`Performing web search for query: "${searchQuery}"`);
-            const webSearchResponse = await getWebSearchResults(searchQuery);
-            res.json({ response: webSearchResponse });
         } else {
             console.warn("Dialogflow response did not contain fulfillment text or actionable intent.");
             res.json({ response: 'Sorry, I couldn’t understand that.' });
@@ -314,9 +313,7 @@ app.post('/api/dialogflow', async (req, res) => {
     }
 });
 
-
-
-// Function to perform a web search using Google Custom Search API
+// Web search function
 async function getWebSearchResults(query) {
     const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
     const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
@@ -326,14 +323,12 @@ async function getWebSearchResults(query) {
         return 'Configuration error: Missing Google API Key or CSE ID.';
     }
 
-    // Constructing the endpoint URL
     const SEARCH_ENDPOINT = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}`;
 
     try {
         console.log(`Fetching web search results for query: "${query}"`);
         const response = await fetch(SEARCH_ENDPOINT);
 
-        // Handle non-OK responses more explicitly
         if (!response.ok) {
             console.error(`Error fetching web search results: ${response.status} - ${response.statusText}`);
             if (response.status === 400) {
@@ -349,7 +344,6 @@ async function getWebSearchResults(query) {
         console.log("Received web search data:", data);
 
         if (data.items && data.items.length > 0) {
-            // Get the top 3 results to provide to the user
             const topResults = data.items.slice(0, 3);
             let responseMessage = `Here are the top results I found for "${query}":\n\n`;
 
