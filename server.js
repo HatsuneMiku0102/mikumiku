@@ -25,6 +25,7 @@ const retry = require('async-retry');
 const { body, validationResult } = require('express-validator');
 const dialogflow = require('@google-cloud/dialogflow');
 const uuid = require('uuid');
+const cors = require('cors');
 
 dotenv.config();
 
