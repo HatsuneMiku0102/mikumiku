@@ -173,64 +173,6 @@ app.use(express.static(path.join(__dirname, 'public'), {
 
 
 
-// Loading credentials from the environment variable
-console.log("Loading credentials from environment variable...");
-let credentials;
-
-try {
-    credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
-    console.log("Credentials loaded successfully.");
-} catch (error) {
-    console.error("Error parsing credentials JSON from environment variable:", error);
-    process.exit(1); // Exit the application if credentials are missing or incorrect
-}
-
-// Create a new Dialogflow session client with credentials
-let sessionClient;
-
-try {
-    sessionClient = new dialogflow.SessionsClient({
-        credentials: {
-            client_email: credentials.client_email,
-            private_key: credentials.private_key,
-        },
-    });
-    console.log("Dialogflow session client initialized successfully.");
-} catch (error) {
-    console.error("Error initializing Dialogflow session client:", error);
-    process.exit(1); // Exit the application if the session client cannot be initialized
-}
-
-// Set the project ID explicitly to ensure we're using the correct Dialogflow agent
-const projectId = 'haru-ai-sxjr';
-console.log(`Using project ID: ${projectId}`);
-
-// Endpoint for Dialogflow webhook
-app.post('/api/dialogflow', async (req, res) => {
-    const userMessage = req.body.message;
-    console.log(`Received user message: ${userMessage}`);
-
-    if (!userMessage) {
-        console.error("No user message provided in request.");
-        res.status(400).json({ response: 'No message provided.' });
-        return;
-    }
-
-    const sessionId = uuid.v4(); // Generate a unique session ID for each request
-    const sessionPath = sessionClient.projectAgentSessionPath(projectId, sessionId);
-    console.log(`Generated session path: ${sessionPath}`);
-
-    const request = {
-        session: sessionPath,
-        queryInput: {
-            text: {
-                text: userMessage,
-                languageCode: 'en-US',
-            },
-        },
-    };
-
-
 console.log("Loading credentials from environment variable...");
 let credentials;
 
@@ -351,6 +293,7 @@ async function getWebSearchResults(query) {
         return 'Sorry, something went wrong while searching the web.';
     }
 }
+
 
 
 
