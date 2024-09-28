@@ -206,60 +206,32 @@ console.log(`Using project ID: ${projectId}`);
 
 
 
-async function getFulfillmentResponse(query) {
+async function performWebSearch(query) {
     const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
     const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
-
-    const isGoogleQuery = query.toLowerCase().startsWith('google');
-
-    let cleanQuery = query;
-    if (isGoogleQuery) {
-        cleanQuery = query.replace(/^(google|search)\s+/i, '').trim();
-    }
-
-    // Step 1: Query Google Knowledge Graph API first
-    const KNOWLEDGE_GRAPH_API_URL = `https://kgsearch.googleapis.com/v1/entities:search?query=${encodeURIComponent(cleanQuery)}&key=${GOOGLE_API_KEY}&limit=1&indent=True`;
+    const SEARCH_ENDPOINT = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}`;
 
     try {
-        console.log(`Attempting Knowledge Graph search for query: "${cleanQuery}"`);
-        const kgResponse = await fetch(KNOWLEDGE_GRAPH_API_URL);
-        const kgData = await kgResponse.json();
-        console.log('Knowledge Graph Response:', kgData); // Log response for debugging
-
-        if (kgData.itemListElement && kgData.itemListElement.length > 0) {
-            const entity = kgData.itemListElement[0].result;
-            if (entity && entity.description) {
-                return `${entity.name} is ${entity.description}.`;
-            } else if (entity && entity.detailedDescription && entity.detailedDescription.articleBody) {
-                return `${entity.name}: ${entity.detailedDescription.articleBody}`;
-            }
-        }
-    } catch (error) {
-        console.error('Error fetching Knowledge Graph data:', error);
-    }
-
-    // Step 2: Fallback to Google Custom Search if Knowledge Graph provides no result
-    const SEARCH_ENDPOINT = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(cleanQuery)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}`;
-
-    try {
-        console.log(`Performing Google Custom Search for query: "${cleanQuery}"`);
+        console.log(`Performing Google Custom Search for query: "${query}"`);
         const response = await fetch(SEARCH_ENDPOINT);
         const data = await response.json();
-        console.log('Custom Search Response:', data);
 
         if (data.items && data.items.length > 0) {
-            const topResults = data.items.slice(0, 3).map(item => {
-                return `${item.title}: ${item.snippet}\nMore at: ${item.link}`;
+            // Format the top search results
+            const formattedResults = data.items.slice(0, 3).map((item, index) => {
+                return `**${index + 1}. [${item.title}](${item.link})**\n${item.snippet}`;
             }).join("\n\n");
-            return `Here are the top results I found for "${cleanQuery}":\n\n${topResults}`;
+            
+            return `Here are the top results I found for "${query}":\n\n${formattedResults}`;
         } else {
-            return `Sorry, I couldn’t find anything relevant for "${cleanQuery}".`;
+            return `Sorry, I couldn’t find anything relevant for "${query}".`;
         }
     } catch (error) {
         console.error('Error fetching web search results:', error);
         return 'Sorry, something went wrong while searching the web.';
     }
 }
+
 
 
 
