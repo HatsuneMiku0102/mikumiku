@@ -975,69 +975,36 @@ let activeUsers = [];
 // Define /background namespace for background scripts (e.g., Chrome extensions)
 const backgroundNamespace = io.of('/background');
 
-// No CORS checks in namespaces, since CORS is relaxed globally
 backgroundNamespace.on('connection', (socket) => {
-    const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
-    logger.info(`Background client connected: ${socket.id}, IP: ${ip}`);
+    logger.info(`Background client connected: ${socket.id}, IP: ${socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress}`);
 
-    // Handle 'progressUpdate' events from background scripts
+    // Additional logic for when a background client connects
     socket.on('progressUpdate', (data) => {
         logger.info(`Received 'progressUpdate' from background client ${socket.id}: ${JSON.stringify(data)}`);
+        
+        // Handle the data update logic here
+        currentVideoTitle = data.title;
+        currentVideoUrl = data.videoUrl;
+        videoStartTimestamp = Date.now() - (data.currentTime * 1000);
+        isVideoPaused = data.isPaused;
+        isOffline = data.isOffline;
 
-
-        const { title, videoUrl, currentTime, isPaused, isOffline } = data;
-
-        // Validate incoming data
-        if (
-            typeof title !== 'string' ||
-            typeof videoUrl !== 'string' ||
-            typeof currentTime !== 'number' ||
-            typeof isPaused !== 'boolean' ||
-            typeof isOffline !== 'boolean'
-        ) {
-            logger.warn(`Invalid 'progressUpdate' data from background client ${socket.id}: ${JSON.stringify(data)}`);
-            return;
-        }
-
-        // Update server's current state
-        currentVideoTitle = title;
-        currentVideoUrl = videoUrl;
-        videoStartTimestamp = Date.now() - (currentTime * 1000);
-        isVideoPaused = isPaused;
-        isOffline = isOffline;
-
-        logger.info(`Updated server state: Title="${currentVideoTitle}", URL="${currentVideoUrl}", StartTimestamp=${videoStartTimestamp}, isPaused=${isVideoPaused}, isOffline=${isOffline}`);
-
-        // Emit the updated state to all clients in the /main namespace
+        // Emit update to main namespace clients
         mainNamespace.emit('nowPlayingUpdate', {
             title: currentVideoTitle,
             videoUrl: currentVideoUrl,
             startTimestamp: videoStartTimestamp,
-            currentTime: currentTime,
-            isOffline: isOffline,
-            isPaused: isPaused
+            currentTime: data.currentTime,
+            isOffline: data.isOffline,
+            isPaused: data.isPaused,
         });
-
-        logger.info(`Emitted 'nowPlayingUpdate' to /main namespace clients: ${JSON.stringify({
-            title: currentVideoTitle,
-            videoUrl: currentVideoUrl,
-            startTimestamp: videoStartTimestamp,
-            currentTime: currentTime,
-            isOffline: isOffline,
-            isPaused: isPaused
-        })}`);
     });
 
-    // Catch-all for unexpected events in /background namespace
-    socket.onAny((event, ...args) => {
-        logger.warn(`Background namespace: Received unexpected event '${event}' from client ${socket.id}: ${JSON.stringify(args)}`);
-    });
-
-    // Handle background client disconnection
     socket.on('disconnect', (reason) => {
         logger.info(`Background client disconnected: ${socket.id}, Reason: ${reason}`);
     });
 });
+
 
 // Define /main namespace for main webpage clients
 const mainNamespace = io.of('/main');
