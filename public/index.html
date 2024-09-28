@@ -108,7 +108,7 @@
                 <div class="weather-widget box-container">
                     <h3>My Current Weather</h3>
                     <div class="weather-info">
-                        <img id="weather-icon" src="" alt="Weather Icon" loading="lazy">
+                        <img id="weather-icon" src="" alt="Weather Icon" loading="lazy" style="display: none;">
                         <p id="weather-description">Loading...</p>
                         <p id="temperature">--°C</p>
                         <p id="humidity">Humidity: --%</p>
@@ -148,11 +148,13 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <!-- Updated Socket.io Client Library to Latest Version -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" integrity="sha512-cm3DkBz8ICiPEwJ0X6pjblC4qfVgxrgxEdKmK9eOQbrwXgLbU2y7u8fjsnJrCkR8cLWeB/KF2qCgJhf3nx9Yuw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="haru.js"></script>
 
     <script>
+        // Dynamic Title Script
         function getTimeOfDay() {
             const hour = new Date().getHours();
             if (hour < 12) {
@@ -254,11 +256,12 @@
 
             async function fetchYouTubeVideoDetails(videoID) {
                 try {
+                    console.log(`Fetching YouTube video details for ID: ${videoID}`);
                     const response = await fetch(`${YOUTUBE_API_URL}?videoId=${videoID}`);
                     const data = await response.json();
 
                     if (data.error) {
-                        console.error(data.error);
+                        console.error('YouTube API Error:', data.error);
                         displayError('Failed to load video details.');
                         return null;
                     }
@@ -281,6 +284,7 @@
                             liveBroadcastContent: snippet.liveBroadcastContent
                         };
 
+                        console.log('Fetched video details:', videoDetails);
                         return videoDetails;
                     } else {
                         console.error('No video data found for the provided videoId.');
@@ -296,12 +300,18 @@
 
             function displayError(message) {
                 const videoSection = document.querySelector('.video-section');
-                const errorContainer = document.createElement('div');
-                errorContainer.className = 'error-message';
-                errorContainer.innerText = message;
-                videoSection.prepend(errorContainer);
+                const existingError = videoSection.querySelector('.error-message');
+                if (existingError) {
+                    existingError.innerText = message;
+                } else {
+                    const errorContainer = document.createElement('div');
+                    errorContainer.className = 'error-message';
+                    errorContainer.innerText = message;
+                    videoSection.prepend(errorContainer);
+                }
             }
 
+            // Initialize Socket.io client
             const socket = io();
 
             socket.on('connect', () => {
@@ -312,16 +322,22 @@
                 console.log('Frontend disconnected from server');
             });
 
+            socket.on('error', (error) => {
+                console.error('Socket.io error:', error);
+            });
+
             socket.on('nowPlayingUpdate', (data) => {
+                console.log('Received nowPlayingUpdate:', data);
                 const { isOffline, videoUrl, title, currentTime, isPaused } = data;
 
                 const videoTitleElement = document.getElementById('videoTitle');
                 const videoThumbnailElement = document.getElementById('videoThumbnail');
                 const nowPlayingElement = document.querySelector('.now-playing');
-                const offlineIndicator = document.getElementById('offline-indicator'); // Corrected ID
+                const offlineIndicator = document.getElementById('offline-indicator');
                 const pauseButton = document.getElementById('pauseButton');
 
                 if (isOffline) {
+                    console.log('Handling offline state');
                     if (videoTitleElement) videoTitleElement.innerText = 'I’m not on YouTube at the moment, soz :(';
                     if (nowPlayingElement) nowPlayingElement.classList.add('offline');
                     if (videoThumbnailElement) videoThumbnailElement.classList.add('offline-thumbnail');
@@ -333,12 +349,15 @@
                     if (pauseButton) pauseButton.style.display = 'none';
                     if (offlineIndicator) offlineIndicator.style.display = 'block';
                 } else {
+                    console.log('Handling online state');
                     if (nowPlayingElement) nowPlayingElement.classList.remove('offline');
                     if (videoThumbnailElement) videoThumbnailElement.classList.remove('offline-thumbnail');
                     if (offlineIndicator) offlineIndicator.style.display = 'none';
 
                     const videoID = extractYouTubeVideoID(videoUrl);
                     if (!videoID) {
+                        console.warn('Invalid video ID extracted:', videoUrl);
+                        displayError('Invalid video URL.');
                         return;
                     }
 
@@ -350,15 +369,18 @@
 
                     fetchYouTubeVideoDetails(videoID).then((videoDetails) => {
                         if (videoDetails) {
-                            videoDuration = videoDetails.duration;
                             const totalDurationElement = document.getElementById('total-duration');
-                            if (totalDurationElement) totalDurationElement.innerText = `Total Duration: ${formatTime(videoDuration)}`;
+                            if (totalDurationElement) totalDurationElement.innerText = `Total Duration: ${formatTime(videoDetails.duration)}`;
+
                             const videoDescription = document.getElementById('videoDescription');
                             if (videoDescription) videoDescription.innerText = videoDetails.description || 'No Description Available';
+
                             const channelName = document.getElementById('channelName');
                             if (channelName) channelName.innerText = videoDetails.channelTitle || 'Unknown Channel';
+
                             const publishedDate = document.getElementById('publishedDate');
                             if (publishedDate) publishedDate.innerText = videoDetails.publishedAt ? new Date(videoDetails.publishedAt).toLocaleDateString() : 'Unknown Date';
+
                             const viewCount = document.getElementById('viewCount');
                             if (viewCount) viewCount.innerText = `${Number(videoDetails.viewCount).toLocaleString()} views`;
 
@@ -386,6 +408,9 @@
                         }
                         if (pauseButton) pauseButton.style.display = 'inline-block';
                         togglePauseState(isPaused);
+                    }).catch((error) => {
+                        console.error('Error fetching video details:', error);
+                        displayError('An error occurred while fetching video details.');
                     });
                 }
             });
@@ -464,7 +489,7 @@
             }
 
             fetchWeather();
-            setInterval(fetchWeather, 3600000);
+            setInterval(fetchWeather, 3600000); // Update weather every hour
 
             function updateProgress(newProgress) {
                 const progressBar = document.getElementById('progress-bar');
@@ -510,8 +535,21 @@
                 if (pauseButton) {
                     if (isPaused) {
                         pauseButton.classList.add('paused');
+                        pauseButton.setAttribute('aria-label', 'Play Video');
+                        pauseButton.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="5,3 19,12 5,21" />
+                            </svg>
+                        `;
                     } else {
                         pauseButton.classList.remove('paused');
+                        pauseButton.setAttribute('aria-label', 'Pause Video');
+                        pauseButton.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="6" y="5" width="4" height="14"></rect>
+                                <rect x="14" y="5" width="4" height="14"></rect>
+                            </svg>
+                        `;
                     }
                 }
             }
