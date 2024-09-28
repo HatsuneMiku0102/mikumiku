@@ -23,6 +23,8 @@ const { DateTime } = require('luxon');
 const fetch = require('node-fetch');
 const retry = require('async-retry');
 const { body, validationResult } = require('express-validator');
+const dialogflow = require('@google-cloud/dialogflow');
+const uuid = require('uuid');
 
 dotenv.config();
 
@@ -174,6 +176,7 @@ const dialogflow = require('@google-cloud/dialogflow');
 // Parse the credentials from the environment variable
 const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
 
+// Create a new Dialogflow session client
 const sessionClient = new dialogflow.SessionsClient({
     credentials: {
         client_email: credentials.client_email,
@@ -183,7 +186,6 @@ const sessionClient = new dialogflow.SessionsClient({
 
 const projectId = credentials.project_id;
 
-// Example function to handle requests to Dialogflow
 app.post('/api/dialogflow', async (req, res) => {
     const userMessage = req.body.message;
     const sessionId = uuid.v4();
@@ -208,7 +210,6 @@ app.post('/api/dialogflow', async (req, res) => {
         res.status(500).json({ response: 'Sorry, something went wrong.' });
     }
 });
-
 
 
 
