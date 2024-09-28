@@ -1067,11 +1067,7 @@ mainNamespace.on('connection', (socket) => {
     });
 });
 
-// Root namespace handler for unexpected connections
-io.on('connection', (socket) => {
-    logger.warn(`Root namespace: Received unexpected connection from client ${socket.id}. Disconnecting.`);
-    socket.disconnect(true);
-});
+
 
 // Update Data Endpoint
 app.post('/api/update', (req, res) => {
