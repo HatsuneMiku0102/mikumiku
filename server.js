@@ -82,41 +82,40 @@ app.post('/updateVideoData', async (req, res) => {
     }
 
     try {
-        const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics,contentDetails`;
+        // Fetch video data from YouTube API to get thumbnail and category
+        const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics`;
         const response = await axios.get(apiUrl);
-
-        if (response.data.items && response.data.items.length > 0) {
-            const videoData = response.data.items[0].snippet;
-            const statistics = response.data.items[0].statistics;
-            const contentDetails = response.data.items[0].contentDetails;
-
-            const category = categoryMap[videoData.categoryId] || "Unknown Category";
-
-            currentVideoData = {
-                videoId: videoId,
-                title: videoData.title,
-                description: videoData.description,
-                channelTitle: videoData.channelTitle,
-                viewCount: statistics.viewCount,
-                likeCount: statistics.likeCount,
-                duration: contentDetails.duration,
-                publishedAt: videoData.publishedAt,
-                category: category,
-                thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-            };
-
-            io.emit('nowPlayingUpdate', currentVideoData);
-            logger.info(`Video data updated and emitted to all clients: ${JSON.stringify(currentVideoData)}`);
-            res.status(200).send('Video data received successfully');
-        } else {
-            logger.error('No video data found for the given video ID');
-            res.status(404).send('No video data found');
-        }
+        const videoData = response.data.items[0];
+    
+        const thumbnail = videoData.snippet.thumbnails.default.url;
+        const category = videoData.snippet.categoryId; // Category ID
+        const channelTitle = videoData.snippet.channelTitle; // Channel name
+        const viewCount = videoData.statistics.viewCount; // View count
+        const publishedAt = videoData.snippet.publishedAt; // Upload date
+    
+        logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}, Channel: ${channelTitle}, Views: ${viewCount}, Uploaded: ${publishedAt}`);
+    
+        // Update the server state with the new video data
+        currentVideoData = {
+            videoId,
+            title,
+            description,
+            thumbnail,
+            category,
+            channelTitle,
+            viewCount,
+            publishedAt,
+            currentTime,
+            isPaused,
+            isOffline
+        };
+    
+        // Emit the updated video data to all connected clients
+        io.emit('nowPlayingUpdate', currentVideoData);
+        logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: Title="${title}", Video ID="${videoId}", Thumbnail="${thumbnail}", Category="${category}", Channel="${channelTitle}", Views="${viewCount}", Uploaded="${publishedAt}"`);
     } catch (error) {
-        logger.error(`Error fetching video data: ${error.message}`);
-        res.status(500).send('Error fetching video data');
+        logger.error(`[Socket.IO] Error fetching video data: ${error.message}`);
     }
-});
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
