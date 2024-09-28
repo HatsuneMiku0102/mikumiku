@@ -156,11 +156,13 @@ body {
     font-size: 1.2em;
     color: #ffffff;
     max-width: 300px;
-    background-color: rgba(0, 229, 255, 0.2);
     padding: 15px 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.6), rgba(0, 0, 255, 0.8));
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
     z-index: 1001;
     opacity: 0;
     pointer-events: none;
@@ -169,12 +171,45 @@ body {
 .personality-text-box.visible {
     opacity: 1;
     pointer-events: auto;
-    animation: bounceIn 0.5s ease;
+    animation: fadeInScale 0.4s ease forwards;
+}
+
+.personality-text-box::after {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 0 10px 10px 10px;
+    border-style: solid;
+    border-color: transparent transparent rgba(0, 229, 255, 0.6) transparent;
+    transition: opacity 0.3s ease;
+}
+
+.personality-text-box.visible::after {
+    opacity: 1;
 }
 
 /* Dropdown Menu */
 .dropdown {
     position: relative;
+}
+
+.personality-text-box:hover {
+    transform: translateX(-50%) translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.6);
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.8), rgba(0, 0, 255, 0.9));
+}
+
+@keyframes fadeInScale {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+    }
 }
 
 .dropdown-button {
