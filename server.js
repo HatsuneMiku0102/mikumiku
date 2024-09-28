@@ -1,4 +1,4 @@
-'use strict';
+
 
 const express = require('express');
 const http = require('http');
@@ -986,57 +986,57 @@ let videoStartTimestamp = Date.now();
 let isVideoPaused = false;
 let isOffline = false;
 
-// Define /background namespace for background scripts
+// Background Namespace (for extension background script)
 const backgroundNamespace = io.of('/background');
 
 backgroundNamespace.on('connection', (socket) => {
-  console.log(`Background client connected to /background namespace: ${socket.id}`);
+    logger.info(`Background client connected to /background namespace: ${socket.id}`);
 
-  socket.on('progressUpdate', (data) => {
-    console.log(`Received 'progressUpdate' from background client ${socket.id}:`, data);
+    socket.on('progressUpdate', (data) => {
+        logger.info(`Received 'progressUpdate' from background client ${socket.id}:`, data);
 
-    // Update the current state
-    currentVideoTitle = data.title || 'Loading...';
-    currentVideoUrl = data.videoUrl || '';
-    videoStartTimestamp = Date.now() - (data.currentTime * 1000);
-    isVideoPaused = data.isPaused || false;
-    isOffline = data.isOffline || false;
+        // Update the current state
+        currentVideoTitle = data.title || 'Loading...';
+        currentVideoUrl = data.videoUrl || '';
+        videoStartTimestamp = Date.now() - (data.currentTime * 1000);
+        isVideoPaused = data.isPaused || false;
+        isOffline = data.isOffline || false;
 
-    // Emit update to main namespace clients
-    mainNamespace.emit('nowPlayingUpdate', {
-      title: currentVideoTitle,
-      videoUrl: currentVideoUrl,
-      startTimestamp: videoStartTimestamp,
-      currentTime: data.currentTime,
-      isOffline: isOffline,
-      isPaused: isVideoPaused,
+        // Emit update to main namespace clients
+        mainNamespace.emit('nowPlayingUpdate', {
+            title: currentVideoTitle,
+            videoUrl: currentVideoUrl,
+            startTimestamp: videoStartTimestamp,
+            currentTime: data.currentTime,
+            isOffline: isOffline,
+            isPaused: isVideoPaused
+        });
     });
-  });
 
-  socket.on('disconnect', (reason) => {
-    console.log(`Background client disconnected from /background namespace: ${socket.id}, Reason: ${reason}`);
-  });
+    socket.on('disconnect', (reason) => {
+        logger.info(`Background client disconnected from /background namespace: ${socket.id}, Reason: ${reason}`);
+    });
 });
 
-// Define /main namespace for main webpage clients
+// Main Namespace (for webpage clients)
 const mainNamespace = io.of('/main');
 
 mainNamespace.on('connection', (socket) => {
-  console.log(`Main client connected: ${socket.id}`);
+    logger.info(`Main client connected to /main namespace: ${socket.id}`);
 
-  // Emit the current state to the newly connected main client
-  socket.emit('nowPlayingUpdate', {
-    title: currentVideoTitle,
-    videoUrl: currentVideoUrl,
-    startTimestamp: videoStartTimestamp,
-    currentTime: (Date.now() - videoStartTimestamp) / 1000,
-    isOffline: isOffline,
-    isPaused: isVideoPaused
-  });
+    // Emit the current state to the newly connected main client
+    socket.emit('nowPlayingUpdate', {
+        title: currentVideoTitle,
+        videoUrl: currentVideoUrl,
+        startTimestamp: videoStartTimestamp,
+        currentTime: (Date.now() - videoStartTimestamp) / 1000,
+        isOffline: isOffline,
+        isPaused: isVideoPaused
+    });
 
-  socket.on('disconnect', () => {
-    console.log(`Main client disconnected: ${socket.id}`);
-  });
+    socket.on('disconnect', () => {
+        logger.info(`Main client disconnected from /main namespace: ${socket.id}`);
+    });
 });
 
 
