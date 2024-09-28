@@ -251,36 +251,66 @@ async function getWebSearchResults(query) {
 
         if (!response.ok) {
             console.error(`Error fetching web search results: ${response.status} - ${response.statusText}`);
-            if (response.status === 400) {
-                return 'Bad Request: Please verify the request parameters and ensure the query is properly formatted.';
-            }
-            if (response.status === 403) {
-                return 'Forbidden: Please verify your API key and ensure it has the correct permissions.';
-            }
-            return `Error: Received status code ${response.status}. Please check the request or try again later.`;
+            return handleFetchError(response.status);
         }
 
         const data = await response.json();
         console.log("Received web search data:", data);
 
         if (data.items && data.items.length > 0) {
-            for (let item of data.items) {
-                if (item.link.includes('wikipedia.org')) {
-                    const wikiSummary = await fetchWikipediaSummary(item.link);
-                    if (wikiSummary) {
-                        return wikiSummary;
+            const lowerCaseQuery = query.toLowerCase();
+            const keyWords = ["who", "what", "when", "where", "why", "how"];
+            const questionType = keyWords.find(word => lowerCaseQuery.startsWith(word));
+
+            const topResults = data.items.slice(0, 3).map((item, index) => {
+                let responseSnippet = item.snippet;
+                let focusText = '';
+
+                // Advanced context extraction based on question type
+                if (questionType === "who" || questionType === "what") {
+                    // Provide a direct answer by focusing on the first sentence
+                    responseSnippet = item.snippet.split('. ')[0];
+                } else if (questionType === "when") {
+                    // Look for dates or time-related keywords
+                    const datePattern = /\b(?:\d{1,2}(?:st|nd|rd|th)?\s\w+|\w+\s\d{1,2},\s\d{4}|\d{4})\b/;
+                    const dateMatch = item.snippet.match(datePattern);
+                    if (dateMatch) {
+                        focusText = `<br><i>Related Time/Date:</i> ${dateMatch[0]}`;
+                    }
+                } else if (questionType === "where") {
+                    // Look for location keywords in the snippet
+                    const locationKeywords = ["city", "country", "location", "place"];
+                    const location = locationKeywords.find(keyword => item.snippet.toLowerCase().includes(keyword));
+                    if (location) {
+                        focusText = `<br><i>Location Reference:</i> ${location}`;
                     }
                 }
-            }
 
-            const topResult = data.items[0];
-            return `Here's what I found: ${topResult.title}\n${topResult.snippet}\n${topResult.link}`;
+                // Format the response for better readability
+                return `<b>${index + 1}. <a href="${item.link}" target="_blank">${item.title}</a></b><br>${responseSnippet}${focusText}`;
+            }).join("<br><br>");
+
+            return `Here are the top results I found for "<b>${query}</b>":<br><br>${topResults}`;
         } else {
-            return 'Sorry, I couldn’t find anything relevant.';
+            return `Sorry, I couldn’t find anything relevant for "<b>${query}</b>".`;
         }
     } catch (error) {
         console.error('Error fetching web search results:', error);
         return 'Sorry, something went wrong while searching the web.';
+    }
+}
+
+// Handle fetch errors and provide specific messages for different error codes
+function handleFetchError(status) {
+    switch (status) {
+        case 400:
+            return 'Bad Request: Please check your query and try again.';
+        case 403:
+            return 'Access Forbidden: This might be due to an API key issue or quota limits being exceeded.';
+        case 404:
+            return 'No results found. Please check your query and try again.';
+        default:
+            return 'An unexpected error occurred. Please try again later.';
     }
 }
 
