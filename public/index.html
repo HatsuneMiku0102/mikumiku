@@ -148,7 +148,7 @@
         </div>
     </div>
 
-   
+    <!-- Socket.io Client Library Without Integrity Attribute (Immediate Fix) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="haru.js"></script>
@@ -350,10 +350,19 @@
                     if (pauseButton) pauseButton.style.display = 'none';
                     if (offlineIndicator) offlineIndicator.style.display = 'block';
                 } else {
-                    console.log('Handling online state');
-                    if (nowPlayingElement) nowPlayingElement.classList.remove('offline');
-                    if (videoThumbnailElement) videoThumbnailElement.classList.remove('offline-thumbnail');
-                    if (offlineIndicator) offlineIndicator.style.display = 'none';
+                    if (!videoUrl) {
+                        console.warn('Received nowPlayingUpdate with empty videoUrl.');
+                        if (videoTitleElement) videoTitleElement.innerText = 'No video is currently playing.';
+                        if (videoThumbnailElement) videoThumbnailElement.src = '/default-thumbnail.jpg';
+                        // Optionally hide or reset other UI elements
+                        clearExistingInterval();
+                        const timeElapsed = document.getElementById('time-elapsed');
+                        const totalDuration = document.getElementById('total-duration');
+                        if (timeElapsed) timeElapsed.innerText = `Time Elapsed: --:--`;
+                        if (totalDuration) totalDuration.innerText = `Total Duration: --:--`;
+                        if (pauseButton) pauseButton.style.display = 'none';
+                        return;
+                    }
 
                     const videoID = extractYouTubeVideoID(videoUrl);
                     if (!videoID) {
@@ -361,6 +370,11 @@
                         displayError('Invalid video URL.');
                         return;
                     }
+
+                    console.log('Handling online state');
+                    if (nowPlayingElement) nowPlayingElement.classList.remove('offline');
+                    if (videoThumbnailElement) videoThumbnailElement.classList.remove('offline-thumbnail');
+                    if (offlineIndicator) offlineIndicator.style.display = 'none';
 
                     if (videoTitleElement) videoTitleElement.innerText = title || 'No Title Available';
                     if (videoThumbnailElement) {
