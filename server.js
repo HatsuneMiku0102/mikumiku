@@ -209,12 +209,15 @@ console.log(`Using project ID: ${projectId}`);
 async function getFulfillmentResponse(query) {
     const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
     const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
-    const KNOWLEDGE_GRAPH_API_URL = `https://kgsearch.googleapis.com/v1/entities:search?query=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&limit=1&indent=True`;
 
-    // Check if the query is a "Who is" type query
-    if (query.toLowerCase().startsWith('who is')) {
+    // Step 1: Identify if the query is a "Who is" question
+    const isWhoIsQuery = query.toLowerCase().startsWith('who is');
+
+    if (isWhoIsQuery) {
+        // Step 2: Use Google Knowledge Graph API to find the answer
+        const KNOWLEDGE_GRAPH_API_URL = `https://kgsearch.googleapis.com/v1/entities:search?query=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&limit=1&indent=True`;
+
         try {
-            // Fetch entity data from Knowledge Graph API
             const kgResponse = await fetch(KNOWLEDGE_GRAPH_API_URL);
             if (!kgResponse.ok) {
                 throw new Error(`Knowledge Graph API error: ${kgResponse.statusText}`);
@@ -224,7 +227,7 @@ async function getFulfillmentResponse(query) {
             if (kgData.itemListElement && kgData.itemListElement.length > 0) {
                 const entity = kgData.itemListElement[0].result;
                 if (entity && entity.description) {
-                    // Return the entity description if available
+                    // Return a more direct answer if available
                     return `${entity.name} is ${entity.description}.`;
                 }
             }
@@ -233,9 +236,9 @@ async function getFulfillmentResponse(query) {
         }
     }
 
-    // Fallback to Google Custom Search if Knowledge Graph doesn't provide an answer
+    // Step 3: If Knowledge Graph does not yield results, fall back to Google Custom Search
     const SEARCH_ENDPOINT = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}`;
-    
+
     try {
         const response = await fetch(SEARCH_ENDPOINT);
 
