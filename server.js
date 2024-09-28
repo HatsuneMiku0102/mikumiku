@@ -168,6 +168,51 @@ app.use(express.static(path.join(__dirname, 'public'), {
     lastModified: false
 }));
 
+
+const dialogflow = require('@google-cloud/dialogflow');
+
+// Parse the credentials from the environment variable
+const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+
+const sessionClient = new dialogflow.SessionsClient({
+    credentials: {
+        client_email: credentials.client_email,
+        private_key: credentials.private_key,
+    },
+});
+
+const projectId = credentials.project_id;
+
+// Example function to handle requests to Dialogflow
+app.post('/api/dialogflow', async (req, res) => {
+    const userMessage = req.body.message;
+    const sessionId = uuid.v4();
+    const sessionPath = sessionClient.projectAgentSessionPath(projectId, sessionId);
+
+    const request = {
+        session: sessionPath,
+        queryInput: {
+            text: {
+                text: userMessage,
+                languageCode: 'en-US',
+            },
+        },
+    };
+
+    try {
+        const responses = await sessionClient.detectIntent(request);
+        const result = responses[0].queryResult;
+        res.json({ response: result.fulfillmentText });
+    } catch (error) {
+        console.error('Dialogflow API error:', error);
+        res.status(500).json({ response: 'Sorry, something went wrong.' });
+    }
+});
+
+
+
+
+
 // MongoDB Schemas and Models
 const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
