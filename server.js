@@ -1458,14 +1458,16 @@ async function getActiveUsersWithLocations() {
 
 
 
-// Socket.io connection handler
-io.on('connection', async (socket) => {
-    const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
-    console.log(`New client connected: ${socket.id}, IP: ${ip}`);
+let activeUsers = []; // Initialize an empty array to track active users
 
-    // Fetch location data
+// Socket.IO Connection Handling
+io.on('connection', async (socket) => {
+    logger.info(`[Socket.IO] New client connected: ${socket.id}`);
+
+    // Fetch client IP and location data
+    const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
     const locationData = await fetchLocationData(ip);
-    console.log(`Location data fetched:`, locationData);
+    logger.info(`[Socket.IO] Location data fetched: ${JSON.stringify(locationData)}`);
 
     // Add the user with location data to active users list
     const user = {
@@ -1476,11 +1478,14 @@ io.on('connection', async (socket) => {
         country: locationData.country
     };
 
+    // Ensure `activeUsers` is accessible here
     activeUsers.push(user);
     io.emit('activeUsersUpdate', { users: activeUsers });
 
-    // On disconnect, remove user from active list
+    // Handle user disconnection
     socket.on('disconnect', () => {
+        logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
+        // Remove user from active list
         activeUsers = activeUsers.filter(u => u.id !== socket.id);
         io.emit('activeUsersUpdate', { users: activeUsers });
     });
