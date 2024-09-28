@@ -999,37 +999,47 @@ io.on('connection', (socket) => {
     }, 3000);
 });
 
+const ALLOWED_EXTENSION_ID = 'ealgoodedcojbceodddhbpcklnpneocp';
+
 // Define /background namespace for background scripts (e.g., Chrome extensions)
 const backgroundNamespace = io.of('/background');
 
 backgroundNamespace.on('connection', (socket) => {
-    logger.info(`Background client connected to /background namespace: ${socket.id}, IP: ${socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress}`);
+    const clientExtensionId = socket.handshake.query.extensionId;
 
-    // Additional logic for when a background client connects
-    socket.on('progressUpdate', (data) => {
-        logger.info(`Received 'progressUpdate' from background client ${socket.id}: ${JSON.stringify(data)}`);
+    if (clientExtensionId === ALLOWED_EXTENSION_ID) {
+        logger.info(`Background client connected to /background namespace: ${socket.id}, IP: ${socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress}`);
         
-        // Handle the data update logic here
-        currentVideoTitle = data.title;
-        currentVideoUrl = data.videoUrl;
-        videoStartTimestamp = Date.now() - (data.currentTime * 1000);
-        isVideoPaused = data.isPaused;
-        isOffline = data.isOffline;
+        // Handle 'progressUpdate' events from the background client
+        socket.on('progressUpdate', (data) => {
+            logger.info(`Received 'progressUpdate' from background client ${socket.id}: ${JSON.stringify(data)}`);
+            
+            // Handle the data update logic here
+            currentVideoTitle = data.title;
+            currentVideoUrl = data.videoUrl;
+            videoStartTimestamp = Date.now() - (data.currentTime * 1000);
+            isVideoPaused = data.isPaused;
+            isOffline = data.isOffline;
 
-        // Emit update to main namespace clients
-        mainNamespace.emit('nowPlayingUpdate', {
-            title: currentVideoTitle,
-            videoUrl: currentVideoUrl,
-            startTimestamp: videoStartTimestamp,
-            currentTime: data.currentTime,
-            isOffline: data.isOffline,
-            isPaused: data.isPaused,
+            // Emit update to main namespace clients
+            mainNamespace.emit('nowPlayingUpdate', {
+                title: currentVideoTitle,
+                videoUrl: currentVideoUrl,
+                startTimestamp: videoStartTimestamp,
+                currentTime: data.currentTime,
+                isOffline: data.isOffline,
+                isPaused: data.isPaused,
+            });
         });
-    });
 
-    socket.on('disconnect', (reason) => {
-        logger.info(`Background client disconnected from /background namespace: ${socket.id}, Reason: ${reason}`);
-    });
+        socket.on('disconnect', (reason) => {
+            logger.info(`Background client disconnected from /background namespace: ${socket.id}, Reason: ${reason}`);
+        });
+
+    } else {
+        logger.info(`Unrecognized background client ${socket.id}. Disconnecting.`);
+        socket.disconnect(true);
+    }
 });
 
 
