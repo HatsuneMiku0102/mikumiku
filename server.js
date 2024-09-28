@@ -851,7 +851,7 @@ let activeUsers = [];
 
 io.on('connection', async (socket) => {
     const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
-    logger.info(`New client connected: ${socket.id}, IP: ${ip}`);
+    logger.info(`New client connected to youtube player: ${socket.id}, IP: ${ip}`);
 
     socket.emit('nowPlayingUpdate', {
         title: currentVideoTitle,
