@@ -103,7 +103,6 @@ app.post('/updateVideoData', async (req, res) => {
                 publishedAt: videoData.publishedAt,
             });
 
-            // Respond with a success message
             res.status(200).send('Video data received successfully');
         } else {
             console.error('No video data found for the given video ID');
