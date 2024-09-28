@@ -82,7 +82,6 @@ app.post('/updateVideoData', async (req, res) => {
     }
 
     try {
-        // Fetch video data from YouTube API to get thumbnail and category
         const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics`;
         const response = await axios.get(apiUrl);
         const videoData = response.data.items[0];
@@ -93,10 +92,13 @@ app.post('/updateVideoData', async (req, res) => {
         }
 
         const thumbnail = videoData.snippet.thumbnails.default.url;
-        const category = videoData.snippet.categoryId; // Category ID
+        const categoryId = videoData.snippet.categoryId; // Category ID
         const channelTitle = videoData.snippet.channelTitle; // Channel name
         const viewCount = videoData.statistics.viewCount; // View count
         const publishedAt = videoData.snippet.publishedAt; // Upload date
+
+        // Map category ID to name
+        const category = categoryMappings[categoryId] || 'Unknown Category';
 
         logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}, Channel: ${channelTitle}, Views: ${viewCount}, Uploaded: ${publishedAt}`);
 
@@ -129,7 +131,7 @@ app.post('/updateVideoData', async (req, res) => {
 // Socket.IO connection handling
 io.on('connection', (socket) => {
     logger.info(`[Socket.IO] Youtube Client Connected on socket ID: ${socket.id}`);
-    
+
     // Emit the current video data to the newly connected client
     socket.emit('nowPlayingUpdate', currentVideoData);
 
