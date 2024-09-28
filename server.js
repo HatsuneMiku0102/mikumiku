@@ -134,7 +134,8 @@ app.post('/updateVideoData', async (req, res) => {
             publishedAt,
             currentTime,
             isPaused,
-            isOffline
+            isOffline,
+            duration
         };
 
         io.emit('nowPlayingUpdate', currentVideoData);
