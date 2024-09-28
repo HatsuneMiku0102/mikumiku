@@ -851,7 +851,7 @@ let activeUsers = [];
 
 io.on('connection', async (socket) => {
     const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
-    logger.info(`New client connected to youtube player: ${socket.id}, IP: ${ip}`);
+    logger.info(`New client connected: ${socket.id}, IP: ${ip}`);
 
     socket.emit('nowPlayingUpdate', {
         title: currentVideoTitle,
@@ -864,21 +864,21 @@ io.on('connection', async (socket) => {
 
     socket.on('updateVideoTitle', (data) => {
         logger.info(`Received "updateVideoTitle" event from client ${socket.id}: ${JSON.stringify(data)}`);
-    
+
         const { title, videoUrl, currentTime, isPaused, isOffline: offlineStatus } = data;
-    
+
         logger.info(`Title: ${title}, Video URL: ${videoUrl}, Current Time: ${currentTime}, Is Paused: ${isPaused}, Is Offline: ${offlineStatus}`);
-    
+
         const validCurrentTime = typeof currentTime === 'number' ? currentTime : 0;
-    
+
         if (!offlineStatus) {
             if (typeof title !== 'string' || title.trim() === '' || typeof videoUrl !== 'string' || videoUrl.trim() === '' ||
                 typeof validCurrentTime !== 'number' || typeof isPaused !== 'boolean' || typeof offlineStatus !== 'boolean') {
-    
+
                 logger.warn(`Invalid data received from client ${socket.id}: ${JSON.stringify(data)}`);
                 return;
             }
-    
+
             logger.info(`Handling online state: Title="${title}", URL="${videoUrl}", CurrentTime=${validCurrentTime}`);
         } else {
             if (title === 'Offline' && videoUrl === '') {
@@ -888,15 +888,15 @@ io.on('connection', async (socket) => {
                 return;
             }
         }
-    
+
         currentVideoTitle = title;
         currentVideoUrl = videoUrl;
         videoStartTimestamp = Date.now() - (validCurrentTime * 1000);
         isVideoPaused = isPaused;
         isOffline = offlineStatus;
-    
+
         logger.info(`Updated server state: Title="${currentVideoTitle}", URL="${currentVideoUrl}", StartTimestamp=${videoStartTimestamp}, isPaused=${isVideoPaused}, isOffline=${isOffline}`);
-    
+
         io.emit('nowPlayingUpdate', {
             title: currentVideoTitle,
             videoUrl: currentVideoUrl,
@@ -905,7 +905,7 @@ io.on('connection', async (socket) => {
             isOffline: isOffline,
             isPaused: isVideoPaused
         });
-    
+
         logger.info(`Emitted "nowPlayingUpdate" to all clients: Title="${currentVideoTitle}", URL="${currentVideoUrl}", isPaused=${isVideoPaused}, isOffline=${isOffline}`);
     });
 
