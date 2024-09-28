@@ -128,18 +128,6 @@ app.post('/updateVideoData', async (req, res) => {
     }
 });
 
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-    logger.info(`[Socket.IO] Youtube Client Connected on socket ID: ${socket.id}`);
-
-    // Emit the current video data to the newly connected client
-    socket.emit('nowPlayingUpdate', currentVideoData);
-
-    socket.on('disconnect', () => {
-        logger.info(`[Socket.IO] Youtube Client disconnected: ${socket.id}`);
-    });
-});
-
 
 
 
