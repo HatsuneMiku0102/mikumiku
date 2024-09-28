@@ -21,7 +21,7 @@ const fs = require('fs');
 const winston = require('winston');
 const { DateTime } = require('luxon');
 const fetch = require('node-fetch');
-
+const retry = require('async-retry');
 
 dotenv.config();
 
@@ -289,36 +289,83 @@ app.post('/api/gpt', async (req, res) => {
 
 app.get('/api/youtube', async (req, res) => {
     const videoId = req.query.videoId;
-    
+
     if (!videoId) {
         return res.status(400).json({ error: 'videoId parameter is required.' });
     }
 
-    const apiKey = process.env.YOUTUBE_API_KEY; // Ensure this is set in your .env
-    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${encodeURIComponent(videoId)}&part=snippet,statistics,contentDetails&key=${apiKey}`;
-
+    const apiKey = process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
         console.error('YOUTUBE_API_KEY is not set in environment variables.');
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 
+    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${encodeURIComponent(videoId)}&part=snippet,statistics,contentDetails&key=${apiKey}`;
+
     try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-            let errorMsg = 'Failed to fetch YouTube video data';
-            try {
-                const errorData = await response.json();
-                errorMsg = errorData.error.message || errorMsg;
-            } catch (e) {
-                console.error('Error parsing YouTube API error response:', e);
+        const data = await retry(
+            async (bail, attempt) => {
+                try {
+                    const response = await axios.get(apiUrl);
+                    if (response.status === 200) {
+                        const responseData = response.data;
+                        
+                        // Ensure the response data contains the expected structure
+                        if (
+                            !responseData.items ||
+                            responseData.items.length === 0 ||
+                            !responseData.items[0].snippet
+                        ) {
+                            throw new Error('Unexpected response structure from YouTube API.');
+                        }
+
+                        return responseData;
+                    } else if (response.status === 403) {
+                        // If it's a 403 error, we should not retry.
+                        bail(new Error('YouTube API quota exceeded or forbidden.'));
+                    } else {
+                        throw new Error(`Failed to fetch data from YouTube API. Status: ${response.status}`);
+                    }
+                } catch (err) {
+                    if (err.response) {
+                        // Check specific status codes and handle accordingly
+                        if (err.response.status === 404) {
+                            bail(new Error('Video not found.'));
+                        } else if (err.response.status >= 500) {
+                            // Retry for server errors (5xx)
+                            console.warn(`Attempt ${attempt}: YouTube API returned a server error. Retrying...`);
+                            throw err;
+                        } else {
+                            // Bail on other errors
+                            bail(err);
+                        }
+                    } else {
+                        // Network error or unknown error
+                        console.warn(`Attempt ${attempt}: Network error or unknown issue occurred. Retrying...`);
+                        throw err;
+                    }
+                }
+            },
+            {
+                retries: 3, // Retry up to 3 times before failing
+                factor: 2, // Exponential backoff factor
+                minTimeout: 1000, // Minimum time between retries (1 second)
+                maxTimeout: 5000, // Maximum time between retries (5 seconds)
             }
-            return res.status(response.status).json({ error: errorMsg });
-        }
-        const data = await response.json();
+        );
+
+        // Successfully fetched data
         res.json(data);
     } catch (error) {
-        console.error(`Error fetching YouTube video data for videoId ${videoId}:`, error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        console.error(`Error fetching YouTube video data for videoId ${videoId}:`, error.message);
+
+        if (error.message.includes('quota')) {
+            return res.status(403).json({ error: 'YouTube API quota exceeded. Please try again later.' });
+        } else if (error.message.includes('not found')) {
+            return res.status(404).json({ error: 'The requested video was not found.' });
+        } else {
+            return res.status(500).json({ error: 'Internal Server Error' });
+        }
     }
 });
 
