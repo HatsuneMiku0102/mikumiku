@@ -173,10 +173,9 @@ app.use(express.static(path.join(__dirname, 'public'), {
 
 
 
-// Parse the credentials from the environment variable
 const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
 
-// Create a new Dialogflow session client
+// Create a new Dialogflow session client with credentials
 const sessionClient = new dialogflow.SessionsClient({
     credentials: {
         client_email: credentials.client_email,
@@ -184,11 +183,12 @@ const sessionClient = new dialogflow.SessionsClient({
     },
 });
 
-const projectId = credentials.project_id;
+// Set the project ID explicitly to ensure we're using the correct Dialogflow agent
+const projectId = 'haru-ai-sxjr'; // Set the project ID explicitly here
 
 app.post('/api/dialogflow', async (req, res) => {
     const userMessage = req.body.message;
-    const sessionId = uuid.v4();
+    const sessionId = uuid.v4(); // Generate a unique session ID for each request
     const sessionPath = sessionClient.projectAgentSessionPath(projectId, sessionId);
 
     const request = {
@@ -210,6 +210,8 @@ app.post('/api/dialogflow', async (req, res) => {
         res.status(500).json({ response: 'Sorry, something went wrong.' });
     }
 });
+
+
 
 
 
