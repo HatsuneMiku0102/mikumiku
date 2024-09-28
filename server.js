@@ -215,12 +215,6 @@ function hashPassword(password, salt) {
         .digest('hex');
 }
 
-// Hashing an Example Password (Can be removed in production)
-const plainPassword = 'Aria';
-const salt = 'random_salt';
-const hashedPassword = hashPassword(plainPassword, salt);
-logger.info(`Hashed Password: ${hashedPassword}`);
-
 // Middleware for Token Verification
 function verifyToken(req, res, next) {
     const token = req.cookies.token;
@@ -969,87 +963,6 @@ app.get('/api/location', async (req, res) => {
     }
 });
 
-// Clan Members API Endpoints
-app.get('/api/clan/pending', verifyToken, async (req, res) => {
-    const userId = req.userId;
-
-    try {
-        const user = await User.findOne({ discord_id: userId });
-        if (!user) {
-            return res.status(400).send({ error: 'User not found' });
-        }
-
-        const accessToken = await getAccessTokenForUser(user);
-        const pendingMembers = await getPendingClanMembers(accessToken, '5236471');
-
-        await PendingMember.deleteMany();
-        const pendingMemberDocs = pendingMembers.map(member => ({
-            membershipId: member.destinyUserInfo.membershipId,
-            displayName: member.destinyUserInfo.displayName,
-            joinDate: new Date(member.joinDate)
-        }));
-        await PendingMember.insertMany(pendingMemberDocs);
-
-        res.send({ pending_members: pendingMembers });
-    } catch (err) {
-        logger.error(`Error fetching pending clan members: ${err}`);
-        res.status(500).send({ error: 'Internal Server Error' });
-    }
-});
-
-app.get('/api/clan/pending/fromdb', verifyToken, async (req, res) => {
-    try {
-        const pendingMembers = await PendingMember.find();
-        res.send({ pending_members: pendingMembers });
-    } catch (err) {
-        logger.error(`Error retrieving pending clan members from DB: ${err}`);
-        res.status(500).send({ error: 'Internal Server Error' });
-    }
-});
-
-// Admin Dashboard Route
-app.get('/admin-dashboard', verifyToken, (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
-});
-
-// YouTube API Status Check
-app.get('/api/check-youtube', async (req, res) => {
-    try {
-        const youtubeApiStatus = true; // Placeholder: Implement actual status check if needed
-        res.json({
-            available: youtubeApiStatus,
-            status: youtubeApiStatus ? 'YouTube API is working' : 'YouTube API is unavailable'
-        });
-    } catch (error) {
-        logger.error(`Error checking YouTube API: ${error}`);
-        res.status(500).json({
-            available: false,
-            status: 'Error checking YouTube API'
-        });
-    }
-});
-
-// Bungie API Status Check
-app.get('/api/check-bungie', async (req, res) => {
-    const bungieApiKey = process.env.X_API_KEY;
-    const url = 'https://www.bungie.net/Platform/Destiny2/Manifest/';
-
-    try {
-        const response = await axios.get(url, {
-            headers: { 'X-API-Key': bungieApiKey }
-        });
-        if (response.status === 200) {
-            return res.json({ status: 'Bungie API is working', available: true });
-        }
-    } catch (error) {
-        logger.error(`Error checking Bungie API: ${error}`);
-        return res.json({ status: 'Bungie API is unavailable', available: false });
-    }
-});
-
-// GPT API Endpoint (Placeholder)
-// If you have implementation details, ensure they are correctly placed here.
-
 // Socket.io Setup and Handlers
 let currentVideoTitle = 'Loading...';
 let currentVideoUrl = '';
@@ -1141,34 +1054,13 @@ io.on('connection', async (socket) => {
         logger.info(`Emitted "nowPlayingUpdate" to all clients: Title="${currentVideoTitle}", URL="${currentVideoUrl}", isPaused=${isVideoPaused}, isOffline=${isOffline}`);
     });
 
-    // Fetch and Emit Location Data (Optional)
-    try {
-        const locationData = await fetchLocationData(ip);
-        logger.info(`Location data fetched: ${JSON.stringify(locationData)}`);
-
-        const user = {
-            id: socket.id,
-            ip: locationData.ip,
-            city: locationData.city,
-            region: locationData.region,
-            country: locationData.country
-        };
-
-        activeUsers.push(user);
-        io.emit('activeUsersUpdate', { users: activeUsers });
-    } catch (error) {
-        logger.error(`Error fetching location data for IP ${ip}:`, error);
-    }
-
-    // Handle Client Disconnection
+    // Handle client disconnection
     socket.on('disconnect', () => {
-        logger.info(`Client disconnected: ${socket.id}, IP: ${ip}`);
+        logger.info(`Client disconnected: ${socket.id}`);
         activeUsers = activeUsers.filter(u => u.id !== socket.id);
         io.emit('activeUsersUpdate', { users: activeUsers });
     });
 });
-
-// Additional API Endpoints
 
 // Update Data Endpoint
 app.post('/api/update', (req, res) => {
@@ -1216,6 +1108,7 @@ app.post('/api/videos',
         };
 
         try {
+            // Here you can save the videoMetadata to a database if needed
             res.status(201).json({ message: 'Video added successfully', video: videoMetadata });
         } catch (err) {
             logger.error(`Error saving video metadata: ${err.message}`);
