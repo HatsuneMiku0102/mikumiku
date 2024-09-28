@@ -171,7 +171,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 
-const dialogflow = require('@google-cloud/dialogflow');
+
 
 // Parse the credentials from the environment variable
 const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
