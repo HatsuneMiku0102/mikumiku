@@ -335,7 +335,34 @@ app.get('/api/youtube', async (req, res) => {
             }
         );
 
-        res.status(200).json(data);
+        // Extract the necessary data
+        const videoData = data.items[0];
+        const snippet = videoData.snippet;
+        const statistics = videoData.statistics;
+        const contentDetails = videoData.contentDetails;
+
+        const duration = contentDetails.duration; // ISO 8601 duration
+        const title = snippet.title;
+        const description = snippet.description;
+        const channelTitle = snippet.channelTitle;
+        const publishedAt = snippet.publishedAt;
+        const viewCount = statistics.viewCount;
+        const thumbnailUrl = snippet.thumbnails.high.url;
+        const categoryId = snippet.categoryId;
+        const liveBroadcastContent = snippet.liveBroadcastContent;
+
+        // Send the extracted data
+        res.status(200).json({
+            duration,
+            title,
+            description,
+            channelTitle,
+            publishedAt,
+            viewCount,
+            thumbnailUrl,
+            categoryId,
+            liveBroadcastContent
+        });
     } catch (error) {
         console.error(`Error fetching YouTube video data for videoId ${videoId}: ${error.message}`);
 
@@ -350,6 +377,7 @@ app.get('/api/youtube', async (req, res) => {
         }
     }
 });
+
 
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
