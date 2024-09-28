@@ -50,13 +50,22 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 body: JSON.stringify({ message }),
             });
+    
+            if (!response.ok) {
+                console.error('Error from server:', response.statusText);
+                return 'Sorry, something went wrong.';
+            }
+    
             const data = await response.json();
+            console.log("Received response from server:", data);
+    
             return data.response || 'Sorry, something went wrong.';
         } catch (error) {
             console.error('Error fetching Dialogflow response:', error);
             return 'Sorry, something went wrong.';
         }
     }
+
 
     // Optional: Add enter key support for sending messages
     chatInput.addEventListener('keypress', async function (event) {
