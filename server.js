@@ -286,6 +286,7 @@ app.post('/api/dialogflow', async (req, res) => {
         console.log("Query Result:", JSON.stringify(result, null, 2)); // Print the full query result for debugging
 
         if (result && result.fulfillmentText) {
+            console.log("Sending fulfillment text back to client:", result.fulfillmentText);
             res.json({ response: result.fulfillmentText });
         } else if (result && result.action === 'web.search') {
             console.log("Handling web search action...");
@@ -298,6 +299,7 @@ app.post('/api/dialogflow', async (req, res) => {
                 console.log(`Performing web search for query: "${searchQuery}"`);
 
                 const webSearchResponse = await getWebSearchResults(searchQuery);
+                console.log("Sending web search response back to client:", webSearchResponse);
                 res.json({ response: webSearchResponse });
             } else {
                 console.error("Missing search query parameter.");
