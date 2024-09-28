@@ -1014,10 +1014,9 @@ backgroundNamespace.on('connection', (socket) => {
     }
 
     // Check if the extension ID matches the allowed extension ID
-    if (clientExtensionId === ALLOWED_EXTENSION_ID) {
+    if (clientExtensionId === 'ealgoodedcojbceodddhbpcklnpneocp') { // Update this with your correct extension ID
         logger.info(`Authorized background client connected to /background namespace: ${socket.id}, IP: ${socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress}`);
         
-        // Handle 'progressUpdate' events from the background client
         socket.on('progressUpdate', (data) => {
             logger.info(`Received 'progressUpdate' from background client ${socket.id}: ${JSON.stringify(data)}`);
             
