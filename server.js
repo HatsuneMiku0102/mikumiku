@@ -76,6 +76,9 @@ app.use(cors());
 app.post('/updateVideoData', async (req, res) => {
     const { videoId } = req.body;
 
+    console.log("Received request at /updateVideoData endpoint");
+    console.log("Request body:", req.body);
+
     if (!videoId) {
         console.error('Invalid video ID received');
         return res.status(400).send('Invalid video ID');
@@ -83,6 +86,7 @@ app.post('/updateVideoData', async (req, res) => {
 
     try {
         // Fetch video details from YouTube Data API
+        console.log(`Fetching video data from YouTube for video ID: ${videoId}`);
         const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${YOUTUBE_API_KEY}&part=snippet,statistics,contentDetails`;
         const response = await axios.get(apiUrl);
 
@@ -91,8 +95,7 @@ app.post('/updateVideoData', async (req, res) => {
             const statistics = response.data.items[0].statistics;
             const contentDetails = response.data.items[0].contentDetails;
 
-            // Log the received video data
-            console.log('Received video data:', {
+            console.log('Successfully fetched video data:', {
                 title: videoData.title,
                 description: videoData.description,
                 categoryId: videoData.categoryId,
@@ -113,6 +116,7 @@ app.post('/updateVideoData', async (req, res) => {
         res.status(500).send('Error fetching video data');
     }
 });
+
 
 
 
