@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (userMessage) {
             addMessageToChat(userMessage, 'user-message');
             chatInput.value = '';
-            const botResponse = await getDeepPavlovResponse(userMessage);
+            const botResponse = await getDialogflowResponse(userMessage);
             addMessageToChat(botResponse, 'bot-message');
         }
     });
@@ -35,9 +35,9 @@ document.addEventListener('DOMContentLoaded', function () {
         chatContent.scrollTop = chatContent.scrollHeight;
     }
 
-    async function getDeepPavlovResponse(message) {
+    async function getDialogflowResponse(message) {
         try {
-            const response = await fetch('/api/deeppavlov', {
+            const response = await fetch('/api/dialogflow', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await response.json();
             return data.response || 'Sorry, something went wrong.';
         } catch (error) {
-            console.error('Error fetching DeepPavlov response:', error);
+            console.error('Error fetching Dialogflow response:', error);
             return 'Sorry, something went wrong.';
         }
     }
