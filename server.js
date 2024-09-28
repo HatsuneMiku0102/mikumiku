@@ -89,7 +89,8 @@ app.use(
                 "'self'",
                 "https://www.googleapis.com",
                 "https://*.youtube.com",
-                "https://api.openweathermap.org"
+                "https://api.openweathermap.org",
+                "https://mikumiku.dev" // Ensure your server's origin is allowed
             ],
             frameSrc: [
                 "'self'",
@@ -974,9 +975,10 @@ let activeUsers = [];
 // Define /background namespace for background scripts (e.g., Chrome extensions)
 const backgroundNamespace = io.of('/background');
 
+// Middleware for /background namespace to verify origin
 backgroundNamespace.use((socket, next) => {
     const origin = socket.handshake.headers.origin;
-    if (allowedOrigins.includes(origin)) {
+    if (["https://mikumiku.dev", "chrome-extension://ealgoodedcojbceodddhbpcklnpneocp"].includes(origin)) {
         next();
     } else {
         logger.warn(`Background namespace: Connection attempt from disallowed origin: ${origin}`);
@@ -1048,6 +1050,17 @@ backgroundNamespace.on('connection', (socket) => {
 
 // Define /main namespace for main webpage clients
 const mainNamespace = io.of('/main');
+
+// Middleware for /main namespace to verify origin
+mainNamespace.use((socket, next) => {
+    const origin = socket.handshake.headers.origin;
+    if (["https://mikumiku.dev", "chrome-extension://ealgoodedcojbceodddhbpcklnpneocp"].includes(origin)) {
+        next();
+    } else {
+        logger.warn(`Main namespace: Connection attempt from disallowed origin: ${origin}`);
+        next(new Error('Not allowed by CORS'));
+    }
+});
 
 mainNamespace.on('connection', (socket) => {
     const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
