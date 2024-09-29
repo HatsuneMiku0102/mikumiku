@@ -166,7 +166,12 @@
         const videoCategoryElement = document.getElementById("videoCategory");
         const offlineIndicatorElement = document.getElementById("offline-indicator");
         const progressBarElement = document.getElementById("progressBar");
-        const likeCountElement = document.getElementById("likeCount");
+        const likeCountElement = document.getElementById("likeCount"); // Ensure this element exists
+
+        // Modal Elements
+        const descriptionModal = document.getElementById("descriptionModal");
+        const closeDescriptionButton = document.getElementById("closeDescriptionButton");
+        const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
         const videoDescriptionElement = document.getElementById("videoDescription");
 
         // Helper function to format numbers with commas
@@ -193,9 +198,11 @@
             likeCountElement.textContent = "N/A"; // Set to N/A when offline
             publishedDateElement.textContent = "N/A";
             videoCategoryElement.textContent = "N/A";
-            videoDescriptionElement.innerHTML = "<p>Loading description...</p>";
 
             progressBarElement.style.width = "0%";
+
+            // Clear description
+            videoDescriptionElement.textContent = "";
         }
 
         // Function to handle real-time video progress updates
@@ -214,7 +221,7 @@
         // Socket.IO event handlers
         socket.on("connect", () => {
             console.log("[Socket.IO] Connected to server.");
-            // Request the latest data upon connection
+            // Optionally, request the latest data upon connection
             socket.emit('requestLatestData');
         });
 
@@ -269,60 +276,9 @@
                 videoCategoryElement.textContent = data.category || "N/A";
 
                 // Update Description
-                if (data.description) {
-                    videoDescriptionElement.innerHTML = `<p>${data.description}</p>`;
-                } else {
-                    videoDescriptionElement.innerHTML = "<p>No description available.</p>";
-                }
+                videoDescriptionElement.textContent = data.description || "No description available.";
 
                 // Handle Progress Bar Update
-                handleRealTimeProgress(data);
-            }
-        });
-
-        socket.on("latestVideoData", (data) => {
-            console.log("[Socket.IO] Received latestVideoData:", data);
-
-            // Similar handling as 'nowPlayingUpdate'
-            if (!isTabVisible) {
-                return;
-            }
-
-            if (!data.videoId) {
-                markAsOffline();
-            } else {
-                nowPlayingBox.classList.remove("offline");
-                offlineIndicatorElement.style.display = "none";
-
-                videoTitleElement.textContent = data.title || "Unknown Title";
-
-                if (data.thumbnail) {
-                    videoThumbnailElement.src = data.thumbnail;
-                    videoThumbnailElement.style.display = "block";
-                } else {
-                    videoThumbnailElement.src = "";
-                    videoThumbnailElement.style.display = "none";
-                }
-
-                channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-                viewCountElement.textContent = formatNumber(data.viewCount) || "N/A";
-                likeCountElement.textContent = formatNumber(data.likeCount) || "N/A";
-
-                if (data.publishedAt) {
-                    const publishedDate = new Date(data.publishedAt);
-                    publishedDateElement.textContent = publishedDate.toLocaleDateString() || "N/A";
-                } else {
-                    publishedDateElement.textContent = "N/A";
-                }
-
-                videoCategoryElement.textContent = data.category || "N/A";
-
-                if (data.description) {
-                    videoDescriptionElement.innerHTML = `<p>${data.description}</p>`;
-                } else {
-                    videoDescriptionElement.innerHTML = "<p>No description available.</p>";
-                }
-
                 handleRealTimeProgress(data);
             }
         });
@@ -349,6 +305,31 @@
                 isTabVisible = true;
                 // Request the latest data when the tab becomes visible
                 socket.emit('requestLatestData');
+            }
+        });
+
+        // Toggle Description Modal
+        toggleDescriptionButton.addEventListener("click", function () {
+            if (descriptionModal.style.display === "block") {
+                descriptionModal.style.display = "none";
+                toggleDescriptionButton.textContent = "Show Description";
+            } else {
+                descriptionModal.style.display = "block";
+                toggleDescriptionButton.textContent = "Hide Description";
+            }
+        });
+
+        // Close Description Modal when clicking the close button
+        closeDescriptionButton.addEventListener("click", function () {
+            descriptionModal.style.display = "none";
+            toggleDescriptionButton.textContent = "Show Description";
+        });
+
+        // Close Description Modal when clicking outside the modal content
+        window.addEventListener("click", function (event) {
+            if (event.target === descriptionModal) {
+                descriptionModal.style.display = "none";
+                toggleDescriptionButton.textContent = "Show Description";
             }
         });
     });
