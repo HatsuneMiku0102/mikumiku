@@ -1208,11 +1208,17 @@ io.on('connection', (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
     socket.emit('nowPlayingUpdate', currentVideoData);
 
-    // Handle the event when a client sends initial video data
     socket.on('updateVideoTitle', async (data) => {
         logger.info(`[Socket.IO] Received "updateVideoTitle" from client ${socket.id}: ${JSON.stringify(data)}`);
 
         const { videoId, title, description, currentTime, isPaused, duration } = data;
+
+        // Check if the video ID is different from the current video, indicating a new video
+        if (currentVideoData.videoId && currentVideoData.videoId !== videoId) {
+            logger.warn(`[Socket.IO] Video ID mismatch. Current video: ${currentVideoData.videoId}, Update request: ${videoId}`);
+            // Clear current video data to prepare for new video
+            currentVideoData = {};
+        }
 
         try {
             const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics,contentDetails`;
@@ -1226,11 +1232,12 @@ io.on('connection', (socket) => {
 
             const channelTitle = videoData.snippet.channelTitle || "Unknown Channel";
             const viewCount = videoData.statistics.viewCount ? parseInt(videoData.statistics.viewCount).toLocaleString() : "N/A";
-            const likeCount = videoData.statistics.likeCount || "N/A";
+            const likeCount = videoData.statistics.likeCount ? parseInt(videoData.statistics.likeCount).toLocaleString() : "N/A";
             const publishedAt = videoData.snippet.publishedAt || "N/A";
             const thumbnail = videoData.snippet.thumbnails.high.url || "No thumbnail available";
             const category = categoryMappings[videoData.snippet.categoryId] || 'Unknown Category';
 
+            // Update the server-side state for the current video data
             currentVideoData = {
                 videoId,
                 title,
@@ -1246,6 +1253,7 @@ io.on('connection', (socket) => {
                 category
             };
 
+            // Emit the updated video data to all connected clients
             io.emit('nowPlayingUpdate', currentVideoData);
             logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: ${JSON.stringify(currentVideoData)}`);
         } catch (error) {
@@ -1253,19 +1261,20 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle real-time progress updates
     socket.on('updateVideoProgress', (data) => {
-        logger.info(`[Socket.IO] Received real-time video progress update from client ${socket.id}: ${JSON.stringify(data)}`);
+        const { videoId, currentTime, isPaused, duration } = data;
 
-        if (currentVideoData.videoId === data.videoId) {
-            currentVideoData.currentTime = data.currentTime;
-            currentVideoData.duration = data.duration;
-            currentVideoData.isPaused = data.isPaused;
+        // Only update progress for the currently playing video
+        if (currentVideoData.videoId === videoId) {
+            currentVideoData.currentTime = currentTime;
+            currentVideoData.isPaused = isPaused;
+            currentVideoData.duration = duration;
 
+            // Emit real-time progress update to all clients
             io.emit('nowPlayingUpdate', currentVideoData);
-            logger.info(`[Socket.IO] Emitted updated "nowPlayingUpdate" to all clients with real-time progress: ${JSON.stringify(currentVideoData)}`);
+            logger.info(`[Socket.IO] Real-time update: ${JSON.stringify(currentVideoData)}`);
         } else {
-            logger.warn(`[Socket.IO] Video ID mismatch. Current video: ${currentVideoData.videoId}, Update request: ${data.videoId}`);
+            logger.warn(`[Socket.IO] Video ID mismatch for progress update. Expected: ${currentVideoData.videoId}, Received: ${videoId}`);
         }
     });
 
@@ -1273,6 +1282,7 @@ io.on('connection', (socket) => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
     });
 });
+
 
 
 
