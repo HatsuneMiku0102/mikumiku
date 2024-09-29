@@ -118,14 +118,14 @@ app.post('/updateVideoData', async (req, res) => {
         const channelTitle = videoData.snippet.channelTitle;
         const viewCount = videoData.statistics.viewCount;
         const publishedAt = videoData.snippet.publishedAt;
-        const durationISO = videoData.contentDetails.duration;
 
-        // Convert ISO 8601 duration to seconds
+        // Convert the ISO 8601 duration format to seconds
+        const durationISO = videoData.contentDetails.duration;
         const duration = convertISO8601ToSeconds(durationISO);
 
         const category = categoryMappings[categoryId] || 'Unknown Category';
 
-        logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}, Channel: ${channelTitle}, Views: ${viewCount}, Uploaded: ${publishedAt}, Duration: ${duration}s`);
+        logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}, Channel: ${channelTitle}, Views: ${viewCount}, Uploaded: ${publishedAt}, Duration: ${duration}`);
 
         currentVideoData = {
             videoId,
@@ -143,7 +143,7 @@ app.post('/updateVideoData', async (req, res) => {
         };
 
         io.emit('nowPlayingUpdate', currentVideoData);
-        logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: Title="${title}", Video ID="${videoId}", Thumbnail="${thumbnail}", Category="${category}", Channel="${channelTitle}", Views="${viewCount}", Uploaded="${publishedAt}", Duration="${duration}s"`);
+        logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: Title="${title}", Video ID="${videoId}", Thumbnail="${thumbnail}", Category="${category}", Channel="${channelTitle}", Views="${viewCount}", Uploaded="${publishedAt}", Duration="${duration}"`);
 
         res.status(200).send('Video data updated successfully');
     } catch (error) {
