@@ -153,8 +153,9 @@
         
             socket.on("nowPlayingUpdate", (data) => {
                 console.log("[Socket.IO] Received nowPlayingUpdate:", data);
-            
-                const { title, videoId, thumbnail, category, channelTitle, viewCount, likeCount, publishedAt, currentTime, duration, isOffline } = data;
+        
+                const { title, thumbnail, category, channelTitle, viewCount, likeCount, publishedAt, currentTime, duration, isOffline } = data;
+        
                 const videoTitleElement = document.getElementById("videoTitle");
                 const videoThumbnailElement = document.getElementById("videoThumbnail");
                 const channelNameElement = document.getElementById("channelName");
@@ -165,7 +166,7 @@
                 const offlineIndicatorElement = document.getElementById("offline-indicator");
                 const progressBarElement = document.getElementById("progressBar");
                 const durationElement = document.getElementById("duration");
-            
+        
                 if (isOffline) {
                     offlineIndicatorElement.style.display = "block";
                     videoTitleElement.textContent = "Offline";
@@ -175,15 +176,14 @@
                     videoTitleElement.textContent = title || "Unknown Title";
                     videoThumbnailElement.src = thumbnail;
                     videoThumbnailElement.style.display = "block";
-            
+        
                     channelNameElement.textContent = channelTitle || "Unknown Channel";
                     viewCountElement.textContent = viewCount ? `${viewCount} views` : "N/A";
                     likeCountElement.textContent = likeCount ? `${likeCount} likes` : "N/A";
                     durationElement.textContent = duration ? `${Math.floor(duration / 60)}:${('0' + Math.floor(duration % 60)).slice(-2)} minutes` : "N/A";
                     publishedDateElement.textContent = new Date(publishedAt).toLocaleDateString() || "N/A";
                     videoCategoryElement.textContent = category || "N/A";
-            
-                    // Update the progress bar
+        
                     if (duration && duration > 0) {
                         const progressPercentage = (currentTime / duration) * 100;
                         progressBarElement.style.width = `${progressPercentage}%`;
