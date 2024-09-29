@@ -1204,7 +1204,6 @@ app.post('/logout', (req, res) => {
 // Video Status Variables (Server-Side State)
 let currentVideoData = {};
 
-// Socket.IO Connection Handling
 io.on('connection', (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
@@ -1231,19 +1230,16 @@ io.on('connection', (socket) => {
             const categoryId = videoData.snippet.categoryId;
             const channelTitle = videoData.snippet.channelTitle;
             const viewCount = videoData.statistics.viewCount;
-            const likeCount = videoData.statistics.likeCount || "N/A"; // Get likes if available
+            const likeCount = videoData.statistics.likeCount || "N/A";
             const publishedAt = videoData.snippet.publishedAt;
-            const durationISO = videoData.contentDetails.duration; // Get the ISO 8601 duration
+            const durationISO = videoData.contentDetails.duration;
 
-            // Convert ISO 8601 duration to seconds
             const duration = parseISO8601Duration(durationISO);
 
             const category = categoryMappings[categoryId] || 'Unknown Category';
 
-            // Log video data before emitting
             logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}, Channel: ${channelTitle}, Views: ${viewCount}, Likes: ${likeCount}, Uploaded: ${publishedAt}, Duration: ${duration} seconds`);
 
-            // Update the server state with the new video data
             currentVideoData = {
                 videoId,
                 title,
@@ -1252,24 +1248,36 @@ io.on('connection', (socket) => {
                 category,
                 channelTitle,
                 viewCount,
-                likeCount, // Add likes to the data
+                likeCount,
                 publishedAt,
                 currentTime,
                 isPaused,
                 isOffline,
-                duration // Include the duration
+                duration
             };
 
-            // Emit the updated video data to all connected clients
             io.emit('nowPlayingUpdate', currentVideoData);
             logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: Title="${title}", Video ID="${videoId}", Thumbnail="${thumbnail}", Category="${category}", Views="${viewCount}", Likes="${likeCount}", Duration="${duration} seconds"`);
-
         } catch (error) {
             logger.error(`[Socket.IO] Error fetching video data: ${error.message}`);
         }
     });
 
-    // Handle client disconnection
+    // Handle real-time video progress updates from clients
+    socket.on('updateVideoProgress', (data) => {
+        logger.info(`[Socket.IO] Received "updateVideoProgress" event from client ${socket.id}: ${JSON.stringify(data)}`);
+        
+        const { currentTime, duration } = data;
+
+        if (currentVideoData.videoId === data.videoId) {
+            currentVideoData.currentTime = currentTime;
+            currentVideoData.duration = duration;
+
+            io.emit('nowPlayingUpdate', currentVideoData);
+            logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" with real-time data: Video ID="${data.videoId}", Current Time="${currentTime}", Duration="${duration}"`);
+        }
+    });
+
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
     });
@@ -1286,6 +1294,7 @@ function parseISO8601Duration(duration) {
 
     return (hours * 3600) + (minutes * 60) + seconds;
 }
+
 
 
 
