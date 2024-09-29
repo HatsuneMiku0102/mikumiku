@@ -39,43 +39,42 @@
             </div>
         </div>
 
-        <div id="main-content" class="main-content">
-            <div class="now-playing-container">
-                <div class="now-playing">
-                    <div class="now-playing-sidebar">
-                        <div class="sidebar-item">
-                            <span>Channel:</span> <span id="channelName">Loading...</span>
-                        </div>
-                        <div class="sidebar-item">
-                            <span>Views:</span> <span id="viewCount">Loading...</span>
-                        </div>
-                        <div class="sidebar-item">
-                            <span>Uploaded:</span> <span id="publishedDate">Loading...</span>
-                        </div>
-                        <div class="sidebar-item video-category">
-                            <span>Category:</span> <span id="videoCategory">Loading...</span>
-                        </div>
+        <div class="now-playing-container">
+            <div id="nowPlayingBox" class="now-playing">
+                <div class="now-playing-sidebar">
+                    <div class="sidebar-item">
+                        <span>Channel:</span> <span id="channelName">Loading...</span>
                     </div>
-
-                    <div class="video-section">
-                        <div class="video-title-container">
-                            <h2>Currently Playing</h2>
-                            <p id="videoTitle">Loading...</p>
-                        </div>
-
-                        <div class="thumbnail-container">
-                            <img id="videoThumbnail" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
-                        </div>
-
-                        <div id="offline-indicator" class="offline-indicator" style="display: none;">I’m not on YouTube at the moment, soz :(</div>
-                        
-                        <!-- Progress Bar -->
-                        <div class="progress-bar-container">
-                            <div id="progressBar" class="progress-bar"></div>
-                        </div>
+                    <div class="sidebar-item">
+                        <span>Views:</span> <span id="viewCount">Loading...</span>
+                    </div>
+                    <div class="sidebar-item">
+                        <span>Uploaded:</span> <span id="publishedDate">Loading...</span>
+                    </div>
+                    <div class="sidebar-item video-category">
+                        <span>Category:</span> <span id="videoCategory">Loading...</span>
+                    </div>
+                </div>
+        
+                <div class="video-section">
+                    <div class="video-title-container">
+                        <h2>Currently Playing</h2>
+                        <p id="videoTitle">Loading...</p>
+                    </div>
+        
+                    <div class="thumbnail-container">
+                        <img id="videoThumbnail" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
+                    </div>
+        
+                    <div id="offline-indicator" class="offline-indicator">I’m not on YouTube at the moment, soz :(</div>
+        
+                    <!-- Progress Bar -->
+                    <div class="progress-bar-container">
+                        <div id="progressBar" class="progress-bar"></div>
                     </div>
                 </div>
             </div>
+        </div>
 
             <div class="widgets-container">
                 <div class="live-clock box-container">
@@ -140,49 +139,74 @@
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const socket = io("https://mikumiku.dev");
-        
+    
+            const nowPlayingBox = document.getElementById("nowPlayingBox");
+            const videoTitleElement = document.getElementById("videoTitle");
+            const videoThumbnailElement = document.getElementById("videoThumbnail");
+            const channelNameElement = document.getElementById("channelName");
+            const viewCountElement = document.getElementById("viewCount");
+            const publishedDateElement = document.getElementById("publishedDate");
+            const videoCategoryElement = document.getElementById("videoCategory");
+            const offlineIndicatorElement = document.getElementById("offline-indicator");
+            const progressBarElement = document.getElementById("progressBar");
+    
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
             });
-        
+    
             socket.on("nowPlayingUpdate", (data) => {
                 console.log("[Socket.IO] Received nowPlayingUpdate:", data);
-                
-                const { title, thumbnail, channelTitle, viewCount, publishedAt, category, currentTime, isPaused, duration, videoId } = data;
-        
+    
                 // Update Now Playing section with received data
-                document.getElementById("videoTitle").textContent = title || "Unknown Title";
-                document.getElementById("videoThumbnail").src = thumbnail;
-                document.getElementById("channelName").textContent = channelTitle || "Unknown Channel";
-                document.getElementById("viewCount").textContent = viewCount || "N/A";
-                document.getElementById("publishedDate").textContent = new Date(publishedAt).toLocaleDateString() || "N/A";
-                document.getElementById("videoCategory").textContent = category || "N/A";
-        
-                // Handle progress bar update
-                if (duration && currentTime) {
-                    const progressPercentage = (currentTime / duration) * 100;
-                    document.getElementById("progressBar").style.width = `${progressPercentage}%`;
+                if (!data.videoId) {
+                    // Mark as offline
+                    nowPlayingBox.classList.add("offline");
+                    offlineIndicatorElement.style.display = "block";
+                    videoTitleElement.textContent = "Offline";
+                    videoThumbnailElement.style.display = "none";
+                    progressBarElement.style.width = "0%";
+                } else {
+                    // Update with video information
+                    nowPlayingBox.classList.remove("offline");
+                    offlineIndicatorElement.style.display = "none";
+                    videoTitleElement.textContent = data.title || "Unknown Title";
+                    videoThumbnailElement.src = data.thumbnail || "";
+                    videoThumbnailElement.style.display = "block";
+    
+                    channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+                    viewCountElement.textContent = data.viewCount || "N/A";
+                    publishedDateElement.textContent = new Date(data.publishedAt).toLocaleDateString() || "N/A";
+                    videoCategoryElement.textContent = data.category || "N/A";
+    
+                    // Handle progress bar update
+                    if (data.duration && data.currentTime) {
+                        const progressPercentage = (data.currentTime / data.duration) * 100;
+                        progressBarElement.style.width = `${progressPercentage}%`;
+                    } else {
+                        progressBarElement.style.width = "0%";
+                    }
                 }
             });
-        
-            socket.on("videoChangeDetected", (newVideoId) => {
-                console.warn("[Socket.IO] New video detected, resetting data for:", newVideoId);
-        
-                // Clear current UI data until new video information is received
-                document.getElementById("videoTitle").textContent = "Loading...";
-                document.getElementById("videoThumbnail").src = "";
-                document.getElementById("channelName").textContent = "Loading...";
-                document.getElementById("viewCount").textContent = "Loading...";
-                document.getElementById("publishedDate").textContent = "Loading...";
-                document.getElementById("videoCategory").textContent = "Loading...";
-                document.getElementById("progressBar").style.width = "0%";
-            });
-        
+    
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
+                // Optionally, mark as offline when disconnected from the server
+                nowPlayingBox.classList.add("offline");
+                offlineIndicatorElement.style.display = "block";
+                videoTitleElement.textContent = "Offline";
+                videoThumbnailElement.style.display = "none";
+                progressBarElement.style.width = "0%";
+            });
+    
+            // Mark offline when YouTube tab closes
+            window.addEventListener("beforeunload", () => {
+                nowPlayingBox.classList.add("offline");
+                offlineIndicatorElement.style.display = "block";
+                videoTitleElement.textContent = "Offline";
+                videoThumbnailElement.style.display = "none";
+                progressBarElement.style.width = "0%";
             });
         });
-
     </script>
 
 
