@@ -1208,11 +1208,12 @@ io.on('connection', (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
     socket.emit('nowPlayingUpdate', currentVideoData);
 
+    // Handle the event when a client sends initial video data
     socket.on('updateVideoTitle', async (data) => {
         logger.info(`[Socket.IO] Received "updateVideoTitle" from client ${socket.id}: ${JSON.stringify(data)}`);
-        
+
         const { videoId, title, description, currentTime, isPaused, duration } = data;
-        
+
         try {
             const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics,contentDetails`;
             const response = await axios.get(apiUrl);
@@ -1252,10 +1253,27 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Handle real-time progress updates
+    socket.on('updateVideoProgress', (data) => {
+        logger.info(`[Socket.IO] Received real-time video progress update from client ${socket.id}: ${JSON.stringify(data)}`);
+
+        if (currentVideoData.videoId === data.videoId) {
+            currentVideoData.currentTime = data.currentTime;
+            currentVideoData.duration = data.duration;
+            currentVideoData.isPaused = data.isPaused;
+
+            io.emit('nowPlayingUpdate', currentVideoData);
+            logger.info(`[Socket.IO] Emitted updated "nowPlayingUpdate" to all clients with real-time progress: ${JSON.stringify(currentVideoData)}`);
+        } else {
+            logger.warn(`[Socket.IO] Video ID mismatch. Current video: ${currentVideoData.videoId}, Update request: ${data.videoId}`);
+        }
+    });
+
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
     });
 });
+
 
 
 
