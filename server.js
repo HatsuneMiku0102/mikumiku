@@ -1204,6 +1204,7 @@ app.post('/logout', (req, res) => {
 // Video Status Variables (Server-Side State)
 let currentVideoData = {};
 
+// Socket.IO connection handler
 io.on('connection', (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
     socket.emit('nowPlayingUpdate', currentVideoData); // Send current video data when a new client connects
@@ -1282,7 +1283,7 @@ io.on('connection', (socket) => {
     // Handle clearing of previous video data
     socket.on('clearPreviousVideoData', () => {
         logger.info(`[Socket.IO] Received "clearPreviousVideoData" from client ${socket.id}`);
-        
+
         // Clear the current video data
         currentVideoData = {};
 
@@ -1294,16 +1295,15 @@ io.on('connection', (socket) => {
     // Handle socket disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
-        
+
         // Clear the current video data when client disconnects to prevent stale data from being used
         currentVideoData = {};
-        
+
         // Emit the cleared state to all clients
         io.emit('nowPlayingUpdate', currentVideoData);
         logger.info(`[Socket.IO] Cleared current video data due to client disconnection.`);
     });
 });
-
 
 
 
