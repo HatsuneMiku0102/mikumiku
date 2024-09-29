@@ -140,17 +140,16 @@
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const socket = io("https://mikumiku.dev");
-
+    
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
             });
-
+    
             socket.on("nowPlayingUpdate", (data) => {
                 console.log("[Socket.IO] Received nowPlayingUpdate:", data);
-
-                // Update Now Playing section with received data
+    
                 const { title, videoId, thumbnail, channelTitle, viewCount, publishedAt, category, currentTime, duration, isPaused, isOffline } = data;
-
+    
                 const videoTitleElement = document.getElementById("videoTitle");
                 const videoThumbnailElement = document.getElementById("videoThumbnail");
                 const channelNameElement = document.getElementById("channelName");
@@ -159,7 +158,7 @@
                 const videoCategoryElement = document.getElementById("videoCategory");
                 const offlineIndicatorElement = document.getElementById("offline-indicator");
                 const progressBarElement = document.getElementById("progressBar");
-
+    
                 if (isOffline) {
                     offlineIndicatorElement.style.display = "block";
                     videoTitleElement.textContent = "Offline";
@@ -170,26 +169,28 @@
                     videoTitleElement.textContent = title || "Unknown Title";
                     videoThumbnailElement.src = thumbnail || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
                     videoThumbnailElement.style.display = "block";
-
+    
                     // Update channel details
                     channelNameElement.textContent = channelTitle || "Unknown Channel";
                     viewCountElement.textContent = viewCount ? `${viewCount} views` : "N/A";
                     publishedDateElement.textContent = publishedAt ? new Date(publishedAt).toLocaleDateString() : "N/A";
                     videoCategoryElement.textContent = category || "N/A";
-
+    
                     // Update progress bar
                     if (duration && currentTime !== undefined) {
                         const progressPercentage = (currentTime / duration) * 100;
                         progressBarElement.style.width = `${progressPercentage}%`;
+                        console.log(`[Client] Updated progress bar to ${progressPercentage.toFixed(2)}%`);
                     }
                 }
             });
-
+    
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
             });
         });
     </script>
+
 
 
     <!-- Dynamic Title Script -->
