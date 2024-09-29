@@ -1214,31 +1214,35 @@ io.on('connection', (socket) => {
     // Handle video status updates from clients
     socket.on('updateVideoTitle', async (data) => {
         logger.info(`[Socket.IO] Received "updateVideoTitle" event from client ${socket.id}: ${JSON.stringify(data)}`);
-    
+
         const { videoId, title, description, currentTime, isPaused, isOffline } = data;
-    
+
         try {
-            const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics`;
+            const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics,contentDetails`;
             const response = await axios.get(apiUrl);
             const videoData = response.data.items[0];
-    
+
             if (!videoData) {
                 logger.error('No video data found');
                 return;
             }
-    
+
             const thumbnail = videoData.snippet.thumbnails.default.url;
             const categoryId = videoData.snippet.categoryId;
             const channelTitle = videoData.snippet.channelTitle;
             const viewCount = videoData.statistics.viewCount;
-            const likeCount = videoData.statistics.likeCount; // Get likes if available
+            const likeCount = videoData.statistics.likeCount || "N/A"; // Get likes if available
             const publishedAt = videoData.snippet.publishedAt;
-    
+            const durationISO = videoData.contentDetails.duration; // Get the ISO 8601 duration
+
+            // Convert ISO 8601 duration to seconds
+            const duration = parseISO8601Duration(durationISO);
+
             const category = categoryMappings[categoryId] || 'Unknown Category';
-    
+
             // Log video data before emitting
-            logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}, Channel: ${channelTitle}, Views: ${viewCount}, Likes: ${likeCount}, Uploaded: ${publishedAt}`);
-    
+            logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}, Channel: ${channelTitle}, Views: ${viewCount}, Likes: ${likeCount}, Uploaded: ${publishedAt}, Duration: ${duration} seconds`);
+
             // Update the server state with the new video data
             currentVideoData = {
                 videoId,
@@ -1253,22 +1257,36 @@ io.on('connection', (socket) => {
                 currentTime,
                 isPaused,
                 isOffline,
-                duration
+                duration // Include the duration
             };
-    
+
             // Emit the updated video data to all connected clients
             io.emit('nowPlayingUpdate', currentVideoData);
-            logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: Title="${title}", Video ID="${videoId}", Thumbnail="${thumbnail}", Category="${category}", Views="${viewCount}", Likes="${likeCount}"`);
-    
+            logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: Title="${title}", Video ID="${videoId}", Thumbnail="${thumbnail}", Category="${category}", Views="${viewCount}", Likes="${likeCount}", Duration="${duration} seconds"`);
+
         } catch (error) {
             logger.error(`[Socket.IO] Error fetching video data: ${error.message}`);
         }
     });
+
     // Handle client disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
     });
 });
+
+// Helper function to parse ISO 8601 duration to seconds
+function parseISO8601Duration(duration) {
+    const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+    if (!match) return 0;
+
+    const hours = parseInt(match[1]) || 0;
+    const minutes = parseInt(match[2]) || 0;
+    const seconds = parseInt(match[3]) || 0;
+
+    return (hours * 3600) + (minutes * 60) + seconds;
+}
+
 
 
 
