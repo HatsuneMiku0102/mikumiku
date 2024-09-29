@@ -12,6 +12,11 @@
 <body>
     <canvas id="techCanvas"></canvas>
 
+    <!-- Progress Bar -->
+    <div class="progress-bar-container">
+        <div id="progressBar" class="progress-bar"></div>
+    </div>
+
     <div class="page-container">
         <div class="title-bar">
             <div class="container">
@@ -69,10 +74,6 @@
 
                         <div id="offline-indicator" class="offline-indicator" style="display: none;">
                             I’m not on YouTube at the moment, soz :(
-                        </div>
-
-                        <div class="progress-bar-container">
-                            <div id="progressBar" class="progress-bar"></div>
                         </div>
                     </div>
                 </div>
@@ -157,7 +158,6 @@
                 const videoCategoryElement = document.getElementById("videoCategory");
                 const offlineIndicatorElement = document.getElementById("offline-indicator");
                 const progressBarElement = document.getElementById("progressBar");
-                const progressBarElement = document.getElementById("duration");
         
                 if (isOffline) {
                     offlineIndicatorElement.style.display = "block";
@@ -185,6 +185,47 @@
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
             });
+        });
+    </script>
+
+    <!-- Dynamic Title Script -->
+    <script>
+        function getTimeOfDay() {
+            const hour = new Date().getHours();
+            if (hour < 12) {
+                return "Good Morning";
+            } else if (hour >= 12 && hour < 18) {
+                return "Good Afternoon";
+            } else {
+                return "Good Evening";
+            }
+        }
+
+        function setDynamicTitle() {
+            const originalTitle = document.title;
+            const timeOfDayMessage = getTimeOfDay();
+
+            document.title = timeOfDayMessage;
+
+            const dynamicTitleElement = document.getElementById('dynamicTitle');
+            if (dynamicTitleElement) {
+                dynamicTitleElement.innerText = timeOfDayMessage;
+            }
+
+            setTimeout(() => {
+                document.title = originalTitle;
+                if (dynamicTitleElement) {
+                    dynamicTitleElement.innerText = "MikuMiku";
+                }
+            }, 5000);
+        }
+
+        setDynamicTitle();
+
+        document.addEventListener("visibilitychange", function () {
+            if (!document.hidden) {
+                setDynamicTitle();
+            }
         });
     </script>
 
