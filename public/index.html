@@ -50,12 +50,6 @@
                             <span>Views:</span> <span id="viewCount">Loading...</span>
                         </div>
                         <div class="sidebar-item">
-                            <span>Likes:</span> <span id="likeCount">Loading...</span>
-                        </div>
-                        <div class="sidebar-item">
-                            <span>Duration:</span> <span id="duration">Loading...</span>
-                        </div>
-                        <div class="sidebar-item">
                             <span>Uploaded:</span> <span id="publishedDate">Loading...</span>
                         </div>
                         <div class="sidebar-item video-category">
@@ -73,13 +67,7 @@
                             <img id="videoThumbnail" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
                         </div>
 
-                        <div class="progress-bar-container">
-                            <div id="progressBar" class="progress-bar"></div>
-                        </div>
-
-                        <div id="offline-indicator" class="offline-indicator" style="display: none;">
-                            I’m not on YouTube at the moment, soz :(
-                        </div>
+                        <div id="offline-indicator" class="offline-indicator" style="display: none;">I’m not on YouTube at the moment, soz :(</div>
                     </div>
                 </div>
             </div>
@@ -138,6 +126,7 @@
         </div>
     </div>
 
+    <!-- Socket.io Client Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="haru.js"></script>
@@ -146,27 +135,24 @@
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const socket = io("https://mikumiku.dev");
-        
+
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
             });
-        
+
             socket.on("nowPlayingUpdate", (data) => {
                 console.log("[Socket.IO] Received nowPlayingUpdate:", data);
-        
-                const { title, thumbnail, category, channelTitle, viewCount, likeCount, publishedAt, currentTime, duration, isOffline } = data;
-        
+
+                // Update Now Playing section with received data
+                const { title, videoUrl, startTimestamp, isPaused, isOffline, currentTime } = data;
                 const videoTitleElement = document.getElementById("videoTitle");
                 const videoThumbnailElement = document.getElementById("videoThumbnail");
                 const channelNameElement = document.getElementById("channelName");
                 const viewCountElement = document.getElementById("viewCount");
-                const likeCountElement = document.getElementById("likeCount");
                 const publishedDateElement = document.getElementById("publishedDate");
                 const videoCategoryElement = document.getElementById("videoCategory");
                 const offlineIndicatorElement = document.getElementById("offline-indicator");
-                const progressBarElement = document.getElementById("progressBar");
-                const durationElement = document.getElementById("duration");
-        
+
                 if (isOffline) {
                     offlineIndicatorElement.style.display = "block";
                     videoTitleElement.textContent = "Offline";
@@ -174,28 +160,23 @@
                 } else {
                     offlineIndicatorElement.style.display = "none";
                     videoTitleElement.textContent = title || "Unknown Title";
-                    videoThumbnailElement.src = thumbnail;
+                    videoThumbnailElement.src = `https://img.youtube.com/vi/${data.videoId}/hqdefault.jpg`;
                     videoThumbnailElement.style.display = "block";
-        
-                    channelNameElement.textContent = channelTitle || "Unknown Channel";
-                    viewCountElement.textContent = viewCount ? `${viewCount} views` : "N/A";
-                    likeCountElement.textContent = likeCount ? `${likeCount} likes` : "N/A";
-                    durationElement.textContent = duration ? `${Math.floor(duration / 60)}:${('0' + Math.floor(duration % 60)).slice(-2)} minutes` : "N/A";
-                    publishedDateElement.textContent = new Date(publishedAt).toLocaleDateString() || "N/A";
-                    videoCategoryElement.textContent = category || "N/A";
-        
-                    if (duration && duration > 0) {
-                        const progressPercentage = (currentTime / duration) * 100;
-                        progressBarElement.style.width = `${progressPercentage}%`;
-                    }
+
+                    // Assuming these are included in the data payload
+                    channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+                    viewCountElement.textContent = data.viewCount || "N/A";
+                    publishedDateElement.textContent = data.publishedAt || "N/A";
+                    videoCategoryElement.textContent = data.categoryId || "N/A";
                 }
             });
-        
+
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
             });
         });
     </script>
+
 
     <!-- Dynamic Title Script -->
     <script>
