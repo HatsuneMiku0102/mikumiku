@@ -1216,8 +1216,12 @@ io.on('connection', (socket) => {
         // Check if the video ID is different from the current video, indicating a new video
         if (currentVideoData.videoId && currentVideoData.videoId !== videoId) {
             logger.warn(`[Socket.IO] Video ID mismatch. Current video: ${currentVideoData.videoId}, Update request: ${videoId}`);
+            
             // Clear current video data to prepare for new video
             currentVideoData = {};
+            
+            // Emit a reset/update signal to all clients so they can clear their local video data
+            io.emit('videoChangeDetected', videoId);
         }
 
         try {
@@ -1264,7 +1268,15 @@ io.on('connection', (socket) => {
     socket.on('updateVideoProgress', (data) => {
         const { videoId, currentTime, isPaused, duration } = data;
 
-        // Only update progress for the currently playing video
+        // If the video has changed, reset the progress update to reflect the new video
+        if (currentVideoData.videoId && currentVideoData.videoId !== videoId) {
+            logger.warn(`[Socket.IO] Video ID mismatch for progress update. Expected: ${currentVideoData.videoId}, Received: ${videoId}`);
+            io.emit('videoChangeDetected', videoId);
+            currentVideoData = {};
+            return;
+        }
+
+        // Update real-time progress for the currently playing video
         if (currentVideoData.videoId === videoId) {
             currentVideoData.currentTime = currentTime;
             currentVideoData.isPaused = isPaused;
@@ -1273,8 +1285,6 @@ io.on('connection', (socket) => {
             // Emit real-time progress update to all clients
             io.emit('nowPlayingUpdate', currentVideoData);
             logger.info(`[Socket.IO] Real-time update: ${JSON.stringify(currentVideoData)}`);
-        } else {
-            logger.warn(`[Socket.IO] Video ID mismatch for progress update. Expected: ${currentVideoData.videoId}, Received: ${videoId}`);
         }
     });
 
@@ -1282,6 +1292,7 @@ io.on('connection', (socket) => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
     });
 });
+
 
 
 
