@@ -1202,24 +1202,30 @@ app.post('/logout', (req, res) => {
 });
 
 // Video Status Variables (Server-Side State)
-let currentVideoData = {};
+let currentVideoData = {}; // Server state for current video
 
 io.on('connection', (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
-    socket.emit('nowPlayingUpdate', currentVideoData); // Send current video data when a new client connects
+    socket.emit('nowPlayingUpdate', currentVideoData);
 
-    // Handle updateVideoTitle from content script
+    // Clear previous video data when requested by the client
+    socket.on('clearPreviousVideoData', () => {
+        logger.info(`[Socket.IO] Client requested clearing of previous video data: ${socket.id}`);
+        currentVideoData = {}; // Clear server's current video state
+        io.emit('nowPlayingUpdate', currentVideoData); // Notify all clients
+        logger.info(`[Socket.IO] Emitted empty video state to all clients.`);
+    });
+
+    // Update video title and metadata for new video
     socket.on('updateVideoTitle', async (data) => {
-        logger.info(`[Socket.IO] Received "updateVideoTitle" from client ${socket.id}: ${JSON.stringify(data)}`);
-
         const { videoId, title, description, currentTime, isPaused, duration } = data;
 
-        // Update internal server state to match the current video
-        if (!currentVideoData.videoId || currentVideoData.videoId !== videoId) {
-            logger.info(`[Socket.IO] Updating to new video with ID: ${videoId}`);
-            currentVideoData = {};
+        if (currentVideoData.videoId !== videoId) {
+            logger.info(`[Socket.IO] Detected new video ID: ${videoId}, clearing previous state.`);
+            currentVideoData = {}; // Clear stale data if new video is detected
         }
 
+        // Fetch and update the video metadata
         try {
             const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics,contentDetails`;
             const response = await axios.get(apiUrl);
@@ -1237,7 +1243,7 @@ io.on('connection', (socket) => {
             const thumbnail = videoData.snippet.thumbnails.high.url || "No thumbnail available";
             const category = categoryMappings[videoData.snippet.categoryId] || 'Unknown Category';
 
-            // Update the current video data
+            // Update server's video state
             currentVideoData = {
                 videoId,
                 title,
@@ -1253,7 +1259,6 @@ io.on('connection', (socket) => {
                 category
             };
 
-            // Emit the new video data to all connected clients
             io.emit('nowPlayingUpdate', currentVideoData);
             logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: ${JSON.stringify(currentVideoData)}`);
         } catch (error) {
@@ -1261,41 +1266,23 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle real-time video progress update
+    // Handle real-time updates of video progress
     socket.on('updateVideoProgress', (data) => {
-        const { videoId, currentTime, duration, isPaused } = data;
-
-        // Update the video progress only if the video IDs match
-        if (currentVideoData.videoId === videoId) {
-            currentVideoData.currentTime = currentTime;
-            currentVideoData.duration = duration;
-            currentVideoData.isPaused = isPaused;
-
-            // Emit the updated progress data to all clients
+        if (currentVideoData.videoId === data.videoId) {
+            currentVideoData.currentTime = data.currentTime;
+            currentVideoData.isPaused = data.isPaused;
             io.emit('nowPlayingUpdate', currentVideoData);
-            logger.info(`[Socket.IO] Real-time update: ${JSON.stringify(currentVideoData)}`);
+            logger.info(`[Socket.IO] Updated video progress: ${JSON.stringify(currentVideoData)}`);
         } else {
-            logger.warn(`[Socket.IO] Video ID mismatch for progress update. Expected: ${currentVideoData.videoId}, Received: ${videoId}`);
+            logger.warn(`[Socket.IO] Video ID mismatch for progress update. Expected: ${currentVideoData.videoId}, Received: ${data.videoId}`);
         }
     });
 
-    // Handle clearing of previous video data
-    socket.on('clearPreviousVideoData', () => {
-        logger.info(`[Socket.IO] Received "clearPreviousVideoData" from client ${socket.id}`);
-        
-        // Clear the current video data
-        currentVideoData = {};
-
-        // Emit the cleared state to all clients (optional)
-        io.emit('nowPlayingUpdate', currentVideoData);
-        logger.info(`[Socket.IO] Cleared current video data and emitted empty state to all clients.`);
-    });
-
-    // Handle socket disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
     });
 });
+
 
 
 
