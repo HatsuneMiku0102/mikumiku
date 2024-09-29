@@ -1209,38 +1209,46 @@ io.on('connection', (socket) => {
     socket.emit('nowPlayingUpdate', currentVideoData);
 
     socket.on('updateVideoTitle', async (data) => {
-        const { videoId, title, description, currentTime, isPaused, isOffline } = data;
-
+        logger.info(`[Socket.IO] Received "updateVideoTitle" from client ${socket.id}: ${JSON.stringify(data)}`);
+        
+        const { videoId, title, description, currentTime, isPaused, duration } = data;
+        
         try {
             const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics,contentDetails`;
             const response = await axios.get(apiUrl);
             const videoData = response.data.items[0];
 
-            if (!videoData) return;
+            if (!videoData) {
+                logger.error('[Socket.IO] No video data found.');
+                return;
+            }
 
-            const durationISO = videoData.contentDetails.duration;
-            const duration = parseISO8601Duration(durationISO);
+            const channelTitle = videoData.snippet.channelTitle || "Unknown Channel";
+            const viewCount = videoData.statistics.viewCount || "N/A";
+            const likeCount = videoData.statistics.likeCount || "N/A";
+            const publishedAt = videoData.snippet.publishedAt || "N/A";
+            const thumbnail = videoData.snippet.thumbnails.high.url || "No thumbnail available";
+            const category = categoryMappings[videoData.snippet.categoryId] || 'Unknown Category';
 
             currentVideoData = {
-                ...data,
-                duration
+                videoId,
+                title,
+                description,
+                thumbnail,
+                channelTitle,
+                viewCount,
+                likeCount,
+                publishedAt,
+                currentTime,
+                isPaused,
+                duration,
+                category
             };
 
             io.emit('nowPlayingUpdate', currentVideoData);
+            logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: ${JSON.stringify(currentVideoData)}`);
         } catch (error) {
-            logger.error(`[Socket.IO] Error fetching video data: ${error.message}`);
-        }
-    });
-
-    socket.on('updateVideoProgress', (data) => {
-        const { videoId, currentTime, duration, isPaused } = data;
-
-        if (currentVideoData.videoId === videoId) {
-            currentVideoData.currentTime = currentTime;
-            currentVideoData.duration = duration;
-            currentVideoData.isPaused = isPaused;
-
-            io.emit('nowPlayingUpdate', currentVideoData);
+            logger.error(`[Socket.IO] Error fetching video data from YouTube API: ${error.message}`);
         }
     });
 
@@ -1249,16 +1257,6 @@ io.on('connection', (socket) => {
     });
 });
 
-function parseISO8601Duration(duration) {
-    const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
-    if (!match) return 0;
-
-    const hours = parseInt(match[1]) || 0;
-    const minutes = parseInt(match[2]) || 0;
-    const seconds = parseInt(match[3]) || 0;
-
-    return (hours * 3600) + (minutes * 60) + seconds;
-}
 
 
 
