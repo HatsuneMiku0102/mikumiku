@@ -12,11 +12,6 @@
 <body>
     <canvas id="techCanvas"></canvas>
 
-    <!-- Progress Bar -->
-    <div class="progress-bar-container">
-        <div id="progressBar" class="progress-bar"></div>
-    </div>
-
     <div class="page-container">
         <div class="title-bar">
             <div class="container">
@@ -55,6 +50,12 @@
                             <span>Views:</span> <span id="viewCount">Loading...</span>
                         </div>
                         <div class="sidebar-item">
+                            <span>Likes:</span> <span id="likeCount">Loading...</span>
+                        </div>
+                        <div class="sidebar-item">
+                            <span>Duration:</span> <span id="duration">Loading...</span>
+                        </div>
+                        <div class="sidebar-item">
                             <span>Uploaded:</span> <span id="publishedDate">Loading...</span>
                         </div>
                         <div class="sidebar-item video-category">
@@ -70,6 +71,10 @@
 
                         <div class="thumbnail-container">
                             <img id="videoThumbnail" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
+                        </div>
+
+                        <div class="progress-bar-container">
+                            <div id="progressBar" class="progress-bar"></div>
                         </div>
 
                         <div id="offline-indicator" class="offline-indicator" style="display: none;">
@@ -149,15 +154,17 @@
             socket.on("nowPlayingUpdate", (data) => {
                 console.log("[Socket.IO] Received nowPlayingUpdate:", data);
             
-                const { title, videoId, thumbnail, category, channelTitle, viewCount, publishedAt, currentTime, duration, isOffline } = data;
+                const { title, videoId, thumbnail, category, channelTitle, viewCount, likeCount, publishedAt, currentTime, duration, isOffline } = data;
                 const videoTitleElement = document.getElementById("videoTitle");
                 const videoThumbnailElement = document.getElementById("videoThumbnail");
                 const channelNameElement = document.getElementById("channelName");
                 const viewCountElement = document.getElementById("viewCount");
+                const likeCountElement = document.getElementById("likeCount");
                 const publishedDateElement = document.getElementById("publishedDate");
                 const videoCategoryElement = document.getElementById("videoCategory");
                 const offlineIndicatorElement = document.getElementById("offline-indicator");
                 const progressBarElement = document.getElementById("progressBar");
+                const durationElement = document.getElementById("duration");
             
                 if (isOffline) {
                     offlineIndicatorElement.style.display = "block";
@@ -171,11 +178,13 @@
             
                     channelNameElement.textContent = channelTitle || "Unknown Channel";
                     viewCountElement.textContent = viewCount ? `${viewCount} views` : "N/A";
+                    likeCountElement.textContent = likeCount ? `${likeCount} likes` : "N/A";
+                    durationElement.textContent = duration ? `${Math.floor(duration / 60)}:${('0' + Math.floor(duration % 60)).slice(-2)} minutes` : "N/A";
                     publishedDateElement.textContent = new Date(publishedAt).toLocaleDateString() || "N/A";
                     videoCategoryElement.textContent = category || "N/A";
             
                     // Update the progress bar
-                    if (duration) {
+                    if (duration && duration > 0) {
                         const progressPercentage = (currentTime / duration) * 100;
                         progressBarElement.style.width = `${progressPercentage}%`;
                     }
