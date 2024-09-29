@@ -156,7 +156,7 @@
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const socket = io("https://mikumiku.dev"); // Ensure this matches your server's URL
-
+    
         const nowPlayingBox = document.getElementById("nowPlayingBox");
         const videoTitleElement = document.getElementById("videoTitle");
         const videoThumbnailElement = document.getElementById("videoThumbnail");
@@ -167,13 +167,13 @@
         const offlineIndicatorElement = document.getElementById("offline-indicator");
         const progressBarElement = document.getElementById("progressBar");
         const likeCountElement = document.getElementById("likeCount"); // Ensure this element exists
-
+    
         // Modal Elements
         const descriptionModal = document.getElementById("descriptionModal");
         const closeDescriptionButton = document.getElementById("closeDescriptionButton");
         const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
         const videoDescriptionElement = document.getElementById("videoDescription");
-
+    
         // Helper function to format numbers with commas
         function formatNumber(number) {
             if (typeof number === 'string') {
@@ -182,29 +182,29 @@
             const num = Number(number);
             return isNaN(num) ? "N/A" : num.toLocaleString();
         }
-
+    
         // Function to mark the "Now Playing" section as offline
         function markAsOffline() {
             // Clear all fields
             nowPlayingBox.classList.add("offline");
             offlineIndicatorElement.style.display = "block";
-
+    
             videoTitleElement.textContent = "Offline";
             videoThumbnailElement.src = "";
             videoThumbnailElement.style.display = "none";
-
+    
             channelNameElement.textContent = "N/A";
             viewCountElement.textContent = "N/A";
             likeCountElement.textContent = "N/A"; // Set to N/A when offline
             publishedDateElement.textContent = "N/A";
             videoCategoryElement.textContent = "N/A";
-
+    
             progressBarElement.style.width = "0%";
-
+    
             // Clear description
             videoDescriptionElement.textContent = "";
         }
-
+    
         // Function to handle real-time video progress updates
         function handleRealTimeProgress(data) {
             if (data.duration && data.currentTime) {
@@ -214,27 +214,27 @@
                 progressBarElement.style.width = "0%";
             }
         }
-
+    
         // Flag to determine if the tab is visible
         let isTabVisible = true;
-
+    
         // Socket.IO event handlers
         socket.on("connect", () => {
             console.log("[Socket.IO] Connected to server.");
             // Optionally, request the latest data upon connection
             socket.emit('requestLatestData');
         });
-
+    
         socket.on("nowPlayingUpdate", (data) => {
             console.log("[Socket.IO] Received nowPlayingUpdate:", data);
-
+    
             // If the tab is not visible, skip updating the UI to conserve resources
             if (!isTabVisible) {
                 // Optionally, store the latest data to update when the tab becomes visible
                 // For simplicity, skip updating the UI when the tab is hidden
                 return;
             }
-
+    
             // Check if the data is empty or indicates an offline state
             if (!data.videoId) {
                 markAsOffline();
@@ -242,10 +242,10 @@
                 // Update Now Playing section with received data
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
-
+    
                 // Update Title
                 videoTitleElement.textContent = data.title || "Unknown Title";
-
+    
                 // Update Thumbnail
                 if (data.thumbnail) {
                     videoThumbnailElement.src = data.thumbnail;
@@ -254,16 +254,16 @@
                     videoThumbnailElement.src = "";
                     videoThumbnailElement.style.display = "none";
                 }
-
+    
                 // Update Channel Name
                 channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-
+    
                 // Update View Count with commas
                 viewCountElement.textContent = formatNumber(data.viewCount) || "N/A";
-
+    
                 // Update Like Count with commas
                 likeCountElement.textContent = formatNumber(data.likeCount) || "N/A";
-
+    
                 // Update Published Date
                 if (data.publishedAt) {
                     const publishedDate = new Date(data.publishedAt);
@@ -271,30 +271,30 @@
                 } else {
                     publishedDateElement.textContent = "N/A";
                 }
-
+    
                 // Update Video Category
                 videoCategoryElement.textContent = data.category || "N/A";
-
+    
                 // Update Description
                 videoDescriptionElement.textContent = data.description || "No description available.";
-
+    
                 // Handle Progress Bar Update
                 handleRealTimeProgress(data);
             }
         });
-
+    
         socket.on("disconnect", () => {
             console.warn("[Socket.IO] Disconnected from server.");
             markAsOffline();
         });
-
+    
         // Listen for beforeunload event to mark offline
         window.addEventListener("beforeunload", () => {
             markAsOffline();
             // Optionally, inform the server that the tab is closing
             socket.emit('tabClosed');
         });
-
+    
         // Listen for visibility change events
         document.addEventListener("visibilitychange", function () {
             if (document.hidden) {
@@ -307,7 +307,7 @@
                 socket.emit('requestLatestData');
             }
         });
-
+    
         // Toggle Description Modal
         toggleDescriptionButton.addEventListener("click", function () {
             if (descriptionModal.style.display === "block") {
@@ -318,13 +318,13 @@
                 toggleDescriptionButton.textContent = "Hide Description";
             }
         });
-
+    
         // Close Description Modal when clicking the close button
         closeDescriptionButton.addEventListener("click", function () {
             descriptionModal.style.display = "none";
             toggleDescriptionButton.textContent = "Show Description";
         });
-
+    
         // Close Description Modal when clicking outside the modal content
         window.addEventListener("click", function (event) {
             if (event.target === descriptionModal) {
