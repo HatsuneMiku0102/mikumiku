@@ -136,166 +136,191 @@
     <script src="haru.js"></script>
 
     <!-- Now Playing Update Script -->
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const socket = io("https://mikumiku.dev");
-    
-            const nowPlayingBox = document.getElementById("nowPlayingBox");
-            const videoTitleElement = document.getElementById("videoTitle");
-            const videoThumbnailElement = document.getElementById("videoThumbnail");
-            const channelNameElement = document.getElementById("channelName");
-            const viewCountElement = document.getElementById("viewCount");
-            const publishedDateElement = document.getElementById("publishedDate");
-            const videoCategoryElement = document.getElementById("videoCategory");
-            const offlineIndicatorElement = document.getElementById("offline-indicator");
-            const progressBarElement = document.getElementById("progressBar");
-    
-            function markAsOffline() {
-                // Clear all fields
-                nowPlayingBox.classList.add("offline");
-                offlineIndicatorElement.style.display = "block";
-    
-                videoTitleElement.textContent = "Offline";
-                videoThumbnailElement.src = "";
-                videoThumbnailElement.style.display = "none";
-    
-                channelNameElement.textContent = "N/A";
-                viewCountElement.textContent = "N/A";
-                publishedDateElement.textContent = "N/A";
-                videoCategoryElement.textContent = "N/A";
-    
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const socket = io("https://mikumiku.dev");
+
+        const nowPlayingBox = document.getElementById("nowPlayingBox");
+        const videoTitleElement = document.getElementById("videoTitle");
+        const videoThumbnailElement = document.getElementById("videoThumbnail");
+        const channelNameElement = document.getElementById("channelName");
+        const viewCountElement = document.getElementById("viewCount");
+        const publishedDateElement = document.getElementById("publishedDate");
+        const videoCategoryElement = document.getElementById("videoCategory");
+        const offlineIndicatorElement = document.getElementById("offline-indicator");
+        const progressBarElement = document.getElementById("progressBar");
+        const likeCountElement = document.getElementById("likeCount"); // Ensure this element exists
+
+        // Helper function to format numbers with commas
+        function formatNumber(number) {
+            if (typeof number === 'string') {
+                number = number.replace(/,/g, ''); // Remove existing commas
+            }
+            const num = Number(number);
+            return isNaN(num) ? "N/A" : num.toLocaleString();
+        }
+
+        // Function to mark the "Now Playing" section as offline
+        function markAsOffline() {
+            // Clear all fields
+            nowPlayingBox.classList.add("offline");
+            offlineIndicatorElement.style.display = "block";
+
+            videoTitleElement.textContent = "Offline";
+            videoThumbnailElement.src = "";
+            videoThumbnailElement.style.display = "none";
+
+            channelNameElement.textContent = "N/A";
+            viewCountElement.textContent = "N/A";
+            likeCountElement.textContent = "N/A"; // Set to N/A when offline
+            publishedDateElement.textContent = "N/A";
+            videoCategoryElement.textContent = "N/A";
+
+            progressBarElement.style.width = "0%";
+        }
+
+        // Function to handle real-time video progress updates
+        function handleRealTimeProgress(data) {
+            if (data.duration && data.currentTime) {
+                const progressPercentage = (data.currentTime / data.duration) * 100;
+                progressBarElement.style.width = `${progressPercentage}%`;
+            } else {
                 progressBarElement.style.width = "0%";
             }
-    
-            socket.on("connect", () => {
-                console.log("[Socket.IO] Connected to server.");
-            });
-    
-            socket.on("nowPlayingUpdate", (data) => {
-                console.log("[Socket.IO] Received nowPlayingUpdate:", data);
-    
-                // Check if the data is empty or indicates an offline state
-                if (!data.videoId) {
-                    markAsOffline();
-                } else {
-                    // Update Now Playing section with received data
-                    nowPlayingBox.classList.remove("offline");
-                    offlineIndicatorElement.style.display = "none";
-    
-                    videoTitleElement.textContent = data.title || "Unknown Title";
-                    videoThumbnailElement.src = data.thumbnail || "";
+        }
+
+        // Flag to determine if the tab is visible
+        let isTabVisible = true;
+
+        // Socket.IO event handlers
+        socket.on("connect", () => {
+            console.log("[Socket.IO] Connected to server.");
+            // Optionally, request the latest data upon connection
+            socket.emit('requestLatestData');
+        });
+
+        socket.on("nowPlayingUpdate", (data) => {
+            console.log("[Socket.IO] Received nowPlayingUpdate:", data);
+
+            // If the tab is not visible, skip updating the UI to conserve resources
+            if (!isTabVisible) {
+                // Optionally, store the latest data to update when the tab becomes visible
+                // For simplicity, skip updating the UI when the tab is hidden
+                return;
+            }
+
+            // Check if the data is empty or indicates an offline state
+            if (!data.videoId) {
+                markAsOffline();
+            } else {
+                // Update Now Playing section with received data
+                nowPlayingBox.classList.remove("offline");
+                offlineIndicatorElement.style.display = "none";
+
+                // Update Title
+                videoTitleElement.textContent = data.title || "Unknown Title";
+
+                // Update Thumbnail
+                if (data.thumbnail) {
+                    videoThumbnailElement.src = data.thumbnail;
                     videoThumbnailElement.style.display = "block";
-    
-                    channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-                    viewCountElement.textContent = data.viewCount || "N/A";
-                    publishedDateElement.textContent = new Date(data.publishedAt).toLocaleDateString() || "N/A";
-                    videoCategoryElement.textContent = data.category || "N/A";
-    
-                    // Handle progress bar update
-                    if (data.duration && data.currentTime) {
-                        const progressPercentage = (data.currentTime / data.duration) * 100;
-                        progressBarElement.style.width = `${progressPercentage}%`;
-                    } else {
-                        progressBarElement.style.width = "0%";
-                    }
+                } else {
+                    videoThumbnailElement.src = "";
+                    videoThumbnailElement.style.display = "none";
                 }
-            });
-    
-            socket.on("disconnect", () => {
-                console.warn("[Socket.IO] Disconnected from server.");
-                markAsOffline();
-            });
-    
-            // Mark offline when YouTube tab closes or when the window is being unloaded
-            window.addEventListener("beforeunload", () => {
-                markAsOffline();
-            });
+
+                // Update Channel Name
+                channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+
+                // Update View Count with commas
+                viewCountElement.textContent = formatNumber(data.viewCount) || "N/A";
+
+                // Update Like Count with commas
+                likeCountElement.textContent = formatNumber(data.likeCount) || "N/A";
+
+                // Update Published Date
+                if (data.publishedAt) {
+                    const publishedDate = new Date(data.publishedAt);
+                    publishedDateElement.textContent = publishedDate.toLocaleDateString() || "N/A";
+                } else {
+                    publishedDateElement.textContent = "N/A";
+                }
+
+                // Update Video Category
+                videoCategoryElement.textContent = data.category || "N/A";
+
+                // Handle Progress Bar Update
+                handleRealTimeProgress(data);
+            }
         });
-    </script>
 
+        socket.on("disconnect", () => {
+            console.warn("[Socket.IO] Disconnected from server.");
+            markAsOffline();
+        });
 
+        // Listen for beforeunload event to mark offline
+        window.addEventListener("beforeunload", () => {
+            markAsOffline();
+            // Optionally, inform the server that the tab is closing
+            socket.emit('tabClosed');
+        });
 
-
-    <!-- Dynamic Title Script -->
-    <script>
-        function getTimeOfDay() {
-            const hour = new Date().getHours();
-            if (hour < 12) {
-                return "Good Morning";
-            } else if (hour >= 12 && hour < 18) {
-                return "Good Afternoon";
-            } else {
-                return "Good Evening";
-            }
-        }
-
-        function setDynamicTitle() {
-            const originalTitle = document.title;
-            const timeOfDayMessage = getTimeOfDay();
-
-            document.title = timeOfDayMessage;
-
-            const dynamicTitleElement = document.getElementById('dynamicTitle');
-            if (dynamicTitleElement) {
-                dynamicTitleElement.innerText = timeOfDayMessage;
-            }
-
-            setTimeout(() => {
-                document.title = originalTitle;
-                if (dynamicTitleElement) {
-                    dynamicTitleElement.innerText = "MikuMiku";
-                }
-            }, 5000);
-        }
-
-        setDynamicTitle();
-
+        // Listen for visibility change events
         document.addEventListener("visibilitychange", function () {
-            if (!document.hidden) {
-                setDynamicTitle();
-            }
-        });
-    </script>
-
-    <!-- Dynamic Title Script -->
-    <script>
-        function getTimeOfDay() {
-            const hour = new Date().getHours();
-            if (hour < 12) {
-                return "Good Morning";
-            } else if (hour >= 12 && hour < 18) {
-                return "Good Afternoon";
+            if (document.hidden) {
+                console.log("[Now Playing] Tab is hidden. Pausing UI updates.");
+                isTabVisible = false;
             } else {
-                return "Good Evening";
-            }
-        }
-
-        function setDynamicTitle() {
-            const originalTitle = document.title;
-            const timeOfDayMessage = getTimeOfDay();
-
-            document.title = timeOfDayMessage;
-
-            const dynamicTitleElement = document.getElementById('dynamicTitle');
-            if (dynamicTitleElement) {
-                dynamicTitleElement.innerText = timeOfDayMessage;
-            }
-
-            setTimeout(() => {
-                document.title = originalTitle;
-                if (dynamicTitleElement) {
-                    dynamicTitleElement.innerText = "MikuMiku";
-                }
-            }, 5000);
-        }
-
-        setDynamicTitle();
-
-        document.addEventListener("visibilitychange", function () {
-            if (!document.hidden) {
-                setDynamicTitle();
+                console.log("[Now Playing] Tab is visible. Resuming UI updates.");
+                isTabVisible = true;
+                // Request the latest data when the tab becomes visible
+                socket.emit('requestLatestData');
             }
         });
+
+        // Optional: Listen for 'requestLatestData' acknowledgment
+        socket.on("latestVideoData", (data) => {
+            console.log("[Socket.IO] Received latestVideoData:", data);
+            // This can be similar to 'nowPlayingUpdate'
+            // Update the UI accordingly
+            if (!isTabVisible) {
+                return;
+            }
+
+            if (!data.videoId) {
+                markAsOffline();
+            } else {
+                nowPlayingBox.classList.remove("offline");
+                offlineIndicatorElement.style.display = "none";
+
+                videoTitleElement.textContent = data.title || "Unknown Title";
+
+                if (data.thumbnail) {
+                    videoThumbnailElement.src = data.thumbnail;
+                    videoThumbnailElement.style.display = "block";
+                } else {
+                    videoThumbnailElement.src = "";
+                    videoThumbnailElement.style.display = "none";
+                }
+
+                channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+                viewCountElement.textContent = formatNumber(data.viewCount) || "N/A";
+                likeCountElement.textContent = formatNumber(data.likeCount) || "N/A";
+
+                if (data.publishedAt) {
+                    const publishedDate = new Date(data.publishedAt);
+                    publishedDateElement.textContent = publishedDate.toLocaleDateString() || "N/A";
+                } else {
+                    publishedDateElement.textContent = "N/A";
+                }
+
+                videoCategoryElement.textContent = data.category || "N/A";
+
+                handleRealTimeProgress(data);
+            }
+        });
+    });
     </script>
 
     <!-- Clock Update Script -->
