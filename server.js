@@ -1252,7 +1252,8 @@ io.on('connection', (socket) => {
                 publishedAt,
                 currentTime,
                 isPaused,
-                isOffline
+                isOffline,
+                duration
             };
     
             // Emit the updated video data to all connected clients
