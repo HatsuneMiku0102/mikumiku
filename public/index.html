@@ -161,7 +161,8 @@
         const videoCategoryElement = document.getElementById("videoCategory");
         const offlineIndicatorElement = document.getElementById("offline-indicator");
         const progressBarElement = document.getElementById("progressBar");
-        const likeCountElement = document.getElementById("likeCount"); // Ensure this element exists
+        const likeCountElement = document.getElementById("likeCount");
+        const videoDescriptionElement = document.getElementById("videoDescription");
 
         // Helper function to format numbers with commas
         function formatNumber(number) {
@@ -187,6 +188,7 @@
             likeCountElement.textContent = "N/A"; // Set to N/A when offline
             publishedDateElement.textContent = "N/A";
             videoCategoryElement.textContent = "N/A";
+            videoDescriptionElement.innerHTML = "<p>Loading description...</p>";
 
             progressBarElement.style.width = "0%";
         }
@@ -207,7 +209,7 @@
         // Socket.IO event handlers
         socket.on("connect", () => {
             console.log("[Socket.IO] Connected to server.");
-            // Optionally, request the latest data upon connection
+            // Request the latest data upon connection
             socket.emit('requestLatestData');
         });
 
@@ -261,41 +263,22 @@
                 // Update Video Category
                 videoCategoryElement.textContent = data.category || "N/A";
 
+                // Update Description
+                if (data.description) {
+                    videoDescriptionElement.innerHTML = `<p>${data.description}</p>`;
+                } else {
+                    videoDescriptionElement.innerHTML = "<p>No description available.</p>";
+                }
+
                 // Handle Progress Bar Update
                 handleRealTimeProgress(data);
             }
         });
 
-        socket.on("disconnect", () => {
-            console.warn("[Socket.IO] Disconnected from server.");
-            markAsOffline();
-        });
-
-        // Listen for beforeunload event to mark offline
-        window.addEventListener("beforeunload", () => {
-            markAsOffline();
-            // Optionally, inform the server that the tab is closing
-            socket.emit('tabClosed');
-        });
-
-        // Listen for visibility change events
-        document.addEventListener("visibilitychange", function () {
-            if (document.hidden) {
-                console.log("[Now Playing] Tab is hidden. Pausing UI updates.");
-                isTabVisible = false;
-            } else {
-                console.log("[Now Playing] Tab is visible. Resuming UI updates.");
-                isTabVisible = true;
-                // Request the latest data when the tab becomes visible
-                socket.emit('requestLatestData');
-            }
-        });
-
-        // Optional: Listen for 'requestLatestData' acknowledgment
         socket.on("latestVideoData", (data) => {
             console.log("[Socket.IO] Received latestVideoData:", data);
-            // This can be similar to 'nowPlayingUpdate'
-            // Update the UI accordingly
+
+            // Similar handling as 'nowPlayingUpdate'
             if (!isTabVisible) {
                 return;
             }
@@ -329,7 +312,38 @@
 
                 videoCategoryElement.textContent = data.category || "N/A";
 
+                if (data.description) {
+                    videoDescriptionElement.innerHTML = `<p>${data.description}</p>`;
+                } else {
+                    videoDescriptionElement.innerHTML = "<p>No description available.</p>";
+                }
+
                 handleRealTimeProgress(data);
+            }
+        });
+
+        socket.on("disconnect", () => {
+            console.warn("[Socket.IO] Disconnected from server.");
+            markAsOffline();
+        });
+
+        // Listen for beforeunload event to mark offline
+        window.addEventListener("beforeunload", () => {
+            markAsOffline();
+            // Optionally, inform the server that the tab is closing
+            socket.emit('tabClosed');
+        });
+
+        // Listen for visibility change events
+        document.addEventListener("visibilitychange", function () {
+            if (document.hidden) {
+                console.log("[Now Playing] Tab is hidden. Pausing UI updates.");
+                isTabVisible = false;
+            } else {
+                console.log("[Now Playing] Tab is visible. Resuming UI updates.");
+                isTabVisible = true;
+                // Request the latest data when the tab becomes visible
+                socket.emit('requestLatestData');
             }
         });
     });
