@@ -1225,7 +1225,7 @@ io.on('connection', (socket) => {
             }
 
             const channelTitle = videoData.snippet.channelTitle || "Unknown Channel";
-            const viewCount = videoData.statistics.viewCount || "N/A";
+            const viewCount = videoData.statistics.viewCount ? parseInt(videoData.statistics.viewCount).toLocaleString() : "N/A";
             const likeCount = videoData.statistics.likeCount || "N/A";
             const publishedAt = videoData.snippet.publishedAt || "N/A";
             const thumbnail = videoData.snippet.thumbnails.high.url || "No thumbnail available";
