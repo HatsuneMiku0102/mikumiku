@@ -140,55 +140,49 @@
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const socket = io("https://mikumiku.dev");
-    
+        
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
             });
-    
+        
             socket.on("nowPlayingUpdate", (data) => {
                 console.log("[Socket.IO] Received nowPlayingUpdate:", data);
-    
-                const { title, videoId, thumbnail, channelTitle, viewCount, publishedAt, category, currentTime, duration, isPaused, isOffline } = data;
-    
-                const videoTitleElement = document.getElementById("videoTitle");
-                const videoThumbnailElement = document.getElementById("videoThumbnail");
-                const channelNameElement = document.getElementById("channelName");
-                const viewCountElement = document.getElementById("viewCount");
-                const publishedDateElement = document.getElementById("publishedDate");
-                const videoCategoryElement = document.getElementById("videoCategory");
-                const offlineIndicatorElement = document.getElementById("offline-indicator");
-                const progressBarElement = document.getElementById("progressBar");
-    
-                if (isOffline) {
-                    offlineIndicatorElement.style.display = "block";
-                    videoTitleElement.textContent = "Offline";
-                    videoThumbnailElement.style.display = "none";
-                    progressBarElement.style.width = "0%";
-                } else {
-                    offlineIndicatorElement.style.display = "none";
-                    videoTitleElement.textContent = title || "Unknown Title";
-                    videoThumbnailElement.src = thumbnail || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-                    videoThumbnailElement.style.display = "block";
-    
-                    // Update channel details
-                    channelNameElement.textContent = channelTitle || "Unknown Channel";
-                    viewCountElement.textContent = viewCount ? `${viewCount} views` : "N/A";
-                    publishedDateElement.textContent = publishedAt ? new Date(publishedAt).toLocaleDateString() : "N/A";
-                    videoCategoryElement.textContent = category || "N/A";
-    
-                    // Update progress bar
-                    if (duration && currentTime !== undefined) {
-                        const progressPercentage = (currentTime / duration) * 100;
-                        progressBarElement.style.width = `${progressPercentage}%`;
-                        console.log(`[Client] Updated progress bar to ${progressPercentage.toFixed(2)}%`);
-                    }
+                
+                const { title, thumbnail, channelTitle, viewCount, publishedAt, category, currentTime, isPaused, duration, videoId } = data;
+        
+                // Update Now Playing section with received data
+                document.getElementById("videoTitle").textContent = title || "Unknown Title";
+                document.getElementById("videoThumbnail").src = thumbnail;
+                document.getElementById("channelName").textContent = channelTitle || "Unknown Channel";
+                document.getElementById("viewCount").textContent = viewCount || "N/A";
+                document.getElementById("publishedDate").textContent = new Date(publishedAt).toLocaleDateString() || "N/A";
+                document.getElementById("videoCategory").textContent = category || "N/A";
+        
+                // Handle progress bar update
+                if (duration && currentTime) {
+                    const progressPercentage = (currentTime / duration) * 100;
+                    document.getElementById("progressBar").style.width = `${progressPercentage}%`;
                 }
             });
-    
+        
+            socket.on("videoChangeDetected", (newVideoId) => {
+                console.warn("[Socket.IO] New video detected, resetting data for:", newVideoId);
+        
+                // Clear current UI data until new video information is received
+                document.getElementById("videoTitle").textContent = "Loading...";
+                document.getElementById("videoThumbnail").src = "";
+                document.getElementById("channelName").textContent = "Loading...";
+                document.getElementById("viewCount").textContent = "Loading...";
+                document.getElementById("publishedDate").textContent = "Loading...";
+                document.getElementById("videoCategory").textContent = "Loading...";
+                document.getElementById("progressBar").style.width = "0%";
+            });
+        
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
             });
         });
+
     </script>
 
 
