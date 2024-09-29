@@ -104,7 +104,7 @@ app.post('/updateVideoData', async (req, res) => {
     }
 
     try {
-        const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics`;
+        const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics,contentDetails`;
         const response = await axios.get(apiUrl);
         const videoData = response.data.items[0];
 
@@ -118,10 +118,14 @@ app.post('/updateVideoData', async (req, res) => {
         const channelTitle = videoData.snippet.channelTitle;
         const viewCount = videoData.statistics.viewCount;
         const publishedAt = videoData.snippet.publishedAt;
+        const durationISO = videoData.contentDetails.duration;
+
+        // Convert ISO 8601 duration to seconds
+        const duration = convertISO8601ToSeconds(durationISO);
 
         const category = categoryMappings[categoryId] || 'Unknown Category';
 
-        logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}, Channel: ${channelTitle}, Views: ${viewCount}, Uploaded: ${publishedAt}`);
+        logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}, Channel: ${channelTitle}, Views: ${viewCount}, Uploaded: ${publishedAt}, Duration: ${duration}s`);
 
         currentVideoData = {
             videoId,
@@ -139,7 +143,7 @@ app.post('/updateVideoData', async (req, res) => {
         };
 
         io.emit('nowPlayingUpdate', currentVideoData);
-        logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: Title="${title}", Video ID="${videoId}", Thumbnail="${thumbnail}", Category="${category}", Channel="${channelTitle}", Views="${viewCount}", Uploaded="${publishedAt}"`);
+        logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: Title="${title}", Video ID="${videoId}", Thumbnail="${thumbnail}", Category="${category}", Channel="${channelTitle}", Views="${viewCount}", Uploaded="${publishedAt}", Duration="${duration}s"`);
 
         res.status(200).send('Video data updated successfully');
     } catch (error) {
@@ -147,6 +151,16 @@ app.post('/updateVideoData', async (req, res) => {
         res.status(500).send('Error fetching video data');
     }
 });
+
+// Helper function to convert ISO 8601 duration to seconds
+function convertISO8601ToSeconds(isoDuration) {
+    const matches = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    const hours = parseInt(matches[1] || 0, 10);
+    const minutes = parseInt(matches[2] || 0, 10);
+    const seconds = parseInt(matches[3] || 0, 10);
+    return hours * 3600 + minutes * 60 + seconds;
+}
+
 
 
 
@@ -663,15 +677,33 @@ app.get('/api/youtube', async (req, res) => {
                 }
             },
             {
-                retries: 3, // Retry up to 3 times before failing
-                factor: 2, // Exponential backoff factor
-                minTimeout: 1000, // Minimum time between retries (1 second)
-                maxTimeout: 5000, // Maximum time between retries (5 seconds)
+                retries: 3,
+                factor: 2,
+                minTimeout: 1000,
+                maxTimeout: 5000,
             }
         );
 
+        // Extract the required details, including the duration
+        const videoData = data.items[0];
+        const durationISO = videoData.contentDetails.duration;
+        const duration = convertISO8601ToSeconds(durationISO);
+
+        // Formatted response with all required fields
+        const responsePayload = {
+            videoId: videoData.id,
+            title: videoData.snippet.title,
+            description: videoData.snippet.description,
+            channelTitle: videoData.snippet.channelTitle,
+            viewCount: videoData.statistics.viewCount,
+            publishedAt: videoData.snippet.publishedAt,
+            thumbnail: videoData.snippet.thumbnails.default.url,
+            categoryId: videoData.snippet.categoryId,
+            duration: duration // Duration in seconds
+        };
+
         // Successfully fetched data
-        res.status(200).json(data);
+        res.status(200).json(responsePayload);
     } catch (error) {
         console.error(`Error fetching YouTube video data for videoId ${videoId}: ${error.message}`);
 
@@ -687,6 +719,16 @@ app.get('/api/youtube', async (req, res) => {
         }
     }
 });
+
+// Helper function to convert ISO 8601 duration to seconds
+function convertISO8601ToSeconds(isoDuration) {
+    const matches = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    const hours = parseInt(matches[1] || 0, 10);
+    const minutes = parseInt(matches[2] || 0, 10);
+    const seconds = parseInt(matches[3] || 0, 10);
+    return hours * 3600 + minutes * 60 + seconds;
+}
+
 
 
 // OAuth Configuration
