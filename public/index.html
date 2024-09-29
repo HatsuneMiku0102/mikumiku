@@ -150,6 +150,23 @@
             const offlineIndicatorElement = document.getElementById("offline-indicator");
             const progressBarElement = document.getElementById("progressBar");
     
+            function markAsOffline() {
+                // Clear all fields
+                nowPlayingBox.classList.add("offline");
+                offlineIndicatorElement.style.display = "block";
+    
+                videoTitleElement.textContent = "Offline";
+                videoThumbnailElement.src = "";
+                videoThumbnailElement.style.display = "none";
+    
+                channelNameElement.textContent = "N/A";
+                viewCountElement.textContent = "N/A";
+                publishedDateElement.textContent = "N/A";
+                videoCategoryElement.textContent = "N/A";
+    
+                progressBarElement.style.width = "0%";
+            }
+    
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
             });
@@ -157,18 +174,14 @@
             socket.on("nowPlayingUpdate", (data) => {
                 console.log("[Socket.IO] Received nowPlayingUpdate:", data);
     
-                // Update Now Playing section with received data
+                // Check if the data is empty or indicates an offline state
                 if (!data.videoId) {
-                    // Mark as offline
-                    nowPlayingBox.classList.add("offline");
-                    offlineIndicatorElement.style.display = "block";
-                    videoTitleElement.textContent = "Offline";
-                    videoThumbnailElement.style.display = "none";
-                    progressBarElement.style.width = "0%";
+                    markAsOffline();
                 } else {
-                    // Update with video information
+                    // Update Now Playing section with received data
                     nowPlayingBox.classList.remove("offline");
                     offlineIndicatorElement.style.display = "none";
+    
                     videoTitleElement.textContent = data.title || "Unknown Title";
                     videoThumbnailElement.src = data.thumbnail || "";
                     videoThumbnailElement.style.display = "block";
@@ -190,24 +203,16 @@
     
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
-                // Optionally, mark as offline when disconnected from the server
-                nowPlayingBox.classList.add("offline");
-                offlineIndicatorElement.style.display = "block";
-                videoTitleElement.textContent = "Offline";
-                videoThumbnailElement.style.display = "none";
-                progressBarElement.style.width = "0%";
+                markAsOffline();
             });
     
-            // Mark offline when YouTube tab closes
+            // Mark offline when YouTube tab closes or when the window is being unloaded
             window.addEventListener("beforeunload", () => {
-                nowPlayingBox.classList.add("offline");
-                offlineIndicatorElement.style.display = "block";
-                videoTitleElement.textContent = "Offline";
-                videoThumbnailElement.style.display = "none";
-                progressBarElement.style.width = "0%";
+                markAsOffline();
             });
         });
     </script>
+
 
 
 
