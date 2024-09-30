@@ -215,14 +215,11 @@
             }
         
             function displayVideoPresence(data) {
-                lastHeartbeatReceived = Date.now();
-                nowPlayingBox.classList.remove("offline");
-                offlineIndicatorElement.style.display = "none";
-        
+                // Ensure all properties are correctly updated in the DOM
                 videoTitleElement.textContent = data.title || "Unknown Title";
+                channelNameElement.textContent = data.channelTitle || "Unknown Channel";
                 videoThumbnailElement.src = data.thumbnail || "";
                 videoThumbnailElement.style.display = data.thumbnail ? "block" : "none";
-                channelNameElement.textContent = data.channelTitle || "Unknown Channel";
                 viewCountElement.textContent = `Views: ${formatNumber(data.viewCount)}` || "Views: N/A";
                 likeCountElement.textContent = `Likes: ${formatNumber(data.likeCount)}` || "Likes: N/A";
                 publishedDateElement.textContent = data.publishedAt ? `Published on: ${new Date(data.publishedAt).toLocaleDateString()}` : "Published on: N/A";
@@ -285,15 +282,16 @@
                     console.warn("[Client] Ignoring presenceUpdate due to expired session.");
                     return;
                 }
-        
+            
                 console.log("[Socket.IO] Received presenceUpdate:", data);
                 lastHeartbeatReceived = Date.now();
-        
+            
                 if (data.presenceType === 'video') {
                     stopBrowsingPresence();
                     displayVideoPresence(data);
                 } else if (data.presenceType === 'browsing') {
                     startBrowsingPresence();
+                    displayBrowsingPresence(data);
                 } else {
                     clearDisplay();
                 }
