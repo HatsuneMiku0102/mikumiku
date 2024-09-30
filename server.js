@@ -1251,7 +1251,6 @@ io.on('connection', (socket) => {
 
     socket.on('updateBrowsingPresence', (data) => {
         if (data.videoId) {
-            // Update video presence
             logger.info(`[Socket.IO] Marking video presence for ${data.videoId}`);
             currentVideo = {
                 videoId: data.videoId,
@@ -1269,27 +1268,21 @@ io.on('connection', (socket) => {
                 presenceType: 'video'
             };
             videoHeartbeat[data.videoId] = Date.now();
-    
-            // Clear browsing data since now we're watching a video
-            currentBrowsing = null;
         } else {
-            // Update browsing presence with custom thumbnail
             logger.info(`[Socket.IO] Browsing presence detected.`);
             currentBrowsing = {
                 title: 'YouTube',
                 description: 'Browsing videos',
-                thumbnail: 'https://github.com/HatsuneMiku0102/mikumiku/blob/main/public/custom_browsing_thumbnail.png',
+                thumbnail: 'https://raw.githubusercontent.com/HatsuneMiku0102/mikumiku/main/public/custom_browsing_thumbnail.png',
                 timeElapsed: 0,
                 presenceType: 'browsing'
             };
-            currentVideo = null;  // Clear current video when browsing
+            currentVideo = null;
             clearAllHeartbeats();
         }
     
         io.emit('presenceUpdate', currentVideo || currentBrowsing);
     });
-
-
 
     socket.on('updateVideoProgress', (data) => {
         const { videoId, currentTime, duration, isPaused } = data;
