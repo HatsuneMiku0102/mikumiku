@@ -58,30 +58,30 @@
                         <span>Category:</span> <span id="videoCategory">Loading...</span>
                     </div>
                 </div>
-        
+
                 <div class="video-section">
                     <div class="video-title-container">
                         <h2>Currently Playing</h2>
                         <p id="videoTitle">Loading...</p>
                     </div>
-        
+
                     <div class="thumbnail-container">
                         <img id="videoThumbnail" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
                     </div>
-        
+
                     <div id="offline-indicator" class="offline-indicator">I’m not on YouTube at the moment, soz :(</div>
-        
+
                     <!-- Progress Bar -->
                     <div class="progress-bar-container">
                         <div id="progressBar" class="progress-bar"></div>
                     </div>
-        
+
                     <!-- Toggle Description Button -->
                     <button class="toggle-description" id="toggleDescriptionButton">Show Description</button>
                 </div>
             </div>
         </div>
-        
+
         <!-- Modal Structure -->
         <div id="descriptionModal" class="modal">
             <div class="modal-content">
@@ -160,6 +160,21 @@
             const videoThumbnailElement = document.getElementById("videoThumbnail");
             const offlineIndicatorElement = document.getElementById("offline-indicator");
             const progressBarElement = document.getElementById("progressBar");
+            const channelNameElement = document.getElementById("channelName");
+            const viewCountElement = document.getElementById("viewCount");
+            const likeCountElement = document.getElementById("likeCount");
+            const publishedDateElement = document.getElementById("publishedDate");
+            const videoCategoryElement = document.getElementById("videoCategory");
+            const videoDescriptionElement = document.getElementById("videoDescription");
+
+            // Helper function to format numbers with commas
+            function formatNumber(number) {
+                if (typeof number === 'string') {
+                    number = number.replace(/,/g, ''); // Remove existing commas
+                }
+                const num = Number(number);
+                return isNaN(num) ? "N/A" : num.toLocaleString();
+            }
 
             function clearDisplay() {
                 nowPlayingBox.classList.add("offline");
@@ -167,16 +182,56 @@
                 videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
                 videoThumbnailElement.src = "";
                 videoThumbnailElement.style.display = "none";
+                channelNameElement.textContent = "";
+                viewCountElement.textContent = "";
+                likeCountElement.textContent = "";
+                publishedDateElement.textContent = "";
+                videoCategoryElement.textContent = "";
                 progressBarElement.style.width = "0%";
+                videoDescriptionElement.textContent = "";
             }
 
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
+
+                // Update Title
                 videoTitleElement.textContent = data.title || "Unknown Title";
-                videoThumbnailElement.src = data.thumbnail || "";
-                videoThumbnailElement.style.display = data.thumbnail ? "block" : "none";
+
+                // Update Thumbnail
+                if (data.thumbnail) {
+                    videoThumbnailElement.src = data.thumbnail;
+                    videoThumbnailElement.style.display = "block";
+                } else {
+                    videoThumbnailElement.src = "";
+                    videoThumbnailElement.style.display = "none";
+                }
+
+                // Update Channel Name
+                channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+
+                // Update View Count with commas
+                viewCountElement.textContent = `Views: ${formatNumber(data.viewCount)}` || "Views: N/A";
+
+                // Update Like Count with commas
+                likeCountElement.textContent = `Likes: ${formatNumber(data.likeCount)}` || "Likes: N/A";
+
+                // Update Published Date
+                if (data.publishedAt) {
+                    const publishedDate = new Date(data.publishedAt);
+                    publishedDateElement.textContent = `Published on: ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
+                } else {
+                    publishedDateElement.textContent = "Published on: N/A";
+                }
+
+                // Update Video Category
+                videoCategoryElement.textContent = `Category: ${data.category}` || "Category: N/A";
+
+                // Update Description
+                videoDescriptionElement.textContent = data.description || "No description available.";
+
+                // Handle Progress Bar Update
                 handleRealTimeProgress(data);
             }
 
@@ -195,6 +250,12 @@
                 videoTitleElement.textContent = "YouTube";
                 videoThumbnailElement.src = "/youtube_thumbnail.png";
                 videoThumbnailElement.style.display = "block";
+                channelNameElement.textContent = "Browsing...";
+                viewCountElement.textContent = "";
+                likeCountElement.textContent = "";
+                publishedDateElement.textContent = "";
+                videoCategoryElement.textContent = "";
+                videoDescriptionElement.textContent = "Browsing videos on YouTube";
                 progressBarElement.style.width = "0%";
             }
 
@@ -234,11 +295,36 @@
                     clearDisplay();
                 }
             }, 15000);
+
+            // Modal Toggle Logic
+            const descriptionModal = document.getElementById("descriptionModal");
+            const closeDescriptionButton = document.getElementById("closeDescriptionButton");
+            const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
+
+            toggleDescriptionButton.addEventListener("click", function () {
+                if (descriptionModal.style.display === "block") {
+                    descriptionModal.style.display = "none";
+                    toggleDescriptionButton.textContent = "Show Description";
+                } else {
+                    descriptionModal.style.display = "block";
+                    toggleDescriptionButton.textContent = "Hide Description";
+                }
+            });
+
+            closeDescriptionButton.addEventListener("click", function () {
+                descriptionModal.style.display = "none";
+                toggleDescriptionButton.textContent = "Show Description";
+            });
+
+            window.addEventListener("click", function (event) {
+                if (event.target === descriptionModal) {
+                    descriptionModal.style.display = "none";
+                    toggleDescriptionButton.textContent = "Show Description";
+                }
+            });
         });
     </script>
 
-
-    <!-- Canvas Animation Script -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const canvas = document.getElementById("techCanvas");
