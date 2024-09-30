@@ -195,9 +195,8 @@
     
             function reinitializeSession() {
                 console.warn("[Client] Reinitializing session due to mismatch or timeout.");
-                // Clear any ongoing state and notify the user
                 clearDisplay();
-                isSessionExpired = true; // Set a flag to stop further updates until session is restarted
+                isSessionExpired = true; // Stop further updates until session is restarted
             }
     
             function displayVideoPresence(data) {
@@ -242,6 +241,31 @@
     
                 // Handle Progress Bar Update
                 handleRealTimeProgress(data);
+            }
+    
+            function handleRealTimeProgress(data) {
+                if (data.duration && data.currentTime) {
+                    const progressPercentage = (data.currentTime / data.duration) * 100;
+                    progressBarElement.style.width = `${progressPercentage}%`;
+                } else {
+                    progressBarElement.style.width = "0%";
+                }
+            }
+    
+            function displayBrowsingPresence() {
+                lastHeartbeatReceived = Date.now();
+                nowPlayingBox.classList.remove("offline");
+                offlineIndicatorElement.style.display = "none";
+                videoTitleElement.textContent = "Browsing YouTube";
+                videoThumbnailElement.src = "/youtube_thumbnail.png";
+                videoThumbnailElement.style.display = "block";
+                channelNameElement.textContent = "Browsing...";
+                viewCountElement.textContent = "";
+                likeCountElement.textContent = "";
+                publishedDateElement.textContent = "";
+                videoCategoryElement.textContent = "";
+                videoDescriptionElement.textContent = "Browsing videos on YouTube";
+                progressBarElement.style.width = "0%";
             }
     
             socket.on("connect", () => {
@@ -345,7 +369,8 @@
                     displayWeather(data);
                 } catch (error) {
                     console.error('Error fetching weather data:', error);
-                    weatherIconElement.style.display = 'none';
+                    const weatherIconElement = document.getElementById('weather-icon');
+                    if (weatherIconElement) weatherIconElement.style.display = 'none';
                     document.getElementById('weather-description').innerText = 'Unable to fetch weather data.';
                 }
             }
@@ -364,13 +389,14 @@
                 document.getElementById('wind-speed').innerText = `Wind: ${windSpeed} m/s`;
     
                 const weatherIconElement = document.getElementById('weather-icon');
-                weatherIconElement.src = iconUrl;
-                weatherIconElement.style.display = 'block';
+                if (weatherIconElement) {
+                    weatherIconElement.src = iconUrl;
+                    weatherIconElement.style.display = 'block';
+                }
             }
     
             setInterval(fetchWeather, 3600000);
             fetchWeather();
-
             // Canvas Animation Script
             const canvas = document.getElementById("techCanvas");
             const ctx = canvas.getContext("2d");
