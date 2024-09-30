@@ -157,6 +157,7 @@
             let isSessionExpired = false;
             let browsingStartTime = Date.now();
             let browsingInterval = null;
+            let socketUpdateInterval = null;
         
             // Now Playing Elements
             const nowPlayingBox = document.getElementById("nowPlayingBox");
@@ -276,9 +277,13 @@
                 startBrowsingPresence(); // Start tracking browsing time
             }
         
-            function updateBrowsingPresence() {
+            function updateBrowsingTime() {
                 const timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
                 timeElapsedElement.textContent = `${timeElapsed}s`; // Update the time elapsed display
+            }
+        
+            function updateBrowsingPresenceSocket() {
+                const timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
                 const browsingData = {
                     title: 'YouTube',
                     description: 'Browsing videos',
@@ -291,9 +296,12 @@
         
             function startBrowsingPresence() {
                 browsingStartTime = Date.now();
-                updateBrowsingPresence(); // Update immediately
+                updateBrowsingTime(); // Update immediately
                 if (!browsingInterval) {
-                    browsingInterval = setInterval(updateBrowsingPresence, 1000); // Update every second
+                    browsingInterval = setInterval(updateBrowsingTime, 1000); // Update elapsed time in DOM every second
+                }
+                if (!socketUpdateInterval) {
+                    socketUpdateInterval = setInterval(updateBrowsingPresenceSocket, 15000); // Send presence update to server every 15 seconds
                 }
             }
         
@@ -301,6 +309,10 @@
                 if (browsingInterval) {
                     clearInterval(browsingInterval);
                     browsingInterval = null;
+                }
+                if (socketUpdateInterval) {
+                    clearInterval(socketUpdateInterval);
+                    socketUpdateInterval = null;
                 }
             }
         
