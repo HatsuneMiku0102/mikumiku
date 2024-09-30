@@ -168,6 +168,11 @@
             const videoCategoryElement = document.getElementById("videoCategory");
             const videoDescriptionElement = document.getElementById("videoDescription");
 
+            // Modal Toggle Elements
+            const descriptionModal = document.getElementById("descriptionModal");
+            const closeDescriptionButton = document.getElementById("closeDescriptionButton");
+            const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
+
             // Helper function to format numbers with commas
             function formatNumber(number) {
                 if (typeof number === 'string') {
@@ -197,10 +202,7 @@
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
 
-                // Update Title
                 videoTitleElement.textContent = data.title || "Unknown Title";
-
-                // Update Thumbnail
                 if (data.thumbnail) {
                     videoThumbnailElement.src = data.thumbnail;
                     videoThumbnailElement.style.display = "block";
@@ -208,31 +210,18 @@
                     videoThumbnailElement.src = "";
                     videoThumbnailElement.style.display = "none";
                 }
-
-                // Update Channel Name
                 channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-
-                // Update View Count with commas
                 viewCountElement.textContent = `Views: ${formatNumber(data.viewCount)}` || "Views: N/A";
-
-                // Update Like Count with commas
                 likeCountElement.textContent = `Likes: ${formatNumber(data.likeCount)}` || "Likes: N/A";
 
-                // Update Published Date
                 if (data.publishedAt) {
                     const publishedDate = new Date(data.publishedAt);
                     publishedDateElement.textContent = `Published on: ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
                 } else {
                     publishedDateElement.textContent = "Published on: N/A";
                 }
-
-                // Update Video Category
                 videoCategoryElement.textContent = `Category: ${data.category}` || "Category: N/A";
-
-                // Update Description
                 videoDescriptionElement.textContent = data.description || "No description available.";
-
-                // Handle Progress Bar Update
                 handleRealTimeProgress(data);
             }
 
@@ -298,10 +287,6 @@
             }, 15000);
 
             // Modal Toggle Logic
-            const descriptionModal = document.getElementById("descriptionModal");
-            const closeDescriptionButton = document.getElementById("closeDescriptionButton");
-            const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
-
             toggleDescriptionButton.addEventListener("click", function () {
                 if (descriptionModal.style.display === "block") {
                     descriptionModal.style.display = "none";
@@ -352,7 +337,7 @@
                     displayWeather(data);
                 } catch (error) {
                     console.error('Error fetching weather data:', error);
-                    weatherIconElement.style.display = 'none';
+                    document.getElementById('weather-icon').style.display = 'none';
                     document.getElementById('weather-description').innerText = 'Unable to fetch weather data.';
                 }
             }
@@ -377,34 +362,6 @@
 
             setInterval(fetchWeather, 3600000);
             fetchWeather();
-        });
-        
-            // Modal Toggle Logic
-            const descriptionModal = document.getElementById("descriptionModal");
-            const closeDescriptionButton = document.getElementById("closeDescriptionButton");
-            const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
-
-            toggleDescriptionButton.addEventListener("click", function () {
-                if (descriptionModal.style.display === "block") {
-                    descriptionModal.style.display = "none";
-                    toggleDescriptionButton.textContent = "Show Description";
-                } else {
-                    descriptionModal.style.display = "block";
-                    toggleDescriptionButton.textContent = "Hide Description";
-                }
-            });
-
-            closeDescriptionButton.addEventListener("click", function () {
-                descriptionModal.style.display = "none";
-                toggleDescriptionButton.textContent = "Show Description";
-            });
-
-            window.addEventListener("click", function (event) {
-                if (event.target === descriptionModal) {
-                    descriptionModal.style.display = "none";
-                    toggleDescriptionButton.textContent = "Show Description";
-                }
-            });
 
             // Canvas Animation Script
             const canvas = document.getElementById("techCanvas");
