@@ -1234,6 +1234,8 @@ app.post('/logout', (req, res) => {
     res.redirect('/admin-login.html');
 });
 
+
+
 const HEARTBEAT_TIMEOUT = 60000;
 let currentVideo = null;
 let currentBrowsing = null;
@@ -1256,6 +1258,7 @@ io.on('connection', (socket) => {
         if (data.presenceType === 'browsing' && !currentVideo) {
             logger.info(`[Socket.IO] Browsing presence detected.`);
             
+            // Check if we need to update the browsing state
             if (!currentBrowsing || currentBrowsing.title !== data.title) {
                 currentBrowsing = {
                     title: 'YouTube',
@@ -1309,6 +1312,7 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Handle heartbeat signals
     socket.on('heartbeat', (data, callback) => {
         const { videoId } = data;
         if (videoId && currentVideo && currentVideo.videoId === videoId) {
@@ -1321,11 +1325,13 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Disconnect handling
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
     });
 });
 
+// Handle video heartbeat expiration
 setInterval(() => {
     const now = Date.now();
     for (const [videoId, lastHeartbeat] of Object.entries(videoHeartbeat)) {
@@ -1340,23 +1346,6 @@ setInterval(() => {
         }
     }
 }, HEARTBEAT_TIMEOUT / 2);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
