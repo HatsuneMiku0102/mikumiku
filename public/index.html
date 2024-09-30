@@ -206,6 +206,20 @@
                 isSessionExpired = true; // Stop further updates until session is restarted
             }
     
+            function formatTimeElapsed(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const remainingSeconds = seconds % 60;
+    
+                if (hours > 0) {
+                    return `${hours}h ${minutes}m ${remainingSeconds}s`;
+                } else if (minutes > 0) {
+                    return `${minutes}m ${remainingSeconds}s`;
+                } else {
+                    return `${remainingSeconds}s`;
+                }
+            }
+    
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
@@ -277,7 +291,7 @@
             function updateBrowsingPresence() {
                 if (browsingStartTime) {
                     const timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
-                    timeElapsedElement.textContent = `${timeElapsed}s`;
+                    timeElapsedElement.textContent = formatTimeElapsed(timeElapsed);
     
                     const browsingData = {
                         title: 'YouTube',
