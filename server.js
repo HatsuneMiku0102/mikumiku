@@ -1269,25 +1269,26 @@ io.on('connection', (socket) => {
                 presenceType: 'video'
             };
             videoHeartbeat[data.videoId] = Date.now();
-
+    
             // Clear browsing data since now we're watching a video
             currentBrowsing = null;
         } else {
-            // Update browsing presence
+            // Update browsing presence with custom thumbnail
             logger.info(`[Socket.IO] Browsing presence detected.`);
             currentBrowsing = {
                 title: 'YouTube',
                 description: 'Browsing videos',
-                thumbnail: 'https://www.youtube.com/img/desktop/yt_1200.png',
+                thumbnail: 'https://raw.githubusercontent.com/YourUsername/YourRepository/main/mikumiku/public/custom_browsing_thumbnail.png',
                 timeElapsed: 0,
                 presenceType: 'browsing'
             };
             currentVideo = null;  // Clear current video when browsing
             clearAllHeartbeats();
         }
-
+    
         io.emit('presenceUpdate', currentVideo || currentBrowsing);
     });
+
 
     socket.on('updateVideoProgress', (data) => {
         const { videoId, currentTime, duration, isPaused } = data;
