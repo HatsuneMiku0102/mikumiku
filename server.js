@@ -1273,7 +1273,7 @@ io.on('connection', (socket) => {
             currentBrowsing = {
                 title: 'YouTube',
                 description: 'Browsing videos',
-                thumbnail: 'https://raw.githubusercontent.com/HatsuneMiku0102/mikumiku/main/public/custom_browsing_thumbnail.png',
+                thumbnail: 'https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png', // Your new public URL
                 timeElapsed: 0,
                 presenceType: 'browsing'
             };
@@ -1283,6 +1283,7 @@ io.on('connection', (socket) => {
     
         io.emit('presenceUpdate', currentVideo || currentBrowsing);
     });
+
 
     socket.on('updateVideoProgress', (data) => {
         const { videoId, currentTime, duration, isPaused } = data;
