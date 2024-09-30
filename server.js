@@ -1283,6 +1283,7 @@ io.on('connection', (socket) => {
                 videoHeartbeat[videoId] = Date.now(); // Only update heartbeat if not paused
             }
 
+            // Emit the complete metadata to ensure the client gets all necessary information
             io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
             logger.info(`[Socket.IO] Real-time update for video: ${videoId}`);
         } else {
@@ -1290,17 +1291,17 @@ io.on('connection', (socket) => {
             logger.info(`[Socket.IO] New video presence detected: ${videoId}`);
             currentVideo = {
                 videoId,
-                title,
-                description,
-                channelTitle,
-                viewCount,
-                likeCount,
-                publishedAt,
-                category,
-                thumbnail,
-                duration,
-                currentTime,
-                isPaused,
+                title: title || 'Unknown Title',
+                description: description || 'No description available.',
+                channelTitle: channelTitle || 'Unknown Channel',
+                viewCount: viewCount || 'N/A',
+                likeCount: likeCount || 'N/A',
+                publishedAt: publishedAt || 'N/A',
+                category: category || 'Unknown Category',
+                thumbnail: thumbnail || '',
+                duration: duration || 0,
+                currentTime: currentTime || 0,
+                isPaused: isPaused || false,
                 presenceType: 'video'
             };
 
@@ -1346,6 +1347,7 @@ setInterval(() => {
         }
     }
 }, HEARTBEAT_TIMEOUT / 2);
+
 
 
 
