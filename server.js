@@ -1271,13 +1271,26 @@ io.on('connection', (socket) => {
 
     // Update video progress or mark a new video presence
     socket.on('updateVideoProgress', (data) => {
-        const { videoId, currentTime, duration, isPaused, title, description, channelTitle, viewCount, likeCount, publishedAt, category, thumbnail } = data;
+        const {
+            videoId, currentTime, duration, isPaused, title, description,
+            channelTitle, viewCount, likeCount, publishedAt, category, thumbnail
+        } = data;
 
         if (currentVideo && currentVideo.videoId === videoId) {
             // Update current video progress
             currentVideo.currentTime = currentTime;
             currentVideo.duration = duration;
             currentVideo.isPaused = isPaused;
+
+            // Ensure all metadata is retained in case of partial updates
+            currentVideo.title = title || currentVideo.title;
+            currentVideo.description = description || currentVideo.description;
+            currentVideo.channelTitle = channelTitle || currentVideo.channelTitle;
+            currentVideo.viewCount = viewCount || currentVideo.viewCount;
+            currentVideo.likeCount = likeCount || currentVideo.likeCount;
+            currentVideo.publishedAt = publishedAt || currentVideo.publishedAt;
+            currentVideo.category = category || currentVideo.category;
+            currentVideo.thumbnail = thumbnail || currentVideo.thumbnail;
 
             if (!isPaused) {
                 videoHeartbeat[videoId] = Date.now(); // Only update heartbeat if not paused
