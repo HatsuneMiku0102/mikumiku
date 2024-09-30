@@ -1283,15 +1283,15 @@ io.on('connection', (socket) => {
             currentVideo.duration = duration;
             currentVideo.isPaused = isPaused;
 
-            // Update additional video info if provided
-            if (title) currentVideo.title = title;
-            if (description) currentVideo.description = description;
-            if (channelTitle) currentVideo.channelTitle = channelTitle;
-            if (viewCount) currentVideo.viewCount = viewCount;
-            if (likeCount) currentVideo.likeCount = likeCount;
-            if (publishedAt) currentVideo.publishedAt = publishedAt;
-            if (category) currentVideo.category = category;
-            if (thumbnail) currentVideo.thumbnail = thumbnail;
+            // Update additional info
+            currentVideo.title = title;
+            currentVideo.description = description;
+            currentVideo.channelTitle = channelTitle;
+            currentVideo.viewCount = viewCount;
+            currentVideo.likeCount = likeCount;
+            currentVideo.publishedAt = publishedAt;
+            currentVideo.category = category;
+            currentVideo.thumbnail = thumbnail;
 
             logger.info(`[Socket.IO] Updated video information for ID: ${videoId}`);
         } else {
@@ -1314,6 +1314,7 @@ io.on('connection', (socket) => {
             currentBrowsing = null; // Clear browsing presence
         }
 
+        // Emit updated video presence
         io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
     });
 
