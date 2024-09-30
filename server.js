@@ -1266,6 +1266,7 @@ io.on('connection', (socket) => {
                 isPaused: data.isPaused,
                 presenceType: 'video'
             };
+            videoHeartbeat[data.videoId] = Date.now();
         } else {
             logger.info(`[Socket.IO] Browsing presence detected.`);
             currentBrowsing = {
@@ -1275,6 +1276,8 @@ io.on('connection', (socket) => {
                 timeElapsed: 0,
                 presenceType: 'browsing'
             };
+            currentVideo = null;
+            clearAllHeartbeats();
         }
 
         io.emit('presenceUpdate', currentVideo || currentBrowsing);
@@ -1300,6 +1303,42 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('heartbeat', (data, callback) => {
+        const { videoId } = data;
+        if (videoId && currentVideo && currentVideo.videoId === videoId) {
+            videoHeartbeat[videoId] = Date.now();
+            logger.info(`[Socket.IO] Heartbeat received for video ID: ${videoId}`);
+            if (callback) callback({ status: "ok" });
+        } else {
+            logger.warn(`[Socket.IO] Received heartbeat for unknown or inactive video ID: ${videoId}`);
+            if (callback) callback({ status: "error", message: "Unknown video ID" });
+        }
+    });
+
+    socket.on('markVideoOffline', (data, callback) => {
+        const { videoId } = data;
+        if (currentVideo && currentVideo.videoId === videoId) {
+            logger.info(`[Socket.IO] Marking video ID ${videoId} as offline.`);
+            currentVideo = null;
+            delete videoHeartbeat[videoId];
+            io.emit('presenceUpdate', { presenceType: 'offline' });
+            logger.info(`[Socket.IO] Emitted "presenceUpdate" with offline status to all clients.`);
+            if (callback) callback({ status: "ok" });
+        } else {
+            logger.warn(`[Socket.IO] Attempted to mark unknown or different video ID ${videoId} as offline.`);
+            if (callback) callback({ status: "error", message: "Unknown video ID" });
+        }
+    });
+
+    socket.on('clearPreviousVideoData', () => {
+        logger.info(`[Socket.IO] Received "clearPreviousVideoData" from client ${socket.id}`);
+        currentVideo = null;
+        currentBrowsing = null;
+        clearAllHeartbeats();
+        io.emit('presenceUpdate', { presenceType: 'offline' });
+        logger.info(`[Socket.IO] Cleared current presence data and emitted offline status to all clients.`);
+    });
+
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
     });
@@ -1323,6 +1362,7 @@ setInterval(() => {
         }
     }
 }, HEARTBEAT_TIMEOUT / 2);
+
 
 
 
