@@ -154,7 +154,8 @@
         document.addEventListener("DOMContentLoaded", function () {
             const socket = io("https://mikumiku.dev");
             let lastHeartbeatReceived = Date.now();
-
+            let isSessionExpired = false;
+    
             // Now Playing Elements
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
@@ -167,12 +168,7 @@
             const publishedDateElement = document.getElementById("publishedDate");
             const videoCategoryElement = document.getElementById("videoCategory");
             const videoDescriptionElement = document.getElementById("videoDescription");
-
-            // Modal Toggle Elements
-            const descriptionModal = document.getElementById("descriptionModal");
-            const closeDescriptionButton = document.getElementById("closeDescriptionButton");
-            const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
-
+    
             // Helper function to format numbers with commas
             function formatNumber(number) {
                 if (typeof number === 'string') {
@@ -181,7 +177,7 @@
                 const num = Number(number);
                 return isNaN(num) ? "N/A" : num.toLocaleString();
             }
-
+    
             function clearDisplay() {
                 nowPlayingBox.classList.add("offline");
                 offlineIndicatorElement.style.display = "block";
@@ -196,13 +192,23 @@
                 progressBarElement.style.width = "0%";
                 videoDescriptionElement.textContent = "";
             }
-
+    
+            function reinitializeSession() {
+                console.warn("[Client] Reinitializing session due to mismatch or timeout.");
+                // Clear any ongoing state and notify the user
+                clearDisplay();
+                isSessionExpired = true; // Set a flag to stop further updates until session is restarted
+            }
+    
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
-
+    
+                // Update Title
                 videoTitleElement.textContent = data.title || "Unknown Title";
+    
+                // Update Thumbnail
                 if (data.thumbnail) {
                     videoThumbnailElement.src = data.thumbnail;
                     videoThumbnailElement.style.display = "block";
@@ -210,54 +216,49 @@
                     videoThumbnailElement.src = "";
                     videoThumbnailElement.style.display = "none";
                 }
+    
+                // Update Channel Name
                 channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+    
+                // Update View Count with commas
                 viewCountElement.textContent = `Views: ${formatNumber(data.viewCount)}` || "Views: N/A";
+    
+                // Update Like Count with commas
                 likeCountElement.textContent = `Likes: ${formatNumber(data.likeCount)}` || "Likes: N/A";
-
+    
+                // Update Published Date
                 if (data.publishedAt) {
                     const publishedDate = new Date(data.publishedAt);
                     publishedDateElement.textContent = `Published on: ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
                 } else {
                     publishedDateElement.textContent = "Published on: N/A";
                 }
+    
+                // Update Video Category
                 videoCategoryElement.textContent = `Category: ${data.category}` || "Category: N/A";
+    
+                // Update Description
                 videoDescriptionElement.textContent = data.description || "No description available.";
+    
+                // Handle Progress Bar Update
                 handleRealTimeProgress(data);
             }
-
-            function handleRealTimeProgress(data) {
-                if (data.duration && data.currentTime) {
-                    const progressPercentage = (data.currentTime / data.duration) * 100;
-                    progressBarElement.style.width = `${progressPercentage}%`;
-                } else {
-                    progressBarElement.style.width = "0%";
-                }
-            }
-
-            function displayBrowsingPresence() {
-                nowPlayingBox.classList.remove("offline");
-                offlineIndicatorElement.style.display = "none";
-                videoTitleElement.textContent = "Browsing YouTube";
-                videoThumbnailElement.src = "/youtube_thumbnail.png";
-                videoThumbnailElement.style.display = "block";
-                channelNameElement.textContent = "Browsing...";
-                viewCountElement.textContent = "";
-                likeCountElement.textContent = "";
-                publishedDateElement.textContent = "";
-                videoCategoryElement.textContent = "";
-                videoDescriptionElement.textContent = "Browsing videos on YouTube";
-                progressBarElement.style.width = "0%";
-            }
-
+    
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
+                isSessionExpired = false;
                 socket.emit('requestLatestData');
             });
-
+    
             socket.on("presenceUpdate", (data) => {
+                if (isSessionExpired) {
+                    console.warn("[Client] Ignoring presenceUpdate due to expired session.");
+                    return;
+                }
+    
                 console.log("[Socket.IO] Received presenceUpdate:", data);
                 lastHeartbeatReceived = Date.now();
-
+    
                 if (data.presenceType === 'video') {
                     displayVideoPresence(data);
                 } else if (data.presenceType === 'browsing') {
@@ -266,27 +267,34 @@
                     clearDisplay();
                 }
             });
-
-            socket.on("heartbeat", (data) => {
-                if (data.videoId) {
-                    console.log(`[Heartbeat] Received heartbeat for video ID: ${data.videoId}`);
-                    lastHeartbeatReceived = Date.now();
-                }
+    
+            socket.on("reinitializeSession", (data) => {
+                console.warn(`[Socket.IO] Received reinitializeSession: ${JSON.stringify(data)}`);
+                reinitializeSession();
             });
-
+    
+            socket.on("sessionExpired", (data) => {
+                console.warn(`[Socket.IO] Session expired for video ID: ${data.videoId}`);
+                reinitializeSession();
+            });
+    
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
                 clearDisplay();
             });
-
+    
             setInterval(() => {
                 if (Date.now() - lastHeartbeatReceived > 60000) {
                     console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
                     clearDisplay();
                 }
             }, 15000);
-
+    
             // Modal Toggle Logic
+            const descriptionModal = document.getElementById("descriptionModal");
+            const closeDescriptionButton = document.getElementById("closeDescriptionButton");
+            const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
+    
             toggleDescriptionButton.addEventListener("click", function () {
                 if (descriptionModal.style.display === "block") {
                     descriptionModal.style.display = "none";
@@ -296,19 +304,19 @@
                     toggleDescriptionButton.textContent = "Hide Description";
                 }
             });
-
+    
             closeDescriptionButton.addEventListener("click", function () {
                 descriptionModal.style.display = "none";
                 toggleDescriptionButton.textContent = "Show Description";
             });
-
+    
             window.addEventListener("click", function (event) {
                 if (event.target === descriptionModal) {
                     descriptionModal.style.display = "none";
                     toggleDescriptionButton.textContent = "Show Description";
                 }
             });
-
+    
             // Clock Update Script
             function updateClocks() {
                 const now = new Date();
@@ -319,29 +327,29 @@
                 const currentDateElement = document.getElementById('current-date');
                 if (currentDateElement) currentDateElement.textContent = currentDate;
             }
-
+    
             setInterval(updateClocks, 1000);
             updateClocks();
-
+    
             // Weather Update Script
             const CITY_NAME = 'Leeds';
             async function fetchWeather() {
                 try {
                     const response = await fetch(`/api/weather?city=${encodeURIComponent(CITY_NAME)}`);
                     const data = await response.json();
-
+    
                     if (data.error) {
                         throw new Error(data.error);
                     }
-
+    
                     displayWeather(data);
                 } catch (error) {
                     console.error('Error fetching weather data:', error);
-                    document.getElementById('weather-icon').style.display = 'none';
+                    weatherIconElement.style.display = 'none';
                     document.getElementById('weather-description').innerText = 'Unable to fetch weather data.';
                 }
             }
-
+    
             function displayWeather(data) {
                 const description = data.weather[0].description;
                 const temperature = Math.round(data.main.temp);
@@ -349,17 +357,17 @@
                 const windSpeed = data.wind.speed;
                 const iconCode = data.weather[0].icon;
                 const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
-
+    
                 document.getElementById('weather-description').innerText = `Condition: ${description}`;
                 document.getElementById('temperature').innerText = `Temperature: ${temperature}°C`;
                 document.getElementById('humidity').innerText = `Humidity: ${humidity}%`;
                 document.getElementById('wind-speed').innerText = `Wind: ${windSpeed} m/s`;
-
+    
                 const weatherIconElement = document.getElementById('weather-icon');
                 weatherIconElement.src = iconUrl;
                 weatherIconElement.style.display = 'block';
             }
-
+    
             setInterval(fetchWeather, 3600000);
             fetchWeather();
 
