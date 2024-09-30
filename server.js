@@ -1267,7 +1267,7 @@ io.on('connection', (socket) => {
             logger.info(`[Socket.IO] Real-time update for video: ${JSON.stringify(currentVideo)}`);
         } else {
             logger.warn(`[Socket.IO] Video ID mismatch for progress update. Expected: ${currentVideo.videoId}, Received: ${videoId}`);
-            // Attempt to recover the current video
+            // Handle mismatch by requesting video info again
             socket.emit('requestVideoInfo', { videoId }, (videoInfo) => {
                 if (videoInfo) {
                     logger.info(`[Socket.IO] Received video info for mismatched VideoId: ${videoId}`);
@@ -1290,11 +1290,13 @@ io.on('connection', (socket) => {
     socket.on('updateBrowsingPresence', (data, callback) => {
         logger.info(`[Socket.IO] Received "updateBrowsingPresence" from client ${socket.id}: ${JSON.stringify(data)}`);
 
+        // Clear the current video state when browsing
+        currentVideo = null;
+
         currentBrowsing = {
             ...data
         };
 
-        currentVideo = null; // Clear current video when browsing
         clearAllHeartbeats();
 
         io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
@@ -1321,7 +1323,7 @@ io.on('connection', (socket) => {
             isPaused: false
         };
 
-        currentBrowsing = null; // Clear browsing when a video is playing
+        currentBrowsing = null; // Clear browsing presence
         videoHeartbeat[data.videoId] = Date.now();
 
         io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
@@ -1329,8 +1331,6 @@ io.on('connection', (socket) => {
 
         if (callback) callback({ status: "ok" });
     });
-
-    // Other event handlers...
 
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
