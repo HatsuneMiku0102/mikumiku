@@ -94,6 +94,27 @@ const categoryMappings = {
 };
 
 // Update Video or Browsing Presence Data
+const categoryMappings = {
+    "1": "Film & Animation",
+    "2": "Autos & Vehicles",
+    "10": "Music",
+    "15": "Pets & Animals",
+    "17": "Sports",
+    "19": "Travel & Events",
+    "20": "Gaming",
+    "21": "Videoblogging",
+    "22": "People & Blogs",
+    "23": "Comedy",
+    "24": "Entertainment",
+    "25": "News & Politics",
+    "26": "Howto & Style",
+    "27": "Education",
+    "28": "Science & Technology",
+    "29": "Nonprofits & Activism",
+    // Add more mappings as necessary
+};
+
+// Update Video or Browsing Presence Data
 app.post('/updatePresenceData', async (req, res) => {
     const { presenceType, videoId, title, description, currentTime, isPaused, isOffline } = req.body;
 
@@ -138,17 +159,17 @@ app.post('/updatePresenceData', async (req, res) => {
             presenceData = {
                 presenceType: 'video',
                 videoId,
-                title,
-                description,
-                thumbnail,
-                category,
-                channelTitle,
-                viewCount,
-                publishedAt,
-                currentTime,
-                isPaused,
+                title: title || videoData.snippet.title, // Use the fetched title if not provided
+                description: description || videoData.snippet.description, // Use the fetched description if not provided
+                thumbnail: thumbnail,
+                category: category,
+                channelTitle: channelTitle,
+                viewCount: viewCount,
+                publishedAt: publishedAt,
+                currentTime: currentTime || 0,
+                isPaused: isPaused,
                 isOffline: !!isOffline,
-                duration
+                duration: duration
             };
 
         } else if (presenceType === 'browsing') {
@@ -190,6 +211,7 @@ function convertISO8601ToSeconds(isoDuration) {
     const seconds = parseInt(matches[3] || 0, 10);
     return hours * 3600 + minutes * 60 + seconds;
 }
+
 
 
 
