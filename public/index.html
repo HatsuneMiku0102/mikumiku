@@ -172,6 +172,15 @@
             const closeDescriptionButton = document.getElementById("closeDescriptionButton");
             const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
     
+            // Helper function to format numbers with commas
+            function formatNumber(number) {
+                if (typeof number === 'string') {
+                    number = number.replace(/,/g, ''); // Remove existing commas
+                }
+                const num = Number(number);
+                return isNaN(num) ? "N/A" : num.toLocaleString();
+            }
+    
             // Function to clear all display elements
             function clearDisplay() {
                 nowPlayingBox.classList.add("offline");
@@ -320,83 +329,6 @@
                     toggleDescriptionButton.textContent = "Show Description";
                 }
             });
-        });
-    </script>
-
-    <!-- Clock Update Script -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            function updateClocks() {
-                const now = new Date();
-                const localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                const localTimeElement = document.getElementById('local-time');
-                if (localTimeElement) localTimeElement.textContent = localTime;
-                const currentDate = now.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-                const currentDateElement = document.getElementById('current-date');
-                if (currentDateElement) currentDateElement.textContent = currentDate;
-            }
-
-            setInterval(updateClocks, 1000);
-            updateClocks();
-
-            const CITY_NAME = 'Leeds'; // Change this to whatever city you want by default
-
-            async function fetchWeather() {
-                try {
-                    const response = await fetch(`/api/weather?city=${encodeURIComponent(CITY_NAME)}`);
-                    const data = await response.json();
-
-                    if (data.error) {
-                        throw new Error(data.error);
-                    }
-
-                    displayWeather(data);
-                } catch (error) {
-                    console.error('Error fetching weather data:', error);
-                    const weatherDescription = document.getElementById('weather-description');
-                    const temperature = document.getElementById('temperature');
-                    const humidity = document.getElementById('humidity');
-                    const windSpeed = document.getElementById('wind-speed');
-                    if (weatherDescription) weatherDescription.innerText = 'Unable to fetch weather data.';
-                    if (temperature) temperature.innerText = '';
-                    if (humidity) humidity.innerText = '';
-                    if (windSpeed) windSpeed.innerText = '';
-                }
-            }
-
-            function displayWeather(data) {
-                if (!data || !data.weather) {
-                    const weatherDescription = document.getElementById('weather-description');
-                    if (weatherDescription) weatherDescription.innerText = 'Weather data unavailable.';
-                    return;
-                }
-
-                const description = data.weather[0].description;
-                const temperature = Math.round(data.main.temp);
-                const humidity = data.main.humidity;
-                const windSpeed = data.wind.speed;
-                const iconCode = data.weather[0].icon;
-                const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
-
-                const weatherDescription = document.getElementById('weather-description');
-                const temperatureElement = document.getElementById('temperature');
-                const humidityElement = document.getElementById('humidity');
-                const windSpeedElement = document.getElementById('wind-speed');
-                const weatherIcon = document.getElementById('weather-icon');
-
-                if (weatherDescription) weatherDescription.innerText = `Condition: ${description}`;
-                if (temperatureElement) temperatureElement.innerText = `Temperature: ${temperature}°C`;
-                if (humidityElement) humidityElement.innerText = `Humidity: ${humidity}%`;
-                if (windSpeedElement) windSpeedElement.innerText = `Wind: ${windSpeed} m/s`;
-
-                if (weatherIcon) {
-                    weatherIcon.src = iconUrl;
-                    weatherIcon.style.display = 'block';
-                }
-            }
-
-            fetchWeather();
-            setInterval(fetchWeather, 3600000); // Update weather every hour
         });
     </script>
 
