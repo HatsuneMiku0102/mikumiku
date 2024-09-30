@@ -1244,6 +1244,7 @@ const HEARTBEAT_TIMEOUT = 60000;
 let currentVideo = null;
 let currentBrowsing = null;
 const videoHeartbeat = {};
+const BROWSING_UPDATE_INTERVAL = 30000; // 30 seconds interval for browsing updates to limit log spam
 
 io.on('connection', (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
@@ -1259,32 +1260,39 @@ io.on('connection', (socket) => {
 
     // Update browsing presence
     socket.on('updateBrowsingPresence', (data) => {
-        if (data.presenceType === 'browsing') {
+        const now = Date.now();
+
+        // Only update if there's no video currently playing and a sufficient interval has passed
+        if (data.presenceType === 'browsing' && !currentVideo && (now - lastBrowsingUpdateTime > BROWSING_UPDATE_INTERVAL)) {
             logger.info(`[Socket.IO] Browsing presence detected.`);
 
-            if (!currentVideo) {
-                currentBrowsing = {
-                    title: data.title || 'YouTube',
-                    description: data.description || 'Browsing videos',
-                    thumbnail: 'https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png',
-                    timeElapsed: data.timeElapsed || 0,
-                    presenceType: 'browsing'
-                };
-                io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
-            }
+            currentBrowsing = {
+                title: data.title || 'YouTube',
+                description: data.description || 'Browsing videos',
+                thumbnail: 'https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png',
+                timeElapsed: data.timeElapsed || 0,
+                presenceType: 'browsing'
+            };
+            io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
+
+            lastBrowsingUpdateTime = now; // Update the last browsing update time
         }
     });
 
     // Update video progress or mark a new video presence
     socket.on('updateVideoProgress', (data) => {
         logger.info(`[Socket.IO] Video update received: ${JSON.stringify(data)}`);
-
+    
         const { videoId, title, description, channelTitle, viewCount, likeCount, publishedAt, category, thumbnail, currentTime, duration, isPaused } = data;
 
+        // Check if we already have a video being played
         if (currentVideo && currentVideo.videoId === videoId) {
+            // Update current video's progress and other details
             currentVideo.currentTime = currentTime;
             currentVideo.duration = duration;
             currentVideo.isPaused = isPaused;
+
+            // Update additional info
             currentVideo.title = title;
             currentVideo.description = description;
             currentVideo.channelTitle = channelTitle;
@@ -1296,6 +1304,7 @@ io.on('connection', (socket) => {
 
             logger.info(`[Socket.IO] Updated video information for ID: ${videoId} - Title: ${title}, Channel: ${channelTitle}`);
         } else {
+            // New video detected
             logger.info(`[Socket.IO] New video presence detected: ${videoId}`);
             currentVideo = {
                 videoId,
@@ -1315,9 +1324,11 @@ io.on('connection', (socket) => {
             currentBrowsing = null; // Clear browsing presence
         }
 
+        // Emit updated video presence to all clients
         io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
     });
 
+    // Handle heartbeat signals
     socket.on('heartbeat', (data, callback) => {
         const { videoId } = data;
         if (videoId && currentVideo && currentVideo.videoId === videoId) {
@@ -1330,11 +1341,13 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Disconnect handling
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
     });
 });
 
+// Handle video heartbeat expiration
 setInterval(() => {
     const now = Date.now();
     for (const [videoId, lastHeartbeat] of Object.entries(videoHeartbeat)) {
@@ -1349,8 +1362,6 @@ setInterval(() => {
         }
     }
 }, HEARTBEAT_TIMEOUT / 2);
-
-
 
 
 
