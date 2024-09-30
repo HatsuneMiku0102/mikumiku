@@ -1288,6 +1288,8 @@ io.on('connection', (socket) => {
 
         if (!currentVideo) {
             logger.warn(`[Socket.IO] Received progress update without a current video. VideoId: ${videoId}`);
+            // Notify client to reinitialize presence
+            socket.emit('reinitializeSession', { message: 'No current video found on server. Please reinitialize presence.' });
             return;
         }
 
@@ -1295,11 +1297,17 @@ io.on('connection', (socket) => {
             currentVideo.currentTime = currentTime;
             currentVideo.duration = duration;
             currentVideo.isPaused = isPaused;
-            videoHeartbeat[videoId] = Date.now();
+            
+            if (!isPaused) {
+                videoHeartbeat[videoId] = Date.now(); // Only update heartbeat if not paused
+            }
+            
             io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
             logger.info(`[Socket.IO] Real-time update for video: ${JSON.stringify(currentVideo)}`);
         } else {
             logger.warn(`[Socket.IO] Video ID mismatch for progress update. Expected: ${currentVideo.videoId}, Received: ${videoId}`);
+            // Notify the client to reinitialize since there is a mismatch
+            socket.emit('reinitializeSession', { expectedVideoId: currentVideo.videoId, receivedVideoId: videoId });
         }
     });
 
@@ -1356,12 +1364,14 @@ setInterval(() => {
             if (currentVideo && currentVideo.videoId === videoId) {
                 currentVideo = null;
                 io.emit('presenceUpdate', { presenceType: 'offline' });
-                logger.info(`[Heartbeat] Emitted "presenceUpdate" with offline status to all clients.`);
+                io.emit('sessionExpired', { videoId });
+                logger.info(`[Heartbeat] Emitted "presenceUpdate" with offline status and "sessionExpired" to all clients.`);
             }
             delete videoHeartbeat[videoId];
         }
     }
 }, HEARTBEAT_TIMEOUT / 2);
+
 
 
 
