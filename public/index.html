@@ -58,30 +58,30 @@
                         <span>Category:</span> <span id="videoCategory">Loading...</span>
                     </div>
                 </div>
-
+        
                 <div class="video-section">
                     <div class="video-title-container">
                         <h2>Currently Playing</h2>
                         <p id="videoTitle">Loading...</p>
+                        <div id="timeElapsedContainer" class="time-elapsed">Time Elapsed: <span id="timeElapsed">0s</span></div>
                     </div>
-
+        
                     <div class="thumbnail-container">
                         <img id="videoThumbnail" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
                     </div>
-
+        
                     <div id="offline-indicator" class="offline-indicator">I’m not on YouTube at the moment, soz :(</div>
-
+        
                     <!-- Progress Bar -->
                     <div class="progress-bar-container">
                         <div id="progressBar" class="progress-bar"></div>
                     </div>
-
+        
                     <!-- Toggle Description Button -->
                     <button class="toggle-description" id="toggleDescriptionButton">Show Description</button>
                 </div>
             </div>
         </div>
-
         <!-- Modal Structure -->
         <div id="descriptionModal" class="modal">
             <div class="modal-content">
@@ -157,7 +157,7 @@
             let isSessionExpired = false;
             let browsingStartTime = Date.now();
             let browsingInterval = null;
-    
+        
             // Now Playing Elements
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
@@ -170,7 +170,8 @@
             const publishedDateElement = document.getElementById("publishedDate");
             const videoCategoryElement = document.getElementById("videoCategory");
             const videoDescriptionElement = document.getElementById("videoDescription");
-    
+            const timeElapsedElement = document.getElementById("timeElapsed");
+        
             // Helper function to format numbers with commas
             function formatNumber(number) {
                 if (typeof number === 'string') {
@@ -179,7 +180,7 @@
                 const num = Number(number);
                 return isNaN(num) ? "N/A" : num.toLocaleString();
             }
-    
+        
             function clearDisplay() {
                 nowPlayingBox.classList.add("offline");
                 offlineIndicatorElement.style.display = "block";
@@ -193,22 +194,23 @@
                 videoCategoryElement.textContent = "";
                 progressBarElement.style.width = "0%";
                 videoDescriptionElement.textContent = "";
+                timeElapsedElement.textContent = "0s"; // Reset time elapsed
             }
-    
+        
             function reinitializeSession() {
                 console.warn("[Client] Reinitializing session due to mismatch or timeout.");
                 clearDisplay();
                 isSessionExpired = true; // Stop further updates until session is restarted
             }
-    
+        
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
-    
+        
                 // Update Title
                 videoTitleElement.textContent = data.title || "Unknown Title";
-    
+        
                 // Update Thumbnail
                 if (data.thumbnail) {
                     videoThumbnailElement.src = data.thumbnail;
@@ -217,16 +219,16 @@
                     videoThumbnailElement.src = "";
                     videoThumbnailElement.style.display = "none";
                 }
-    
+        
                 // Update Channel Name
                 channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-    
+        
                 // Update View Count with commas
                 viewCountElement.textContent = `Views: ${formatNumber(data.viewCount)}` || "Views: N/A";
-    
+        
                 // Update Like Count with commas
                 likeCountElement.textContent = `Likes: ${formatNumber(data.likeCount)}` || "Likes: N/A";
-    
+        
                 // Update Published Date
                 if (data.publishedAt) {
                     const publishedDate = new Date(data.publishedAt);
@@ -234,17 +236,20 @@
                 } else {
                     publishedDateElement.textContent = "Published on: N/A";
                 }
-    
+        
                 // Update Video Category
                 videoCategoryElement.textContent = `Category: ${data.category}` || "Category: N/A";
-    
+        
                 // Update Description
                 videoDescriptionElement.textContent = data.description || "No description available.";
-    
+        
                 // Handle Progress Bar Update
                 handleRealTimeProgress(data);
+        
+                // Start the browsing time
+                startBrowsingPresence();
             }
-    
+        
             function handleRealTimeProgress(data) {
                 if (data.duration && data.currentTime) {
                     const progressPercentage = (data.currentTime / data.duration) * 100;
@@ -253,7 +258,7 @@
                     progressBarElement.style.width = "0%";
                 }
             }
-    
+        
             function displayBrowsingPresence() {
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
@@ -267,10 +272,13 @@
                 videoCategoryElement.textContent = "";
                 videoDescriptionElement.textContent = "Browsing videos on YouTube";
                 progressBarElement.style.width = "0%";
+        
+                startBrowsingPresence(); // Start tracking browsing time
             }
-    
+        
             function updateBrowsingPresence() {
                 const timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
+                timeElapsedElement.textContent = `${timeElapsed}s`; // Update the time elapsed display
                 const browsingData = {
                     title: 'YouTube',
                     description: 'Browsing videos',
@@ -280,38 +288,38 @@
                 };
                 socket.emit('updateBrowsingPresence', browsingData);
             }
-    
+        
             function startBrowsingPresence() {
                 browsingStartTime = Date.now();
                 updateBrowsingPresence(); // Update immediately
                 if (!browsingInterval) {
-                    browsingInterval = setInterval(updateBrowsingPresence, 15000); // Update every 15 seconds
+                    browsingInterval = setInterval(updateBrowsingPresence, 1000); // Update every second
                 }
             }
-    
+        
             function stopBrowsingPresence() {
                 if (browsingInterval) {
                     clearInterval(browsingInterval);
                     browsingInterval = null;
                 }
             }
-    
+        
             // Socket.IO event listeners
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
                 isSessionExpired = false;
                 socket.emit('requestLatestData');
             });
-    
+        
             socket.on("presenceUpdate", (data) => {
                 if (isSessionExpired) {
                     console.warn("[Client] Ignoring presenceUpdate due to expired session.");
                     return;
                 }
-    
+        
                 console.log("[Socket.IO] Received presenceUpdate:", data);
                 lastHeartbeatReceived = Date.now();
-    
+        
                 if (data.presenceType === 'video') {
                     stopBrowsingPresence();
                     displayVideoPresence(data);
@@ -322,23 +330,23 @@
                     clearDisplay();
                 }
             });
-    
+        
             socket.on("reinitializeSession", (data) => {
                 console.warn(`[Socket.IO] Received reinitializeSession: ${JSON.stringify(data)}`);
                 reinitializeSession();
             });
-    
+        
             socket.on("sessionExpired", (data) => {
                 console.warn(`[Socket.IO] Session expired for video ID: ${data.videoId}`);
                 reinitializeSession();
             });
-    
+        
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
                 stopBrowsingPresence();
                 clearDisplay();
             });
-    
+        
             setInterval(() => {
                 if (Date.now() - lastHeartbeatReceived > 60000) {
                     console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
