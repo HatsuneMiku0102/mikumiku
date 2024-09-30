@@ -206,12 +206,20 @@
             socket.on("presenceUpdate", (data) => {
                 console.log("[Socket.IO] Received presenceUpdate:", data);
                 lastHeartbeatReceived = Date.now();
+
                 if (data.presenceType === 'video') {
                     displayVideoPresence(data);
                 } else if (data.presenceType === 'browsing') {
                     displayBrowsingPresence();
                 } else {
                     clearDisplay();
+                }
+            });
+
+            socket.on("heartbeat", (data) => {
+                if (data.videoId) {
+                    console.log(`[Heartbeat] Received heartbeat for video ID: ${data.videoId}`);
+                    lastHeartbeatReceived = Date.now();
                 }
             });
 
