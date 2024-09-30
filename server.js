@@ -1241,10 +1241,12 @@ app.post('/logout', (req, res) => {
 
 
 const HEARTBEAT_TIMEOUT = 60000;
+const BROWSING_UPDATE_INTERVAL = 30000; // 30 seconds interval for browsing updates to limit log spam
+
 let currentVideo = null;
 let currentBrowsing = null;
 const videoHeartbeat = {};
-const BROWSING_UPDATE_INTERVAL = 30000; // 30 seconds interval for browsing updates to limit log spam
+let lastBrowsingUpdateTime = 0; // Initialize with 0 to track the last browsing presence update time
 
 io.on('connection', (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
@@ -1362,6 +1364,7 @@ setInterval(() => {
         }
     }
 }, HEARTBEAT_TIMEOUT / 2);
+
 
 
 
