@@ -1233,6 +1233,9 @@ app.post('/logout', (req, res) => {
 });
 
 
+let currentVideo = null;
+let currentBrowsing = null;
+const videoHeartbeat = {};
 
 io.on('connection', (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
