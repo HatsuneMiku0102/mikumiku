@@ -173,12 +173,12 @@
             const publishedDateElement = document.getElementById("publishedDate");
             const videoCategoryElement = document.getElementById("videoCategory");
             const videoDescriptionElement = document.getElementById("videoDescription");
-            const timeElapsedElement = document.getElementById("timeElapsed");
+            const timeElapsedElement = document.getElementById("timeElapsedContainer");
     
             // Helper function to format numbers with commas
             function formatNumber(number) {
                 if (typeof number === 'string') {
-                    number = number.replace(/,/g, ''); 
+                    number = number.replace(/,/g, '');
                 }
                 const num = Number(number);
                 return isNaN(num) ? "N/A" : num.toLocaleString();
@@ -203,7 +203,6 @@
     
             // Function to clear video presence specifically
             function clearVideoPresence() {
-                // This is explicitly to ensure video-specific UI elements are cleared when switching to browsing
                 videoTitleElement.textContent = "";
                 videoThumbnailElement.src = "";
                 videoThumbnailElement.style.display = "none";
@@ -292,10 +291,8 @@
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
     
-                // Clear any previous video-related elements before setting browsing state
                 clearVideoPresence();
     
-                // Set browsing details
                 videoTitleElement.textContent = data.title || "Browsing YouTube";
                 videoThumbnailElement.src = data.thumbnail || "https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png";
                 videoThumbnailElement.style.display = "block";
@@ -308,7 +305,7 @@
                 progressBarElement.style.width = "0%";
     
                 if (data.timeElapsed !== undefined) {
-                    timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(data.timeElapsed)}`;
+                    timeElapsedElement.querySelector("#timeElapsed").textContent = formatTimeElapsed(data.timeElapsed);
                     timeElapsedElement.style.display = "block"; // Show elapsed time during browsing
                 }
             }
@@ -316,7 +313,7 @@
             function updateBrowsingPresence() {
                 if (browsingStartTime) {
                     const timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
-                    timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(timeElapsed)}`;
+                    timeElapsedElement.querySelector("#timeElapsed").textContent = formatTimeElapsed(timeElapsed);
                     timeElapsedElement.style.display = "block";
     
                     const browsingData = {
@@ -368,7 +365,7 @@
                     stopBrowsingPresence();
                     displayVideoPresence(data);
                 } else if (data.presenceType === 'browsing') {
-                    stopBrowsingPresence(); // Stop any previous video presence updates
+                    stopBrowsingPresence();
                     startBrowsingPresence();
                     displayBrowsingPresence(data);
                 } else {
