@@ -1261,8 +1261,13 @@ io.on('connection', (socket) => {
     socket.on('updateVideoProgress', (data) => {
         const { videoId, currentTime, duration, isPaused } = data;
 
+        if (!currentVideo) {
+            logger.warn(`[Socket.IO] Received progress update without a current video. Ignoring the update.`);
+            return;
+        }
+
         // Update the video progress only if the video IDs match
-        if (currentVideo && currentVideo.videoId === videoId) {
+        if (currentVideo.videoId === videoId) {
             currentVideo.currentTime = currentTime;
             currentVideo.duration = duration;
             currentVideo.isPaused = isPaused;
@@ -1270,7 +1275,7 @@ io.on('connection', (socket) => {
             // Update heartbeat timestamp
             videoHeartbeat[videoId] = Date.now();
 
-            // Emit the updated progress data to all clients
+            // Emit the updated progress data to all connected clients
             io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
             logger.info(`[Socket.IO] Real-time update for video: ${JSON.stringify(currentVideo)}`);
         } else {
@@ -1291,6 +1296,9 @@ io.on('connection', (socket) => {
 
         // Reset video presence as we're now browsing
         currentVideo = null;
+
+        // Clear all video heartbeats as no video is currently playing
+        Object.keys(videoHeartbeat).forEach(videoId => delete videoHeartbeat[videoId]);
 
         // Emit to all connected clients
         io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
@@ -1352,8 +1360,6 @@ io.on('connection', (socket) => {
     // Handle client disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
-
-        // Optionally, you can handle cleanup here if necessary
     });
 });
 
@@ -1363,6 +1369,7 @@ setInterval(() => {
     for (const [videoId, lastHeartbeat] of Object.entries(videoHeartbeat)) {
         if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
             logger.warn(`[Heartbeat] No heartbeat received for video ID ${videoId} within timeout. Marking as offline.`);
+
             // Mark the video as offline
             if (currentVideo && currentVideo.videoId === videoId) {
                 currentVideo = null;
@@ -1374,7 +1381,8 @@ setInterval(() => {
             delete videoHeartbeat[videoId];
         }
     }
-}, HEARTBEAT_TIMEOUT / 2); // Check twice within the timeout period
+}, HEARTBEAT_TIMEOUT / 2);
+
 
 
 
