@@ -73,7 +73,6 @@ app.use(cookieParser());
 app.use(cors());
 
 
-// Define category mappings
 const categoryMappings = {
     "1": "Film & Animation",
     "2": "Autos & Vehicles",
@@ -94,58 +93,89 @@ const categoryMappings = {
     // Add more mappings as necessary
 };
 
-// Your existing updateVideoData function
-app.post('/updateVideoData', async (req, res) => {
-    const { videoId, title, description, currentTime, isPaused, isOffline } = req.body;
+// Update Video or Browsing Presence Data
+app.post('/updatePresenceData', async (req, res) => {
+    const { presenceType, videoId, title, description, currentTime, isPaused, isOffline } = req.body;
 
-    if (!videoId) {
-        logger.error('Invalid video ID received');
-        return res.status(400).send('Invalid video ID');
+    if (!presenceType) {
+        logger.error('Invalid presence type received');
+        return res.status(400).send('Invalid presence type');
     }
 
     try {
-        const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics,contentDetails`;
-        const response = await axios.get(apiUrl);
-        const videoData = response.data.items[0];
+        let presenceData = {};
 
-        if (!videoData) {
-            logger.error('No video data found');
-            return res.status(404).send('Video not found');
+        if (presenceType === 'video') {
+            if (!videoId) {
+                logger.error('Invalid video ID received for video presence');
+                return res.status(400).send('Invalid video ID for video presence');
+            }
+
+            // Fetch video details from YouTube API
+            const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics,contentDetails`;
+            const response = await axios.get(apiUrl);
+            const videoData = response.data.items[0];
+
+            if (!videoData) {
+                logger.error('No video data found');
+                return res.status(404).send('Video not found');
+            }
+
+            const thumbnail = videoData.snippet.thumbnails.default.url;
+            const categoryId = videoData.snippet.categoryId;
+            const channelTitle = videoData.snippet.channelTitle;
+            const viewCount = videoData.statistics.viewCount;
+            const publishedAt = videoData.snippet.publishedAt;
+
+            // Convert the ISO 8601 duration format to seconds
+            const durationISO = videoData.contentDetails.duration;
+            const duration = convertISO8601ToSeconds(durationISO);
+
+            const category = categoryMappings[categoryId] || 'Unknown Category';
+
+            logger.info(`[Socket.IO] Video Data: Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}, Channel: ${channelTitle}, Views: ${viewCount}, Uploaded: ${publishedAt}, Duration: ${duration}`);
+
+            presenceData = {
+                presenceType: 'video',
+                videoId,
+                title,
+                description,
+                thumbnail,
+                category,
+                channelTitle,
+                viewCount,
+                publishedAt,
+                currentTime,
+                isPaused,
+                isOffline: !!isOffline,
+                duration
+            };
+
+        } else if (presenceType === 'browsing') {
+            // Handle browsing presence
+            const thumbnail = "https://www.youtube.com/img/desktop/yt_1200.png"; // Default YouTube thumbnail for browsing
+            presenceData = {
+                presenceType: 'browsing',
+                title: title || "Browsing YouTube",
+                description: description || "Currently browsing videos on YouTube.",
+                thumbnail,
+                currentTime: currentTime || 0,
+                isPaused: true,
+                isOffline: !!isOffline
+            };
+
+            logger.info(`[Socket.IO] Browsing Data: Title="${presenceData.title}", Description="${presenceData.description}", Thumbnail="${thumbnail}"`);
+        } else {
+            logger.error('Invalid presence type received');
+            return res.status(400).send('Invalid presence type');
         }
 
-        const thumbnail = videoData.snippet.thumbnails.default.url;
-        const categoryId = videoData.snippet.categoryId;
-        const channelTitle = videoData.snippet.channelTitle;
-        const viewCount = videoData.statistics.viewCount;
-        const publishedAt = videoData.snippet.publishedAt;
+        // Update current state and notify all clients
+        currentPresenceData = presenceData;
+        io.emit('nowPlayingUpdate', currentPresenceData);
+        logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: ${JSON.stringify(currentPresenceData)}`);
 
-        // Convert the ISO 8601 duration format to seconds
-        const durationISO = videoData.contentDetails.duration;
-        const duration = convertISO8601ToSeconds(durationISO);
-
-        const category = categoryMappings[categoryId] || 'Unknown Category';
-
-        logger.info(`[Socket.IO] Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}, Channel: ${channelTitle}, Views: ${viewCount}, Uploaded: ${publishedAt}, Duration: ${duration}`);
-
-        currentVideoData = {
-            videoId,
-            title,
-            description,
-            thumbnail,
-            category,
-            channelTitle,
-            viewCount,
-            publishedAt,
-            currentTime,
-            isPaused,
-            isOffline,
-            duration
-        };
-
-        io.emit('nowPlayingUpdate', currentVideoData);
-        logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: Title="${title}", Video ID="${videoId}", Thumbnail="${thumbnail}", Category="${category}", Channel="${channelTitle}", Views="${viewCount}", Uploaded="${publishedAt}", Duration="${duration}"`);
-
-        res.status(200).send('Video data updated successfully');
+        res.status(200).send('Presence data updated successfully');
     } catch (error) {
         logger.error(`[Socket.IO] Error fetching video data: ${error.message}`);
         res.status(500).send('Error fetching video data');
@@ -160,6 +190,7 @@ function convertISO8601ToSeconds(isoDuration) {
     const seconds = parseInt(matches[3] || 0, 10);
     return hours * 3600 + minutes * 60 + seconds;
 }
+
 
 
 
@@ -1219,7 +1250,7 @@ io.on('connection', (socket) => {
     } else if (currentBrowsing) {
         socket.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
     } else {
-        socket.emit('presenceUpdate', {}); // Empty data indicates offline
+        socket.emit('presenceUpdate', { presenceType: 'offline' }); // Explicit offline status
     }
 
     // Handle updateVideoTitle from content script
@@ -1279,7 +1310,7 @@ io.on('connection', (socket) => {
             io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
             logger.info(`[Socket.IO] Real-time update for video: ${JSON.stringify(currentVideo)}`);
         } else {
-            logger.warn(`[Socket.IO] Video ID mismatch for progress update. Expected: ${currentVideo ? currentVideo.videoId : 'None'}, Received: ${videoId}`);
+            logger.warn(`[Socket.IO] Video ID mismatch for progress update. Expected: ${currentVideo.videoId}, Received: ${videoId}`);
         }
     });
 
@@ -1289,16 +1320,17 @@ io.on('connection', (socket) => {
 
         const { browsingVideos, timeElapsed } = data;
 
+        // Update browsing state
         currentBrowsing = {
             browsingVideos,
             timeElapsed
         };
 
-        // Reset video presence as we're now browsing
+        // Clear video presence as we're now browsing
         currentVideo = null;
 
-        // Clear all video heartbeats as no video is currently playing
-        Object.keys(videoHeartbeat).forEach(videoId => delete videoHeartbeat[videoId]);
+        // Clear all video heartbeats since no video is currently playing
+        clearAllHeartbeats();
 
         // Emit to all connected clients
         io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
@@ -1350,7 +1382,7 @@ io.on('connection', (socket) => {
         currentBrowsing = null;
 
         // Clear all heartbeat tracking
-        Object.keys(videoHeartbeat).forEach(videoId => delete videoHeartbeat[videoId]);
+        clearAllHeartbeats();
 
         // Emit the cleared state to all clients
         io.emit('presenceUpdate', { presenceType: 'offline' });
@@ -1362,6 +1394,11 @@ io.on('connection', (socket) => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
     });
 });
+
+// Clear all heartbeat data
+function clearAllHeartbeats() {
+    Object.keys(videoHeartbeat).forEach(videoId => delete videoHeartbeat[videoId]);
+}
 
 // Periodic Heartbeat Timeout Check
 setInterval(() => {
