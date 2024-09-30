@@ -160,7 +160,7 @@
             let isSessionExpired = false;
             let browsingStartTime = null; // Set to null initially
             let browsingInterval = null;
-        
+    
             // Now Playing Elements
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
@@ -174,7 +174,7 @@
             const videoCategoryElement = document.getElementById("videoCategory");
             const videoDescriptionElement = document.getElementById("videoDescription");
             const timeElapsedElement = document.getElementById("timeElapsed");
-        
+    
             // Helper function to format numbers with commas
             function formatNumber(number) {
                 if (typeof number === 'string') {
@@ -183,21 +183,8 @@
                 const num = Number(number);
                 return isNaN(num) ? "N/A" : num.toLocaleString();
             }
-        
-            function formatTimeElapsed(seconds) {
-                const hours = Math.floor(seconds / 3600);
-                const minutes = Math.floor((seconds % 3600) / 60);
-                const remainingSeconds = seconds % 60;
-        
-                if (hours > 0) {
-                    return `${hours}h ${minutes}m ${remainingSeconds}s`;
-                } else if (minutes > 0) {
-                    return `${minutes}m ${remainingSeconds}s`;
-                } else {
-                    return `${remainingSeconds}s`;
-                }
-            }
-        
+    
+            // Function to clear the current display
             function clearDisplay() {
                 nowPlayingBox.classList.add("offline");
                 offlineIndicatorElement.style.display = "block";
@@ -213,21 +200,75 @@
                 videoDescriptionElement.textContent = "";
                 timeElapsedElement.textContent = "0s"; // Reset the time elapsed display
             }
-        
+    
+            // Function to reinitialize the session
+            function reinitializeSession() {
+                console.warn("[Client] Reinitializing session due to mismatch or timeout.");
+                clearDisplay();
+                isSessionExpired = true; // Stop further updates until session is restarted
+            }
+    
+            // Function to format time elapsed
+            function formatTimeElapsed(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const remainingSeconds = seconds % 60;
+    
+                if (hours > 0) {
+                    return `${hours}h ${minutes}m ${remainingSeconds}s`;
+                } else if (minutes > 0) {
+                    return `${minutes}m ${remainingSeconds}s`;
+                } else {
+                    return `${remainingSeconds}s`;
+                }
+            }
+    
+            // Function to display video presence
             function displayVideoPresence(data) {
-                // Ensure all properties are correctly updated in the DOM
+                lastHeartbeatReceived = Date.now();
+                nowPlayingBox.classList.remove("offline");
+                offlineIndicatorElement.style.display = "none";
+    
+                // Update Title
                 videoTitleElement.textContent = data.title || "Unknown Title";
+    
+                // Update Thumbnail
+                if (data.thumbnail) {
+                    videoThumbnailElement.src = data.thumbnail;
+                    videoThumbnailElement.style.display = "block";
+                } else {
+                    videoThumbnailElement.src = "";
+                    videoThumbnailElement.style.display = "none";
+                }
+    
+                // Update Channel Name
                 channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-                videoThumbnailElement.src = data.thumbnail || "";
-                videoThumbnailElement.style.display = data.thumbnail ? "block" : "none";
+    
+                // Update View Count with commas
                 viewCountElement.textContent = `Views: ${formatNumber(data.viewCount)}` || "Views: N/A";
+    
+                // Update Like Count with commas
                 likeCountElement.textContent = `Likes: ${formatNumber(data.likeCount)}` || "Likes: N/A";
-                publishedDateElement.textContent = data.publishedAt ? `Published on: ${new Date(data.publishedAt).toLocaleDateString()}` : "Published on: N/A";
+    
+                // Update Published Date
+                if (data.publishedAt) {
+                    const publishedDate = new Date(data.publishedAt);
+                    publishedDateElement.textContent = `Published on: ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
+                } else {
+                    publishedDateElement.textContent = "Published on: N/A";
+                }
+    
+                // Update Video Category
                 videoCategoryElement.textContent = `Category: ${data.category}` || "Category: N/A";
+    
+                // Update Description
                 videoDescriptionElement.textContent = data.description || "No description available.";
+    
+                // Handle Progress Bar Update
                 handleRealTimeProgress(data);
             }
-        
+    
+            // Function to handle real-time progress
             function handleRealTimeProgress(data) {
                 if (data.duration && data.currentTime) {
                     const progressPercentage = (data.currentTime / data.duration) * 100;
@@ -236,12 +277,36 @@
                     progressBarElement.style.width = "0%";
                 }
             }
-        
+    
+            // Function to display browsing presence
+            function displayBrowsingPresence(data) {
+                lastHeartbeatReceived = Date.now();
+                nowPlayingBox.classList.remove("offline");
+                offlineIndicatorElement.style.display = "none";
+    
+                // Set browsing details
+                videoTitleElement.textContent = data.title || "Browsing YouTube";
+                videoThumbnailElement.src = data.thumbnail || "https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png";
+                videoThumbnailElement.style.display = "block";
+                channelNameElement.textContent = "Browsing...";
+                viewCountElement.textContent = "";
+                likeCountElement.textContent = "";
+                publishedDateElement.textContent = "";
+                videoCategoryElement.textContent = "";
+                videoDescriptionElement.textContent = data.description || "Browsing videos on YouTube";
+                progressBarElement.style.width = "0%";
+    
+                // Update time elapsed for browsing
+                if (data.timeElapsed !== undefined) {
+                    timeElapsedElement.textContent = formatTimeElapsed(data.timeElapsed);
+                }
+            }
+    
             function updateBrowsingPresence() {
                 if (browsingStartTime) {
                     const timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
                     timeElapsedElement.textContent = formatTimeElapsed(timeElapsed);
-        
+    
                     const browsingData = {
                         title: 'YouTube',
                         description: 'Browsing videos',
@@ -252,7 +317,7 @@
                     socket.emit('updateBrowsingPresence', browsingData);
                 }
             }
-        
+    
             function startBrowsingPresence() {
                 if (!browsingStartTime) {
                     browsingStartTime = Date.now(); // Set browsing start time only if it's not already set
@@ -262,7 +327,7 @@
                     browsingInterval = setInterval(updateBrowsingPresence, 15000); // Update every 15 seconds
                 }
             }
-        
+    
             function stopBrowsingPresence() {
                 if (browsingInterval) {
                     clearInterval(browsingInterval);
@@ -270,22 +335,23 @@
                 }
                 browsingStartTime = null; // Reset browsing start time when browsing ends
             }
-        
+    
+            // Socket.IO event listeners
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
                 isSessionExpired = false;
                 socket.emit('requestLatestData');
             });
-        
+    
             socket.on("presenceUpdate", (data) => {
                 if (isSessionExpired) {
                     console.warn("[Client] Ignoring presenceUpdate due to expired session.");
                     return;
                 }
-            
+    
                 console.log("[Socket.IO] Received presenceUpdate:", data);
                 lastHeartbeatReceived = Date.now();
-            
+    
                 if (data.presenceType === 'video') {
                     stopBrowsingPresence();
                     displayVideoPresence(data);
@@ -296,13 +362,23 @@
                     clearDisplay();
                 }
             });
-        
+    
+            socket.on("reinitializeSession", (data) => {
+                console.warn(`[Socket.IO] Received reinitializeSession: ${JSON.stringify(data)}`);
+                reinitializeSession();
+            });
+    
+            socket.on("sessionExpired", (data) => {
+                console.warn(`[Socket.IO] Session expired for video ID: ${data.videoId}`);
+                reinitializeSession();
+            });
+    
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
                 stopBrowsingPresence();
                 clearDisplay();
             });
-        
+    
             setInterval(() => {
                 if (Date.now() - lastHeartbeatReceived > 60000) {
                     console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
