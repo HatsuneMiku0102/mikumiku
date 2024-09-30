@@ -1257,8 +1257,7 @@ io.on('connection', (socket) => {
     socket.on('updateBrowsingPresence', (data) => {
         if (data.presenceType === 'browsing' && !currentVideo) {
             logger.info(`[Socket.IO] Browsing presence detected.`);
-            
-            // Check if we need to update the browsing state
+
             if (!currentBrowsing || currentBrowsing.title !== data.title) {
                 currentBrowsing = {
                     title: 'YouTube',
@@ -1267,7 +1266,7 @@ io.on('connection', (socket) => {
                     timeElapsed: data.timeElapsed || 0,
                     presenceType: 'browsing'
                 };
-                io.emit('presenceUpdate', currentBrowsing);
+                io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
             }
         }
     });
@@ -1308,7 +1307,7 @@ io.on('connection', (socket) => {
             currentBrowsing = null; // Clear browsing presence
             videoHeartbeat[videoId] = Date.now();
 
-            io.emit('presenceUpdate', currentVideo);
+            io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
         }
     });
 
