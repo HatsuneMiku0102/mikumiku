@@ -1201,82 +1201,108 @@ app.post('/logout', (req, res) => {
     res.redirect('/admin-login.html');
 });
 
-// Video Status Variables (Server-Side State)
-let currentVideoData = {};
 
-// Socket.IO connection handler
+
+let currentVideo = null; // Holds the currently playing video data
+const videoHeartbeat = {}; // Tracks last heartbeat time per video ID
+
+// Heartbeat Timeout Parameters
+const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
+
 io.on('connection', (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
-    socket.emit('nowPlayingUpdate', currentVideoData); // Send current video data when a new client connects
+
+    // Send the current video status to the newly connected client
+    if (currentVideo) {
+        socket.emit('nowPlayingUpdate', currentVideo);
+    } else {
+        socket.emit('nowPlayingUpdate', {}); // Empty data indicates offline
+    }
 
     // Handle updateVideoTitle from content script
-    socket.on('updateVideoTitle', async (data) => {
+    socket.on('updateVideoTitle', async (data, callback) => {
         logger.info(`[Socket.IO] Received "updateVideoTitle" from client ${socket.id}: ${JSON.stringify(data)}`);
 
-        const { videoId, title, description, currentTime, isPaused, duration } = data;
+        const { videoId, title, description, channelTitle, viewCount, likeCount, publishedAt, category, thumbnail, duration } = data;
 
         // Update internal server state to match the current video
-        if (!currentVideoData.videoId || currentVideoData.videoId !== videoId) {
-            logger.info(`[Socket.IO] Updating to new video with ID: ${videoId}`);
-            currentVideoData = {};
-        }
+        currentVideo = {
+            videoId,
+            title,
+            description,
+            channelTitle,
+            viewCount,
+            likeCount,
+            publishedAt,
+            category,
+            thumbnail,
+            duration,
+            currentTime: 0,
+            isPaused: false
+        };
 
-        try {
-            const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics,contentDetails`;
-            const response = await axios.get(apiUrl);
-            const videoData = response.data.items[0];
+        // Initialize heartbeat timestamp
+        videoHeartbeat[videoId] = Date.now();
 
-            if (!videoData) {
-                logger.error('[Socket.IO] No video data found.');
-                return;
-            }
+        // Emit to all connected clients
+        io.emit('nowPlayingUpdate', currentVideo);
+        logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: ${JSON.stringify(currentVideo)}`);
 
-            const channelTitle = videoData.snippet.channelTitle || "Unknown Channel";
-            const viewCount = videoData.statistics.viewCount || "N/A";
-            const likeCount = videoData.statistics.likeCount || "N/A";
-            const publishedAt = videoData.snippet.publishedAt || "N/A";
-            const thumbnail = videoData.snippet.thumbnails.high.url || "No thumbnail available";
-            const category = categoryMappings[videoData.snippet.categoryId] || 'Unknown Category';
-
-            // Update the current video data
-            currentVideoData = {
-                videoId,
-                title,
-                description,
-                thumbnail,
-                channelTitle,
-                viewCount,
-                likeCount,
-                publishedAt,
-                currentTime,
-                isPaused,
-                duration,
-                category
-            };
-
-            // Emit the new video data to all connected clients
-            io.emit('nowPlayingUpdate', currentVideoData);
-            logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: ${JSON.stringify(currentVideoData)}`);
-        } catch (error) {
-            logger.error(`[Socket.IO] Error fetching video data from YouTube API: ${error.message}`);
-        }
+        if (callback) callback({ status: "ok" });
     });
 
-    // Handle real-time video progress update
+    // Handle real-time video progress updates
     socket.on('updateVideoProgress', (data) => {
         const { videoId, currentTime, duration, isPaused } = data;
 
         // Update the video progress only if the video IDs match
-        if (currentVideoData.videoId === videoId) {
-            currentVideoData.currentTime = currentTime;
-            currentVideoData.duration = duration;
-            currentVideoData.isPaused = isPaused;
+        if (currentVideo && currentVideo.videoId === videoId) {
+            currentVideo.currentTime = currentTime;
+            currentVideo.duration = duration;
+            currentVideo.isPaused = isPaused;
+
+            // Update heartbeat timestamp
+            videoHeartbeat[videoId] = Date.now();
 
             // Emit the updated progress data to all clients
-            io.emit('nowPlayingUpdate', currentVideoData);
-            logger.info(`[Socket.IO] Real-time update: ${JSON.stringify(currentVideoData)}`);
+            io.emit('nowPlayingUpdate', currentVideo);
+            logger.info(`[Socket.IO] Real-time update: ${JSON.stringify(currentVideo)}`);
         } else {
-            logger.warn(`[Socket.IO] Video ID mismatch for progress update. Expected: ${currentVideoData.videoId}, Received: ${videoId}`);
+            logger.warn(`[Socket.IO] Video ID mismatch for progress update. Expected: ${currentVideo ? currentVideo.videoId : 'None'}, Received: ${videoId}`);
+        }
+    });
+
+    // Handle heartbeat from background script
+    socket.on('heartbeat', (data, callback) => {
+        const { videoId } = data;
+        if (videoId && currentVideo && currentVideo.videoId === videoId) {
+            videoHeartbeat[videoId] = Date.now();
+            logger.info(`[Socket.IO] Heartbeat received for video ID: ${videoId}`);
+
+            if (callback) callback({ status: "ok" });
+        } else {
+            logger.warn(`[Socket.IO] Received heartbeat for unknown or inactive video ID: ${videoId}`);
+            if (callback) callback({ status: "error", message: "Unknown video ID" });
+        }
+    });
+
+    // Handle marking video as offline
+    socket.on('markVideoOffline', (data, callback) => {
+        const { videoId } = data;
+        if (currentVideo && currentVideo.videoId === videoId) {
+            logger.info(`[Socket.IO] Marking video ID ${videoId} as offline.`);
+            currentVideo = null;
+
+            // Remove heartbeat tracking
+            delete videoHeartbeat[videoId];
+
+            // Emit to all connected clients
+            io.emit('nowPlayingUpdate', {});
+            logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" with empty data to indicate offline.`);
+            if (callback) callback({ status: "ok" });
+        } else {
+            logger.warn(`[Socket.IO] Attempted to mark unknown or different video ID ${videoId} as offline.`);
+            if (callback) callback({ status: "error", message: "Unknown video ID" });
         }
     });
 
@@ -1285,25 +1311,42 @@ io.on('connection', (socket) => {
         logger.info(`[Socket.IO] Received "clearPreviousVideoData" from client ${socket.id}`);
 
         // Clear the current video data
-        currentVideoData = {};
+        currentVideo = null;
+
+        // Clear all heartbeat tracking
+        Object.keys(videoHeartbeat).forEach(videoId => delete videoHeartbeat[videoId]);
 
         // Emit the cleared state to all clients
-        io.emit('nowPlayingUpdate', currentVideoData);
+        io.emit('nowPlayingUpdate', {});
         logger.info(`[Socket.IO] Cleared current video data and emitted empty state to all clients.`);
     });
 
-    // Handle socket disconnection
+    // Handle client disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
 
-        // Clear the current video data when client disconnects to prevent stale data from being used
-        currentVideoData = {};
-
-        // Emit the cleared state to all clients
-        io.emit('nowPlayingUpdate', currentVideoData);
-        logger.info(`[Socket.IO] Cleared current video data due to client disconnection.`);
+        // Optionally, you can handle cleanup here if necessary
     });
 });
+
+// Periodic Heartbeat Timeout Check
+setInterval(() => {
+    const now = Date.now();
+    for (const [videoId, lastHeartbeat] of Object.entries(videoHeartbeat)) {
+        if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
+            logger.warn(`[Heartbeat] No heartbeat received for video ID ${videoId} within timeout. Marking as offline.`);
+            // Mark the video as offline
+            if (currentVideo && currentVideo.videoId === videoId) {
+                currentVideo = null;
+                io.emit('nowPlayingUpdate', {});
+                logger.info(`[Heartbeat] Emitted "nowPlayingUpdate" with empty data to indicate offline.`);
+            }
+
+            // Remove heartbeat tracking
+            delete videoHeartbeat[videoId];
+        }
+    }
+}, HEARTBEAT_TIMEOUT / 2); // Check twice within the timeout period
 
 
 
