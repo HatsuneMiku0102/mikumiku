@@ -155,6 +155,8 @@
             const socket = io("https://mikumiku.dev");
             let lastHeartbeatReceived = Date.now();
             let isSessionExpired = false;
+            let browsingStartTime = Date.now();
+            let browsingInterval = null;
     
             // Now Playing Elements
             const nowPlayingBox = document.getElementById("nowPlayingBox");
@@ -256,7 +258,7 @@
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
                 videoTitleElement.textContent = "Browsing YouTube";
-                videoThumbnailElement.src = "https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png";  
+                videoThumbnailElement.src = "https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png";
                 videoThumbnailElement.style.display = "block";
                 channelNameElement.textContent = "Browsing...";
                 viewCountElement.textContent = "";
@@ -267,6 +269,34 @@
                 progressBarElement.style.width = "0%";
             }
     
+            function updateBrowsingPresence() {
+                const timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
+                const browsingData = {
+                    title: 'YouTube',
+                    description: 'Browsing videos',
+                    thumbnail: 'https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png',
+                    timeElapsed: timeElapsed,
+                    presenceType: 'browsing'
+                };
+                socket.emit('updateBrowsingPresence', browsingData);
+            }
+    
+            function startBrowsingPresence() {
+                browsingStartTime = Date.now();
+                updateBrowsingPresence(); // Update immediately
+                if (!browsingInterval) {
+                    browsingInterval = setInterval(updateBrowsingPresence, 15000); // Update every 15 seconds
+                }
+            }
+    
+            function stopBrowsingPresence() {
+                if (browsingInterval) {
+                    clearInterval(browsingInterval);
+                    browsingInterval = null;
+                }
+            }
+    
+            // Socket.IO event listeners
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
                 isSessionExpired = false;
@@ -283,8 +313,10 @@
                 lastHeartbeatReceived = Date.now();
     
                 if (data.presenceType === 'video') {
+                    stopBrowsingPresence();
                     displayVideoPresence(data);
                 } else if (data.presenceType === 'browsing') {
+                    startBrowsingPresence();
                     displayBrowsingPresence();
                 } else {
                     clearDisplay();
@@ -303,6 +335,7 @@
     
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
+                stopBrowsingPresence();
                 clearDisplay();
             });
     
@@ -396,6 +429,8 @@
     
             setInterval(fetchWeather, 3600000);
             fetchWeather();
+        });
+   
             // Canvas Animation Script
             const canvas = document.getElementById("techCanvas");
             const ctx = canvas.getContext("2d");
