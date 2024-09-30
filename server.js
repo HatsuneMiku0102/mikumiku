@@ -1253,8 +1253,6 @@ io.on('connection', (socket) => {
 
         if (!currentVideo) {
             logger.warn(`[Socket.IO] Received progress update without a current video. VideoId: ${videoId}`);
-            
-            // Attempt to recover by requesting video information from the client
             socket.emit('requestVideoInfo', { videoId }, (videoInfo) => {
                 if (videoInfo) {
                     logger.info(`[Socket.IO] Received video info for recovery. VideoId: ${videoId}`);
@@ -1284,8 +1282,6 @@ io.on('connection', (socket) => {
             logger.info(`[Socket.IO] Real-time update for video: ${JSON.stringify(currentVideo)}`);
         } else {
             logger.warn(`[Socket.IO] Video ID mismatch for progress update. Expected: ${currentVideo.videoId}, Received: ${videoId}`);
-            
-            // Handle mismatch by updating to the new video
             socket.emit('requestVideoInfo', { videoId }, (videoInfo) => {
                 if (videoInfo) {
                     logger.info(`[Socket.IO] Received video info for mismatched VideoId: ${videoId}`);
@@ -1419,6 +1415,7 @@ setInterval(() => {
         }
     }
 }, HEARTBEAT_TIMEOUT / 2);
+
 
 
 
