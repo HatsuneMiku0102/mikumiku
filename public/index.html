@@ -204,9 +204,9 @@
             videoDescriptionElement.textContent = "";
     
             // Clear browsing elements
-            browsingVideoList.innerHTML = "";
-            browsingTimeElapsed.textContent = "";
-            browsingContainer.style.display = "none";
+            if (browsingVideoList) browsingVideoList.innerHTML = "";
+            if (browsingTimeElapsed) browsingTimeElapsed.textContent = "";
+            if (browsingContainer) browsingContainer.style.display = "none";
         }
     
         // Function to display video presence
@@ -270,6 +270,8 @@
         function displayBrowsingPresence(data) {
             clearDisplay();
     
+            if (!browsingContainer) return; // Ensure the browsing container exists
+    
             browsingContainer.style.display = "block";
             browsingVideoList.innerHTML = "";
     
@@ -313,7 +315,7 @@
                 clearDisplay();
                 nowPlayingBox.classList.add("offline");
                 offlineIndicatorElement.style.display = "block";
-                nowPlayingBox.querySelector("p").textContent = "I’m not on YouTube at the moment, sorry :(";
+                videoTitleElement.textContent = "I’m not on YouTube at the moment, sorry :(";
                 return;
             }
     
@@ -329,7 +331,7 @@
             clearDisplay();
             nowPlayingBox.classList.add("offline");
             offlineIndicatorElement.style.display = "block";
-            nowPlayingBox.querySelector("p").textContent = "I’m not on YouTube at the moment, sorry :(";
+            videoTitleElement.textContent = "I’m not on YouTube at the moment, sorry :(";
         });
     
         // Listen for beforeunload event to mark offline
@@ -337,7 +339,7 @@
             clearDisplay();
             nowPlayingBox.classList.add("offline");
             offlineIndicatorElement.style.display = "block";
-            nowPlayingBox.querySelector("p").textContent = "I’m not on YouTube at the moment, sorry :(";
+            videoTitleElement.textContent = "I’m not on YouTube at the moment, sorry :(";
             // Optionally, inform the server that the tab is closing
             socket.emit('tabClosed');
         });
