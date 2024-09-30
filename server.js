@@ -1234,157 +1234,62 @@ app.post('/logout', (req, res) => {
 
 
 
-let currentVideo = null;
-let currentBrowsing = null;
-const videoHeartbeat = {};
-const HEARTBEAT_TIMEOUT = 60000;
+socket.on('updateVideoProgress', (data) => {
+    const { videoId, currentTime, duration, isPaused } = data;
 
-io.on('connection', (socket) => {
-    logger.info(`[Socket.IO] New client connected: ${socket.id}`);
-
-    if (currentVideo) {
-        socket.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
-    } else if (currentBrowsing) {
-        socket.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
-    } else {
-        socket.emit('presenceUpdate', { presenceType: 'offline' });
-    }
-
-    socket.on('updateVideoTitle', async (data, callback) => {
-        logger.info(`[Socket.IO] Received "updateVideoTitle" from client ${socket.id}: ${JSON.stringify(data)}`);
-
-        const { videoId, title, description, channelTitle, viewCount, likeCount, publishedAt, category, thumbnail, duration } = data;
-
-        currentVideo = {
-            videoId,
-            title,
-            description,
-            channelTitle,
-            viewCount,
-            likeCount,
-            publishedAt,
-            category,
-            thumbnail,
-            duration,
-            currentTime: 0,
-            isPaused: false
-        };
-
-        currentBrowsing = null;
-        videoHeartbeat[videoId] = Date.now();
-
-        io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
-        logger.info(`[Socket.IO] Emitted "presenceUpdate" for video to all clients: ${JSON.stringify(currentVideo)}`);
-
-        if (callback) callback({ status: "ok" });
-    });
-
-    socket.on('updateVideoProgress', (data) => {
-        const { videoId, currentTime, duration, isPaused } = data;
-
-        if (!currentVideo) {
-            logger.warn(`[Socket.IO] Received progress update without a current video. Ignoring the update.`);
-            return;
-        }
-
-        if (currentVideo.videoId === videoId) {
-            currentVideo.currentTime = currentTime;
-            currentVideo.duration = duration;
-            currentVideo.isPaused = isPaused;
-
-            videoHeartbeat[videoId] = Date.now();
-            io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
-            logger.info(`[Socket.IO] Real-time update for video: ${JSON.stringify(currentVideo)}`);
-        } else {
-            logger.warn(`[Socket.IO] Video ID mismatch for progress update. Expected: ${currentVideo.videoId}, Received: ${videoId}`);
-        }
-    });
-
-    socket.on('updateBrowsingPresence', (data, callback) => {
-        logger.info(`[Socket.IO] Received "updateBrowsingPresence" from client ${socket.id}: ${JSON.stringify(data)}`);
-
-        const { browsingVideos, timeElapsed } = data;
-
-        currentBrowsing = {
-            browsingVideos,
-            timeElapsed
-        };
-
-        currentVideo = null;
-        clearAllHeartbeats();
-
-        io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
-        logger.info(`[Socket.IO] Emitted "presenceUpdate" for browsing to all clients: ${JSON.stringify(currentBrowsing)}`);
-
-        if (callback) callback({ status: "ok" });
-    });
-
-    socket.on('heartbeat', (data, callback) => {
-        const { videoId } = data;
-        if (videoId && currentVideo && currentVideo.videoId === videoId) {
-            videoHeartbeat[videoId] = Date.now();
-            logger.info(`[Socket.IO] Heartbeat received for video ID: ${videoId}`);
-
-            if (callback) callback({ status: "ok" });
-        } else {
-            logger.warn(`[Socket.IO] Received heartbeat for unknown or inactive video ID: ${videoId}`);
-            if (callback) callback({ status: "error", message: "Unknown video ID" });
-        }
-    });
-
-    socket.on('markVideoOffline', (data, callback) => {
-        const { videoId } = data;
-        if (currentVideo && currentVideo.videoId === videoId) {
-            logger.info(`[Socket.IO] Marking video ID ${videoId} as offline.`);
-            currentVideo = null;
-
-            delete videoHeartbeat[videoId];
-            io.emit('presenceUpdate', { presenceType: 'offline' });
-            logger.info(`[Socket.IO] Emitted "presenceUpdate" with offline status to all clients.`);
-            if (callback) callback({ status: "ok" });
-        } else {
-            logger.warn(`[Socket.IO] Attempted to mark unknown or different video ID ${videoId} as offline.`);
-            if (callback) callback({ status: "error", message: "Unknown video ID" });
-        }
-    });
-
-    socket.on('clearPreviousVideoData', () => {
-        logger.info(`[Socket.IO] Received "clearPreviousVideoData" from client ${socket.id}`);
-
-        currentVideo = null;
-        currentBrowsing = null;
-
-        clearAllHeartbeats();
-
-        io.emit('presenceUpdate', { presenceType: 'offline' });
-        logger.info(`[Socket.IO] Cleared current presence data and emitted offline status to all clients.`);
-    });
-
-    socket.on('disconnect', () => {
-        logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
-    });
-});
-
-function clearAllHeartbeats() {
-    Object.keys(videoHeartbeat).forEach(videoId => delete videoHeartbeat[videoId]);
-}
-
-setInterval(() => {
-    const now = Date.now();
-    for (const [videoId, lastHeartbeat] of Object.entries(videoHeartbeat)) {
-        if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
-            logger.warn(`[Heartbeat] No heartbeat received for video ID ${videoId} within timeout. Marking as offline.`);
-
-            if (currentVideo && currentVideo.videoId === videoId) {
-                currentVideo = null;
-                io.emit('presenceUpdate', { presenceType: 'offline' });
-                logger.info(`[Heartbeat] Emitted "presenceUpdate" with offline status to all clients.`);
+    if (!currentVideo) {
+        logger.warn(`[Socket.IO] Received progress update without a current video. VideoId: ${videoId}`);
+        
+        // Attempt to recover by requesting video information from the client
+        socket.emit('requestVideoInfo', { videoId }, (videoInfo) => {
+            if (videoInfo) {
+                logger.info(`[Socket.IO] Received video info for recovery. VideoId: ${videoId}`);
+                currentVideo = {
+                    ...videoInfo,
+                    currentTime,
+                    duration,
+                    isPaused
+                };
+                videoHeartbeat[videoId] = Date.now();
+                io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
+                logger.info(`[Socket.IO] Recovered and emitted presence update for video: ${JSON.stringify(currentVideo)}`);
+            } else {
+                logger.error(`[Socket.IO] Failed to recover video info for VideoId: ${videoId}`);
             }
-
-            delete videoHeartbeat[videoId];
-        }
+        });
+        return;
     }
-}, HEARTBEAT_TIMEOUT / 2);
+
+    if (currentVideo.videoId === videoId) {
+        currentVideo.currentTime = currentTime;
+        currentVideo.duration = duration;
+        currentVideo.isPaused = isPaused;
+
+        videoHeartbeat[videoId] = Date.now();
+        io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
+        logger.info(`[Socket.IO] Real-time update for video: ${JSON.stringify(currentVideo)}`);
+    } else {
+        logger.warn(`[Socket.IO] Video ID mismatch for progress update. Expected: ${currentVideo.videoId}, Received: ${videoId}`);
+        
+        // Handle mismatch by updating to the new video
+        socket.emit('requestVideoInfo', { videoId }, (videoInfo) => {
+            if (videoInfo) {
+                logger.info(`[Socket.IO] Received video info for mismatched VideoId: ${videoId}`);
+                currentVideo = {
+                    ...videoInfo,
+                    currentTime,
+                    duration,
+                    isPaused
+                };
+                videoHeartbeat[videoId] = Date.now();
+                io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
+                logger.info(`[Socket.IO] Updated and emitted presence update for new video: ${JSON.stringify(currentVideo)}`);
+            } else {
+                logger.error(`[Socket.IO] Failed to get video info for mismatched VideoId: ${videoId}`);
+            }
+        });
+    }
+});
 
 
 
