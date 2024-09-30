@@ -154,7 +154,7 @@
         document.addEventListener("DOMContentLoaded", function () {
             const socket = io("https://mikumiku.dev"); // Ensure this matches your server's URL
             let lastHeartbeatReceived = Date.now();
-
+    
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
             const videoThumbnailElement = document.getElementById("videoThumbnail");
@@ -166,21 +166,12 @@
             const progressBarElement = document.getElementById("progressBar");
             const likeCountElement = document.getElementById("likeCount");
             const videoDescriptionElement = document.getElementById("videoDescription");
-
+    
             // Modal Elements
             const descriptionModal = document.getElementById("descriptionModal");
             const closeDescriptionButton = document.getElementById("closeDescriptionButton");
             const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
-
-            // Helper function to format numbers with commas
-            function formatNumber(number) {
-                if (typeof number === 'string') {
-                    number = number.replace(/,/g, ''); // Remove existing commas
-                }
-                const num = Number(number);
-                return isNaN(num) ? "N/A" : num.toLocaleString();
-            }
-
+    
             // Function to clear all display elements
             function clearDisplay() {
                 nowPlayingBox.classList.add("offline");
@@ -196,16 +187,16 @@
                 progressBarElement.style.width = "0%";
                 videoDescriptionElement.textContent = "";
             }
-
+    
             // Function to display video presence
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
-
+    
                 // Update Title
                 videoTitleElement.textContent = data.title || "Unknown Title";
-
+    
                 // Update Thumbnail
                 if (data.thumbnail) {
                     videoThumbnailElement.src = data.thumbnail;
@@ -214,16 +205,16 @@
                     videoThumbnailElement.src = "";
                     videoThumbnailElement.style.display = "none";
                 }
-
+    
                 // Update Channel Name
                 channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-
+    
                 // Update View Count with commas
                 viewCountElement.textContent = `Views: ${formatNumber(data.viewCount)}` || "Views: N/A";
-
+    
                 // Update Like Count with commas
                 likeCountElement.textContent = `Likes: ${formatNumber(data.likeCount)}` || "Likes: N/A";
-
+    
                 // Update Published Date
                 if (data.publishedAt) {
                     const publishedDate = new Date(data.publishedAt);
@@ -231,61 +222,51 @@
                 } else {
                     publishedDateElement.textContent = "Published on: N/A";
                 }
-
+    
                 // Update Video Category
                 videoCategoryElement.textContent = `Category: ${data.category}` || "Category: N/A";
-
+    
                 // Update Description
                 videoDescriptionElement.textContent = data.description || "No description available.";
-
+    
                 // Handle Progress Bar Update
                 handleRealTimeProgress(data);
             }
-
-            // Function to handle real-time video progress updates
-            function handleRealTimeProgress(data) {
-                if (data.duration && data.currentTime) {
-                    const progressPercentage = (data.currentTime / data.duration) * 100;
-                    progressBarElement.style.width = `${progressPercentage}%`;
-                } else {
-                    progressBarElement.style.width = "0%";
-                }
-            }
-
+    
             // Function to display browsing presence
             function displayBrowsingPresence() {
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
-
+    
                 // Update Title
                 videoTitleElement.textContent = "YouTube";
-
+    
                 // Update Thumbnail
                 videoThumbnailElement.src = "/youtube_thumbnail.png"; // Replace with the path to your YouTube logo or thumbnail
                 videoThumbnailElement.style.display = "block";
-
+    
                 // Set browsing description
                 videoDescriptionElement.textContent = "Browsing videos on YouTube";
-
+    
                 // Clear other details since this is browsing
-                channelNameElement.textContent = "";
+                channelNameElement.textContent = "Browsing...";
                 viewCountElement.textContent = "";
                 likeCountElement.textContent = "";
                 publishedDateElement.textContent = "";
                 videoCategoryElement.textContent = "";
                 progressBarElement.style.width = "0%";
             }
-
+    
             // Socket.IO event handlers
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
                 socket.emit('requestLatestData');
             });
-
+    
             socket.on("presenceUpdate", (data) => {
                 console.log("[Socket.IO] Received presenceUpdate:", data);
                 lastHeartbeatReceived = Date.now();
-
+    
                 if (data.presenceType === 'video') {
                     displayVideoPresence(data);
                 } else if (data.presenceType === 'browsing') {
@@ -294,19 +275,19 @@
                     clearDisplay();
                 }
             });
-
+    
             socket.on("heartbeat", (data) => {
                 if (data.videoId) {
                     console.log(`[Heartbeat] Received heartbeat for video ID: ${data.videoId}`);
                     lastHeartbeatReceived = Date.now();
                 }
             });
-
+    
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
                 clearDisplay();
             });
-
+    
             // Periodic check for missed heartbeats
             setInterval(() => {
                 if (Date.now() - lastHeartbeatReceived > 60000) { // 60 seconds timeout
@@ -314,7 +295,7 @@
                     clearDisplay();
                 }
             }, 15000); // Check every 15 seconds
-
+    
             // Toggle Description Modal
             toggleDescriptionButton.addEventListener("click", function () {
                 if (descriptionModal.style.display === "block") {
@@ -325,13 +306,13 @@
                     toggleDescriptionButton.textContent = "Hide Description";
                 }
             });
-
+    
             // Close Description Modal when clicking the close button
             closeDescriptionButton.addEventListener("click", function () {
                 descriptionModal.style.display = "none";
                 toggleDescriptionButton.textContent = "Show Description";
             });
-
+    
             // Close Description Modal when clicking outside the modal content
             window.addEventListener("click", function (event) {
                 if (event.target === descriptionModal) {
