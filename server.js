@@ -1278,14 +1278,18 @@ io.on('connection', (socket) => {
             currentVideo.currentTime = currentTime;
             currentVideo.duration = duration;
             currentVideo.isPaused = isPaused;
-            currentVideo.title = title;
-            currentVideo.description = description;
-            currentVideo.channelTitle = channelTitle;
-            currentVideo.viewCount = viewCount;
-            currentVideo.likeCount = likeCount;
-            currentVideo.publishedAt = publishedAt;
-            currentVideo.category = category;
-            currentVideo.thumbnail = thumbnail;
+
+            // Update additional video info if provided
+            if (title) currentVideo.title = title;
+            if (description) currentVideo.description = description;
+            if (channelTitle) currentVideo.channelTitle = channelTitle;
+            if (viewCount) currentVideo.viewCount = viewCount;
+            if (likeCount) currentVideo.likeCount = likeCount;
+            if (publishedAt) currentVideo.publishedAt = publishedAt;
+            if (category) currentVideo.category = category;
+            if (thumbnail) currentVideo.thumbnail = thumbnail;
+
+            logger.info(`[Socket.IO] Updated video information for ID: ${videoId}`);
         } else {
             logger.info(`[Socket.IO] New video presence detected: ${videoId}`);
             currentVideo = {
@@ -1343,6 +1347,7 @@ setInterval(() => {
         }
     }
 }, HEARTBEAT_TIMEOUT / 2);
+
 
 
 
