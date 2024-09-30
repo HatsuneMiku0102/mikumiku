@@ -231,22 +231,6 @@
                 handleRealTimeProgress(data);
             }
         
-            function displayBrowsingPresence() {
-                nowPlayingBox.classList.remove("offline");
-                offlineIndicatorElement.style.display = "none";
-                videoTitleElement.textContent = "Browsing YouTube";
-                videoThumbnailElement.src = "https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png";
-                videoThumbnailElement.style.display = "block";
-                channelNameElement.textContent = "Browsing...";
-                viewCountElement.textContent = "";
-                likeCountElement.textContent = "";
-                publishedDateElement.textContent = "";
-                videoCategoryElement.textContent = "";
-                videoDescriptionElement.textContent = "Browsing videos on YouTube";
-                progressBarElement.style.width = "0%";
-                timeElapsedElement.textContent = "0s";
-            }
-        
             function handleRealTimeProgress(data) {
                 if (data.duration && data.currentTime) {
                     const progressPercentage = (data.currentTime / data.duration) * 100;
@@ -310,21 +294,13 @@
                     displayVideoPresence(data);
                 } else if (data.presenceType === 'browsing') {
                     startBrowsingPresence();
-                    displayBrowsingPresence();
                 } else {
                     clearDisplay();
                 }
             });
         
-            socket.on("reinitializeSession", () => {
-                reinitializeSession();
-            });
-        
-            socket.on("sessionExpired", () => {
-                reinitializeSession();
-            });
-        
             socket.on("disconnect", () => {
+                console.warn("[Socket.IO] Disconnected from server.");
                 stopBrowsingPresence();
                 clearDisplay();
             });
