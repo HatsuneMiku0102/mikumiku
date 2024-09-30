@@ -1260,7 +1260,6 @@ io.on('connection', (socket) => {
     // Update browsing presence
     socket.on('updateBrowsingPresence', (data) => {
         if (data.presenceType === 'browsing' && !currentVideo) {
-            logger.info(`[Socket.IO] Browsing presence detected.`);
             currentBrowsing = {
                 title: 'YouTube',
                 description: 'Browsing videos',
