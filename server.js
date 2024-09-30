@@ -1262,7 +1262,6 @@ io.on('connection', (socket) => {
         if (data.presenceType === 'browsing') {
             logger.info(`[Socket.IO] Browsing presence detected.`);
 
-            // Only update if there's no video currently playing
             if (!currentVideo) {
                 currentBrowsing = {
                     title: data.title || 'YouTube',
@@ -1279,17 +1278,13 @@ io.on('connection', (socket) => {
     // Update video progress or mark a new video presence
     socket.on('updateVideoProgress', (data) => {
         logger.info(`[Socket.IO] Video update received: ${JSON.stringify(data)}`);
-    
+
         const { videoId, title, description, channelTitle, viewCount, likeCount, publishedAt, category, thumbnail, currentTime, duration, isPaused } = data;
-    
-        // Check if we already have a video being played
+
         if (currentVideo && currentVideo.videoId === videoId) {
-            // Update current video's progress and other details
             currentVideo.currentTime = currentTime;
             currentVideo.duration = duration;
             currentVideo.isPaused = isPaused;
-    
-            // Update additional info
             currentVideo.title = title;
             currentVideo.description = description;
             currentVideo.channelTitle = channelTitle;
@@ -1298,10 +1293,9 @@ io.on('connection', (socket) => {
             currentVideo.publishedAt = publishedAt;
             currentVideo.category = category;
             currentVideo.thumbnail = thumbnail;
-    
+
             logger.info(`[Socket.IO] Updated video information for ID: ${videoId} - Title: ${title}, Channel: ${channelTitle}`);
         } else {
-            // New video detected
             logger.info(`[Socket.IO] New video presence detected: ${videoId}`);
             currentVideo = {
                 videoId,
@@ -1320,12 +1314,10 @@ io.on('connection', (socket) => {
             };
             currentBrowsing = null; // Clear browsing presence
         }
-    
-        // Emit updated video presence to all clients
+
         io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
     });
 
-    // Handle heartbeat signals
     socket.on('heartbeat', (data, callback) => {
         const { videoId } = data;
         if (videoId && currentVideo && currentVideo.videoId === videoId) {
@@ -1338,13 +1330,11 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Disconnect handling
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
     });
 });
 
-// Handle video heartbeat expiration
 setInterval(() => {
     const now = Date.now();
     for (const [videoId, lastHeartbeat] of Object.entries(videoHeartbeat)) {
