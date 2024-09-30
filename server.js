@@ -1255,27 +1255,26 @@ io.on('connection', (socket) => {
 
     // Update browsing presence
     socket.on('updateBrowsingPresence', (data) => {
-        if (data.presenceType === 'browsing' && !currentVideo) {
+        if (data.presenceType === 'browsing' && (!currentVideo || currentVideo.isPaused)) {
             logger.info(`[Socket.IO] Browsing presence detected.`);
 
-            if (!currentBrowsing || currentBrowsing.title !== data.title) {
-                currentBrowsing = {
-                    title: 'YouTube',
-                    description: 'Browsing videos',
-                    thumbnail: 'https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png',
-                    timeElapsed: data.timeElapsed || 0,
-                    presenceType: 'browsing'
-                };
-                io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
-            }
+            currentBrowsing = {
+                title: data.title || 'YouTube',
+                description: data.description || 'Browsing videos',
+                thumbnail: data.thumbnail || 'https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png',
+                timeElapsed: data.timeElapsed || 0,
+                presenceType: 'browsing'
+            };
+            io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
         }
     });
 
     // Update video progress or mark a new video presence
     socket.on('updateVideoProgress', (data) => {
-        const { videoId, currentTime, duration, isPaused } = data;
+        const { videoId, currentTime, duration, isPaused, title, description, channelTitle, viewCount, likeCount, publishedAt, category, thumbnail } = data;
 
         if (currentVideo && currentVideo.videoId === videoId) {
+            // Update current video progress
             currentVideo.currentTime = currentTime;
             currentVideo.duration = duration;
             currentVideo.isPaused = isPaused;
@@ -1287,24 +1286,26 @@ io.on('connection', (socket) => {
             io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
             logger.info(`[Socket.IO] Real-time update for video: ${videoId}`);
         } else {
+            // New video presence detected
             logger.info(`[Socket.IO] New video presence detected: ${videoId}`);
             currentVideo = {
-                videoId: videoId,
-                title: data.title,
-                description: data.description,
-                channelTitle: data.channelTitle,
-                viewCount: data.viewCount,
-                likeCount: data.likeCount,
-                publishedAt: data.publishedAt,
-                category: data.category,
-                thumbnail: data.thumbnail,
-                duration: duration,
-                currentTime: currentTime,
-                isPaused: isPaused,
+                videoId,
+                title,
+                description,
+                channelTitle,
+                viewCount,
+                likeCount,
+                publishedAt,
+                category,
+                thumbnail,
+                duration,
+                currentTime,
+                isPaused,
                 presenceType: 'video'
             };
 
-            currentBrowsing = null; // Clear browsing presence
+            // Clear browsing presence if a video is detected
+            currentBrowsing = null;
             videoHeartbeat[videoId] = Date.now();
 
             io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
