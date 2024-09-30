@@ -263,7 +263,8 @@ app.use(
                 "data:",
                 "https://i.ytimg.com",
                 "https://img.youtube.com",
-                "https://openweathermap.org"
+                "https://openweathermap.org",
+                "https://i.postimg.cc" // Added Postimg to allow custom browsing thumbnail
             ],
             fontSrc: [
                 "'self'",
@@ -292,6 +293,7 @@ app.use(
         }
     })
 );
+
 
 // Serve static files from 'public'
 app.use(express.static(path.join(__dirname, 'public'), {
