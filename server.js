@@ -1264,10 +1264,17 @@ io.on('connection', (socket) => {
     socket.on('updateBrowsingPresence', (data) => {
         const now = Date.now();
 
-        // Only update if there's no video currently playing and a sufficient interval has passed
-        if (data.presenceType === 'browsing' && !currentVideo && (now - lastBrowsingUpdateTime > BROWSING_UPDATE_INTERVAL)) {
+        // Only update if there's no video currently playing or if we want to override with browsing after an interval
+        if (data.presenceType === 'browsing' && (now - lastBrowsingUpdateTime > BROWSING_UPDATE_INTERVAL)) {
             logger.info(`[Socket.IO] Browsing presence detected.`);
 
+            // Clear current video presence if any
+            if (currentVideo) {
+                logger.info(`[Socket.IO] Clearing current video presence to switch to browsing.`);
+                currentVideo = null;
+            }
+
+            // Set current browsing presence
             currentBrowsing = {
                 title: data.title || 'YouTube',
                 description: data.description || 'Browsing videos',
@@ -1275,9 +1282,12 @@ io.on('connection', (socket) => {
                 timeElapsed: data.timeElapsed || 0,
                 presenceType: 'browsing'
             };
+
+            // Emit browsing presence to all clients
             io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
 
-            lastBrowsingUpdateTime = now; // Update the last browsing update time
+            // Update the last browsing update time
+            lastBrowsingUpdateTime = now;
         }
     });
 
@@ -1323,7 +1333,11 @@ io.on('connection', (socket) => {
                 isPaused,
                 presenceType: 'video'
             };
-            currentBrowsing = null; // Clear browsing presence
+
+            // Clear browsing presence
+            currentBrowsing = null;
+
+            logger.info(`[Socket.IO] Browsing presence cleared due to new video presence.`);
         }
 
         // Emit updated video presence to all clients
@@ -1357,6 +1371,7 @@ setInterval(() => {
             logger.warn(`[Heartbeat] No heartbeat received for video ID ${videoId} within timeout. Marking as offline.`);
             if (currentVideo && currentVideo.videoId === videoId) {
                 currentVideo = null;
+                currentBrowsing = null; // Clear browsing as well to fully reset state
                 io.emit('presenceUpdate', { presenceType: 'offline' });
                 logger.info(`[Heartbeat] Emitted "presenceUpdate" with offline status to all clients.`);
             }
@@ -1364,6 +1379,7 @@ setInterval(() => {
         }
     }
 }, HEARTBEAT_TIMEOUT / 2);
+
 
 
 
