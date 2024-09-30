@@ -1240,6 +1240,7 @@ const videoHeartbeat = {};
 io.on('connection', (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
+    // Send the current state to the new client
     if (currentVideo) {
         socket.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
     } else if (currentBrowsing) {
@@ -1250,6 +1251,7 @@ io.on('connection', (socket) => {
 
     socket.on('updateBrowsingPresence', (data) => {
         if (data.videoId) {
+            // Update video presence
             logger.info(`[Socket.IO] Marking video presence for ${data.videoId}`);
             currentVideo = {
                 videoId: data.videoId,
@@ -1267,7 +1269,11 @@ io.on('connection', (socket) => {
                 presenceType: 'video'
             };
             videoHeartbeat[data.videoId] = Date.now();
+
+            // Clear browsing data since now we're watching a video
+            currentBrowsing = null;
         } else {
+            // Update browsing presence
             logger.info(`[Socket.IO] Browsing presence detected.`);
             currentBrowsing = {
                 title: 'YouTube',
@@ -1276,7 +1282,7 @@ io.on('connection', (socket) => {
                 timeElapsed: 0,
                 presenceType: 'browsing'
             };
-            currentVideo = null;
+            currentVideo = null;  // Clear current video when browsing
             clearAllHeartbeats();
         }
 
@@ -1297,11 +1303,12 @@ io.on('connection', (socket) => {
             currentVideo.currentTime = currentTime;
             currentVideo.duration = duration;
             currentVideo.isPaused = isPaused;
-            
+
             if (!isPaused) {
-                videoHeartbeat[videoId] = Date.now(); // Only update heartbeat if not paused
+                // Only update heartbeat if not paused
+                videoHeartbeat[videoId] = Date.now();
             }
-            
+
             io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
             logger.info(`[Socket.IO] Real-time update for video: ${JSON.stringify(currentVideo)}`);
         } else {
@@ -1313,9 +1320,13 @@ io.on('connection', (socket) => {
 
     socket.on('heartbeat', (data, callback) => {
         const { videoId } = data;
+
         if (videoId && currentVideo && currentVideo.videoId === videoId) {
             videoHeartbeat[videoId] = Date.now();
             logger.info(`[Socket.IO] Heartbeat received for video ID: ${videoId}`);
+            if (callback) callback({ status: "ok" });
+        } else if (currentBrowsing) {
+            logger.info(`[Socket.IO] Received browsing heartbeat`);
             if (callback) callback({ status: "ok" });
         } else {
             logger.warn(`[Socket.IO] Received heartbeat for unknown or inactive video ID: ${videoId}`);
@@ -1325,6 +1336,7 @@ io.on('connection', (socket) => {
 
     socket.on('markVideoOffline', (data, callback) => {
         const { videoId } = data;
+
         if (currentVideo && currentVideo.videoId === videoId) {
             logger.info(`[Socket.IO] Marking video ID ${videoId} as offline.`);
             currentVideo = null;
@@ -1349,6 +1361,7 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
+        // We should not mark the video as offline on disconnect since other clients may still be connected.
     });
 });
 
@@ -1356,12 +1369,14 @@ function clearAllHeartbeats() {
     Object.keys(videoHeartbeat).forEach(videoId => delete videoHeartbeat[videoId]);
 }
 
+// Check for heartbeat timeouts
 setInterval(() => {
     const now = Date.now();
     for (const [videoId, lastHeartbeat] of Object.entries(videoHeartbeat)) {
         if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
             logger.warn(`[Heartbeat] No heartbeat received for video ID ${videoId} within timeout. Marking as offline.`);
-            if (currentVideo && currentVideo.videoId === videoId) {
+            if (currentVideo && currentVideo.videoId === videoId && !currentVideo.isPaused) {
+                // Only mark as offline if not paused
                 currentVideo = null;
                 io.emit('presenceUpdate', { presenceType: 'offline' });
                 io.emit('sessionExpired', { videoId });
@@ -1371,6 +1386,7 @@ setInterval(() => {
         }
     }
 }, HEARTBEAT_TIMEOUT / 2);
+
 
 
 
