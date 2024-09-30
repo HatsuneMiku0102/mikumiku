@@ -1259,15 +1259,20 @@ io.on('connection', (socket) => {
 
     // Update browsing presence
     socket.on('updateBrowsingPresence', (data) => {
-        if (data.presenceType === 'browsing' && !currentVideo) {
-            currentBrowsing = {
-                title: 'YouTube',
-                description: 'Browsing videos',
-                thumbnail: 'https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png',
-                timeElapsed: data.timeElapsed || 0,
-                presenceType: 'browsing'
-            };
-            io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
+        if (data.presenceType === 'browsing') {
+            logger.info(`[Socket.IO] Browsing presence detected.`);
+
+            // Only update if there's no video currently playing
+            if (!currentVideo) {
+                currentBrowsing = {
+                    title: data.title || 'YouTube',
+                    description: data.description || 'Browsing videos',
+                    thumbnail: 'https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png',
+                    timeElapsed: data.timeElapsed || 0,
+                    presenceType: 'browsing'
+                };
+                io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
+            }
         }
     });
 
@@ -1354,6 +1359,7 @@ setInterval(() => {
         }
     }
 }, HEARTBEAT_TIMEOUT / 2);
+
 
 
 
