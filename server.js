@@ -1232,7 +1232,7 @@ app.post('/logout', (req, res) => {
     res.redirect('/admin-login.html');
 });
 
-
+const HEARTBEAT_TIMEOUT = 60000;
 let currentVideo = null;
 let currentBrowsing = null;
 const videoHeartbeat = {};
