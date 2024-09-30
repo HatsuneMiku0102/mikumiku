@@ -201,6 +201,21 @@
                 timeElapsedElement.style.display = "none"; // Hide time elapsed when offline
             }
     
+            // Function to clear video presence specifically
+            function clearVideoPresence() {
+                // This is explicitly to ensure video-specific UI elements are cleared when switching to browsing
+                videoTitleElement.textContent = "";
+                videoThumbnailElement.src = "";
+                videoThumbnailElement.style.display = "none";
+                channelNameElement.textContent = "";
+                viewCountElement.textContent = "";
+                likeCountElement.textContent = "";
+                publishedDateElement.textContent = "";
+                videoCategoryElement.textContent = "";
+                progressBarElement.style.width = "0%";
+                videoDescriptionElement.textContent = "";
+            }
+    
             // Function to reinitialize the session
             function reinitializeSession() {
                 console.warn("[Client] Reinitializing session due to mismatch or timeout.");
@@ -277,6 +292,10 @@
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
     
+                // Clear any previous video-related elements before setting browsing state
+                clearVideoPresence();
+    
+                // Set browsing details
                 videoTitleElement.textContent = data.title || "Browsing YouTube";
                 videoThumbnailElement.src = data.thumbnail || "https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png";
                 videoThumbnailElement.style.display = "block";
@@ -349,6 +368,7 @@
                     stopBrowsingPresence();
                     displayVideoPresence(data);
                 } else if (data.presenceType === 'browsing') {
+                    stopBrowsingPresence(); // Stop any previous video presence updates
                     startBrowsingPresence();
                     displayBrowsingPresence(data);
                 } else {
