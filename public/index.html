@@ -149,12 +149,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="haru.js"></script>
 
-    <!-- Now Playing Update Script -->
+    <!-- Unified JavaScript Script -->
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const socket = io("https://mikumiku.dev");
             let lastHeartbeatReceived = Date.now();
 
+            // Now Playing Elements
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
             const videoThumbnailElement = document.getElementById("videoThumbnail");
@@ -166,6 +167,9 @@
             const publishedDateElement = document.getElementById("publishedDate");
             const videoCategoryElement = document.getElementById("videoCategory");
             const videoDescriptionElement = document.getElementById("videoDescription");
+
+            // Weather Elements
+            const weatherIconElement = document.getElementById("weather-icon");
 
             // Helper function to format numbers with commas
             function formatNumber(number) {
@@ -244,21 +248,6 @@
                 }
             }
 
-            function displayBrowsingPresence() {
-                nowPlayingBox.classList.remove("offline");
-                offlineIndicatorElement.style.display = "none";
-                videoTitleElement.textContent = "YouTube";
-                videoThumbnailElement.src = "/youtube_thumbnail.png";
-                videoThumbnailElement.style.display = "block";
-                channelNameElement.textContent = "Browsing...";
-                viewCountElement.textContent = "";
-                likeCountElement.textContent = "";
-                publishedDateElement.textContent = "";
-                videoCategoryElement.textContent = "";
-                videoDescriptionElement.textContent = "Browsing videos on YouTube";
-                progressBarElement.style.width = "0%";
-            }
-
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
                 socket.emit('requestLatestData');
@@ -277,13 +266,6 @@
                 }
             });
 
-            socket.on("heartbeat", (data) => {
-                if (data.videoId) {
-                    console.log(`[Heartbeat] Received heartbeat for video ID: ${data.videoId}`);
-                    lastHeartbeatReceived = Date.now();
-                }
-            });
-
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
                 clearDisplay();
@@ -295,6 +277,56 @@
                     clearDisplay();
                 }
             }, 15000);
+
+            // Clock Update Script
+            function updateClocks() {
+                const now = new Date();
+                const localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const localTimeElement = document.getElementById('local-time');
+                if (localTimeElement) localTimeElement.textContent = localTime;
+                const currentDate = now.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+                const currentDateElement = document.getElementById('current-date');
+                if (currentDateElement) currentDateElement.textContent = currentDate;
+            }
+            setInterval(updateClocks, 1000);
+            updateClocks();
+
+            // Weather Update Script
+            const CITY_NAME = 'Leeds';
+            async function fetchWeather() {
+                try {
+                    const response = await fetch(`/api/weather?city=${encodeURIComponent(CITY_NAME)}`);
+                    const data = await response.json();
+
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+
+                    displayWeather(data);
+                } catch (error) {
+                    console.error('Error fetching weather data:', error);
+                    weatherIconElement.style.display = 'none';
+                    document.getElementById('weather-description').innerText = 'Unable to fetch weather data.';
+                }
+            }
+            function displayWeather(data) {
+                const description = data.weather[0].description;
+                const temperature = Math.round(data.main.temp);
+                const humidity = data.main.humidity;
+                const windSpeed = data.wind.speed;
+                const iconCode = data.weather[0].icon;
+                const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+
+                document.getElementById('weather-description').innerText = `Condition: ${description}`;
+                document.getElementById('temperature').innerText = `Temperature: ${temperature}°C`;
+                document.getElementById('humidity').innerText = `Humidity: ${humidity}%`;
+                document.getElementById('wind-speed').innerText = `Wind: ${windSpeed} m/s`;
+
+                weatherIconElement.src = iconUrl;
+                weatherIconElement.style.display = 'block';
+            }
+            setInterval(fetchWeather, 3600000);
+            fetchWeather();
 
             // Modal Toggle Logic
             const descriptionModal = document.getElementById("descriptionModal");
@@ -322,11 +354,8 @@
                     toggleDescriptionButton.textContent = "Show Description";
                 }
             });
-        });
-    </script>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
+            // Canvas Animation Script
             const canvas = document.getElementById("techCanvas");
             const ctx = canvas.getContext("2d");
             let width = window.innerWidth;
