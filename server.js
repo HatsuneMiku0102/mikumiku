@@ -1278,7 +1278,7 @@ io.on('connection', (socket) => {
             currentBrowsing = {
                 title: 'YouTube',
                 description: 'Browsing videos',
-                thumbnail: 'https://raw.githubusercontent.com/HatsuneMiku0102/mikumiku/main/public/custom_browsing_thumbnail.png',
+                thumbnail: 'https://github.com/HatsuneMiku0102/mikumiku/blob/main/public/custom_browsing_thumbnail.png',
                 timeElapsed: 0,
                 presenceType: 'browsing'
             };
