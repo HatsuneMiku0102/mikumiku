@@ -1275,14 +1275,16 @@ io.on('connection', (socket) => {
     // Update video progress or mark a new video presence
     socket.on('updateVideoProgress', (data) => {
         logger.info(`[Socket.IO] Video update received: ${JSON.stringify(data)}`);
-
+    
         const { videoId, title, description, channelTitle, viewCount, likeCount, publishedAt, category, thumbnail, currentTime, duration, isPaused } = data;
-
+    
+        // Check if we already have a video being played
         if (currentVideo && currentVideo.videoId === videoId) {
+            // Update current video's progress and other details
             currentVideo.currentTime = currentTime;
             currentVideo.duration = duration;
             currentVideo.isPaused = isPaused;
-
+    
             // Update additional info
             currentVideo.title = title;
             currentVideo.description = description;
@@ -1292,9 +1294,10 @@ io.on('connection', (socket) => {
             currentVideo.publishedAt = publishedAt;
             currentVideo.category = category;
             currentVideo.thumbnail = thumbnail;
-
-            logger.info(`[Socket.IO] Updated video information for ID: ${videoId}`);
+    
+            logger.info(`[Socket.IO] Updated video information for ID: ${videoId} - Title: ${title}, Channel: ${channelTitle}`);
         } else {
+            // New video detected
             logger.info(`[Socket.IO] New video presence detected: ${videoId}`);
             currentVideo = {
                 videoId,
@@ -1313,8 +1316,8 @@ io.on('connection', (socket) => {
             };
             currentBrowsing = null; // Clear browsing presence
         }
-
-        // Emit updated video presence
+    
+        // Emit updated video presence to all clients
         io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
     });
 
