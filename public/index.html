@@ -222,6 +222,22 @@
                 handleRealTimeProgress(data);
             }
         
+            function displayBrowsingPresence() {
+                nowPlayingBox.classList.remove("offline");
+                offlineIndicatorElement.style.display = "none";
+                videoTitleElement.textContent = "Browsing YouTube";
+                videoThumbnailElement.src = "https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png";
+                videoThumbnailElement.style.display = "block";
+                channelNameElement.textContent = "Browsing...";
+                viewCountElement.textContent = "";
+                likeCountElement.textContent = "";
+                publishedDateElement.textContent = "";
+                videoCategoryElement.textContent = "";
+                videoDescriptionElement.textContent = "Browsing videos on YouTube";
+                progressBarElement.style.width = "0%";
+                timeElapsedElement.textContent = "0s";
+            }
+        
             function handleRealTimeProgress(data) {
                 if (data.duration && data.currentTime) {
                     const progressPercentage = (data.currentTime / data.duration) * 100;
@@ -306,15 +322,16 @@
         
             setInterval(() => {
                 if (Date.now() - lastHeartbeatReceived > 60000) {
+                    console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
                     clearDisplay();
                 }
             }, 15000);
-
+        
             // Modal Toggle Logic
             const descriptionModal = document.getElementById("descriptionModal");
             const closeDescriptionButton = document.getElementById("closeDescriptionButton");
             const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
-    
+        
             toggleDescriptionButton.addEventListener("click", function () {
                 if (descriptionModal.style.display === "block") {
                     descriptionModal.style.display = "none";
@@ -324,19 +341,19 @@
                     toggleDescriptionButton.textContent = "Hide Description";
                 }
             });
-    
+        
             closeDescriptionButton.addEventListener("click", function () {
                 descriptionModal.style.display = "none";
                 toggleDescriptionButton.textContent = "Show Description";
             });
-    
+        
             window.addEventListener("click", function (event) {
                 if (event.target === descriptionModal) {
                     descriptionModal.style.display = "none";
                     toggleDescriptionButton.textContent = "Show Description";
                 }
             });
-    
+        
             // Clock Update Script
             function updateClocks() {
                 const now = new Date();
@@ -347,21 +364,21 @@
                 const currentDateElement = document.getElementById('current-date');
                 if (currentDateElement) currentDateElement.textContent = currentDate;
             }
-    
+        
             setInterval(updateClocks, 1000);
             updateClocks();
-    
+        
             // Weather Update Script
             const CITY_NAME = 'Leeds';
             async function fetchWeather() {
                 try {
                     const response = await fetch(`/api/weather?city=${encodeURIComponent(CITY_NAME)}`);
                     const data = await response.json();
-    
+        
                     if (data.error) {
                         throw new Error(data.error);
                     }
-    
+        
                     displayWeather(data);
                 } catch (error) {
                     console.error('Error fetching weather data:', error);
@@ -370,7 +387,7 @@
                     document.getElementById('weather-description').innerText = 'Unable to fetch weather data.';
                 }
             }
-    
+        
             function displayWeather(data) {
                 const description = data.weather[0].description;
                 const temperature = Math.round(data.main.temp);
@@ -378,19 +395,19 @@
                 const windSpeed = data.wind.speed;
                 const iconCode = data.weather[0].icon;
                 const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
-    
+        
                 document.getElementById('weather-description').innerText = `Condition: ${description}`;
                 document.getElementById('temperature').innerText = `Temperature: ${temperature}°C`;
                 document.getElementById('humidity').innerText = `Humidity: ${humidity}%`;
                 document.getElementById('wind-speed').innerText = `Wind: ${windSpeed} m/s`;
-    
+        
                 const weatherIconElement = document.getElementById('weather-icon');
                 if (weatherIconElement) {
                     weatherIconElement.src = iconUrl;
                     weatherIconElement.style.display = 'block';
                 }
             }
-    
+        
             setInterval(fetchWeather, 3600000);
             fetchWeather();
    
