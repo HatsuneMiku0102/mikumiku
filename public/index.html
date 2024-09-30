@@ -151,195 +151,195 @@
 
     <!-- Now Playing Update Script -->
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const socket = io("https://mikumiku.dev"); // Ensure this matches your server's URL
-            let lastHeartbeatReceived = Date.now();
+    document.addEventListener("DOMContentLoaded", function () {
+        const socket = io("https://mikumiku.dev"); // Ensure this matches your server's URL
+        let lastHeartbeatReceived = Date.now();
     
-            const nowPlayingBox = document.getElementById("nowPlayingBox");
-            const videoTitleElement = document.getElementById("videoTitle");
-            const videoThumbnailElement = document.getElementById("videoThumbnail");
-            const channelNameElement = document.getElementById("channelName");
-            const viewCountElement = document.getElementById("viewCount");
-            const publishedDateElement = document.getElementById("publishedDate");
-            const videoCategoryElement = document.getElementById("videoCategory");
-            const offlineIndicatorElement = document.getElementById("offline-indicator");
-            const progressBarElement = document.getElementById("progressBar");
-            const likeCountElement = document.getElementById("likeCount");
-            const videoDescriptionElement = document.getElementById("videoDescription");
+        const nowPlayingBox = document.getElementById("nowPlayingBox");
+        const videoTitleElement = document.getElementById("videoTitle");
+        const videoThumbnailElement = document.getElementById("videoThumbnail");
+        const channelNameElement = document.getElementById("channelName");
+        const viewCountElement = document.getElementById("viewCount");
+        const publishedDateElement = document.getElementById("publishedDate");
+        const videoCategoryElement = document.getElementById("videoCategory");
+        const offlineIndicatorElement = document.getElementById("offline-indicator");
+        const progressBarElement = document.getElementById("progressBar");
+        const likeCountElement = document.getElementById("likeCount");
+        const videoDescriptionElement = document.getElementById("videoDescription");
     
-            // Modal Elements
-            const descriptionModal = document.getElementById("descriptionModal");
-            const closeDescriptionButton = document.getElementById("closeDescriptionButton");
-            const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
+        // Modal Elements
+        const descriptionModal = document.getElementById("descriptionModal");
+        const closeDescriptionButton = document.getElementById("closeDescriptionButton");
+        const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
     
-            // Helper function to format numbers with commas
-            function formatNumber(number) {
-                if (typeof number === 'string') {
-                    number = number.replace(/,/g, ''); // Remove existing commas
-                }
-                const num = Number(number);
-                return isNaN(num) ? "N/A" : num.toLocaleString();
+        // Helper function to format numbers with commas
+        function formatNumber(number) {
+            if (typeof number === 'string') {
+                number = number.replace(/,/g, ''); // Remove existing commas
             }
+            const num = Number(number);
+            return isNaN(num) ? "N/A" : num.toLocaleString();
+        }
     
-            // Function to clear all display elements
-            function clearDisplay() {
-                nowPlayingBox.classList.add("offline");
-                offlineIndicatorElement.style.display = "block";
-                videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
+        // Function to clear all display elements
+        function clearDisplay() {
+            nowPlayingBox.classList.add("offline");
+            offlineIndicatorElement.style.display = "block";
+            videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
+            videoThumbnailElement.src = "";
+            videoThumbnailElement.style.display = "none";
+            channelNameElement.textContent = "";
+            viewCountElement.textContent = "";
+            likeCountElement.textContent = "";
+            publishedDateElement.textContent = "";
+            videoCategoryElement.textContent = "";
+            progressBarElement.style.width = "0%";
+            videoDescriptionElement.textContent = "";
+        }
+    
+        // Function to display video presence
+        function displayVideoPresence(data) {
+            lastHeartbeatReceived = Date.now();
+            nowPlayingBox.classList.remove("offline");
+            offlineIndicatorElement.style.display = "none";
+    
+            // Update Title
+            videoTitleElement.textContent = data.title || "Unknown Title";
+    
+            // Update Thumbnail
+            if (data.thumbnail) {
+                videoThumbnailElement.src = data.thumbnail;
+                videoThumbnailElement.style.display = "block";
+            } else {
                 videoThumbnailElement.src = "";
                 videoThumbnailElement.style.display = "none";
-                channelNameElement.textContent = "";
-                viewCountElement.textContent = "";
-                likeCountElement.textContent = "";
-                publishedDateElement.textContent = "";
-                videoCategoryElement.textContent = "";
-                progressBarElement.style.width = "0%";
-                videoDescriptionElement.textContent = "";
             }
     
-            // Function to display video presence
-            function displayVideoPresence(data) {
-                lastHeartbeatReceived = Date.now();
-                nowPlayingBox.classList.remove("offline");
-                offlineIndicatorElement.style.display = "none";
+            // Update Channel Name
+            channelNameElement.textContent = data.channelTitle || "Unknown Channel";
     
-                // Update Title
-                videoTitleElement.textContent = data.title || "Unknown Title";
+            // Update View Count with commas
+            viewCountElement.textContent = `Views: ${formatNumber(data.viewCount)}` || "Views: N/A";
     
-                // Update Thumbnail
-                if (data.thumbnail) {
-                    videoThumbnailElement.src = data.thumbnail;
-                    videoThumbnailElement.style.display = "block";
-                } else {
-                    videoThumbnailElement.src = "";
-                    videoThumbnailElement.style.display = "none";
-                }
+            // Update Like Count with commas
+            likeCountElement.textContent = `Likes: ${formatNumber(data.likeCount)}` || "Likes: N/A";
     
-                // Update Channel Name
-                channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-    
-                // Update View Count with commas
-                viewCountElement.textContent = `Views: ${formatNumber(data.viewCount)}` || "Views: N/A";
-    
-                // Update Like Count with commas
-                likeCountElement.textContent = `Likes: ${formatNumber(data.likeCount)}` || "Likes: N/A";
-    
-                // Update Published Date
-                if (data.publishedAt) {
-                    const publishedDate = new Date(data.publishedAt);
-                    publishedDateElement.textContent = `Published on: ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
-                } else {
-                    publishedDateElement.textContent = "Published on: N/A";
-                }
-    
-                // Update Video Category
-                videoCategoryElement.textContent = `Category: ${data.category}` || "Category: N/A";
-    
-                // Update Description
-                videoDescriptionElement.textContent = data.description || "No description available.";
-    
-                // Handle Progress Bar Update
-                handleRealTimeProgress(data);
+            // Update Published Date
+            if (data.publishedAt) {
+                const publishedDate = new Date(data.publishedAt);
+                publishedDateElement.textContent = `Published on: ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
+            } else {
+                publishedDateElement.textContent = "Published on: N/A";
             }
     
-            // Function to handle real-time video progress updates
-            function handleRealTimeProgress(data) {
-                if (data.duration && data.currentTime) {
-                    const progressPercentage = (data.currentTime / data.duration) * 100;
-                    progressBarElement.style.width = `${progressPercentage}%`;
-                } else {
-                    progressBarElement.style.width = "0%";
-                }
-            }
+            // Update Video Category
+            videoCategoryElement.textContent = `Category: ${data.category}` || "Category: N/A";
     
-            // Function to display browsing presence
-            function displayBrowsingPresence() {
-                nowPlayingBox.classList.remove("offline");
-                offlineIndicatorElement.style.display = "none";
+            // Update Description
+            videoDescriptionElement.textContent = data.description || "No description available.";
     
-                // Update Title
-                videoTitleElement.textContent = "YouTube";
+            // Handle Progress Bar Update
+            handleRealTimeProgress(data);
+        }
     
-                // Update Thumbnail
-                videoThumbnailElement.src = "/youtube_thumbnail.png"; // Replace with the path to your YouTube logo or thumbnail
-                videoThumbnailElement.style.display = "block";
-    
-                // Set browsing description
-                videoDescriptionElement.textContent = "Browsing videos on YouTube";
-    
-                // Clear other details since this is browsing
-                channelNameElement.textContent = "Browsing...";
-                viewCountElement.textContent = "";
-                likeCountElement.textContent = "";
-                publishedDateElement.textContent = "";
-                videoCategoryElement.textContent = "";
+        // Function to handle real-time video progress updates
+        function handleRealTimeProgress(data) {
+            if (data.duration && data.currentTime) {
+                const progressPercentage = (data.currentTime / data.duration) * 100;
+                progressBarElement.style.width = `${progressPercentage}%`;
+            } else {
                 progressBarElement.style.width = "0%";
             }
+        }
     
-            // Socket.IO event handlers
-            socket.on("connect", () => {
-                console.log("[Socket.IO] Connected to server.");
-                socket.emit('requestLatestData');
-            });
+        // Function to display browsing presence
+        function displayBrowsingPresence() {
+            nowPlayingBox.classList.remove("offline");
+            offlineIndicatorElement.style.display = "none";
     
-            socket.on("presenceUpdate", (data) => {
-                console.log("[Socket.IO] Received presenceUpdate:", data);
-                lastHeartbeatReceived = Date.now();
+            // Update Title
+            videoTitleElement.textContent = "YouTube";
     
-                if (data.presenceType === 'video') {
-                    displayVideoPresence(data);
-                } else if (data.presenceType === 'browsing') {
-                    displayBrowsingPresence();
-                } else {
-                    clearDisplay();
-                }
-            });
+            // Update Thumbnail
+            videoThumbnailElement.src = "/youtube_thumbnail.png"; // Replace with the path to your YouTube logo or thumbnail
+            videoThumbnailElement.style.display = "block";
     
-            socket.on("heartbeat", (data) => {
-                if (data.videoId) {
-                    console.log(`[Heartbeat] Received heartbeat for video ID: ${data.videoId}`);
-                    lastHeartbeatReceived = Date.now();
-                }
-            });
+            // Set browsing description
+            videoDescriptionElement.textContent = "Browsing videos on YouTube";
     
-            socket.on("disconnect", () => {
-                console.warn("[Socket.IO] Disconnected from server.");
+            // Clear other details since this is browsing
+            channelNameElement.textContent = "Browsing...";
+            viewCountElement.textContent = "";
+            likeCountElement.textContent = "";
+            publishedDateElement.textContent = "";
+            videoCategoryElement.textContent = "";
+            progressBarElement.style.width = "0%";
+        }
+    
+        // Socket.IO event handlers
+        socket.on("connect", () => {
+            console.log("[Socket.IO] Connected to server.");
+            socket.emit('requestLatestData');
+        });
+    
+        socket.on("presenceUpdate", (data) => {
+            console.log("[Socket.IO] Received presenceUpdate:", data);
+            lastHeartbeatReceived = Date.now();
+    
+            if (data.presenceType === 'video') {
+                displayVideoPresence(data);
+            } else if (data.presenceType === 'browsing') {
+                displayBrowsingPresence();
+            } else {
                 clearDisplay();
-            });
+            }
+        });
     
-            // Periodic check for missed heartbeats
-            setInterval(() => {
-                if (Date.now() - lastHeartbeatReceived > 60000) { // 60 seconds timeout
-                    console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
-                    clearDisplay();
-                }
-            }, 15000); // Check every 15 seconds
+        socket.on("heartbeat", (data) => {
+            if (data.videoId) {
+                console.log(`[Heartbeat] Received heartbeat for video ID: ${data.videoId}`);
+                lastHeartbeatReceived = Date.now();
+            }
+        });
     
-            // Toggle Description Modal
-            toggleDescriptionButton.addEventListener("click", function () {
-                if (descriptionModal.style.display === "block") {
-                    descriptionModal.style.display = "none";
-                    toggleDescriptionButton.textContent = "Show Description";
-                } else {
-                    descriptionModal.style.display = "block";
-                    toggleDescriptionButton.textContent = "Hide Description";
-                }
-            });
+        socket.on("disconnect", () => {
+            console.warn("[Socket.IO] Disconnected from server.");
+            clearDisplay();
+        });
     
-            // Close Description Modal when clicking the close button
-            closeDescriptionButton.addEventListener("click", function () {
+        // Periodic check for missed heartbeats
+        setInterval(() => {
+            if (Date.now() - lastHeartbeatReceived > 60000) { // 60 seconds timeout
+                console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
+                clearDisplay();
+            }
+        }, 15000); // Check every 15 seconds
+    
+        // Toggle Description Modal
+        toggleDescriptionButton.addEventListener("click", function () {
+            if (descriptionModal.style.display === "block") {
                 descriptionModal.style.display = "none";
                 toggleDescriptionButton.textContent = "Show Description";
-            });
-    
-            // Close Description Modal when clicking outside the modal content
-            window.addEventListener("click", function (event) {
-                if (event.target === descriptionModal) {
-                    descriptionModal.style.display = "none";
-                    toggleDescriptionButton.textContent = "Show Description";
-                }
-            });
+            } else {
+                descriptionModal.style.display = "block";
+                toggleDescriptionButton.textContent = "Hide Description";
+            }
         });
+    
+        // Close Description Modal when clicking the close button
+        closeDescriptionButton.addEventListener("click", function () {
+            descriptionModal.style.display = "none";
+            toggleDescriptionButton.textContent = "Show Description";
+        });
+    
+        // Close Description Modal when clicking outside the modal content
+        window.addEventListener("click", function (event) {
+            if (event.target === descriptionModal) {
+                descriptionModal.style.display = "none";
+                toggleDescriptionButton.textContent = "Show Description";
+            }
+        });
+    });
     </script>
 
 
