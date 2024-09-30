@@ -1203,8 +1203,9 @@ app.post('/logout', (req, res) => {
 
 
 
-let currentPresence = null; // Holds the current presence data ('video' or 'browsing')
-const presenceHeartbeat = {}; // Tracks last heartbeat time per presence ID
+let currentVideo = null; // Holds the currently playing video data
+let currentBrowsing = null; // Holds the current browsing data
+const videoHeartbeat = {}; // Tracks last heartbeat time per video ID
 
 // Heartbeat Timeout Parameters
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
@@ -1213,154 +1214,118 @@ io.on('connection', (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
     // Send the current presence status to the newly connected client
-    if (currentPresence) {
-        socket.emit('presenceUpdate', currentPresence);
+    if (currentVideo) {
+        socket.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
+    } else if (currentBrowsing) {
+        socket.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
     } else {
-        socket.emit('presenceUpdate', {}); // Empty data indicates no presence
+        socket.emit('presenceUpdate', {}); // Empty data indicates offline
     }
 
-    // Handle presenceUpdate from background script
-    socket.on('presenceUpdate', (data, callback) => {
-        logger.info(`[Socket.IO] Received "presenceUpdate" from client ${socket.id}: ${JSON.stringify(data)}`);
+    // Handle updateVideoTitle from content script
+    socket.on('updateVideoTitle', async (data, callback) => {
+        logger.info(`[Socket.IO] Received "updateVideoTitle" from client ${socket.id}: ${JSON.stringify(data)}`);
 
-        const { presenceType } = data;
+        const { videoId, title, description, channelTitle, viewCount, likeCount, publishedAt, category, thumbnail, duration } = data;
 
-        if (presenceType === 'video') {
-            const { videoId, title, description, channelTitle, viewCount, likeCount, publishedAt, category, thumbnail, duration, currentTime, isPaused } = data;
+        // Update internal server state to match the current video
+        currentVideo = {
+            videoId,
+            title,
+            description,
+            channelTitle,
+            viewCount,
+            likeCount,
+            publishedAt,
+            category,
+            thumbnail,
+            duration,
+            currentTime: 0,
+            isPaused: false
+        };
 
-            // Update current presence
-            currentPresence = {
-                presenceType,
-                videoId,
-                title,
-                description,
-                channelTitle,
-                viewCount,
-                likeCount,
-                publishedAt,
-                category,
-                thumbnail,
-                duration,
-                currentTime,
-                isPaused
-            };
+        // Reset browsing presence as we're now watching a video
+        currentBrowsing = null;
 
-            // Initialize heartbeat timestamp
-            presenceHeartbeat[videoId] = Date.now();
+        // Initialize heartbeat timestamp
+        videoHeartbeat[videoId] = Date.now();
 
-            // Emit to all connected clients
-            io.emit('presenceUpdate', currentPresence);
-            logger.info(`[Socket.IO] Emitted "presenceUpdate" to all clients: ${JSON.stringify(currentPresence)}`);
+        // Emit to all connected clients
+        io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
+        logger.info(`[Socket.IO] Emitted "presenceUpdate" for video to all clients: ${JSON.stringify(currentVideo)}`);
 
-            if (callback) callback({ status: "ok" });
-
-        } else if (presenceType === 'browsing') {
-            const { browsingVideos, timeElapsed } = data;
-
-            // Use a unique ID for browsing presence
-            const browsingId = 'browsing';
-
-            // Update current presence
-            currentPresence = {
-                presenceType,
-                browsingVideos,
-                timeElapsed
-            };
-
-            // Initialize heartbeat timestamp
-            presenceHeartbeat[browsingId] = Date.now();
-
-            // Emit to all connected clients
-            io.emit('presenceUpdate', currentPresence);
-            logger.info(`[Socket.IO] Emitted "presenceUpdate" for browsing to all clients: ${JSON.stringify(currentPresence)}`);
-
-            if (callback) callback({ status: "ok" });
-        } else {
-            logger.warn(`[Socket.IO] Unknown presenceType received: ${presenceType}`);
-            if (callback) callback({ status: "error", message: "Unknown presenceType" });
-        }
+        if (callback) callback({ status: "ok" });
     });
 
     // Handle real-time video progress updates
     socket.on('updateVideoProgress', (data) => {
-        const { presenceType } = data;
+        const { videoId, currentTime, duration, isPaused } = data;
 
-        if (presenceType === 'video') {
-            const { videoId, currentTime, duration, isPaused } = data;
+        // Update the video progress only if the video IDs match
+        if (currentVideo && currentVideo.videoId === videoId) {
+            currentVideo.currentTime = currentTime;
+            currentVideo.duration = duration;
+            currentVideo.isPaused = isPaused;
 
-            if (currentPresence && currentPresence.presenceType === 'video' && currentPresence.videoId === videoId) {
-                currentPresence.currentTime = currentTime;
-                currentPresence.duration = duration;
-                currentPresence.isPaused = isPaused;
+            // Update heartbeat timestamp
+            videoHeartbeat[videoId] = Date.now();
 
-                // Update heartbeat timestamp
-                presenceHeartbeat[videoId] = Date.now();
-
-                // Emit the updated presence data to all clients
-                io.emit('presenceUpdate', currentPresence);
-                logger.info(`[Socket.IO] Updated video progress and emitted to all clients: ${JSON.stringify(currentPresence)}`);
-            } else {
-                logger.warn(`[Socket.IO] Video ID mismatch for progress update. Expected: ${currentPresence ? currentPresence.videoId : 'None'}, Received: ${videoId}`);
-            }
+            // Emit the updated progress data to all clients
+            io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
+            logger.info(`[Socket.IO] Real-time update for video: ${JSON.stringify(currentVideo)}`);
+        } else {
+            logger.warn(`[Socket.IO] Video ID mismatch for progress update. Expected: ${currentVideo ? currentVideo.videoId : 'None'}, Received: ${videoId}`);
         }
     });
 
-    // Handle browsing time updates
-    socket.on('updateBrowsingTime', (data) => {
-        const { presenceType, browsingVideos, timeElapsed } = data;
+    // Handle browsing presence update
+    socket.on('updateBrowsingPresence', (data, callback) => {
+        logger.info(`[Socket.IO] Received "updateBrowsingPresence" from client ${socket.id}: ${JSON.stringify(data)}`);
 
-        if (presenceType === 'browsing') {
-            // Use the unique browsing ID
-            const browsingId = 'browsing';
+        const { browsingVideos, timeElapsed } = data;
 
-            if (currentPresence && currentPresence.presenceType === 'browsing') {
-                currentPresence.browsingVideos = browsingVideos;
-                currentPresence.timeElapsed = timeElapsed;
+        currentBrowsing = {
+            browsingVideos,
+            timeElapsed
+        };
 
-                // Update heartbeat timestamp
-                presenceHeartbeat[browsingId] = Date.now();
+        // Reset video presence as we're now browsing
+        currentVideo = null;
 
-                // Emit the updated presence data to all clients
-                io.emit('presenceUpdate', currentPresence);
-                logger.info(`[Socket.IO] Updated browsing time and emitted to all clients: ${JSON.stringify(currentPresence)}`);
-            } else {
-                logger.warn(`[Socket.IO] Received browsing time update but current presence is not browsing.`);
-            }
-        }
+        // Emit to all connected clients
+        io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
+        logger.info(`[Socket.IO] Emitted "presenceUpdate" for browsing to all clients: ${JSON.stringify(currentBrowsing)}`);
+
+        if (callback) callback({ status: "ok" });
     });
 
     // Handle heartbeat from background script
     socket.on('heartbeat', (data, callback) => {
         const { videoId } = data;
-        const browsingId = 'browsing';
-
-        if (videoId === browsingId && currentPresence && currentPresence.presenceType === 'browsing') {
-            presenceHeartbeat[browsingId] = Date.now();
-            logger.info(`[Socket.IO] Heartbeat received for browsing presence.`);
-            if (callback) callback({ status: "ok" });
-        } else if (currentPresence && currentPresence.presenceType === 'video' && currentPresence.videoId === videoId) {
-            presenceHeartbeat[videoId] = Date.now();
+        if (videoId && currentVideo && currentVideo.videoId === videoId) {
+            videoHeartbeat[videoId] = Date.now();
             logger.info(`[Socket.IO] Heartbeat received for video ID: ${videoId}`);
+
             if (callback) callback({ status: "ok" });
         } else {
-            logger.warn(`[Socket.IO] Received heartbeat for unknown or inactive presence ID: ${videoId}`);
-            if (callback) callback({ status: "error", message: "Unknown presence ID" });
+            logger.warn(`[Socket.IO] Received heartbeat for unknown or inactive video ID: ${videoId}`);
+            if (callback) callback({ status: "error", message: "Unknown video ID" });
         }
     });
 
     // Handle marking video as offline
     socket.on('markVideoOffline', (data, callback) => {
         const { videoId } = data;
-        if (currentPresence && currentPresence.presenceType === 'video' && currentPresence.videoId === videoId) {
+        if (currentVideo && currentVideo.videoId === videoId) {
             logger.info(`[Socket.IO] Marking video ID ${videoId} as offline.`);
-            currentPresence = null;
+            currentVideo = null;
 
             // Remove heartbeat tracking
-            delete presenceHeartbeat[videoId];
+            delete videoHeartbeat[videoId];
 
             // Emit to all connected clients
-            io.emit('presenceUpdate', {});
-            logger.info(`[Socket.IO] Emitted "presenceUpdate" with empty data to indicate offline.`);
+            io.emit('presenceUpdate', { presenceType: 'offline' });
+            logger.info(`[Socket.IO] Emitted "presenceUpdate" with offline status to all clients.`);
             if (callback) callback({ status: "ok" });
         } else {
             logger.warn(`[Socket.IO] Attempted to mark unknown or different video ID ${videoId} as offline.`);
@@ -1368,24 +1333,26 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle clearing of previous presence data
+    // Handle clearing of previous video data
     socket.on('clearPreviousVideoData', () => {
         logger.info(`[Socket.IO] Received "clearPreviousVideoData" from client ${socket.id}`);
 
-        // Clear the current presence data
-        currentPresence = null;
+        // Clear the current video and browsing data
+        currentVideo = null;
+        currentBrowsing = null;
 
         // Clear all heartbeat tracking
-        Object.keys(presenceHeartbeat).forEach(presenceId => delete presenceHeartbeat[presenceId]);
+        Object.keys(videoHeartbeat).forEach(videoId => delete videoHeartbeat[videoId]);
 
         // Emit the cleared state to all clients
-        io.emit('presenceUpdate', {});
-        logger.info(`[Socket.IO] Cleared current presence data and emitted empty state to all clients.`);
+        io.emit('presenceUpdate', { presenceType: 'offline' });
+        logger.info(`[Socket.IO] Cleared current presence data and emitted offline status to all clients.`);
     });
 
     // Handle client disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
+
         // Optionally, you can handle cleanup here if necessary
     });
 });
@@ -1393,26 +1360,18 @@ io.on('connection', (socket) => {
 // Periodic Heartbeat Timeout Check
 setInterval(() => {
     const now = Date.now();
-    for (const [presenceId, lastHeartbeat] of Object.entries(presenceHeartbeat)) {
+    for (const [videoId, lastHeartbeat] of Object.entries(videoHeartbeat)) {
         if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
-            if (presenceId === 'browsing') {
-                logger.warn(`[Heartbeat] No heartbeat received for browsing presence within timeout. Marking as offline.`);
-                if (currentPresence && currentPresence.presenceType === 'browsing') {
-                    currentPresence = null;
-                    io.emit('presenceUpdate', {});
-                    logger.info(`[Heartbeat] Emitted "presenceUpdate" with empty data to indicate offline.`);
-                }
-            } else {
-                logger.warn(`[Heartbeat] No heartbeat received for video ID ${presenceId} within timeout. Marking as offline.`);
-                if (currentPresence && currentPresence.presenceType === 'video' && currentPresence.videoId === presenceId) {
-                    currentPresence = null;
-                    io.emit('presenceUpdate', {});
-                    logger.info(`[Heartbeat] Emitted "presenceUpdate" with empty data to indicate offline.`);
-                }
+            logger.warn(`[Heartbeat] No heartbeat received for video ID ${videoId} within timeout. Marking as offline.`);
+            // Mark the video as offline
+            if (currentVideo && currentVideo.videoId === videoId) {
+                currentVideo = null;
+                io.emit('presenceUpdate', { presenceType: 'offline' });
+                logger.info(`[Heartbeat] Emitted "presenceUpdate" with offline status to all clients.`);
             }
 
             // Remove heartbeat tracking
-            delete presenceHeartbeat[presenceId];
+            delete videoHeartbeat[videoId];
         }
     }
 }, HEARTBEAT_TIMEOUT / 2); // Check twice within the timeout period
