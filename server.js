@@ -1234,32 +1234,27 @@ app.post('/logout', (req, res) => {
 
 
 
-let currentVideo = null; // Holds the currently playing video data
-let currentBrowsing = null; // Holds the current browsing data
-const videoHeartbeat = {}; // Tracks last heartbeat time per video ID
-
-// Heartbeat Timeout Parameters
-const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
+let currentVideo = null;
+let currentBrowsing = null;
+const videoHeartbeat = {};
+const HEARTBEAT_TIMEOUT = 60000;
 
 io.on('connection', (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
-    // Send the current presence status to the newly connected client
     if (currentVideo) {
         socket.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
     } else if (currentBrowsing) {
         socket.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
     } else {
-        socket.emit('presenceUpdate', { presenceType: 'offline' }); // Explicit offline status
+        socket.emit('presenceUpdate', { presenceType: 'offline' });
     }
 
-    // Handle updateVideoTitle from content script
     socket.on('updateVideoTitle', async (data, callback) => {
         logger.info(`[Socket.IO] Received "updateVideoTitle" from client ${socket.id}: ${JSON.stringify(data)}`);
 
         const { videoId, title, description, channelTitle, viewCount, likeCount, publishedAt, category, thumbnail, duration } = data;
 
-        // Update internal server state to match the current video
         currentVideo = {
             videoId,
             title,
@@ -1275,20 +1270,15 @@ io.on('connection', (socket) => {
             isPaused: false
         };
 
-        // Reset browsing presence as we're now watching a video
         currentBrowsing = null;
-
-        // Initialize heartbeat timestamp
         videoHeartbeat[videoId] = Date.now();
 
-        // Emit to all connected clients
         io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
         logger.info(`[Socket.IO] Emitted "presenceUpdate" for video to all clients: ${JSON.stringify(currentVideo)}`);
 
         if (callback) callback({ status: "ok" });
     });
 
-    // Handle real-time video progress updates
     socket.on('updateVideoProgress', (data) => {
         const { videoId, currentTime, duration, isPaused } = data;
 
@@ -1297,16 +1287,12 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // Update the video progress only if the video IDs match
         if (currentVideo.videoId === videoId) {
             currentVideo.currentTime = currentTime;
             currentVideo.duration = duration;
             currentVideo.isPaused = isPaused;
 
-            // Update heartbeat timestamp
             videoHeartbeat[videoId] = Date.now();
-
-            // Emit the updated progress data to all connected clients
             io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
             logger.info(`[Socket.IO] Real-time update for video: ${JSON.stringify(currentVideo)}`);
         } else {
@@ -1314,32 +1300,25 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle browsing presence update
     socket.on('updateBrowsingPresence', (data, callback) => {
         logger.info(`[Socket.IO] Received "updateBrowsingPresence" from client ${socket.id}: ${JSON.stringify(data)}`);
 
         const { browsingVideos, timeElapsed } = data;
 
-        // Update browsing state
         currentBrowsing = {
             browsingVideos,
             timeElapsed
         };
 
-        // Clear video presence as we're now browsing
         currentVideo = null;
-
-        // Clear all video heartbeats since no video is currently playing
         clearAllHeartbeats();
 
-        // Emit to all connected clients
         io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
         logger.info(`[Socket.IO] Emitted "presenceUpdate" for browsing to all clients: ${JSON.stringify(currentBrowsing)}`);
 
         if (callback) callback({ status: "ok" });
     });
 
-    // Handle heartbeat from background script
     socket.on('heartbeat', (data, callback) => {
         const { videoId } = data;
         if (videoId && currentVideo && currentVideo.videoId === videoId) {
@@ -1353,17 +1332,13 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle marking video as offline
     socket.on('markVideoOffline', (data, callback) => {
         const { videoId } = data;
         if (currentVideo && currentVideo.videoId === videoId) {
             logger.info(`[Socket.IO] Marking video ID ${videoId} as offline.`);
             currentVideo = null;
 
-            // Remove heartbeat tracking
             delete videoHeartbeat[videoId];
-
-            // Emit to all connected clients
             io.emit('presenceUpdate', { presenceType: 'offline' });
             logger.info(`[Socket.IO] Emitted "presenceUpdate" with offline status to all clients.`);
             if (callback) callback({ status: "ok" });
@@ -1373,48 +1348,39 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle clearing of previous video data
     socket.on('clearPreviousVideoData', () => {
         logger.info(`[Socket.IO] Received "clearPreviousVideoData" from client ${socket.id}`);
 
-        // Clear the current video and browsing data
         currentVideo = null;
         currentBrowsing = null;
 
-        // Clear all heartbeat tracking
         clearAllHeartbeats();
 
-        // Emit the cleared state to all clients
         io.emit('presenceUpdate', { presenceType: 'offline' });
         logger.info(`[Socket.IO] Cleared current presence data and emitted offline status to all clients.`);
     });
 
-    // Handle client disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
     });
 });
 
-// Clear all heartbeat data
 function clearAllHeartbeats() {
     Object.keys(videoHeartbeat).forEach(videoId => delete videoHeartbeat[videoId]);
 }
 
-// Periodic Heartbeat Timeout Check
 setInterval(() => {
     const now = Date.now();
     for (const [videoId, lastHeartbeat] of Object.entries(videoHeartbeat)) {
         if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
             logger.warn(`[Heartbeat] No heartbeat received for video ID ${videoId} within timeout. Marking as offline.`);
 
-            // Mark the video as offline
             if (currentVideo && currentVideo.videoId === videoId) {
                 currentVideo = null;
                 io.emit('presenceUpdate', { presenceType: 'offline' });
                 logger.info(`[Heartbeat] Emitted "presenceUpdate" with offline status to all clients.`);
             }
 
-            // Remove heartbeat tracking
             delete videoHeartbeat[videoId];
         }
     }
