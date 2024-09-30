@@ -91,37 +91,34 @@
             </div>
         </div>
 
-
-
-            <div class="widgets-container">
-                <div class="live-clock box-container">
-                    <h3>My Current Time</h3>
-                    <div class="clock-container">
-                        <div class="clock">
-                            <p id="local-time">--:--:--</p>
-                            <p id="current-date">24 Sep 2024</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="weather-widget box-container">
-                    <h3>My Current Weather</h3>
-                    <div class="weather-info">
-                        <img id="weather-icon" src="" alt="Weather Icon" loading="lazy" style="display: none;">
-                        <p id="weather-description">Loading...</p>
-                        <p id="temperature">--°C</p>
-                        <p id="humidity">Humidity: --%</p>
-                        <p id="wind-speed">Wind: -- m/s</p>
+        <div class="widgets-container">
+            <div class="live-clock box-container">
+                <h3>My Current Time</h3>
+                <div class="clock-container">
+                    <div class="clock">
+                        <p id="local-time">--:--:--</p>
+                        <p id="current-date">24 Sep 2024</p>
                     </div>
                 </div>
             </div>
 
-            <div class="content-wrapper">
-                <div class="now-playing-about-wrapper">
-                    <div class="about box-container" id="aboutMe">
-                        <h2>About Me</h2>
-                        <p>Hey there, I'm Hystoriya, a 24-year-old developer. This is my personal website that I made for no apparent reason. If you find yourself here randomly, then hi :)</p>
-                    </div>
+            <div class="weather-widget box-container">
+                <h3>My Current Weather</h3>
+                <div class="weather-info">
+                    <img id="weather-icon" src="" alt="Weather Icon" loading="lazy" style="display: none;">
+                    <p id="weather-description">Loading...</p>
+                    <p id="temperature">--°C</p>
+                    <p id="humidity">Humidity: --%</p>
+                    <p id="wind-speed">Wind: -- m/s</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-wrapper">
+            <div class="now-playing-about-wrapper">
+                <div class="about box-container" id="aboutMe">
+                    <h2>About Me</h2>
+                    <p>Hey there, I'm Hystoriya, a 24-year-old developer. This is my personal website that I made for no apparent reason. If you find yourself here randomly, then hi :)</p>
                 </div>
             </div>
         </div>
@@ -153,233 +150,170 @@
     <script src="haru.js"></script>
 
     <!-- Now Playing Update Script -->
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const socket = io("https://mikumiku.dev"); // Ensure this matches your server's URL
-    
-        const nowPlayingBox = document.getElementById("nowPlayingBox");
-        const videoTitleElement = document.getElementById("videoTitle");
-        const videoThumbnailElement = document.getElementById("videoThumbnail");
-        const channelNameElement = document.getElementById("channelName");
-        const viewCountElement = document.getElementById("viewCount");
-        const publishedDateElement = document.getElementById("publishedDate");
-        const videoCategoryElement = document.getElementById("videoCategory");
-        const offlineIndicatorElement = document.getElementById("offline-indicator");
-        const progressBarElement = document.getElementById("progressBar");
-        const likeCountElement = document.getElementById("likeCount"); // Ensure this element exists
-    
-        // Browsing Presence Elements
-        const browsingContainer = document.getElementById("browsingContainer"); // New container for browsing
-        const browsingVideoList = document.getElementById("browsingVideoList"); // List to display browsing videos
-        const browsingTimeElapsed = document.getElementById("browsingTimeElapsed"); // Display time elapsed
-    
-        // Modal Elements
-        const descriptionModal = document.getElementById("descriptionModal");
-        const closeDescriptionButton = document.getElementById("closeDescriptionButton");
-        const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
-        const videoDescriptionElement = document.getElementById("videoDescription");
-    
-        // Helper function to format numbers with commas
-        function formatNumber(number) {
-            if (typeof number === 'string') {
-                number = number.replace(/,/g, ''); // Remove existing commas
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const socket = io("https://mikumiku.dev"); // Ensure this matches your server's URL
+            let lastHeartbeatReceived = Date.now();
+
+            const nowPlayingBox = document.getElementById("nowPlayingBox");
+            const videoTitleElement = document.getElementById("videoTitle");
+            const videoThumbnailElement = document.getElementById("videoThumbnail");
+            const channelNameElement = document.getElementById("channelName");
+            const viewCountElement = document.getElementById("viewCount");
+            const publishedDateElement = document.getElementById("publishedDate");
+            const videoCategoryElement = document.getElementById("videoCategory");
+            const offlineIndicatorElement = document.getElementById("offline-indicator");
+            const progressBarElement = document.getElementById("progressBar");
+            const likeCountElement = document.getElementById("likeCount");
+            const videoDescriptionElement = document.getElementById("videoDescription");
+
+            // Modal Elements
+            const descriptionModal = document.getElementById("descriptionModal");
+            const closeDescriptionButton = document.getElementById("closeDescriptionButton");
+            const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
+
+            // Helper function to format numbers with commas
+            function formatNumber(number) {
+                if (typeof number === 'string') {
+                    number = number.replace(/,/g, ''); // Remove existing commas
+                }
+                const num = Number(number);
+                return isNaN(num) ? "N/A" : num.toLocaleString();
             }
-            const num = Number(number);
-            return isNaN(num) ? "N/A" : num.toLocaleString();
-        }
-    
-        // Function to clear all display elements
-        function clearDisplay() {
-            nowPlayingBox.classList.remove("offline");
-            offlineIndicatorElement.style.display = "none";
-            videoTitleElement.textContent = "";
-            videoThumbnailElement.src = "";
-            videoThumbnailElement.style.display = "none";
-            channelNameElement.textContent = "";
-            viewCountElement.textContent = "";
-            likeCountElement.textContent = "";
-            publishedDateElement.textContent = "";
-            videoCategoryElement.textContent = "";
-            progressBarElement.style.width = "0%";
-            videoDescriptionElement.textContent = "";
-    
-            // Clear browsing elements
-            if (browsingVideoList) browsingVideoList.innerHTML = "";
-            if (browsingTimeElapsed) browsingTimeElapsed.textContent = "";
-            if (browsingContainer) browsingContainer.style.display = "none";
-        }
-    
-        // Function to display video presence
-        function displayVideoPresence(data) {
-            clearDisplay();
-    
-            // Update Now Playing section with received data
-            nowPlayingBox.classList.remove("offline");
-            offlineIndicatorElement.style.display = "none";
-    
-            // Update Title
-            videoTitleElement.textContent = data.title || "Unknown Title";
-    
-            // Update Thumbnail
-            if (data.thumbnail) {
-                videoThumbnailElement.src = data.thumbnail;
-                videoThumbnailElement.style.display = "block";
-            } else {
-                videoThumbnailElement.src = "";
-                videoThumbnailElement.style.display = "none";
-            }
-    
-            // Update Channel Name
-            channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-    
-            // Update View Count with commas
-            viewCountElement.textContent = `Views: ${formatNumber(data.viewCount)}` || "Views: N/A";
-    
-            // Update Like Count with commas
-            likeCountElement.textContent = `Likes: ${formatNumber(data.likeCount)}` || "Likes: N/A";
-    
-            // Update Published Date
-            if (data.publishedAt) {
-                const publishedDate = new Date(data.publishedAt);
-                publishedDateElement.textContent = `Published on: ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
-            } else {
-                publishedDateElement.textContent = "Published on: N/A";
-            }
-    
-            // Update Video Category
-            videoCategoryElement.textContent = `Category: ${data.category}` || "Category: N/A";
-    
-            // Update Description
-            videoDescriptionElement.textContent = data.description || "No description available.";
-    
-            // Handle Progress Bar Update
-            handleRealTimeProgress(data);
-        }
-    
-        // Function to handle real-time video progress updates
-        function handleRealTimeProgress(data) {
-            if (data.duration && data.currentTime) {
-                const progressPercentage = (data.currentTime / data.duration) * 100;
-                progressBarElement.style.width = `${progressPercentage}%`;
-            } else {
-                progressBarElement.style.width = "0%";
-            }
-        }
-    
-        // Function to display browsing presence
-        function displayBrowsingPresence(data) {
-            clearDisplay();
-    
-            if (!browsingContainer) return; // Ensure the browsing container exists
-    
-            browsingContainer.style.display = "block";
-            browsingVideoList.innerHTML = "";
-    
-            // Display browsing videos
-            data.browsingVideos.forEach(video => {
-                const videoItem = document.createElement("div");
-                videoItem.classList.add("browsing-video-item");
-    
-                const thumbnail = document.createElement("img");
-                thumbnail.src = video.thumbnail;
-                thumbnail.alt = video.title;
-                thumbnail.classList.add("browsing-video-thumbnail");
-    
-                const title = document.createElement("p");
-                title.textContent = video.title;
-                title.classList.add("browsing-video-title");
-    
-                videoItem.appendChild(thumbnail);
-                videoItem.appendChild(title);
-                browsingVideoList.appendChild(videoItem);
-            });
-    
-            // Display time elapsed
-            const minutes = Math.floor(data.timeElapsed / 60);
-            const seconds = data.timeElapsed % 60;
-            browsingTimeElapsed.textContent = `Time Elapsed: ${minutes}m ${seconds}s`;
-        }
-    
-        // Socket.IO event handlers
-        socket.on("connect", () => {
-            console.log("[Socket.IO] Connected to server.");
-            // Optionally, request the latest data upon connection
-            socket.emit('requestLatestData');
-        });
-    
-        socket.on("presenceUpdate", (data) => {
-            console.log("[Socket.IO] Received presenceUpdate:", data);
-    
-            if (!data.presenceType) {
-                // No presence data indicates offline
-                clearDisplay();
+
+            // Function to clear all display elements
+            function clearDisplay() {
                 nowPlayingBox.classList.add("offline");
                 offlineIndicatorElement.style.display = "block";
-                videoTitleElement.textContent = "I’m not on YouTube at the moment, sorry :(";
-                return;
+                videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
+                videoThumbnailElement.src = "";
+                videoThumbnailElement.style.display = "none";
+                channelNameElement.textContent = "";
+                viewCountElement.textContent = "";
+                likeCountElement.textContent = "";
+                publishedDateElement.textContent = "";
+                videoCategoryElement.textContent = "";
+                progressBarElement.style.width = "0%";
+                videoDescriptionElement.textContent = "";
             }
-    
-            if (data.presenceType === 'video') {
-                displayVideoPresence(data);
-            } else if (data.presenceType === 'browsing') {
-                displayBrowsingPresence(data);
+
+            // Function to display video presence
+            function displayVideoPresence(data) {
+                lastHeartbeatReceived = Date.now();
+                nowPlayingBox.classList.remove("offline");
+                offlineIndicatorElement.style.display = "none";
+
+                // Update Title
+                videoTitleElement.textContent = data.title || "Unknown Title";
+
+                // Update Thumbnail
+                if (data.thumbnail) {
+                    videoThumbnailElement.src = data.thumbnail;
+                    videoThumbnailElement.style.display = "block";
+                } else {
+                    videoThumbnailElement.src = "";
+                    videoThumbnailElement.style.display = "none";
+                }
+
+                // Update Channel Name
+                channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+
+                // Update View Count with commas
+                viewCountElement.textContent = `Views: ${formatNumber(data.viewCount)}` || "Views: N/A";
+
+                // Update Like Count with commas
+                likeCountElement.textContent = `Likes: ${formatNumber(data.likeCount)}` || "Likes: N/A";
+
+                // Update Published Date
+                if (data.publishedAt) {
+                    const publishedDate = new Date(data.publishedAt);
+                    publishedDateElement.textContent = `Published on: ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
+                } else {
+                    publishedDateElement.textContent = "Published on: N/A";
+                }
+
+                // Update Video Category
+                videoCategoryElement.textContent = `Category: ${data.category}` || "Category: N/A";
+
+                // Update Description
+                videoDescriptionElement.textContent = data.description || "No description available.";
+
+                // Handle Progress Bar Update
+                handleRealTimeProgress(data);
             }
-        });
-    
-        socket.on("disconnect", () => {
-            console.warn("[Socket.IO] Disconnected from server.");
-            clearDisplay();
-            nowPlayingBox.classList.add("offline");
-            offlineIndicatorElement.style.display = "block";
-            videoTitleElement.textContent = "I’m not on YouTube at the moment, sorry :(";
-        });
-    
-        // Listen for beforeunload event to mark offline
-        window.addEventListener("beforeunload", () => {
-            clearDisplay();
-            nowPlayingBox.classList.add("offline");
-            offlineIndicatorElement.style.display = "block";
-            videoTitleElement.textContent = "I’m not on YouTube at the moment, sorry :(";
-            // Optionally, inform the server that the tab is closing
-            socket.emit('tabClosed');
-        });
-    
-        // Listen for visibility change events
-        document.addEventListener("visibilitychange", function () {
-            if (document.hidden) {
-                console.log("[Now Playing] Tab is hidden. Pausing UI updates.");
-            } else {
-                console.log("[Now Playing] Tab is visible. Resuming UI updates.");
-                // Optionally, request the latest data when the tab becomes visible
+
+            // Function to handle real-time video progress updates
+            function handleRealTimeProgress(data) {
+                if (data.duration && data.currentTime) {
+                    const progressPercentage = (data.currentTime / data.duration) * 100;
+                    progressBarElement.style.width = `${progressPercentage}%`;
+                } else {
+                    progressBarElement.style.width = "0%";
+                }
+            }
+
+            // Socket.IO event handlers
+            socket.on("connect", () => {
+                console.log("[Socket.IO] Connected to server.");
                 socket.emit('requestLatestData');
-            }
-        });
-    
-        // Toggle Description Modal
-        toggleDescriptionButton.addEventListener("click", function () {
-            if (descriptionModal.style.display === "block") {
+            });
+
+            socket.on("presenceUpdate", (data) => {
+                console.log("[Socket.IO] Received presenceUpdate:", data);
+                lastHeartbeatReceived = Date.now();
+
+                if (data.presenceType === 'video') {
+                    displayVideoPresence(data);
+                } else {
+                    clearDisplay();
+                }
+            });
+
+            socket.on("heartbeat", (data) => {
+                if (data.videoId) {
+                    console.log(`[Heartbeat] Received heartbeat for video ID: ${data.videoId}`);
+                    lastHeartbeatReceived = Date.now();
+                }
+            });
+
+            socket.on("disconnect", () => {
+                console.warn("[Socket.IO] Disconnected from server.");
+                clearDisplay();
+            });
+
+            // Periodic check for missed heartbeats
+            setInterval(() => {
+                if (Date.now() - lastHeartbeatReceived > 60000) { // 60 seconds timeout
+                    console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
+                    clearDisplay();
+                }
+            }, 15000); // Check every 15 seconds
+
+            // Toggle Description Modal
+            toggleDescriptionButton.addEventListener("click", function () {
+                if (descriptionModal.style.display === "block") {
+                    descriptionModal.style.display = "none";
+                    toggleDescriptionButton.textContent = "Show Description";
+                } else {
+                    descriptionModal.style.display = "block";
+                    toggleDescriptionButton.textContent = "Hide Description";
+                }
+            });
+
+            // Close Description Modal when clicking the close button
+            closeDescriptionButton.addEventListener("click", function () {
                 descriptionModal.style.display = "none";
                 toggleDescriptionButton.textContent = "Show Description";
-            } else {
-                descriptionModal.style.display = "block";
-                toggleDescriptionButton.textContent = "Hide Description";
-            }
+            });
+
+            // Close Description Modal when clicking outside the modal content
+            window.addEventListener("click", function (event) {
+                if (event.target === descriptionModal) {
+                    descriptionModal.style.display = "none";
+                    toggleDescriptionButton.textContent = "Show Description";
+                }
+            });
         });
-    
-        // Close Description Modal when clicking the close button
-        closeDescriptionButton.addEventListener("click", function () {
-            descriptionModal.style.display = "none";
-            toggleDescriptionButton.textContent = "Show Description";
-        });
-    
-        // Close Description Modal when clicking outside the modal content
-        window.addEventListener("click", function (event) {
-            if (event.target === descriptionModal) {
-                descriptionModal.style.display = "none";
-                toggleDescriptionButton.textContent = "Show Description";
-            }
-        });
-    });
     </script>
 
     <!-- Clock Update Script -->
