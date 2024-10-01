@@ -759,14 +759,13 @@
                     backgroundFlares.push(flare);
                 }
         
-                // Comets with Improved Speed and Size Variation
+                // Comets with Improved Speed and Orientation
                 const cometTextures = [
                     textureLoader.load('/textures/comet1.png'),
                     textureLoader.load('/textures/comet2.png')
                 ];
                 const cometGeometry = new THREE.PlaneGeometry(1, 1);
                 const comets = [];
-                const cometSprites = [];
         
                 for (let i = 0; i < 8; i++) {
                     const cometMaterial = new THREE.MeshBasicMaterial({
@@ -774,6 +773,7 @@
                         transparent: true,
                         blending: THREE.AdditiveBlending,
                         depthWrite: false,
+                        side: THREE.DoubleSide, // Fixes the issue of comets looking inverted.
                     });
                     const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
         
@@ -782,11 +782,14 @@
                     const sizeFactor = isLarge ? Math.random() * 60 + 40 : Math.random() * 30 + 15;
                     comet.scale.set(sizeFactor, sizeFactor / 2, 1);
                     comet.position.set((Math.random() > 0.5 ? 1 : -1) * (Math.random() * 500 + 500), Math.random() * 500 + 300, -800);
-                    comet.speed = Math.random() * 1.5 + 0.5;  // Varying speeds for comets
+                    comet.speed = Math.random() * 2 + 0.5;  // Increased speed for better visibility.
                     comet.direction = { x: Math.random() > 0.5 ? 1 : -1, y: Math.random() > 0.5 ? 1 : -1 }; // Unique paths
         
                     scene.add(comet);
                     comets.push(comet);
+        
+                    // Correct comet orientation so that they are flying tail-last.
+                    comet.lookAt(camera.position);
                 }
         
                 // Post-processing with Bloom for a subtle glow
@@ -817,11 +820,12 @@
                         if (comet.position.x < -1600 || comet.position.y < -800 || comet.position.x > 1600 || comet.position.y > 800) {
                             // Reset comet to start from the top corners again
                             comet.position.set((Math.random() > 0.5 ? 1 : -1) * (Math.random() * 500 + 500), Math.random() * 500 + 300, -800);
-                            comet.speed = Math.random() * 1.5 + 0.5;  // Reset speed for variation
+                            comet.speed = Math.random() * 2 + 0.5;  // Reset speed for variation
                             const isLarge = Math.random() < 0.1; // 10% chance for larger comets
                             const newSizeFactor = isLarge ? Math.random() * 60 + 40 : Math.random() * 30 + 15; // Reset size with larger values
                             comet.scale.set(newSizeFactor, newSizeFactor / 2, 1);
                             comet.direction = { x: Math.random() > 0.5 ? 1 : -1, y: Math.random() > 0.5 ? 1 : -1 }; // Unique paths
+                            comet.lookAt(camera.position); // Keep the comet oriented properly
                         }
                     });
         
@@ -864,6 +868,7 @@
                 });
             });
         </script>
+
 
 
 
