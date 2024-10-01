@@ -703,7 +703,7 @@
                 renderer.setPixelRatio(window.devicePixelRatio);
         
                 const scene = new THREE.Scene();
-                
+        
                 // Load starfield background texture
                 const textureLoader = new THREE.TextureLoader();
                 textureLoader.load('/textures/nebula.webp', (texture) => {
@@ -711,22 +711,22 @@
                 });
         
                 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-                camera.position.z = 5;
+                camera.position.z = 8;
         
+                // Create Stars Geometry
                 const starGeometry = new THREE.BufferGeometry();
-                const starCount = 1000;
+                const starCount = 2000;
                 const starVertices = new Float32Array(starCount * 3);
         
-                // Generate smaller star particles for depth
                 for (let i = 0; i < starCount * 3; i++) {
                     starVertices[i] = (Math.random() - 0.5) * 1000;
                 }
         
                 starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
                 const starMaterial = new THREE.PointsMaterial({
-                    size: 0.5,
+                    size: Math.random() * 1.2 + 0.3, // Vary the size of stars
                     color: 0xffffff,
-                    opacity: 0.8,
+                    opacity: Math.random() * 0.5 + 0.5, // Add variation in opacity
                     transparent: true,
                     depthWrite: false,
                     blending: THREE.AdditiveBlending
@@ -735,15 +735,62 @@
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
         
-                // Animate the stars and camera
+                // Shooting Stars Setup
+                const shootingStars = [];
+                const shootingStarMaterial = new THREE.MeshBasicMaterial({ color: 0xfff2b3, transparent: true });
+        
+                const createShootingStar = () => {
+                    const shootingStarGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+                    const shootingStar = new THREE.Mesh(shootingStarGeometry, shootingStarMaterial);
+                    scene.add(shootingStar);
+        
+                    // Randomize shooting star start position and velocity
+                    shootingStar.position.set(
+                        (Math.random() - 0.5) * 200,
+                        (Math.random() * 30) + 50,
+                        (Math.random() - 0.5) * 200
+                    );
+        
+                    const velocity = {
+                        x: -Math.random() * 0.5 - 0.5,
+                        y: -Math.random() * 0.8 - 0.6,
+                        z: Math.random() * 0.2 - 0.1
+                    };
+        
+                    shootingStars.push({ mesh: shootingStar, velocity: velocity, life: 0 });
+                };
+        
+                // Animate Stars and Shooting Stars
                 const animate = () => {
                     requestAnimationFrame(animate);
         
-                    stars.rotation.x += 0.0002;
-                    stars.rotation.y += 0.0003;
+                    // Rotate the stars
+                    stars.rotation.x += 0.0001;
+                    stars.rotation.y += 0.0002;
         
-                    camera.position.x = 5 * Math.sin(Date.now() * 0.0001);
-                    camera.position.y = 5 * Math.sin(Date.now() * 0.0001);
+                    // Animate Shooting Stars
+                    shootingStars.forEach((shootingStar, index) => {
+                        shootingStar.mesh.position.x += shootingStar.velocity.x;
+                        shootingStar.mesh.position.y += shootingStar.velocity.y;
+                        shootingStar.mesh.position.z += shootingStar.velocity.z;
+                        shootingStar.life += 0.02;
+        
+                        if (shootingStar.life > 5) {
+                            scene.remove(shootingStar.mesh);
+                            shootingStars.splice(index, 1);
+                        }
+                    });
+        
+                    // Add shooting stars at random intervals
+                    if (Math.random() < 0.02) {
+                        createShootingStar();
+                    }
+        
+                    // Camera Movement
+                    const time = Date.now() * 0.0001;
+                    camera.position.x = Math.sin(time) * 10;
+                    camera.position.z = Math.cos(time) * 10;
+                    camera.position.y = Math.sin(time * 0.5) * 5;
                     camera.lookAt(0, 0, 0);
         
                     renderer.render(scene, camera);
@@ -758,6 +805,7 @@
                 });
             });
         </script>
+
 
 
 
