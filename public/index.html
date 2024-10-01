@@ -695,7 +695,12 @@
             fetchWeather();
         </script>
         
-        <script>
+        <script type="module">
+            import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.module.js';
+            import { EffectComposer } from 'https://cdn.jsdelivr.net/npm/three@0.146.0/examples/jsm/postprocessing/EffectComposer.js';
+            import { RenderPass } from 'https://cdn.jsdelivr.net/npm/three@0.146.0/examples/jsm/postprocessing/RenderPass.js';
+            import { UnrealBloomPass } from 'https://cdn.jsdelivr.net/npm/three@0.146.0/examples/jsm/postprocessing/UnrealBloomPass.js';
+        
             document.addEventListener('DOMContentLoaded', () => {
                 const canvas = document.getElementById('techCanvas');
                 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -706,29 +711,66 @@
         
                 const scene = new THREE.Scene();
         
-                // Load starfield background texture
-                const textureLoader = new THREE.TextureLoader();
-                textureLoader.load('/textures/nebula.webp', (texture) => {
-                    scene.background = texture;
-                });
-        
                 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1500);
                 camera.position.z = 20;
         
-                // Create Stars Geometry
+                // Shader Background
+                const shaderMaterial = new THREE.ShaderMaterial({
+                    uniforms: {
+                        time: { value: 0.0 },
+                        resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+                    },
+                    vertexShader: `
+                        varying vec2 vUv;
+                        void main() {
+                            vUv = uv;
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        }
+                    `,
+                    fragmentShader: `
+                        varying vec2 vUv;
+                        uniform float time;
+                        
+                        void main() {
+                            vec2 uv = vUv;
+                            uv.x += sin(time * 0.1) * 0.05; // Add movement
+                            float stars = fract(sin(dot(uv * 100.0, vec2(12.9898, 78.233))) * 43758.5453);
+                            vec3 color = vec3(stars) * vec3(0.2, 0.5, 1.0); // Add bluish tint
+                            gl_FragColor = vec4(color, 1.0);
+                        }
+                    `,
+                    transparent: true,
+                });
+        
+                const shaderBackground = new THREE.Mesh(new THREE.PlaneGeometry(2000, 1000), shaderMaterial);
+                shaderBackground.position.z = -500;
+                scene.add(shaderBackground);
+        
+                // Parallax Starfield Layers
+                const textureLoader = new THREE.TextureLoader();
+                const layers = [];
+                for (let i = 0; i < 3; i++) {
+                    const texture = textureLoader.load('/textures/stars_layer.png'); // Placeholder texture
+                    const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+                    const plane = new THREE.Mesh(new THREE.PlaneGeometry(2000, 1000), material);
+                    plane.position.z = -100 * (i + 1);
+                    layers.push(plane);
+                    scene.add(plane);
+                }
+        
+                // Stars Geometry for Depth Effect
                 const starGeometry = new THREE.BufferGeometry();
-                const starCount = 3000; // Increase star count for a denser look
+                const starCount = 3000;
                 const starVertices = new Float32Array(starCount * 3);
         
-                // Generate star positions, placing them far from the camera
                 for (let i = 0; i < starCount * 3; i++) {
-                    starVertices[i] = (Math.random() - 0.5) * 1500; // Stars spread out further away
+                    starVertices[i] = (Math.random() - 0.5) * 1500; // Place stars far away
                 }
         
                 starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
                 const starMaterial = new THREE.PointsMaterial({
-                    size: Math.random() * 1.2 + 0.3, // Vary the size of stars
-                    color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, 80%)`), // Give stars random colors for polish
+                    size: Math.random() * 1.2 + 0.3,
+                    color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, 80%)`),
                     opacity: Math.random() * 0.5 + 0.5,
                     transparent: true,
                     depthWrite: false,
@@ -738,98 +780,45 @@
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
         
-                // Shooting Stars Setup
-                const shootingStars = [];
-                const shootingStarMaterial = new THREE.MeshBasicMaterial({ color: 0xfff2b3, transparent: true, blending: THREE.AdditiveBlending });
+                // Post-processing with Bloom
+                const composer = new EffectComposer(renderer);
+                const renderPass = new RenderPass(scene, camera);
+                composer.addPass(renderPass);
         
-                const createShootingStar = () => {
-                    // Shooting Star Geometry (Head)
-                    const shootingStarGeometry = new THREE.SphereGeometry(0.2, 8, 8);
-                    const shootingStar = new THREE.Mesh(shootingStarGeometry, shootingStarMaterial);
-                    scene.add(shootingStar);
+                const bloomPass = new UnrealBloomPass(
+                    new THREE.Vector2(window.innerWidth, window.innerHeight),
+                    1.5, // Bloom strength
+                    0.4, // Bloom radius
+                    0.85 // Bloom threshold
+                );
+                composer.addPass(bloomPass);
         
-                    // Set start position
-                    shootingStar.position.set(
-                        (Math.random() - 0.5) * 200, // Random horizontal start position
-                        Math.random() * 100 + 50,    // Start high above the screen
-                        (Math.random() - 0.5) * 200  // Random depth
-                    );
-        
-                    const velocity = {
-                        x: Math.random() * 0.3 + 0.1,   // Slow diagonal movement
-                        y: -Math.random() * 0.7 - 0.6,  // Move downwards
-                        z: Math.random() * 0.1 - 0.05   // Slight depth movement
-                    };
-        
-                    // Create tail using particles
-                    const tailGeometry = new THREE.BufferGeometry();
-                    const tailLength = 10; // Number of particles in the tail
-                    const tailVertices = new Float32Array(tailLength * 3);
-                    tailGeometry.setAttribute('position', new THREE.BufferAttribute(tailVertices, 3));
-                    const tailMaterial = new THREE.PointsMaterial({
-                        size: 0.1,
-                        color: 0xfff2b3,
-                        transparent: true,
-                        blending: THREE.AdditiveBlending,
-                        opacity: 0.8,
-                        depthWrite: false
-                    });
-                    const tail = new THREE.Points(tailGeometry, tailMaterial);
-                    scene.add(tail);
-        
-                    shootingStars.push({ head: shootingStar, tail: tail, velocity: velocity, life: 0 });
-                };
-        
-                // Animate Stars and Shooting Stars
+                // Animate
                 const animate = () => {
                     requestAnimationFrame(animate);
         
-                    // Rotate the stars to give dynamic depth
+                    // Shader Background Animation
+                    shaderMaterial.uniforms.time.value += 0.05;
+        
+                    // Parallax Effect with Star Layers
+                    const time = Date.now() * 0.00005;
+                    layers.forEach((layer, index) => {
+                        layer.position.x = Math.sin(time * (index + 1)) * (index + 1) * 20;
+                        layer.position.y = Math.cos(time * (index + 1)) * (index + 1) * 5;
+                    });
+        
+                    // Rotate stars for depth
                     stars.rotation.x += 0.0001;
                     stars.rotation.y += 0.0002;
         
-                    // Animate Shooting Stars
-                    shootingStars.forEach((shootingStar, index) => {
-                        // Move shooting star head
-                        shootingStar.head.position.x += shootingStar.velocity.x;
-                        shootingStar.head.position.y += shootingStar.velocity.y;
-                        shootingStar.head.position.z += shootingStar.velocity.z;
-        
-                        // Update tail positions (create a streak effect)
-                        const tailPositions = shootingStar.tail.geometry.attributes.position.array;
-                        for (let i = tailPositions.length - 3; i > 0; i -= 3) {
-                            tailPositions[i] = tailPositions[i - 3];
-                            tailPositions[i + 1] = tailPositions[i - 2];
-                            tailPositions[i + 2] = tailPositions[i - 1];
-                        }
-                        tailPositions[0] = shootingStar.head.position.x;
-                        tailPositions[1] = shootingStar.head.position.y;
-                        tailPositions[2] = shootingStar.head.position.z;
-        
-                        shootingStar.tail.geometry.attributes.position.needsUpdate = true;
-        
-                        // Increment life and remove if necessary
-                        shootingStar.life += 0.02;
-                        if (shootingStar.life > 5) {
-                            scene.remove(shootingStar.head);
-                            scene.remove(shootingStar.tail);
-                            shootingStars.splice(index, 1);
-                        }
-                    });
-        
-                    // Add shooting stars at random intervals
-                    if (Math.random() < 0.01) {
-                        createShootingStar();
-                    }
-        
-                    // Camera Movement (smooth, elliptical orbit)
-                    const time = Date.now() * 0.00005;
+                    // Camera Movement (Smooth Orbit)
                     camera.position.x = Math.sin(time) * 30;
                     camera.position.z = Math.cos(time) * 30;
                     camera.position.y = Math.sin(time * 0.7) * 10;
                     camera.lookAt(0, 0, 0);
         
-                    renderer.render(scene, camera);
+                    // Render with Post-Processing
+                    composer.render();
                 };
         
                 animate();
@@ -838,9 +827,11 @@
                     camera.aspect = window.innerWidth / window.innerHeight;
                     camera.updateProjectionMatrix();
                     renderer.setSize(window.innerWidth, window.innerHeight);
+                    composer.setSize(window.innerWidth, window.innerHeight);
                 });
             });
         </script>
+
 
 
 
