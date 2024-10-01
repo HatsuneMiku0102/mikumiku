@@ -698,7 +698,6 @@
         <script>
             // Three.js Scene Setup
             const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x000000);
         
             // Camera Setup - Zoomed Out for Broader View
             const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000);
@@ -711,6 +710,12 @@
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.toneMappingExposure = 2.0; // Increased exposure for vibrancy
             renderer.outputEncoding = THREE.sRGBEncoding;
+        
+            // Load JPEG Background using TextureLoader
+            const loader = new THREE.TextureLoader();
+            loader.load('/textures/heic1007a.JPG', (texture) => {
+                scene.background = texture; // Set the loaded JPEG texture as the scene background
+            });
         
             // Post-Processing Setup with EffectComposer
             const composer = new THREE.EffectComposer(renderer);
@@ -747,20 +752,11 @@
             const loadingSpinner = document.getElementById('loadingSpinner');
             loadingSpinner.style.display = 'block';
         
-            // Load Environment Map for Realism
-            const cubeTextureLoader = new THREE.CubeTextureLoader();
-            const envMap = cubeTextureLoader.load([
-                '/textures/posx.jpg', '/textures/negx.jpg',
-                '/textures/posy.jpg', '/textures/negy.jpg',
-                '/textures/posz.jpg', '/textures/negz.jpg'
-            ]);
-            scene.environment = envMap;
-        
             // GLTF Loader Setup - Load GLB Model with Optimized Material and Faster Loading Approach
-            const loader = new THREE.GLTFLoader();
+            const gltfLoader = new THREE.GLTFLoader();
             let mixer;
         
-            loader.load(
+            gltfLoader.load(
                 '/textures/radiation_of_space.glb',
                 function (gltf) {
                     // Hide loading spinner once the model loads
@@ -768,16 +764,13 @@
         
                     const model = gltf.scene;
         
-                    // Traverse the model to apply environment and adjust settings
+                    // Traverse the model to apply adjustments to the materials
                     model.traverse((node) => {
                         if (node.isMesh) {
                             node.castShadow = true;
                             node.receiveShadow = true;
         
                             if (node.material) {
-                                // Adjust emissive material settings
-                                node.material.envMap = envMap;
-                                node.material.envMapIntensity = 1.5;
                                 node.material.metalness = 0.5;
                                 node.material.roughness = 0.5;
                                 node.material.emissive = new THREE.Color(0xffffff); // Add emissive color
