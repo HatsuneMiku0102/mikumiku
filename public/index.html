@@ -707,18 +707,14 @@
                 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
                 camera.position.z = 100;
         
-                // Layered Background with Animated Nebula
+                // Static Background with Nebula
                 const textureLoader = new THREE.TextureLoader();
-                const nebulaLayers = [];
-                for (let i = 0; i < 3; i++) {
-                    textureLoader.load('/textures/nebula.webp', (texture) => {
-                        const nebulaMaterial = new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: 0.4 });
-                        const nebula = new THREE.Mesh(new THREE.PlaneGeometry(3000, 2000), nebulaMaterial);
-                        nebula.position.z = -100 * (i + 1) - 200;
-                        scene.add(nebula);
-                        nebulaLayers.push(nebula);
-                    });
-                }
+                textureLoader.load('/textures/nebula.webp', (texture) => {
+                    const nebulaMaterial = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+                    const nebula = new THREE.Mesh(new THREE.PlaneGeometry(3000, 2000), nebulaMaterial);
+                    nebula.position.z = -400;
+                    scene.add(nebula);
+                });
         
                 // Stars Geometry for Depth Effect
                 const starGeometry = new THREE.BufferGeometry();
@@ -737,41 +733,9 @@
                     blending: THREE.AdditiveBlending,
                     depthWrite: false,
                 });
-                
+        
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
-        
-                // Animated Nebula Shader (Subtle Pulsation)
-                const shaderMaterial = new THREE.ShaderMaterial({
-                    uniforms: {
-                        time: { value: 0.0 },
-                        resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
-                    },
-                    vertexShader: `
-                        varying vec2 vUv;
-                        void main() {
-                            vUv = uv;
-                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                        }
-                    `,
-                    fragmentShader: `
-                        varying vec2 vUv;
-                        uniform float time;
-        
-                        void main() {
-                            vec2 uv = vUv;
-                            uv.x += sin(time * 0.1) * 0.05;
-                            float stars = fract(sin(dot(uv * 100.0, vec2(12.9898, 78.233))) * 43758.5453);
-                            vec3 color = vec3(stars) * vec3(0.2, 0.5, 1.0);
-                            gl_FragColor = vec4(color, 1.0);
-                        }
-                    `,
-                    transparent: true,
-                });
-        
-                const shaderBackground = new THREE.Mesh(new THREE.PlaneGeometry(3000, 2000), shaderMaterial);
-                shaderBackground.position.z = -400;
-                scene.add(shaderBackground);
         
                 // Comets with Dynamic Glare
                 const cometTextures = [
@@ -840,9 +804,6 @@
                 const animate = () => {
                     requestAnimationFrame(animate);
         
-                    // Update Nebula Animation
-                    shaderMaterial.uniforms.time.value += 0.02;
-        
                     // Update Comets
                     comets.forEach(comet => {
                         comet.position.x -= comet.speed * comet.direction;
@@ -858,12 +819,6 @@
                     flares.forEach((flare, index) => {
                         const comet = comets[index];
                         flare.position.set(comet.position.x, comet.position.y, comet.position.z);
-                    });
-        
-                    // Moving Background Layers for Depth Effect
-                    nebulaLayers.forEach((nebula, index) => {
-                        nebula.position.x += Math.sin(Date.now() * 0.00005) * (index + 1);
-                        nebula.position.y += Math.cos(Date.now() * 0.00005) * (index + 1);
                     });
         
                     composer.render();
@@ -901,6 +856,7 @@
                 });
             });
         </script>
+
 
 
 
