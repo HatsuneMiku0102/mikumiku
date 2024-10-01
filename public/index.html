@@ -705,7 +705,7 @@
         
                 const scene = new THREE.Scene();
                 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
-                camera.position.z = 100;
+                camera.position.z = 200;
         
                 // Static Background - Nebula
                 const textureLoader = new THREE.TextureLoader();
@@ -721,7 +721,7 @@
                     starVertices[i] = (Math.random() - 0.5) * 3000;
                 }
                 starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
-                
+        
                 const starMaterial = new THREE.PointsMaterial({
                     size: 1.5,
                     color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, 90%)`),
@@ -772,9 +772,10 @@
                     const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
         
                     // Set initial random values for each comet
-                    comet.scale.set(Math.random() * 20 + 5, Math.random() * 10 + 2, 1); // Random size
-                    comet.position.set((Math.random() - 0.5) * 1000, (Math.random() - 0.5) * 500, -500);
-                    comet.speed = Math.random() * 2 + 0.5;  // Varying speeds for comets
+                    const sizeFactor = Math.random() * 30 + 15; // Make comets larger
+                    comet.scale.set(sizeFactor, sizeFactor / 2, 1); // Random size with more extended tails
+                    comet.position.set((Math.random() - 0.5) * 1500, (Math.random() - 0.5) * 1000, -800);
+                    comet.speed = Math.random() * 1.5 + 0.5;  // Varying speeds for comets
         
                     scene.add(comet);
                     comets.push(comet);
@@ -827,14 +828,15 @@
                     // Animate Comets
                     comets.forEach(comet => {
                         comet.position.x -= comet.speed;
-                        comet.position.y -= comet.speed * 0.3; // Slight downward drift
+                        comet.position.y -= comet.speed * 0.1; // Very slight downward drift
                         comet.material.opacity = Math.random() * 0.2 + 0.8; // Flashing effect
         
-                        if (comet.position.x < -1500) {
-                            comet.position.x = Math.random() * 1500 + 1000;
-                            comet.position.y = Math.random() * 500 - 250;
-                            comet.speed = Math.random() * 2 + 0.5;  // Reset speed for variation
-                            comet.scale.set(Math.random() * 20 + 5, Math.random() * 10 + 2, 1); // Reset size
+                        if (comet.position.x < -1600) {
+                            comet.position.x = Math.random() * 1500 + 1200;
+                            comet.position.y = Math.random() * 800 - 400;
+                            comet.speed = Math.random() * 1.5 + 0.5;  // Reset speed for variation
+                            const newSizeFactor = Math.random() * 30 + 15; // Reset size with larger values
+                            comet.scale.set(newSizeFactor, newSizeFactor / 2, 1); // Reset size
                         }
                     });
         
@@ -896,6 +898,7 @@
                 });
             });
         </script>
+
 
 
 
