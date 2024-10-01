@@ -697,14 +697,14 @@
         
             // Camera Setup - Zoomed Out for Broader View
             const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000);
-            camera.position.set(0, 1500, 1500); // Zoomed out further to provide a broad view
+            camera.position.set(0, 1500, 1500);
         
             // Renderer Setup
             const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.2; // Slightly increased for brighter results
+            renderer.toneMappingExposure = 1.2;
             renderer.outputEncoding = THREE.sRGBEncoding;
         
             // Resize Handler
@@ -715,13 +715,13 @@
             });
         
             // Lighting Setup - Improved for Realism
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); // Increased brightness for visibility
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
         
             const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
             directionalLight.position.set(500, 1000, 500);
             directionalLight.castShadow = true;
-            directionalLight.shadow.mapSize.width = 1024; // Optimized shadow resolution
+            directionalLight.shadow.mapSize.width = 1024;
             directionalLight.shadow.mapSize.height = 1024;
             scene.add(directionalLight);
         
@@ -733,8 +733,19 @@
             const loadingSpinner = document.getElementById('loadingSpinner');
             loadingSpinner.style.display = 'block';
         
-            // Load GLB Model with Optimized Material and Faster Loading Approach
+            // Load Environment Map for Realism
+            const cubeTextureLoader = new THREE.CubeTextureLoader();
+            const envMap = cubeTextureLoader.load([
+                '/textures/posx.jpg', '/textures/negx.jpg',
+                '/textures/posy.jpg', '/textures/negy.jpg',
+                '/textures/posz.jpg', '/textures/negz.jpg'
+            ]);
+            scene.environment = envMap;
+        
+            // GLTF Loader Setup - Load GLB Model with Optimized Material and Faster Loading Approach
             const loader = new THREE.GLTFLoader();
+            let mixer; // Declare mixer for animation handling
+        
             loader.load(
                 '/textures/radiation_of_space.glb',
                 function (gltf) {
@@ -750,6 +761,7 @@
                             node.receiveShadow = true;
         
                             if (node.material) {
+                                node.material.envMap = envMap; // Set environment map for realistic lighting
                                 node.material.envMapIntensity = 1.8; // Balanced intensity for better initial load
                                 node.material.metalness = 0.4;
                                 node.material.roughness = 0.4;
@@ -769,6 +781,14 @@
         
                     model.position.sub(center.multiplyScalar(scale));
                     scene.add(model);
+        
+                    // Handle Animations
+                    if (gltf.animations && gltf.animations.length) {
+                        mixer = new THREE.AnimationMixer(model);
+                        gltf.animations.forEach((clip) => {
+                            mixer.clipAction(clip).play();
+                        });
+                    }
         
                     // OrbitControls - Enhanced for Better Interaction
                     const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -810,11 +830,15 @@
             // Animation Loop for Smooth Rendering
             function animate() {
                 requestAnimationFrame(animate);
+                if (mixer) {
+                    mixer.update(0.01); // Adjust the delta time if necessary
+                }
                 renderer.render(scene, camera);
             }
         
             animate();
         </script>
+
 
 
 
