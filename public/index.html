@@ -130,6 +130,7 @@
         <footer class="footer">
             <div class="container">
                 <p>&copy; 2024 MikuMiku. All rights reserved.</p>
+                <button id="manageConsent" class="manage-consent-button">Manage Cookie Preferences</button>
             </div>
         </footer>
     </div>
@@ -149,10 +150,10 @@
     </div>
 
     <!-- Consent Modal -->
-    <div id="consentModal" class="modal">
+    <div id="consentModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="consentModalTitle" aria-describedby="consentModalDescription">
         <div class="modal-content">
-            <h2>Cookie Consent</h2>
-            <p>We use cookies to enhance your experience on our website. Do you consent to the use of cookies?</p>
+            <h2 id="consentModalTitle">We Value Your Privacy</h2>
+            <p id="consentModalDescription">We use cookies to enhance your experience on our website. By clicking "Accept", you consent to the use of cookies. You can manage your preferences in our <a href="/privacy-policy.html" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.</p>
             <div class="consent-buttons">
                 <button id="acceptConsent" class="consent-button">Accept</button>
                 <button id="declineConsent" class="consent-button">Decline</button>
@@ -174,60 +175,147 @@
             const acceptConsentButton = document.getElementById('acceptConsent');
             const declineConsentButton = document.getElementById('declineConsent');
 
-            // Check for existing consent cookie
-            const consent = getCookie('cookieConsent');
-
-            if (!consent) {
-                // Show consent modal if not consented
-                consentModal.style.display = 'block';
-                document.body.style.pointerEvents = 'none'; // Disable interaction
-            } else {
-                document.body.style.pointerEvents = 'auto'; // Ensure interaction is enabled
-            }
-
-            acceptConsentButton.addEventListener('click', function () {
-                setCookie('cookieConsent', 'accepted', 365);
-                consentModal.style.display = 'none';
-                document.body.style.pointerEvents = 'auto'; // Enable interaction
-            });
-
-            declineConsentButton.addEventListener('click', function () {
-                setCookie('cookieConsent', 'declined', 365);
-                consentModal.style.display = 'none';
-                document.body.style.pointerEvents = 'auto'; // Enable interaction
-            });
-
-            window.addEventListener('click', function (event) {
-                if (event.target === consentModal) {
-                    // Prevent closing the modal by clicking outside
-                    event.stopPropagation();
-                }
-            });
-
-            // Function to set a cookie
+            // Function to set a cookie with secure attributes
             function setCookie(name, value, days) {
-                const d = new Date();
-                d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
-                const expires = "expires=" + d.toUTCString();
-                document.cookie = name + "=" + value + ";" + expires + ";path=/";
+                let expires = "";
+                if (days) {
+                    const d = new Date();
+                    d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+                    expires = "; expires=" + d.toUTCString();
+                }
+                const secure = location.protocol === 'https:' ? "; Secure" : "";
+                const sameSite = "; SameSite=Lax"; // Adjust as needed (Strict, Lax, None)
+                document.cookie = name + "=" + (value || "") + expires + "; path=/" + secure + sameSite;
             }
 
             // Function to get a cookie
             function getCookie(name) {
-                const cname = name + "=";
-                const decodedCookie = decodeURIComponent(document.cookie);
-                const ca = decodedCookie.split(';');
-                for (let i = 0; i < ca.length; i++) {
+                const nameEQ = name + "=";
+                const ca = document.cookie.split(';');
+                for(let i=0;i < ca.length;i++) {
                     let c = ca[i];
-                    while (c.charAt(0) === ' ') {
-                        c = c.substring(1);
+                    while (c.charAt(0)==' ') c = c.substring(1,c.length);
+                    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length,c.length);
+                }
+                return null;
+            }
+
+            // Function to erase a cookie
+            function eraseCookie(name) {   
+                document.cookie = name+'=; Max-Age=-99999999; path=/';  
+            }
+
+            // Accessibility: Trap focus within modal
+            function trapFocus(modal) {
+                const focusableElements = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                const firstFocusableElement = focusableElements[0];
+                const lastFocusableElement = focusableElements[focusableElements.length - 1];
+
+                function handleFocus(event) {
+                    if (event.key === 'Tab') {
+                        if (event.shiftKey) { // Shift + Tab
+                            if (document.activeElement === firstFocusableElement) {
+                                event.preventDefault();
+                                lastFocusableElement.focus();
+                            }
+                        } else { // Tab
+                            if (document.activeElement === lastFocusableElement) {
+                                event.preventDefault();
+                                firstFocusableElement.focus();
+                            }
+                        }
                     }
-                    if (c.indexOf(cname) === 0) {
-                        return c.substring(cname.length, c.length);
+                    if (event.key === 'Escape') {
+                        // Optionally, prevent closing the modal with Escape
+                        event.preventDefault();
                     }
                 }
-                return "";
+
+                modal.addEventListener('keydown', handleFocus);
             }
+
+            // Show Modal
+            function showModal() {
+                consentModal.classList.add('active');
+                document.body.classList.add('modal-active');
+                consentModal.setAttribute('aria-hidden', 'false');
+
+                // Focus the first focusable element
+                const focusableElements = consentModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                if (focusableElements.length) {
+                    focusableElements[0].focus();
+                }
+
+                trapFocus(consentModal);
+            }
+
+            // Hide Modal
+            function hideModal() {
+                consentModal.classList.remove('active');
+                document.body.classList.remove('modal-active');
+                consentModal.setAttribute('aria-hidden', 'true');
+            }
+
+            // Initialize Consent Modal
+            function initConsentModal() {
+                const existingConsent = getCookie('cookieConsent');
+
+                if (!existingConsent) {
+                    // Show modal if no consent found
+                    showModal();
+                }
+
+                // Event Listeners
+                acceptConsentButton.addEventListener('click', function() {
+                    setCookie('cookieConsent', 'accepted', 365);
+                    hideModal();
+                    // Optionally, initialize any functionalities that require consent here
+                });
+
+                declineConsentButton.addEventListener('click', function() {
+                    setCookie('cookieConsent', 'declined', 365);
+                    hideModal();
+                    // Optionally, handle the decline action (e.g., disable certain features)
+                });
+
+                // Prevent closing the modal by clicking outside
+                window.addEventListener('click', function(event) {
+                    if (event.target === consentModal) {
+                        // Do not hide the modal when clicking outside
+                        event.stopPropagation();
+                    }
+                });
+
+                // Manage Consent Preferences Button
+                const manageConsentButton = document.getElementById('manageConsent');
+                if (manageConsentButton) {
+                    manageConsentButton.addEventListener('click', function() {
+                        showModal();
+                    });
+                }
+            }
+
+            // Check if cookies are enabled
+            function areCookiesEnabled() {
+                const testCookie = 'test_cookie_consent';
+                setCookie(testCookie, 'test', 1);
+                const result = getCookie(testCookie) === 'test';
+                eraseCookie(testCookie);
+                return result;
+            }
+
+            // Initialize
+            function init() {
+                if (areCookiesEnabled()) {
+                    initConsentModal();
+                } else {
+                    console.warn('Cookies are disabled in this browser. Consent modal will not be displayed.');
+                    // Optionally, handle the case where cookies are disabled
+                }
+            }
+
+            // Run the initialization
+            init();
 
             // Now Playing Elements
             const socket = io("https://mikumiku.dev");
