@@ -691,19 +691,21 @@
         </script>
 
         <script>
-        // Scene, Camera, Renderer Setup
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000000); // Deep space background
         
         // Camera Setup
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 5000);
-        camera.position.set(0, 1000, 1000); // Significantly increased distance
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000);
+        camera.position.set(0, 1000, 1000);
         camera.lookAt(0, 0, 0);
         
         // Renderer Setup
         const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1;
+        renderer.outputEncoding = THREE.sRGBEncoding;
         
         // Resize Handler
         window.addEventListener('resize', () => {
@@ -713,11 +715,12 @@
         });
         
         // Lighting Setup
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambientLight);
         
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
         directionalLight.position.set(500, 1000, 500);
+        directionalLight.castShadow = true;
         scene.add(directionalLight);
         
         // Load GLB Model
@@ -725,14 +728,28 @@
         loader.load('/textures/2000_to_2019.glb', function (gltf) {
             const model = gltf.scene;
         
+            // Enable shadows
+            model.traverse((node) => {
+                if (node.isMesh) {
+                    node.castShadow = true;
+                    node.receiveShadow = true;
+                    
+                    // Enhance material quality
+                    if (node.material) {
+                        node.material.envMapIntensity = 1.5;
+                        node.material.needsUpdate = true;
+                    }
+                }
+            });
+        
             // Calculate bounding box
             const box = new THREE.Box3().setFromObject(model);
             const size = box.getSize(new THREE.Vector3());
             const center = box.getCenter(new THREE.Vector3());
         
-            // Scale model to fit viewport while keeping it much smaller
+            // Scale model to fit viewport
             const maxDim = Math.max(size.x, size.y, size.z);
-            const scale = Math.min(window.innerWidth, window.innerHeight) / (maxDim * 8); // Significantly reduced scale
+            const scale = Math.min(window.innerWidth, window.innerHeight) / (maxDim * 4);
             model.scale.setScalar(scale);
         
             // Center the model
@@ -741,7 +758,7 @@
             scene.add(model);
         
             // Adjust camera to fit the entire scene
-            const distance = maxDim * 10; // Greatly increased distance for a much wider view
+            const distance = maxDim * 5;
             camera.position.set(distance, distance, distance);
             camera.lookAt(0, 0, 0);
         
@@ -749,8 +766,8 @@
             const controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.target.set(0, 0, 0);
             controls.enableZoom = true;
-            controls.maxDistance = distance * 2; // Allow zooming out twice as far
-            controls.minDistance = distance * 0.1; // Allow zooming in to 10% of the default distance
+            controls.maxDistance = distance * 2;
+            controls.minDistance = distance * 0.1;
             controls.update();
         
             console.log('Model loaded successfully');
