@@ -707,28 +707,16 @@
                 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1500);
                 camera.position.z = 50;
         
-                // Static Background with Enhanced Realism
+                // Static Background
                 const textureLoader = new THREE.TextureLoader();
                 textureLoader.load('/textures/nebula.webp', (texture) => {
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+                    texture.repeat.set(2, 2); // Zoom out the background a bit
                     const backgroundMaterial = new THREE.MeshBasicMaterial({ map: texture });
-                    backgroundMaterial.depthWrite = false;
-        
-                    // Scale down the background size to appear more natural but ensure full coverage
-                    const backgroundGeometry = new THREE.PlaneGeometry(window.innerWidth * 2, window.innerHeight * 2);
-                    const background = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
-                    background.position.z = -500; // Set it far enough so it stays in the background
-        
+                    const background = new THREE.Mesh(new THREE.PlaneGeometry(4000, 2000), backgroundMaterial);
+                    background.position.z = -1000;
                     scene.add(background);
-        
-                    // Add parallax effect to background after it is loaded
-                    document.addEventListener('mousemove', (event) => {
-                        const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-                        const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
-        
-                        // Subtle parallax for depth effect
-                        background.position.x = mouseX * 20; // Adjust movement sensitivity for less motion
-                        background.position.y = mouseY * 20;
-                    });
                 });
         
                 // Improved Stars Geometry for Depth Effect
@@ -736,24 +724,36 @@
                 const starCount = 5000;
                 const starVertices = new Float32Array(starCount * 3);
                 for (let i = 0; i < starCount * 3; i++) {
-                    starVertices[i] = (Math.random() - 0.5) * 1500; // Spread stars across the scene
+                    starVertices[i] = (Math.random() - 0.5) * 1500; // Place stars far away
                 }
                 starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
         
-                // Load Star Texture
-                const starTexture = textureLoader.load('https://cdn.jsdelivr.net/gh/ronaldsm/star-texture@main/star.png'); // A round star texture
-                const starMaterial = new THREE.PointsMaterial({
-                    size: 1.5,
-                    map: starTexture,
-                    color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, 80%)`),
+                // Array of Star Textures
+                const starTextures = [
+                    '/textures/stars 001.png',
+                    '/textures/stars 002.png',
+                    '/textures/stars 003.png',
+                    '/textures/stars 004.png',
+                    '/textures/stars 005.png',
+                    '/textures/stars 006.png',
+                ].map(path => textureLoader.load(path));
+        
+                // Create multiple star materials for variety
+                const starMaterials = starTextures.map(texture => new THREE.PointsMaterial({
+                    size: 2,
+                    map: texture,
                     transparent: true,
-                    opacity: Math.random() * 0.6 + 0.4, // Randomized opacity
+                    opacity: 0.8,
                     depthWrite: false,
                     blending: THREE.AdditiveBlending
-                });
+                }));
         
-                const stars = new THREE.Points(starGeometry, starMaterial);
-                scene.add(stars);
+                // Create Stars using different materials for natural effect
+                const starsArray = starMaterials.map(material => {
+                    const stars = new THREE.Points(starGeometry, material);
+                    scene.add(stars);
+                    return stars;
+                });
         
                 // Post-processing with Bloom for subtle glow
                 const composer = new THREE.EffectComposer(renderer);
@@ -772,15 +772,16 @@
                 const animate = () => {
                     requestAnimationFrame(animate);
         
-                    // Flickering stars effect for natural twinkle
-                    stars.material.opacity = Math.random() * 0.1 + 0.8;
+                    // Flickering stars effect
+                    starsArray.forEach(stars => {
+                        stars.material.opacity = Math.random() * 0.05 + 0.85; // Vary opacity slightly for natural flicker
+                    });
         
                     // Render with Post-Processing
                     composer.render();
                 };
                 animate();
         
-                // Adjust the size on window resize
                 window.addEventListener('resize', () => {
                     camera.aspect = window.innerWidth / window.innerHeight;
                     camera.updateProjectionMatrix();
@@ -789,6 +790,7 @@
                 });
             });
         </script>
+
 
 
 
