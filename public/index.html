@@ -715,10 +715,12 @@
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
         
-            // Improved Nebula Effect using Sphere Particles
+            // Nebula Effect using Textured Particles
+            const particleSystem = { geometry: null, material: null, nebula: null };
+        
             function createNebula() {
                 const nebulaGeometry = new THREE.BufferGeometry();
-                const nebulaParticleCount = 8000; // Reduced to make it less crowded
+                const nebulaParticleCount = 10000;
                 const positions = [];
                 const colors = [];
                 const sizes = [];
@@ -732,40 +734,46 @@
                     const z = r * Math.cos(phi);
                     positions.push(x, y, z);
         
-                    // Using vibrant and varied colors
+                    // Using vibrant colors for nebula
                     const color = new THREE.Color();
-                    color.setHSL(Math.random() * 0.2 + 0.7, 0.8, Math.random() * 0.3 + 0.5);
+                    color.setHSL(Math.random() * 0.3 + 0.7, 0.9, Math.random() * 0.4 + 0.5);
                     colors.push(color.r, color.g, color.b);
         
-                    // Randomized sizes for varied particle effect
-                    sizes.push(Math.random() * 20 + 10);
+                    sizes.push(Math.random() * 15 + 5); // Varying sizes of the particles
                 }
         
                 nebulaGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
                 nebulaGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
                 nebulaGeometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
         
-                // Material setup with a circular particle texture
-                const nebulaMaterial = new THREE.PointsMaterial({
-                    size: 15,
-                    vertexColors: true,
-                    blending: THREE.AdditiveBlending,
-                    transparent: true,
-                    opacity: 0.5,
-                    depthWrite: false,
-                    map: new THREE.TextureLoader().load("https://threejs.org/examples/textures/sprites/circle.png")
-                });
+                // Load the circle texture for each particle
+                const textureLoader = new THREE.TextureLoader();
+                textureLoader.load("https://threejs.org/examples/textures/sprites/circle.png", (texture) => {
+                    const nebulaMaterial = new THREE.PointsMaterial({
+                        size: 15,
+                        map: texture,
+                        vertexColors: true,
+                        blending: THREE.AdditiveBlending,
+                        transparent: true,
+                        opacity: 0.6,
+                        depthWrite: false,
+                    });
         
-                const nebula = new THREE.Points(nebulaGeometry, nebulaMaterial);
-                scene.add(nebula);
+                    const nebula = new THREE.Points(nebulaGeometry, nebulaMaterial);
+                    scene.add(nebula);
+        
+                    particleSystem.geometry = nebulaGeometry;
+                    particleSystem.material = nebulaMaterial;
+                    particleSystem.nebula = nebula;
+                });
             }
         
             createNebula();
         
-            // Stars in the Background
+            // Add Stars in the Background
             function createStars() {
                 const starGeometry = new THREE.BufferGeometry();
-                const starCount = 5000;
+                const starCount = 8000;
                 const positions = [];
         
                 for (let i = 0; i < starCount; i++) {
@@ -776,7 +784,7 @@
         
                 const starMaterial = new THREE.PointsMaterial({
                     color: 0xffffff,
-                    size: 1,
+                    size: 1.5,
                     transparent: true,
                     blending: THREE.AdditiveBlending,
                 });
@@ -787,65 +795,51 @@
         
             createStars();
         
-            // Planets Setup
-            function createPlanet(radius, color, position) {
-                const geometry = new THREE.SphereGeometry(radius, 64, 64);
-                const material = new THREE.MeshStandardMaterial({
-                    color: color,
-                    emissive: color,
-                    emissiveIntensity: 0.3,
-                    roughness: 0.5,
-                    metalness: 0.2
-                });
-                const planet = new THREE.Mesh(geometry, material);
-                planet.position.set(...position);
-                scene.add(planet);
-        
-                return planet;
-            }
-        
-            const planets = [
-                createPlanet(30, 0x3498db, [200, 50, -600]),   // Blue planet
-                createPlanet(40, 0xe74c3c, [-300, -100, -800]), // Red planet
-                createPlanet(25, 0x8e44ad, [100, -30, -500])    // Purple planet
-            ];
-        
             // Lighting Setup
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
             scene.add(ambientLight);
         
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
             directionalLight.position.set(200, 400, 300);
             scene.add(directionalLight);
         
-            // Soft Point Light to Mimic Nebula Glow
+            // Soft Point Light for Nebula Glow
             const pointLight = new THREE.PointLight(0xffa07a, 1.5, 1000);
             pointLight.position.set(0, 200, 200);
             scene.add(pointLight);
         
-            // Post-Processing for Bloom Effect
+            // Post-Processing Bloom Effect
             const composer = new THREE.EffectComposer(renderer);
             composer.addPass(new THREE.RenderPass(scene, camera));
         
             const bloomPass = new THREE.UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                1.2,  // Lowered bloom intensity for a softer look
-                0.4,  // Bloom radius
+                1.0,  // Adjusted bloom intensity
+                0.3,  // Bloom radius
                 0.85  // Bloom threshold
             );
             composer.addPass(bloomPass);
+        
+            // Nebula Animation Function (Add some subtle movement)
+            function animateNebula() {
+                const time = Date.now() * 0.00005;
+        
+                particleSystem.geometry.attributes.position.array.forEach((value, index) => {
+                    particleSystem.geometry.attributes.position.array[index] += Math.sin(time + index) * 0.1;  // Subtle movement
+                });
+        
+                particleSystem.geometry.attributes.position.needsUpdate = true;  // Mark for update
+            }
         
             // Animation Loop for Subtle Movement
             function animate() {
                 requestAnimationFrame(animate);
         
-                // Adding slow rotation for dynamic visuals
-                scene.rotation.y += 0.0003;
+                // Nebula subtle movement
+                animateNebula();
         
-                // Planets rotation for additional movement
-                planets.forEach(planet => {
-                    planet.rotation.y += 0.001;
-                });
+                // Slow rotation for dynamic visuals
+                scene.rotation.y += 0.0002;
         
                 composer.render();
             }
