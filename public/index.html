@@ -697,28 +697,31 @@
         </script>
         
         <script>
+            // Select the canvas
+            const canvas = document.getElementById('techCanvas');
+        
             // Three.js Scene Setup
             const scene = new THREE.Scene();
         
-            // Camera Setup - Position Adjusted for Debugging
+            // Camera Setup - Position Adjusted for Broader View
             const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000);
-            camera.position.set(0, 1500, 1500); // Moved further back for a broader view
-            camera.lookAt(0, 0, 0); // Ensure the camera is looking at the center of the scene
+            camera.position.set(0, 1500, 1500);
+            camera.lookAt(0, 0, 0);
         
-            // Renderer Setup - Improved Gamma and Tone Mapping for Colors
-            const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true });
+            // Renderer Setup - Attach to Canvas
+            const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.setClearColor(0x000000, 1); // Set clear color to black and fully opaque
-            renderer.toneMapping = THREE.LinearToneMapping; // Set Linear Tone Mapping
-            renderer.toneMappingExposure = 1.0; // Adjust exposure for a more natural look
+            renderer.setClearColor(0x000000, 1); // Black background to ensure visibility
+            renderer.toneMapping = THREE.LinearToneMapping;
+            renderer.toneMappingExposure = 1.0;
             renderer.outputEncoding = THREE.sRGBEncoding;
         
-            // Load JPEG Background using TextureLoader
+            // Load JPEG Background
             const loader = new THREE.TextureLoader();
             loader.load('/textures/heic1007a.jpg', (texture) => {
-                texture.mapping = THREE.EquirectangularReflectionMapping; // Set appropriate mapping type
-                scene.background = texture; // Set as the scene background
+                texture.mapping = THREE.EquirectangularReflectionMapping;
+                scene.background = texture;
                 console.log('Background texture loaded successfully');
             });
         
@@ -730,7 +733,7 @@
             // Unreal Bloom Pass for Glow Effect
             const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
             bloomPass.threshold = 0.1;
-            bloomPass.strength = 2.5; // Intensity of the bloom effect
+            bloomPass.strength = 2.5;
             bloomPass.radius = 0.5;
             composer.addPass(bloomPass);
         
@@ -742,27 +745,26 @@
                 composer.setSize(window.innerWidth, window.innerHeight);
             });
         
-            // Simplified Lighting Setup for Debugging Visibility
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.0); // Moderate ambient light
+            // Lighting Setup
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
             scene.add(ambientLight);
         
-            // Loading Indicator - Placeholder to Improve Perceived Loading Speed
-            const loadingSpinner = document.getElementById('loadingSpinner');
-            loadingSpinner.style.display = 'block';
+            // Debug Sphere to Verify Visibility
+            const sphereGeometry = new THREE.SphereGeometry(100, 32, 32);
+            const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            sphere.position.set(0, 0, -300); // Place it at a visible location
+            scene.add(sphere);
         
-            // GLTF Loader Setup - Load GLB Model with Optimized Material and Faster Loading Approach
+            // GLTF Loader Setup
             const gltfLoader = new THREE.GLTFLoader();
             let mixer;
         
             gltfLoader.load(
                 '/textures/radiation_of_space.glb',
                 function (gltf) {
-                    // Hide loading spinner once the model loads
-                    loadingSpinner.style.display = 'none';
-        
                     const model = gltf.scene;
         
-                    // Traverse the model to apply adjustments to the materials
                     model.traverse((node) => {
                         if (node.isMesh) {
                             node.castShadow = true;
@@ -771,14 +773,13 @@
                             if (node.material) {
                                 node.material.metalness = 0.5;
                                 node.material.roughness = 0.5;
-                                node.material.emissive = new THREE.Color(0x0000ff); // Changed emissive color to blue for better contrast
-                                node.material.emissiveIntensity = 1.0; // Adjust intensity for the glow effect
+                                node.material.emissive = new THREE.Color(0x0000ff);
+                                node.material.emissiveIntensity = 1.0;
                                 node.material.needsUpdate = true;
                             }
                         }
                     });
         
-                    // Center and Scale Model
                     const box = new THREE.Box3().setFromObject(model);
                     const size = box.getSize(new THREE.Vector3());
                     const center = box.getCenter(new THREE.Vector3());
@@ -797,7 +798,7 @@
                         });
                     }
         
-                    // OrbitControls - Enhanced for Better Interaction
+                    // OrbitControls for Interaction
                     const controls = new THREE.OrbitControls(camera, renderer.domElement);
                     controls.target.set(0, 0, 0);
                     controls.enableDamping = true;
@@ -813,29 +814,20 @@
                 },
                 function (error) {
                     console.error('An error occurred while loading the GLB model:', error);
-                    loadingSpinner.style.display = 'none';
                 }
             );
         
-            // Debugging Geometry - Simple Sphere to Verify Scene Rendering
-            const sphereGeometry = new THREE.SphereGeometry(100, 32, 32);
-            const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // Green color for better contrast
-            const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-            sphere.position.set(0, 0, -300); // Offset slightly in Z for visibility
-            scene.add(sphere);
-        
-            // Animation Loop for Smooth Rendering with Post-Processing
+            // Animation Loop for Rendering
             function animate() {
                 requestAnimationFrame(animate);
                 if (mixer) {
                     mixer.update(0.01);
                 }
-                composer.render(); // Use composer for post-processing
+                composer.render();
             }
         
             animate();
         </script>
-
 
 
     </body>
