@@ -734,39 +734,13 @@
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
         
-                // Lens Flares for Celestial Bodies in Background
-                const flareTextures = [
-                    textureLoader.load('/textures/Lens flare (16).jpg'),
-                    textureLoader.load('/textures/Lens flare (17).jpg'),
-                    textureLoader.load('/textures/Lens flare (18).jpg'),
-                    textureLoader.load('/textures/Lens flare (19).jpg'),
-                    textureLoader.load('/textures/Lens flare (20).jpg'),
-                    textureLoader.load('/textures/Lens flare (21).jpg'),
-                    textureLoader.load('/textures/Lens flare (22).jpg'),
-                    textureLoader.load('/textures/Lens flare (23).jpg'),
-                    textureLoader.load('/textures/Lens flare (24).jpg'),
-                    textureLoader.load('/textures/Lens flare (6).jpg'),
-                ];
-        
-                const celestialBodies = [];
-                for (let i = 0; i < 8; i++) {
-                    const flareTexture = flareTextures[Math.floor(Math.random() * flareTextures.length)];
-                    const flareMaterial = new THREE.SpriteMaterial({ map: flareTexture, transparent: true, blending: THREE.AdditiveBlending });
-                    const celestialBody = new THREE.Sprite(flareMaterial);
-                    celestialBody.position.set((Math.random() - 0.5) * 2500, (Math.random() - 0.5) * 1500, -1200);
-                    celestialBody.scale.set(150, 150, 1);
-                    scene.add(celestialBody);
-                    celestialBodies.push(celestialBody);
-                }
-        
-                // Comets with Special Lens Glare Effects
+                // Comets with Natural Glow Effect
                 const cometTextures = [
                     textureLoader.load('/textures/comet1.png'),
                     textureLoader.load('/textures/comet2.png')
                 ];
                 const cometGeometry = new THREE.PlaneGeometry(1, 1);
                 const comets = [];
-                const cometSprites = [];
         
                 for (let i = 0; i < 8; i++) {
                     const cometMaterial = new THREE.MeshBasicMaterial({
@@ -774,6 +748,7 @@
                         transparent: true,
                         blending: THREE.AdditiveBlending,
                         depthWrite: false,
+                        opacity: 0.8
                     });
                     const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
         
@@ -785,14 +760,6 @@
         
                     scene.add(comet);
                     comets.push(comet);
-        
-                    // Glare effect for comets (Sprite)
-                    const cometGlareTexture = textureLoader.load('/textures/Lens flare (19).jpg'); // Specific lens flare for comets
-                    const glareMaterial = new THREE.SpriteMaterial({ map: cometGlareTexture, blending: THREE.AdditiveBlending, transparent: true });
-                    const glare = new THREE.Sprite(glareMaterial);
-                    glare.scale.set(sizeFactor * 4, sizeFactor * 4, 1); // Make the glare effect larger for comets
-                    scene.add(glare);
-                    cometSprites.push(glare);
                 }
         
                 // Moving Stars/Shooting Stars
@@ -819,8 +786,8 @@
         
                 const bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    1.8,
-                    0.5,
+                    1.5,
+                    0.4,
                     0.85
                 );
                 composer.addPass(bloomPass);
@@ -832,15 +799,11 @@
                     // Flickering stars effect
                     stars.material.color.setHSL(Math.random() * 0.1, 1, 0.9); // Slight color change for natural flickering effect
         
-                    // Animate Comets and Glare Effect
-                    comets.forEach((comet, index) => {
+                    // Animate Comets
+                    comets.forEach((comet) => {
                         comet.position.x -= comet.speed;
                         comet.position.y -= comet.speed * 0.5; // Move diagonally downward
                         comet.material.opacity = Math.random() * 0.2 + 0.8; // Flashing effect
-        
-                        // Update glare to follow comet
-                        cometSprites[index].position.set(comet.position.x, comet.position.y, comet.position.z);
-                        cometSprites[index].material.opacity = comet.material.opacity * 0.7; // Slightly reduced opacity for glare
         
                         if (comet.position.x < -1600 || comet.position.y < -800) {
                             // Reset comet to start from the top corners again
@@ -852,7 +815,7 @@
                     });
         
                     // Shooting Stars Random Activation
-                    shootingStars.forEach(shootingStar => {
+                    shootingStars.forEach((shootingStar) => {
                         if (!shootingStar.visible && Math.random() < 0.001) {
                             shootingStar.visible = true;
                             shootingStar.position.set((Math.random() - 0.5) * 1500, 500, -800);
@@ -906,6 +869,7 @@
                 });
             });
         </script>
+
 
 
 
