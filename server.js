@@ -257,7 +257,7 @@ app.use(
                 "https://cdnjs.cloudflare.com",
                 "https://www.youtube.com",
                 "https://unpkg.com",
-                "https://cdn.jsdelivr.net" // Added jsDelivr
+                "https://cdn.jsdelivr.net"
             ],
             styleSrc: [
                 "'self'",
@@ -266,12 +266,13 @@ app.use(
             ],
             imgSrc: [
                 "'self'",
+                "'blob:'", // Allow blob images
                 "data:",
                 "https://i.ytimg.com",
                 "https://img.youtube.com",
                 "https://openweathermap.org",
-                "https://i.postimg.cc", // Added Postimg to allow custom browsing thumbnail
-                "https://threejs.org" // Added Three.js to allow spark1.png
+                "https://i.postimg.cc",
+                "https://threejs.org"
             ],
             fontSrc: [
                 "'self'",
@@ -279,7 +280,7 @@ app.use(
             ],
             connectSrc: [
                 "'self'",
-                "'blob:'", // Added blob to allow loading from blob URLs
+                "'blob:'", // Allow blob URLs for connections
                 "https://www.googleapis.com",
                 "https://*.youtube.com",
                 "https://api.openweathermap.org"
@@ -301,6 +302,7 @@ app.use(
         }
     })
 );
+
 
 
 
