@@ -65,13 +65,13 @@
                         <p id="videoTitle">Loading...</p>
                     </div>
 
-                    <div class="thumbnail-container" style="position: relative;">
-                        <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls>
+                    <div class="thumbnail-container">
+                        <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls style="display: none;">
                             Your browser does not support the video tag.
                         </video>
                         <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
-                        <div id="loadingSpinner"></div>
-                        <canvas id="audioVisualizer"></canvas>
+                        <div id="loadingSpinner" class="loading-spinner"></div>
+                        <canvas id="audioVisualizer" class="audio-visualizer"></canvas>
                     </div>
 
                     <div id="offline-indicator" class="offline-indicator">I’m not on YouTube at the moment, soz :(</div>
@@ -87,7 +87,6 @@
             </div>
         </div>
 
-        <!-- Modal Structure -->
         <div id="descriptionModal" class="modal">
             <div class="modal-content">
                 <span class="close-button" id="closeDescriptionButton">&times;</span>
@@ -149,12 +148,10 @@
         </div>
     </div>
 
-    <!-- Socket.io Client Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="haru.js"></script>
 
-    <!-- JavaScript to handle all features -->
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const socket = io("https://mikumiku.dev");
@@ -163,7 +160,6 @@
             let browsingStartTime = null;
             let browsingInterval = null;
 
-            // Now Playing Elements
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
             const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -185,7 +181,48 @@
             let analyser;
             let dataArray;
 
-            // Helper function to format numbers with commas
+            function initializeVisualizer(mediaElement) {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const source = audioContext.createMediaElementSource(mediaElement);
+                    analyser = audioContext.createAnalyser();
+                    source.connect(analyser);
+                    analyser.connect(audioContext.destination);
+                    analyser.fftSize = 256;
+                    dataArray = new Uint8Array(analyser.frequencyBinCount);
+                    drawVisualizer();
+                    audioVisualizer.style.display = 'block';
+                }
+            }
+
+            function drawVisualizer() {
+                requestAnimationFrame(drawVisualizer);
+                if (!analyser) return;
+                analyser.getByteFrequencyData(dataArray);
+
+                canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                canvasCtx.fillRect(0, 0, audioVisualizer.width, audioVisualizer.height);
+
+                const barWidth = (audioVisualizer.width / dataArray.length) * 2.5;
+                let barHeight;
+                let x = 0;
+
+                for (let i = 0; i < dataArray.length; i++) {
+                    barHeight = dataArray[i] / 2;
+                    canvasCtx.fillStyle = `rgb(${barHeight + 100},50,250)`;
+                    canvasCtx.fillRect(x, audioVisualizer.height - barHeight, barWidth, barHeight);
+                    x += barWidth + 1;
+                }
+            }
+
+            function showLoadingSpinner() {
+                loadingSpinner.style.display = 'block';
+            }
+
+            function hideLoadingSpinner() {
+                loadingSpinner.style.display = 'none';
+            }
+
             function formatNumber(number) {
                 if (typeof number === 'string') {
                     number = number.replace(/,/g, '');
@@ -194,7 +231,6 @@
                 return isNaN(num) ? "N/A" : num.toLocaleString();
             }
 
-            // Function to clear the current display
             function clearDisplay() {
                 nowPlayingBox.classList.add("offline");
                 offlineIndicatorElement.style.display = "block";
@@ -211,10 +247,9 @@
                 progressBarElement.style.width = "0%";
                 videoDescriptionElement.textContent = "";
                 timeElapsedElement.style.display = "none";
-                audioVisualizer.style.display = "none";
+                audioVisualizer.style.display = 'none';
             }
 
-            // Function to clear video presence specifically
             function clearVideoPresence() {
                 videoTitleElement.textContent = "";
                 videoThumbnailImage.src = "";
@@ -228,17 +263,15 @@
                 videoCategoryElement.textContent = "";
                 progressBarElement.style.width = "0%";
                 videoDescriptionElement.textContent = "";
-                audioVisualizer.style.display = "none";
+                audioVisualizer.style.display = 'none';
             }
 
-            // Function to reinitialize the session
             function reinitializeSession() {
                 console.warn("[Client] Reinitializing session due to mismatch or timeout.");
                 clearDisplay();
                 isSessionExpired = true;
             }
 
-            // Function to format time elapsed
             function formatTimeElapsed(seconds) {
                 const hours = Math.floor(seconds / 3600);
                 const minutes = Math.floor((seconds % 3600) / 60);
@@ -253,7 +286,6 @@
                 }
             }
 
-            // Function to display video presence
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
@@ -297,7 +329,6 @@
                 }
             }
 
-            // Function to handle real-time progress
             function handleRealTimeProgress(data) {
                 if (data.duration && data.currentTime) {
                     const progressPercentage = (data.currentTime / data.duration) * 100;
@@ -307,7 +338,6 @@
                 }
             }
 
-            // Function to display browsing presence
             function displayBrowsingPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
@@ -363,7 +393,6 @@
                 browsingStartTime = null;
             }
 
-            // Socket.IO event listeners
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
                 isSessionExpired = false;
@@ -413,7 +442,6 @@
                 }
             }, 5000);
 
-            // Modal Toggle Logic
             const descriptionModal = document.getElementById("descriptionModal");
             const closeDescriptionButton = document.getElementById("closeDescriptionButton");
             const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
@@ -440,7 +468,6 @@
                 }
             });
 
-            // Clock Update Script
             function updateClocks() {
                 const now = new Date();
                 const localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -454,7 +481,6 @@
             setInterval(updateClocks, 1000);
             updateClocks();
 
-            // Weather Update Script
             const CITY_NAME = 'Leeds';
             async function fetchWeather() {
                 try {
@@ -497,7 +523,6 @@
             setInterval(fetchWeather, 3600000);
             fetchWeather();
 
-            // Canvas Animation Script
             const canvas = document.getElementById("techCanvas");
             const ctx = canvas.getContext("2d");
             let width = window.innerWidth;
@@ -650,7 +675,6 @@
 
             animate();
 
-            // Audio Visualizer Functions
             function initializeVisualizer(mediaElement) {
                 if (!audioContext) {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -665,37 +689,6 @@
                 }
             }
 
-            function drawVisualizer() {
-                requestAnimationFrame(drawVisualizer);
-                if (!analyser) return;
-                analyser.getByteFrequencyData(dataArray);
-
-                canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                canvasCtx.fillRect(0, 0, audioVisualizer.width, audioVisualizer.height);
-
-                const barWidth = (audioVisualizer.width / dataArray.length) * 2.5;
-                let barHeight;
-                let x = 0;
-
-                for (let i = 0; i < dataArray.length; i++) {
-                    barHeight = dataArray[i] / 2;
-                    canvasCtx.fillStyle = `rgb(${barHeight + 100},50,250)`;
-                    canvasCtx.fillRect(x, audioVisualizer.height - barHeight, barWidth, barHeight);
-                    x += barWidth + 1;
-                }
-            }
-
-            // Function to show loading spinner
-            function showLoadingSpinner() {
-                loadingSpinner.style.display = 'block';
-            }
-
-            // Function to hide loading spinner
-            function hideLoadingSpinner() {
-                loadingSpinner.style.display = 'none';
-            }
-
-            // Add event listeners to video element for buffering/loading state
             videoThumbnailElement.addEventListener('waiting', showLoadingSpinner);
             videoThumbnailElement.addEventListener('playing', hideLoadingSpinner);
             videoThumbnailElement.addEventListener('play', () => {
