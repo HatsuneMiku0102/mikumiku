@@ -172,6 +172,9 @@
         <!-- Import Three.js module setup -->
         <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/controls/OrbitControls.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/postprocessing/EffectComposer.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/postprocessing/RenderPass.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 
         <!-- Import Haru AI script -->
         <script src="haru.js"></script>
@@ -720,7 +723,7 @@
                 const colors = [];
     
                 for (let i = 0; i < nebulaParticleCount; i++) {
-                    const r = Math.random() * 400;
+                    const r = Math.random() * 500;
                     const theta = Math.random() * 2 * Math.PI;
                     const phi = Math.acos(2 * Math.random() - 1);
                     const x = r * Math.sin(phi) * Math.cos(theta);
@@ -729,28 +732,24 @@
                     positions.push(x, y, z);
     
                     const color = new THREE.Color();
-                    color.setHSL(Math.random() * 0.5 + 0.7, 1, 0.6); // Rich nebula colors in pink, blue, and purple hues
+                    color.setHSL(Math.random() * 0.5 + 0.7, 1, 0.5); // Rich nebula colors
                     colors.push(color.r, color.g, color.b);
                 }
     
                 nebulaGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
                 nebulaGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     
-                const loader = new THREE.TextureLoader();
-                loader.load('/textures/smoke4.png', function (texture) {
-                    const nebulaMaterial = new THREE.PointsMaterial({
-                        size: 20,
-                        map: texture,
-                        vertexColors: true,
-                        blending: THREE.AdditiveBlending,
-                        transparent: true,
-                        opacity: 0.8,
-                        depthWrite: false
-                    });
-    
-                    const nebula = new THREE.Points(nebulaGeometry, nebulaMaterial);
-                    scene.add(nebula);
+                const nebulaMaterial = new THREE.PointsMaterial({
+                    size: 10,
+                    vertexColors: true,
+                    blending: THREE.AdditiveBlending,
+                    transparent: true,
+                    opacity: 0.7,
+                    depthWrite: false
                 });
+    
+                const nebula = new THREE.Points(nebulaGeometry, nebulaMaterial);
+                scene.add(nebula);
             }
     
             createNebula();
@@ -787,17 +786,21 @@
                     color: color,
                     emissive: color,
                     emissiveIntensity: 0.3,
-                    roughness: 0.7,
+                    roughness: 0.5,
                     metalness: 0.2
                 });
                 const planet = new THREE.Mesh(geometry, material);
                 planet.position.set(...position);
                 scene.add(planet);
+    
+                return planet;
             }
     
-            createPlanet(30, 0x3498db, [200, 50, -600]);  // Example planet 1
-            createPlanet(40, 0xe74c3c, [-300, -100, -800]); // Example planet 2
-            createPlanet(25, 0x8e44ad, [100, -30, -500]);    // Example planet 3
+            const planets = [
+                createPlanet(30, 0x3498db, [200, 50, -600]),   // Blue planet
+                createPlanet(40, 0xe74c3c, [-300, -100, -800]), // Red planet
+                createPlanet(25, 0x8e44ad, [100, -30, -500])    // Purple planet
+            ];
     
             // Lighting Setup
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
@@ -812,12 +815,31 @@
             pointLight.position.set(0, 200, 200);
             scene.add(pointLight);
     
+            // Post-Processing for Bloom Effect
+            const composer = new THREE.EffectComposer(renderer);
+            composer.addPass(new THREE.RenderPass(scene, camera));
+    
+            const bloomPass = new THREE.UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                1.5,  // Bloom intensity
+                0.4,  // Bloom radius
+                0.85  // Bloom threshold
+            );
+            composer.addPass(bloomPass);
+    
             // Animation Loop for Subtle Movement
             function animate() {
                 requestAnimationFrame(animate);
+    
                 // Adding slow rotation for dynamic visuals
                 scene.rotation.y += 0.0005;
-                renderer.render(scene, camera);
+    
+                // Planets rotation
+                planets.forEach(planet => {
+                    planet.rotation.y += 0.001;
+                });
+    
+                composer.render();
             }
     
             animate();
