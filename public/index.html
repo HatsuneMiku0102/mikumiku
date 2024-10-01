@@ -710,11 +710,12 @@
                 // Static Background
                 const textureLoader = new THREE.TextureLoader();
                 textureLoader.load('/textures/nebula.webp', (texture) => {
-                    texture.wrapS = THREE.RepeatWrapping;
-                    texture.wrapT = THREE.RepeatWrapping;
-                    texture.repeat.set(2, 2); // Zoom out the background a bit
+                    texture.wrapS = THREE.ClampToEdgeWrapping;
+                    texture.wrapT = THREE.ClampToEdgeWrapping;
+                    const aspect = window.innerWidth / window.innerHeight;
+                    const geometry = new THREE.PlaneGeometry(2000 * aspect, 2000);
                     const backgroundMaterial = new THREE.MeshBasicMaterial({ map: texture });
-                    const background = new THREE.Mesh(new THREE.PlaneGeometry(4000, 2000), backgroundMaterial);
+                    const background = new THREE.Mesh(geometry, backgroundMaterial);
                     background.position.z = -1000;
                     scene.add(background);
                 });
@@ -790,6 +791,7 @@
                 });
             });
         </script>
+
 
 
 
