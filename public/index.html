@@ -702,29 +702,31 @@
                 renderer.setPixelRatio(window.devicePixelRatio);
                 renderer.toneMapping = THREE.ACESFilmicToneMapping;
                 renderer.outputEncoding = THREE.sRGBEncoding;
-    
+        
                 const scene = new THREE.Scene();
                 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1500);
-                camera.position.z = 50; // Fixed distance from background
-    
-                // Static Background
+                camera.position.z = 50;
+        
+                // Static Background with Enhanced Realism
                 const textureLoader = new THREE.TextureLoader();
                 textureLoader.load('/textures/nebula.webp', (texture) => {
                     const backgroundMaterial = new THREE.MeshBasicMaterial({ map: texture });
-                    const background = new THREE.Mesh(new THREE.PlaneGeometry(2000, 1000), backgroundMaterial);
+                    backgroundMaterial.depthWrite = false;
+                    const backgroundGeometry = new THREE.PlaneGeometry(window.innerWidth * 3, window.innerHeight * 3);
+                    const background = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
                     background.position.z = -1000;
                     scene.add(background);
                 });
-    
+        
                 // Improved Stars Geometry for Depth Effect
                 const starGeometry = new THREE.BufferGeometry();
                 const starCount = 5000;
                 const starVertices = new Float32Array(starCount * 3);
                 for (let i = 0; i < starCount * 3; i++) {
-                    starVertices[i] = (Math.random() - 0.5) * 1500; // Place stars far away
+                    starVertices[i] = (Math.random() - 0.5) * 1500; // Spread stars across the scene
                 }
                 starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
-    
+        
                 // Load Star Texture
                 const starTexture = textureLoader.load('https://cdn.jsdelivr.net/gh/ronaldsm/star-texture@main/star.png'); // A round star texture
                 const starMaterial = new THREE.PointsMaterial({
@@ -736,15 +738,24 @@
                     depthWrite: false,
                     blending: THREE.AdditiveBlending
                 });
-    
+        
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
-    
+        
+                // Subtle Parallax Effect for Background
+                document.addEventListener('mousemove', (event) => {
+                    const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+                    const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+        
+                    background.position.x = mouseX * 50; // Adjust movement sensitivity
+                    background.position.y = mouseY * 50;
+                });
+        
                 // Post-processing with Bloom for subtle glow
                 const composer = new THREE.EffectComposer(renderer);
                 const renderPass = new THREE.RenderPass(scene, camera);
                 composer.addPass(renderPass);
-    
+        
                 const bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
                     1.2, // Bloom strength
@@ -752,24 +763,28 @@
                     0.8 // Bloom threshold
                 );
                 composer.addPass(bloomPass);
-    
+        
                 // Animate
                 const animate = () => {
                     requestAnimationFrame(animate);
-    
-                    // Flickering stars effect
-                    stars.material.opacity = Math.random() * 0.1 + 0.8; // Vary opacity slightly for natural flicker
-    
+        
+                    // Flickering stars effect for natural twinkle
+                    stars.material.opacity = Math.random() * 0.1 + 0.8;
+        
                     // Render with Post-Processing
                     composer.render();
                 };
                 animate();
-    
+        
+                // Adjust the size on window resize
                 window.addEventListener('resize', () => {
                     camera.aspect = window.innerWidth / window.innerHeight;
                     camera.updateProjectionMatrix();
                     renderer.setSize(window.innerWidth, window.innerHeight);
                     composer.setSize(window.innerWidth, window.innerHeight);
+        
+                    // Resize background plane
+                    background.scale.set(window.innerWidth * 3, window.innerHeight * 3, 1);
                 });
             });
         </script>
