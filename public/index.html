@@ -701,16 +701,9 @@
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
             camera.position.set(0, 50, 500);
     
-            const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('spaceCanvas'), antialias: true, alpha: true });
+            const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
-    
-            // Orbit Controls for Navigation
-            const controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.1;
-            controls.autoRotate = true; // Enable auto-rotation
-            controls.autoRotateSpeed = 0.2; // Smooth panoramic rotation for an immersive effect
     
             // Resize Handler
             window.addEventListener('resize', () => {
@@ -736,7 +729,7 @@
                     positions.push(x, y, z);
     
                     const color = new THREE.Color();
-                    color.setHSL(Math.random(), 1, 0.6);
+                    color.setHSL(Math.random() * 0.5 + 0.7, 1, 0.6); // Rich nebula colors in pink, blue, and purple hues
                     colors.push(color.r, color.g, color.b);
                 }
     
@@ -744,11 +737,11 @@
                 nebulaGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     
                 const nebulaMaterial = new THREE.PointsMaterial({
-                    size: 4,
+                    size: 6,
                     vertexColors: true,
                     blending: THREE.AdditiveBlending,
                     transparent: true,
-                    opacity: 0.5,
+                    opacity: 0.7,
                     depthWrite: false
                 });
     
@@ -761,7 +754,7 @@
             // Stars in the Background
             function createStars() {
                 const starGeometry = new THREE.BufferGeometry();
-                const starCount = 5000;
+                const starCount = 8000;
                 const positions = [];
     
                 for (let i = 0; i < starCount; i++) {
@@ -783,89 +776,45 @@
     
             createStars();
     
-            // Planets and Moons Setup
+            // Planets Setup
             function createPlanet(radius, color, position) {
-                const geometry = new THREE.SphereGeometry(radius, 32, 32);
-                const material = new THREE.MeshStandardMaterial({ color: color });
+                const geometry = new THREE.SphereGeometry(radius, 64, 64);
+                const material = new THREE.MeshStandardMaterial({
+                    color: color,
+                    emissive: color,
+                    emissiveIntensity: 0.3,
+                    roughness: 0.7,
+                    metalness: 0.2
+                });
                 const planet = new THREE.Mesh(geometry, material);
                 planet.position.set(...position);
                 scene.add(planet);
-                return planet;
             }
     
-            const planet1 = createPlanet(15, 0x3498db, [100, 50, -200]);
-            const planet2 = createPlanet(25, 0xe74c3c, [-150, -50, -300]);
-    
-            // Shooting Stars with Tail Effect
-            function createShootingStar() {
-                const starGeometry = new THREE.BufferGeometry();
-                const positions = [];
-                const velocities = [];
-    
-                for (let i = 0; i < 100; i++) {
-                    positions.push(0, 0, 0);
-                    velocities.push(Math.random() * 0.5 + 0.5, Math.random() * -1, Math.random() * 0.5 - 0.25);
-                }
-    
-                starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-                starGeometry.setAttribute('velocity', new THREE.Float32BufferAttribute(velocities, 3));
-    
-                const starMaterial = new THREE.PointsMaterial({
-                    color: 0xffd700,
-                    size: 3,
-                    transparent: true,
-                    blending: THREE.AdditiveBlending,
-                });
-    
-                const shootingStar = new THREE.Points(starGeometry, starMaterial);
-                scene.add(shootingStar);
-    
-                return shootingStar;
-            }
-    
-            const shootingStars = [];
-            for (let i = 0; i < 10; i++) {
-                shootingStars.push(createShootingStar());
-            }
-    
-            function animateShootingStars() {
-                shootingStars.forEach(star => {
-                    const positions = star.geometry.attributes.position.array;
-                    const velocities = star.geometry.attributes.velocity.array;
-    
-                    for (let i = 0; i < positions.length; i += 3) {
-                        positions[i] += velocities[i];
-                        positions[i + 1] += velocities[i + 1];
-                        positions[i + 2] += velocities[i + 2];
-    
-                        if (positions[i + 1] < -200) {
-                            positions[i] = 0;
-                            positions[i + 1] = 0;
-                            positions[i + 2] = 0;
-                        }
-                    }
-    
-                    star.geometry.attributes.position.needsUpdate = true;
-                });
-            }
+            createPlanet(30, 0x3498db, [200, 50, -600]);  // Example planet 1
+            createPlanet(40, 0xe74c3c, [-300, -100, -800]); // Example planet 2
+            createPlanet(25, 0x8e44ad, [100, -30, -500]);    // Example planet 3
     
             // Lighting Setup
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
             scene.add(ambientLight);
     
             const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-            directionalLight.position.set(100, 200, 100);
+            directionalLight.position.set(200, 400, 300);
             scene.add(directionalLight);
     
-            const pointLight = new THREE.PointLight(0xffa07a, 1, 400);
-            pointLight.position.set(50, -50, 100);
+            // Soft Point Light to Mimic Nebula Glow
+            const pointLight = new THREE.PointLight(0xffa07a, 2, 1000);
+            pointLight.position.set(0, 200, 200);
             scene.add(pointLight);
     
-            // Animation Loop
+            // Animation Loop for Subtle Movement
             function animate() {
                 requestAnimationFrame(animate);
-                animateShootingStars();
-                controls.update();
+                // Adding slow rotation for dynamic visuals
+                scene.rotation.y += 0.0005;
+                scene.rotation.x = Math.sin(Date.now() * 0.00005) * 0.02;
+    
                 renderer.render(scene, camera);
             }
     
