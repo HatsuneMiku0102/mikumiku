@@ -698,7 +698,7 @@
             // Scene, Camera, Renderer Setup
             const scene = new THREE.Scene();
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-            camera.position.set(0, 0, 400);
+            camera.position.set(0, 0, 600);
     
             const renderer = new THREE.WebGLRenderer({
                 canvas: document.getElementById('techCanvas'),
@@ -717,72 +717,81 @@
             });
     
             // Black Hole Geometry and Material
-            const blackHoleGeometry = new THREE.SphereGeometry(50, 64, 64);
+            const blackHoleGeometry = new THREE.SphereGeometry(60, 64, 64);
             const blackHoleMaterial = new THREE.MeshBasicMaterial({
                 color: 0x000000
             });
             const blackHole = new THREE.Mesh(blackHoleGeometry, blackHoleMaterial);
             scene.add(blackHole);
     
-            // Accretion Disk Geometry and Material
-            const accretionDiskGeometry = new THREE.RingGeometry(60, 120, 64);
-            const accretionDiskTexture = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/disc.png');
-            const accretionDiskMaterial = new THREE.MeshBasicMaterial({
-                map: accretionDiskTexture,
-                color: 0xff4500,
-                side: THREE.DoubleSide,
+            // Accretion Disk Geometry and Material (Glowing Orange Effect)
+            const accretionDiskGeometry = new THREE.RingGeometry(70, 120, 128);
+            const accretionDiskMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    color1: { type: 'c', value: new THREE.Color(0xff4500) },
+                    color2: { type: 'c', value: new THREE.Color(0xffaa00) }
+                },
+                vertexShader: `
+                    varying vec3 vPosition;
+                    void main() {
+                        vPosition = position;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform vec3 color1;
+                    uniform vec3 color2;
+                    varying vec3 vPosition;
+                    void main() {
+                        float intensity = smoothstep(60.0, 120.0, length(vPosition.xy));
+                        gl_FragColor = vec4(mix(color1, color2, intensity), 1.0);
+                    }
+                `,
                 transparent: true,
-                opacity: 0.7
+                blending: THREE.AdditiveBlending
             });
             const accretionDisk = new THREE.Mesh(accretionDiskGeometry, accretionDiskMaterial);
             accretionDisk.rotation.x = Math.PI / 2;
             scene.add(accretionDisk);
     
-            // Gravitational Lensing Effect (Shader)
-            const lensGeometry = new THREE.PlaneGeometry(400, 400, 64, 64);
-            const lensMaterial = new THREE.ShaderMaterial({
-                uniforms: {
-                    color: { value: new THREE.Color(0x000000) },
-                    time: { value: 0.0 }
-                },
-                vertexShader: `
-                    varying vec2 vUv;
-                    void main() {
-                        vUv = uv;
-                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                    }
-                `,
-                fragmentShader: `
-                    varying vec2 vUv;
-                    uniform float time;
-                    void main() {
-                        float dist = length(vUv - 0.5);
-                        float lensEffect = 1.0 / (dist * 10.0 + 1.0);
-                        gl_FragColor = vec4(vec3(0.0, 0.0, 0.0), lensEffect);
-                    }
-                `,
-                transparent: true
-            });
-            const lensMesh = new THREE.Mesh(lensGeometry, lensMaterial);
-            lensMesh.position.z = -1;
-            scene.add(lensMesh);
-    
             // Starfield Geometry and Material
             const starGeometry = new THREE.BufferGeometry();
             const starVertices = [];
-            for (let i = 0; i < 5000; i++) {
-                const x = THREE.MathUtils.randFloatSpread(2000);
-                const y = THREE.MathUtils.randFloatSpread(2000);
-                const z = THREE.MathUtils.randFloatSpread(2000);
+            const starSizes = [];
+            for (let i = 0; i < 8000; i++) {
+                const x = THREE.MathUtils.randFloatSpread(3000);
+                const y = THREE.MathUtils.randFloatSpread(3000);
+                const z = THREE.MathUtils.randFloatSpread(3000);
                 starVertices.push(x, y, z);
+                starSizes.push(THREE.MathUtils.randFloat(0.5, 3));
             }
             starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+            starGeometry.setAttribute('size', new THREE.Float32BufferAttribute(starSizes, 1));
     
-            const starMaterial = new THREE.PointsMaterial({
-                size: 1.5,
-                color: 0xffffff,
-                transparent: true,
-                opacity: 0.8
+            const starMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    pointTexture: { value: new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/star.png') }
+                },
+                vertexShader: `
+                    attribute float size;
+                    varying float vSize;
+                    void main() {
+                        vSize = size;
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = size * (300.0 / -mvPosition.z);
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    uniform sampler2D pointTexture;
+                    varying float vSize;
+                    void main() {
+                        gl_FragColor = vec4(vec3(1.0), vSize / 3.0) * texture2D(pointTexture, gl_PointCoord);
+                    }
+                `,
+                blending: THREE.AdditiveBlending,
+                depthTest: false,
+                transparent: true
             });
             const stars = new THREE.Points(starGeometry, starMaterial);
             scene.add(stars);
@@ -791,8 +800,8 @@
             const ambientLight = new THREE.AmbientLight(0x404040, 1.5); // Soft white ambient light
             scene.add(ambientLight);
     
-            const pointLight = new THREE.PointLight(0xffffff, 1);
-            pointLight.position.set(200, 200, 200);
+            const pointLight = new THREE.PointLight(0xffaa00, 1.2);
+            pointLight.position.set(0, 0, 600);
             scene.add(pointLight);
     
             // Animation Loop
@@ -800,14 +809,14 @@
                 requestAnimationFrame(animate);
     
                 // Rotate accretion disk
-                accretionDisk.rotation.z += 0.002;
+                accretionDisk.rotation.z += 0.01;
     
-                // Animate the lens effect
-                lensMaterial.uniforms.time.value += 0.01;
+                // Rotate the black hole slightly to give a dynamic effect
+                blackHole.rotation.y += 0.002;
     
                 // Move stars slowly to create a parallax effect
-                stars.rotation.y += 0.0003;
-                stars.rotation.x += 0.0001;
+                stars.rotation.y += 0.0001;
+                stars.rotation.x += 0.00005;
     
                 // Render scene
                 renderer.render(scene, camera);
