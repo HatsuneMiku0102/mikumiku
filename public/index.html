@@ -172,7 +172,7 @@
         <!-- Import Three.js module setup -->
         <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/controls/OrbitControls.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/loaders/PLYLoader.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/loaders/GLTFLoader.js"></script>
 
         <!-- Import Haru AI script -->
         <script src="haru.js"></script>
@@ -717,34 +717,22 @@
             directionalLight.position.set(100, 200, 100);
             scene.add(directionalLight);
             
-            // Load PLY Model
-            const loader = new THREE.PLYLoader();
-            loader.load('/textures/need_some_space.glb', function (geometry) {
-                geometry.computeVertexNormals(); // Ensure normals are computed for better lighting
-            
-                // Use MeshLambertMaterial for better smooth shading
-                const material = new THREE.MeshLambertMaterial({
-                    color: 0x8888ff, // Adjust color for a softer, more galaxy-like tone
-                    emissive: 0x111144, // Add slight emissive to give a glowing effect
-                    flatShading: false // Disable flat shading to reduce the "spiky" look
-                });
-            
-                const mesh = new THREE.Mesh(geometry, material);
+            // Load GLB Model
+            const loader = new THREE.GLTFLoader();
+            loader.load('/textures/need_some_space.glb', function (gltf) {
+                const model = gltf.scene;
             
                 // Adjust the scale to ensure it fits nicely in the view
-                mesh.scale.set(2, 2, 2); // Scale down the model
-                mesh.rotation.set(Math.PI / 2, 0, 0); // Rotate to orient properly
-                mesh.position.set(0, 0, 0); // Position the model to the center of the canvas
+                model.scale.set(2, 2, 2); // Adjust the scale as needed
+                model.rotation.set(Math.PI / 2, 0, 0); // Rotate to orient properly
+                model.position.set(0, 0, 0); // Position the model to the center of the canvas
             
-                // Smooth geometry to avoid sharp spikes
-                mesh.geometry.computeVertexNormals(); 
-            
-                scene.add(mesh);
+                scene.add(model);
                 console.log('Model loaded successfully');
             }, function (xhr) {
                 console.log((xhr.loaded / xhr.total * 100) + '% loaded');
             }, function (error) {
-                console.error('An error occurred while loading the PLY model:', error);
+                console.error('An error occurred while loading the GLB model:', error);
             });
             
             // Animation Loop for Subtle Movement
@@ -762,9 +750,8 @@
             }
             
             animate();
-
-
         </script>
+
 
     </body>
 </html>
