@@ -695,8 +695,6 @@
             fetchWeather();
         </script>
         
-
-
         <script>
             document.addEventListener('DOMContentLoaded', () => {
                 const canvas = document.getElementById('techCanvas');
@@ -705,10 +703,15 @@
                 renderer.setPixelRatio(window.devicePixelRatio);
         
                 const scene = new THREE.Scene();
-        
+                
                 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
                 camera.position.z = 5;
         
+                // Load star texture
+                const textureLoader = new THREE.TextureLoader();
+                const starTexture = textureLoader.load('https://cdn.pixabay.com/photo/2017/08/30/11/58/star-2690951_960_720.png');
+        
+                // Create star particles
                 const starGeometry = new THREE.BufferGeometry();
                 const starCount = 10000;
                 const starVertices = new Float32Array(starCount * 3);
@@ -718,19 +721,31 @@
                 }
         
                 starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
-                const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.5 });
+        
+                const starMaterial = new THREE.PointsMaterial({
+                    size: 1.5,
+                    map: starTexture,
+                    transparent: true,
+                    opacity: 0.8,
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending,
+                    color: new THREE.Color(Math.random() * 0.5 + 0.5, Math.random() * 0.5 + 0.5, Math.random() * 0.5 + 0.5),
+                });
         
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
         
+                // Animate the stars and camera
                 const animate = () => {
                     requestAnimationFrame(animate);
-                    
-                    // Rotate the camera slightly to create a dynamic movement effect
+        
+                    stars.rotation.x += 0.0002;
+                    stars.rotation.y += 0.0003;
+        
                     camera.position.x = 5 * Math.sin(Date.now() * 0.0001);
                     camera.position.y = 5 * Math.sin(Date.now() * 0.0001);
                     camera.lookAt(0, 0, 0);
-                    
+        
                     renderer.render(scene, camera);
                 };
         
@@ -743,6 +758,7 @@
                 });
             });
         </script>
+
 
 
     </body>
