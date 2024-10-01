@@ -734,32 +734,7 @@
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
         
-                // Lens Glares as Static Background Objects
-                const flareTextures = [
-                    textureLoader.load('/textures/Lens flare (16).jpg'),
-                    textureLoader.load('/textures/Lens flare (17).jpg'),
-                    textureLoader.load('/textures/Lens flare (18).jpg'),
-                    textureLoader.load('/textures/Lens flare (19).jpg'),
-                    textureLoader.load('/textures/Lens flare (20).jpg'),
-                    textureLoader.load('/textures/Lens flare (21).jpg'),
-                    textureLoader.load('/textures/Lens flare (22).jpg'),
-                    textureLoader.load('/textures/Lens flare (23).jpg'),
-                    textureLoader.load('/textures/Lens flare (24).jpg'),
-                    textureLoader.load('/textures/Lens flare (6).jpg'),
-                ];
-        
-                const backgroundFlares = [];
-                for (let i = 0; i < 10; i++) {
-                    const flareTexture = flareTextures[Math.floor(Math.random() * flareTextures.length)];
-                    const flareMaterial = new THREE.SpriteMaterial({ map: flareTexture, transparent: true, blending: THREE.AdditiveBlending, opacity: 0.3 });
-                    const flare = new THREE.Sprite(flareMaterial);
-                    flare.position.set((Math.random() - 0.5) * 2000, (Math.random() - 0.5) * 1000, -1000);
-                    flare.scale.set(Math.random() * 50 + 25, Math.random() * 50 + 25, 1);
-                    scene.add(flare);
-                    backgroundFlares.push(flare);
-                }
-        
-                // Comets with Improved Speed and Orientation
+                // Comets with Improved Speed and Consistent Direction (Top-Right to Bottom-Left)
                 const cometTextures = [
                     textureLoader.load('/textures/comet1.png'),
                     textureLoader.load('/textures/comet2.png')
@@ -777,13 +752,12 @@
                     });
                     const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
         
-                    // Set initial random values for each comet to start from top left or right
-                    const isLarge = Math.random() < 0.1; // 10% chance for larger comets
-                    const sizeFactor = isLarge ? Math.random() * 60 + 40 : Math.random() * 30 + 15;
+                    // Set initial random values for each comet to start from top-right
+                    const sizeFactor = Math.random() * 30 + 15; // Randomized size
                     comet.scale.set(sizeFactor, sizeFactor / 2, 1);
-                    comet.position.set((Math.random() > 0.5 ? 1 : -1) * (Math.random() * 500 + 500), Math.random() * 500 + 300, -800);
-                    comet.speed = Math.random() * 2 + 0.5;  // Increased speed for better visibility.
-                    comet.direction = { x: Math.random() > 0.5 ? 1 : -1, y: Math.random() > 0.5 ? 1 : -1 }; // Unique paths
+                    comet.position.set(Math.random() * 500 + 800, Math.random() * 500 + 300, -800);
+                    comet.speed = Math.random() * 2.5 + 1.5;  // Increased speed for more dynamic effect
+                    comet.direction = { x: -1, y: -1 }; // Always top-right to bottom-left
         
                     scene.add(comet);
                     comets.push(comet);
@@ -814,17 +788,15 @@
         
                     // Animate Comets
                     comets.forEach(comet => {
-                        comet.position.x -= comet.speed * comet.direction.x;
-                        comet.position.y -= comet.speed * 0.5 * comet.direction.y;
+                        comet.position.x += comet.speed * comet.direction.x;
+                        comet.position.y += comet.speed * 0.5 * comet.direction.y;
         
-                        if (comet.position.x < -1600 || comet.position.y < -800 || comet.position.x > 1600 || comet.position.y > 800) {
-                            // Reset comet to start from the top corners again
-                            comet.position.set((Math.random() > 0.5 ? 1 : -1) * (Math.random() * 500 + 500), Math.random() * 500 + 300, -800);
-                            comet.speed = Math.random() * 2 + 0.5;  // Reset speed for variation
-                            const isLarge = Math.random() < 0.1; // 10% chance for larger comets
-                            const newSizeFactor = isLarge ? Math.random() * 60 + 40 : Math.random() * 30 + 15; // Reset size with larger values
+                        if (comet.position.x < -1600 || comet.position.y < -800) {
+                            // Reset comet to start from the top-right corner again
+                            comet.position.set(Math.random() * 500 + 800, Math.random() * 500 + 300, -800);
+                            comet.speed = Math.random() * 2.5 + 1.5;  // Reset speed for variation
+                            const newSizeFactor = Math.random() * 30 + 15; // Reset size with new random values
                             comet.scale.set(newSizeFactor, newSizeFactor / 2, 1);
-                            comet.direction = { x: Math.random() > 0.5 ? 1 : -1, y: Math.random() > 0.5 ? 1 : -1 }; // Unique paths
                             comet.lookAt(camera.position); // Keep the comet oriented properly
                         }
                     });
