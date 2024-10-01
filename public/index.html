@@ -695,9 +695,9 @@
             const scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000000);
         
-            // Camera Setup - Enhanced Zoom and Close Viewing
+            // Camera Setup - Zoomed Out for Broader View
             const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000);
-            camera.position.set(0, 1000, 1000); // Set camera closer to focus more on the model
+            camera.position.set(0, 1500, 1500); // Zoomed out further to provide a broad view
         
             // Renderer Setup
             const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
@@ -715,66 +715,81 @@
             });
         
             // Lighting Setup - Improved for Realism
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); // Increased brightness for visibility
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); // Increased brightness for visibility
             scene.add(ambientLight);
         
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
-            directionalLight.position.set(300, 1000, 300);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            directionalLight.position.set(500, 1000, 500);
             directionalLight.castShadow = true;
-            directionalLight.shadow.mapSize.width = 2048; // Increased shadow resolution
-            directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.mapSize.width = 1024; // Optimized shadow resolution
+            directionalLight.shadow.mapSize.height = 1024;
             scene.add(directionalLight);
         
-            const pointLight = new THREE.PointLight(0xffffff, 0.8);
-            pointLight.position.set(0, 400, 0);
+            const pointLight = new THREE.PointLight(0xffffff, 0.7);
+            pointLight.position.set(0, 600, 0);
             scene.add(pointLight);
         
-            // Load GLB Model with Enhanced Material and Camera Controls
+            // Loading Indicator - Placeholder to Improve Perceived Loading Speed
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            loadingSpinner.style.display = 'block';
+        
+            // Load GLB Model with Optimized Material and Faster Loading Approach
             const loader = new THREE.GLTFLoader();
-            loader.load('/textures/2000_to_2019.glb', function (gltf) {
-                const model = gltf.scene;
+            loader.load(
+                '/textures/2000_to_2019.glb',
+                function (gltf) {
+                    // Hide loading spinner once the model loads
+                    loadingSpinner.style.display = 'none';
         
-                // Enhance materials and add shadows
-                model.traverse((node) => {
-                    if (node.isMesh) {
-                        node.castShadow = true;
-                        node.receiveShadow = true;
+                    const model = gltf.scene;
         
-                        if (node.material) {
-                            node.material.envMapIntensity = 2.5; // Enhanced to make materials more dynamic
-                            node.material.metalness = 0.5;
-                            node.material.roughness = 0.3;
-                            node.material.needsUpdate = true;
+                    // Enhance materials and add shadows
+                    model.traverse((node) => {
+                        if (node.isMesh) {
+                            node.castShadow = true;
+                            node.receiveShadow = true;
+        
+                            if (node.material) {
+                                node.material.envMapIntensity = 1.8; // Balanced intensity for better initial load
+                                node.material.metalness = 0.4;
+                                node.material.roughness = 0.4;
+                                node.material.needsUpdate = true;
+                            }
                         }
-                    }
-                });
+                    });
         
-                // Center and Scale Model
-                const box = new THREE.Box3().setFromObject(model);
-                const size = box.getSize(new THREE.Vector3());
-                const center = box.getCenter(new THREE.Vector3());
+                    // Center and Scale Model
+                    const box = new THREE.Box3().setFromObject(model);
+                    const size = box.getSize(new THREE.Vector3());
+                    const center = box.getCenter(new THREE.Vector3());
         
-                const maxDim = Math.max(size.x, size.y, size.z);
-                const scale = Math.min(window.innerWidth, window.innerHeight) / (maxDim * 3); // Scale larger for close-up view
-                model.scale.setScalar(scale);
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const scale = Math.min(window.innerWidth, window.innerHeight) / (maxDim * 5); // Zoomed out for a broader view
+                    model.scale.setScalar(scale);
         
-                model.position.sub(center.multiplyScalar(scale));
-                scene.add(model);
+                    model.position.sub(center.multiplyScalar(scale));
+                    scene.add(model);
         
-                // OrbitControls - Enhanced for Better Interaction
-                const controls = new THREE.OrbitControls(camera, renderer.domElement);
-                controls.target.set(0, 0, 0);
-                controls.enableDamping = true; // Smoother interaction
-                controls.dampingFactor = 0.1;
-                controls.enableZoom = true;
-                controls.maxDistance = maxDim * 1.5; // Allow close zoom
-                controls.minDistance = maxDim * 0.2; // Prevent zooming too close to avoid clipping
-                controls.update();
-            }, function (xhr) {
-                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-            }, function (error) {
-                console.error('An error occurred while loading the GLB model:', error);
-            });
+                    // OrbitControls - Enhanced for Better Interaction
+                    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+                    controls.target.set(0, 0, 0);
+                    controls.enableDamping = true; // Smoother interaction
+                    controls.dampingFactor = 0.1;
+                    controls.enableZoom = true;
+                    controls.maxDistance = maxDim * 3; // Allow flexible zooming out
+                    controls.minDistance = maxDim * 0.3; // Prevent getting too close
+                    controls.update();
+                },
+                function (xhr) {
+                    // Optional: Update loading progress if needed
+                    const progress = (xhr.loaded / xhr.total * 100).toFixed(2);
+                    console.log(progress + '% loaded');
+                },
+                function (error) {
+                    console.error('An error occurred while loading the GLB model:', error);
+                    loadingSpinner.style.display = 'none'; // Hide spinner even on error
+                }
+            );
         
             // Raycaster for Interactivity - Click Detection
             const raycaster = new THREE.Raycaster();
@@ -800,6 +815,7 @@
         
             animate();
         </script>
+
 
 
 
