@@ -713,7 +713,7 @@
                     scene.background = texture;  // Set the background texture to the nebula
                 });
         
-                // Stars Geometry for Depth Effect
+                // Stars Geometry for Depth Effect with Twinkling
                 const starGeometry = new THREE.BufferGeometry();
                 const starCount = 3000;
                 const starVertices = new Float32Array(starCount * 3);
@@ -734,41 +734,7 @@
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
         
-                // Comets with Natural Glow Effect
-                const cometTextures = [
-                    textureLoader.load('/textures/comet1.png'),
-                    textureLoader.load('/textures/comet2.png')
-                ];
-                const cometGeometry = new THREE.PlaneGeometry(1, 1);
-                const comets = [];
-        
-                for (let i = 0; i < 8; i++) {
-                    const cometMaterial = new THREE.MeshBasicMaterial({
-                        map: cometTextures[Math.floor(Math.random() * cometTextures.length)],
-                        transparent: true,
-                        blending: THREE.AdditiveBlending,
-                        depthWrite: false,
-                        opacity: 0.8
-                    });
-                    const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
-        
-                    // Set initial random values for each comet to start from top left or right
-                    const sizeFactor = Math.random() * 30 + 15; // Larger comets
-                    comet.scale.set(sizeFactor, sizeFactor / 2, 1);
-                    comet.position.set((Math.random() > 0.5 ? 1 : -1) * (Math.random() * 500 + 500), Math.random() * 500 + 300, -800);
-                    comet.speed = Math.random() * 2 + 1;  // Increased speed for more dynamics
-        
-                    // Add unique paths using random angle properties
-                    comet.direction = {
-                        x: (Math.random() - 0.5) * 0.4,
-                        y: (Math.random() - 0.5) * 0.2
-                    };
-        
-                    scene.add(comet);
-                    comets.push(comet);
-                }
-        
-                // Lens Glares as Background Celestial Bodies
+                // Lens Glares as Static Background Objects
                 const flareTextures = [
                     textureLoader.load('/textures/Lens flare (16).jpg'),
                     textureLoader.load('/textures/Lens flare (17).jpg'),
@@ -782,41 +748,45 @@
                     textureLoader.load('/textures/Lens flare (6).jpg'),
                 ];
         
-                const lensFlares = [];
+                const backgroundFlares = [];
                 for (let i = 0; i < 10; i++) {
                     const flareTexture = flareTextures[Math.floor(Math.random() * flareTextures.length)];
-                    const flareMaterial = new THREE.SpriteMaterial({
-                        map: flareTexture,
-                        blending: THREE.AdditiveBlending,
-                        transparent: true,
-                        opacity: 0.3
-                    });
+                    const flareMaterial = new THREE.SpriteMaterial({ map: flareTexture, transparent: true, blending: THREE.AdditiveBlending, opacity: 0.3 });
                     const flare = new THREE.Sprite(flareMaterial);
+                    flare.position.set((Math.random() - 0.5) * 2000, (Math.random() - 0.5) * 1000, -1000);
                     flare.scale.set(Math.random() * 50 + 25, Math.random() * 50 + 25, 1);
-                    flare.position.set(
-                        (Math.random() - 0.5) * 2000,
-                        (Math.random() - 0.5) * 1000,
-                        -1000
-                    );
                     scene.add(flare);
-                    lensFlares.push(flare);
+                    backgroundFlares.push(flare);
                 }
         
-                // Moving Stars/Shooting Stars
-                const shootStarGeometry = new THREE.PlaneGeometry(10, 2);
-                const shootingStars = [];
-                const shootingStarTexture = cometTextures[1];  // Reusing comet texture
-                for (let i = 0; i < 3; i++) {
-                    const shootingStarMaterial = new THREE.MeshBasicMaterial({
-                        map: shootingStarTexture,
+                // Comets with Improved Speed and Size Variation
+                const cometTextures = [
+                    textureLoader.load('/textures/comet1.png'),
+                    textureLoader.load('/textures/comet2.png')
+                ];
+                const cometGeometry = new THREE.PlaneGeometry(1, 1);
+                const comets = [];
+                const cometSprites = [];
+        
+                for (let i = 0; i < 8; i++) {
+                    const cometMaterial = new THREE.MeshBasicMaterial({
+                        map: cometTextures[Math.floor(Math.random() * cometTextures.length)],
                         transparent: true,
                         blending: THREE.AdditiveBlending,
+                        depthWrite: false,
                     });
-                    const shootingStar = new THREE.Mesh(shootStarGeometry, shootingStarMaterial);
-                    shootingStar.position.set((Math.random() - 0.5) * 1500, (Math.random() - 0.5) * 800, -800);
-                    shootingStar.visible = false;
-                    scene.add(shootingStar);
-                    shootingStars.push(shootingStar);
+                    const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
+        
+                    // Set initial random values for each comet to start from top left or right
+                    const isLarge = Math.random() < 0.1; // 10% chance for larger comets
+                    const sizeFactor = isLarge ? Math.random() * 60 + 40 : Math.random() * 30 + 15;
+                    comet.scale.set(sizeFactor, sizeFactor / 2, 1);
+                    comet.position.set((Math.random() > 0.5 ? 1 : -1) * (Math.random() * 500 + 500), Math.random() * 500 + 300, -800);
+                    comet.speed = Math.random() * 1.5 + 0.5;  // Varying speeds for comets
+                    comet.direction = { x: Math.random() > 0.5 ? 1 : -1, y: Math.random() > 0.5 ? 1 : -1 }; // Unique paths
+        
+                    scene.add(comet);
+                    comets.push(comet);
                 }
         
                 // Post-processing with Bloom for a subtle glow
@@ -836,39 +806,22 @@
                 const animate = () => {
                     requestAnimationFrame(animate);
         
-                    // Flickering stars effect
-                    stars.material.color.setHSL(Math.random() * 0.1, 1, 0.9); // Slight color change for natural flickering effect
+                    // Twinkling stars effect
+                    starMaterial.opacity = 0.7 + Math.sin(Date.now() * 0.001) * 0.1;
         
                     // Animate Comets
-                    comets.forEach((comet) => {
-                        comet.position.x -= comet.speed + comet.direction.x;
-                        comet.position.y -= comet.speed * 0.5 + comet.direction.y; // Unique diagonal paths for some comets
-                        comet.material.opacity = Math.random() * 0.2 + 0.8; // Flashing effect
+                    comets.forEach(comet => {
+                        comet.position.x -= comet.speed * comet.direction.x;
+                        comet.position.y -= comet.speed * 0.5 * comet.direction.y;
         
-                        if (comet.position.x < -1600 || comet.position.x > 1600 || comet.position.y < -800 || comet.position.y > 800) {
+                        if (comet.position.x < -1600 || comet.position.y < -800 || comet.position.x > 1600 || comet.position.y > 800) {
                             // Reset comet to start from the top corners again
                             comet.position.set((Math.random() > 0.5 ? 1 : -1) * (Math.random() * 500 + 500), Math.random() * 500 + 300, -800);
-                            comet.speed = Math.random() * 2 + 1;  // Reset speed for variation
-                            comet.direction = {
-                                x: (Math.random() - 0.5) * 0.4,
-                                y: (Math.random() - 0.5) * 0.2
-                            };
-                        }
-                    });
-        
-                    // Shooting Stars Random Activation
-                    shootingStars.forEach((shootingStar) => {
-                        if (!shootingStar.visible && Math.random() < 0.001) {
-                            shootingStar.visible = true;
-                            shootingStar.position.set((Math.random() - 0.5) * 1500, 500, -800);
-                            shootingStar.speed = Math.random() * 3 + 1;
-                        }
-                        if (shootingStar.visible) {
-                            shootingStar.position.x -= shootingStar.speed;
-                            shootingStar.position.y -= shootingStar.speed * 0.5;
-                            if (shootingStar.position.y < -500 || shootingStar.position.x < -1000) {
-                                shootingStar.visible = false;
-                            }
+                            comet.speed = Math.random() * 1.5 + 0.5;  // Reset speed for variation
+                            const isLarge = Math.random() < 0.1; // 10% chance for larger comets
+                            const newSizeFactor = isLarge ? Math.random() * 60 + 40 : Math.random() * 30 + 15; // Reset size with larger values
+                            comet.scale.set(newSizeFactor, newSizeFactor / 2, 1);
+                            comet.direction = { x: Math.random() > 0.5 ? 1 : -1, y: Math.random() > 0.5 ? 1 : -1 }; // Unique paths
                         }
                     });
         
@@ -911,6 +864,7 @@
                 });
             });
         </script>
+
 
 
 
