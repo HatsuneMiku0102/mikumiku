@@ -172,13 +172,7 @@
         <!-- Import Three.js module setup -->
         <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/controls/OrbitControls.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/postprocessing/EffectComposer.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/postprocessing/RenderPass.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/shaders/CopyShader.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/postprocessing/ShaderPass.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
-
+        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/loaders/PLYLoader.js"></script>
 
         <!-- Import Haru AI script -->
         <script src="haru.js"></script>
@@ -700,120 +694,89 @@
             // Scene, Camera, Renderer Setup
             const scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000000); // Deep space background
-        
-            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-            camera.position.set(0, 0, 200);
-        
+
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 50, 200); // Set a higher position for better view
+
             const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
-        
+
             // Resize Handler
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
-        
-            // Ring Particles to Mimic Saturn's Rings
-            function createSaturnRings() {
-                const ringGeometry = new THREE.BufferGeometry();
-                const ringParticleCount = 15000; // Increase for a dense effect
+
+            // Create Nebula
+            function createNebula() {
+                const nebulaGeometry = new THREE.BufferGeometry();
+                const nebulaParticleCount = 10000;
                 const positions = [];
                 const colors = [];
-                const sizes = [];
-        
-                for (let i = 0; i < ringParticleCount; i++) {
-                    // Position particles within a ring-like toroidal area
-                    const radius = Math.random() * 150 + 200; // Spread from 200 to 350
-                    const angle = Math.random() * Math.PI * 2;
-                    const height = (Math.random() - 0.5) * 20; // Small height variation for depth
-        
-                    const x = radius * Math.cos(angle);
-                    const y = height;
-                    const z = radius * Math.sin(angle);
+
+                for (let i = 0; i < nebulaParticleCount; i++) {
+                    const r = Math.random() * 400;
+                    const theta = Math.random() * 2 * Math.PI;
+                    const phi = Math.acos(2 * Math.random() - 1);
+                    const x = r * Math.sin(phi) * Math.cos(theta);
+                    const y = r * Math.sin(phi) * Math.sin(theta);
+                    const z = r * Math.cos(phi);
                     positions.push(x, y, z);
-        
-                    // Colors: mix of ice-like white, light gray, and light brown
+
                     const color = new THREE.Color();
-                    const colorRand = Math.random();
-                    if (colorRand < 0.5) {
-                        color.setRGB(0.8, 0.8, 0.8); // Light gray-white for ice
-                    } else if (colorRand < 0.8) {
-                        color.setRGB(0.9, 0.9, 0.9); // More towards white
-                    } else {
-                        color.setRGB(0.7, 0.6, 0.5); // Light brown
-                    }
+                    color.setHSL(Math.random() * 0.5 + 0.7, 1, 0.6);
                     colors.push(color.r, color.g, color.b);
-        
-                    sizes.push(Math.random() * 8 + 2); // Varying sizes from small to larger chunks
                 }
-        
-                ringGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-                ringGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-                ringGeometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
-        
-                // Load the particle texture
-                const textureLoader = new THREE.TextureLoader();
-                textureLoader.load("https://threejs.org/examples/textures/sprites/circle.png", (texture) => {
-                    const ringMaterial = new THREE.PointsMaterial({
-                        size: 10,
+
+                nebulaGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                nebulaGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+                const loader = new THREE.TextureLoader();
+                loader.load('https://i.ibb.co/4gHcRZD/bg3-je3ddz.jpg', function (texture) {
+                    const nebulaMaterial = new THREE.PointsMaterial({
+                        size: 20,
                         map: texture,
                         vertexColors: true,
                         blending: THREE.AdditiveBlending,
                         transparent: true,
-                        opacity: 0.6,
-                        depthWrite: false,
+                        opacity: 0.8,
+                        depthWrite: false
                     });
-        
-                    const ringParticles = new THREE.Points(ringGeometry, ringMaterial);
-                    scene.add(ringParticles);
+
+                    const nebula = new THREE.Points(nebulaGeometry, nebulaMaterial);
+                    scene.add(nebula);
                 });
             }
-        
-            createSaturnRings();
-        
+
+            createNebula();
+
+            // Load PLY Model
+            const loader = new THREE.PLYLoader();
+            loader.load('/textures/model.ply', function (geometry) {
+                const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.scale.set(5, 5, 5); // Scale the model as needed
+                scene.add(mesh);
+            });
+
             // Lighting Setup
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
             scene.add(ambientLight);
-        
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-            directionalLight.position.set(200, 300, 400);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(200, 400, 300);
             scene.add(directionalLight);
-        
-            // Point Light to simulate light scattering in rings
-            const pointLight = new THREE.PointLight(0xffffff, 1, 1000);
-            pointLight.position.set(0, 0, 300);
-            scene.add(pointLight);
-        
-            // Camera Movement to Weave Through the Rings
-            let angle = 0;
-            const movementSpeed = 0.0005;
-        
-            // Animation Loop for Subtle Movement Through Rings
+
+            // Animation Loop
             function animate() {
                 requestAnimationFrame(animate);
-        
-                // Camera smoothly weaving through the rings in a sinusoidal pattern
-                angle += movementSpeed;
-                camera.position.x = 100 * Math.sin(angle * 2); // Weave side to side
-                camera.position.y = 10 * Math.sin(angle);      // Subtle up-down movement
-                camera.position.z -= 0.1;                      // Gradually move forward
-        
-                // Focus camera towards center of the rings
-                camera.lookAt(new THREE.Vector3(0, 0, -1000));
-        
                 renderer.render(scene, camera);
             }
-        
+
             animate();
         </script>
 
-
-
-
-
-
     </body>
-
 </html>
