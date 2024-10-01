@@ -734,27 +734,32 @@
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
         
-                // Nebula Particle Field
-                const particleGeometry = new THREE.BufferGeometry();
-                const particleCount = 1000;
-                const particleVertices = new Float32Array(particleCount * 3);
-                for (let i = 0; i < particleCount * 3; i++) {
-                    particleVertices[i] = (Math.random() - 0.5) * 2000;
+                // Lens Flares for Celestial Bodies in Background
+                const flareTextures = [
+                    textureLoader.load('/textures/Lens flare (16).jpg'),
+                    textureLoader.load('/textures/Lens flare (17).jpg'),
+                    textureLoader.load('/textures/Lens flare (18).jpg'),
+                    textureLoader.load('/textures/Lens flare (19).jpg'),
+                    textureLoader.load('/textures/Lens flare (20).jpg'),
+                    textureLoader.load('/textures/Lens flare (21).jpg'),
+                    textureLoader.load('/textures/Lens flare (22).jpg'),
+                    textureLoader.load('/textures/Lens flare (23).jpg'),
+                    textureLoader.load('/textures/Lens flare (24).jpg'),
+                    textureLoader.load('/textures/Lens flare (6).jpg'),
+                ];
+        
+                const celestialBodies = [];
+                for (let i = 0; i < 8; i++) {
+                    const flareTexture = flareTextures[Math.floor(Math.random() * flareTextures.length)];
+                    const flareMaterial = new THREE.SpriteMaterial({ map: flareTexture, transparent: true, blending: THREE.AdditiveBlending });
+                    const celestialBody = new THREE.Sprite(flareMaterial);
+                    celestialBody.position.set((Math.random() - 0.5) * 2500, (Math.random() - 0.5) * 1500, -1200);
+                    celestialBody.scale.set(150, 150, 1);
+                    scene.add(celestialBody);
+                    celestialBodies.push(celestialBody);
                 }
-                particleGeometry.setAttribute('position', new THREE.BufferAttribute(particleVertices, 3));
-                const particleMaterial = new THREE.PointsMaterial({
-                    size: 5,
-                    map: textureLoader.load('/textures/nebula.webp'),
-                    transparent: true,
-                    blending: THREE.AdditiveBlending,
-                    depthWrite: false,
-                    opacity: 0.2,
-                });
         
-                const particles = new THREE.Points(particleGeometry, particleMaterial);
-                scene.add(particles);
-        
-                // Comets
+                // Comets with Special Lens Glare Effects
                 const cometTextures = [
                     textureLoader.load('/textures/comet1.png'),
                     textureLoader.load('/textures/comet2.png')
@@ -781,38 +786,13 @@
                     scene.add(comet);
                     comets.push(comet);
         
-                    // Glare effect (Sprite)
-                    const glareTexture = textureLoader.load('/textures/flare.png'); // Add appropriate glare texture here
-                    const glareMaterial = new THREE.SpriteMaterial({ map: glareTexture, blending: THREE.AdditiveBlending, transparent: true });
+                    // Glare effect for comets (Sprite)
+                    const cometGlareTexture = textureLoader.load('/textures/Lens flare (19).jpg'); // Specific lens flare for comets
+                    const glareMaterial = new THREE.SpriteMaterial({ map: cometGlareTexture, blending: THREE.AdditiveBlending, transparent: true });
                     const glare = new THREE.Sprite(glareMaterial);
-                    glare.scale.set(sizeFactor * 3, sizeFactor * 3, 1); // Make the glare effect larger
+                    glare.scale.set(sizeFactor * 4, sizeFactor * 4, 1); // Make the glare effect larger for comets
                     scene.add(glare);
                     cometSprites.push(glare);
-                }
-        
-                // Lens Flares Integration (New Lens Flares Added)
-                const flareTextures = [
-                    textureLoader.load('/textures/Lens flare (16).jpg'),
-                    textureLoader.load('/textures/Lens flare (17).jpg'),
-                    textureLoader.load('/textures/Lens flare (18).jpg'),
-                    textureLoader.load('/textures/Lens flare (19).jpg'),
-                    textureLoader.load('/textures/Lens flare (20).jpg'),
-                    textureLoader.load('/textures/Lens flare (21).jpg'),
-                    textureLoader.load('/textures/Lens flare (22).jpg'),
-                    textureLoader.load('/textures/Lens flare (23).jpg'),
-                    textureLoader.load('/textures/Lens flare (24).jpg'),
-                    textureLoader.load('/textures/Lens flare (6).jpg'),
-                ];
-        
-                const lensFlares = [];
-                for (let i = 0; i < 5; i++) {
-                    const flareTexture = flareTextures[Math.floor(Math.random() * flareTextures.length)];
-                    const flareMaterial = new THREE.SpriteMaterial({ map: flareTexture, transparent: true, blending: THREE.AdditiveBlending });
-                    const flare = new THREE.Sprite(flareMaterial);
-                    flare.position.set((Math.random() - 0.5) * 2000, (Math.random() - 0.5) * 1200, -1000);
-                    flare.scale.set(100, 100, 1);
-                    scene.add(flare);
-                    lensFlares.push(flare);
                 }
         
                 // Moving Stars/Shooting Stars
@@ -839,8 +819,8 @@
         
                 const bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    1.5,
-                    0.4,
+                    1.8,
+                    0.5,
                     0.85
                 );
                 composer.addPass(bloomPass);
@@ -860,7 +840,7 @@
         
                         // Update glare to follow comet
                         cometSprites[index].position.set(comet.position.x, comet.position.y, comet.position.z);
-                        cometSprites[index].material.opacity = comet.material.opacity * 0.6; // Slightly reduced opacity for glare
+                        cometSprites[index].material.opacity = comet.material.opacity * 0.7; // Slightly reduced opacity for glare
         
                         if (comet.position.x < -1600 || comet.position.y < -800) {
                             // Reset comet to start from the top corners again
@@ -926,6 +906,7 @@
                 });
             });
         </script>
+
 
 
 
