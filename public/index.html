@@ -706,17 +706,19 @@
             camera.lookAt(0, 0, 0);
         
             // Renderer Setup - Improved Gamma and Tone Mapping for Colors
-            const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
+            const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 2.0;
+            renderer.setClearColor(0x000000, 1); // Set the clear color to black and fully opaque
+            renderer.toneMapping = THREE.LinearToneMapping; // Set Linear Tone Mapping
+            renderer.toneMappingExposure = 1.0; // Adjust exposure for a more natural look
             renderer.outputEncoding = THREE.sRGBEncoding;
         
             // Load JPEG Background using TextureLoader
             const loader = new THREE.TextureLoader();
             loader.load('/textures/heic1007a.jpg', (texture) => {
-                scene.background = texture; // Set the loaded JPEG texture as the scene background
+                texture.mapping = THREE.EquirectangularReflectionMapping; // Set appropriate mapping type
+                scene.background = texture; // Set as the scene background
             });
         
             // Post-Processing Setup with EffectComposer
@@ -739,14 +741,9 @@
                 composer.setSize(window.innerWidth, window.innerHeight);
             });
         
-            // Lighting Setup - Improved for Realism
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.5); // Increased intensity for better visibility
+            // Simplified Lighting Setup for Debugging Visibility
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.5); // Increase ambient light intensity
             scene.add(ambientLight);
-        
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); // Increased intensity
-            directionalLight.position.set(500, 1000, 500);
-            directionalLight.castShadow = true;
-            scene.add(directionalLight);
         
             // Loading Indicator - Placeholder to Improve Perceived Loading Speed
             const loadingSpinner = document.getElementById('loadingSpinner');
@@ -819,20 +816,12 @@
                 }
             );
         
-            // Raycaster for Interactivity - Click Detection
-            const raycaster = new THREE.Raycaster();
-            const mouse = new THREE.Vector2();
-        
-            window.addEventListener('click', (event) => {
-                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-                raycaster.setFromCamera(mouse, camera);
-        
-                const intersects = raycaster.intersectObjects(scene.children, true);
-                if (intersects.length > 0) {
-                    console.log('Intersected with:', intersects[0].object);
-                }
-            });
+            // Debugging Geometry - Simple Sphere to Verify Scene Rendering
+            const sphereGeometry = new THREE.SphereGeometry(100, 32, 32);
+            const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // Red color for easy visibility
+            const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            sphere.position.set(0, 0, 0); // Place in the center of the scene
+            scene.add(sphere);
         
             // Animation Loop for Smooth Rendering with Post-Processing
             function animate() {
@@ -845,16 +834,6 @@
         
             animate();
         </script>
-
-
-
-
-
-
-
-
-
-
 
 
 
