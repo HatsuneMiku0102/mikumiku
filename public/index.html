@@ -758,11 +758,11 @@
                     comet.position.set(Math.random() * 500 + 800, Math.random() * 500 + 300, -800);
                     comet.speed = Math.random() * 3.0 + 2.0;  // Speed increase for dynamic effect
         
+                    // Set the comet's initial orientation to point in the direction of travel
+                    comet.rotation.z = Math.atan2(-0.7, -1); // Rotate to face diagonally towards bottom-left
+        
                     scene.add(comet);
                     comets.push(comet);
-        
-                    // Correct comet orientation so that the tail follows the head.
-                    comet.lookAt(new THREE.Vector3(comet.position.x - 1, comet.position.y - 1, comet.position.z));
                 }
         
                 // Post-processing with Bloom for a subtle glow
@@ -790,15 +790,13 @@
                         comet.position.x -= comet.speed; // Move left
                         comet.position.y -= comet.speed * 0.7; // Move downwards for diagonal effect
         
-                        // Keep the comet oriented correctly to ensure the tail follows the head
-                        comet.lookAt(new THREE.Vector3(comet.position.x - comet.speed, comet.position.y - comet.speed * 0.7, comet.position.z));
-        
                         if (comet.position.x < -1600 || comet.position.y < -800) {
                             // Reset comet to start from the top-right area again
                             comet.position.set(Math.random() * 500 + 800, Math.random() * 500 + 300, -800);
                             comet.speed = Math.random() * 3.0 + 2.0;  // Reset speed for variation
                             const newSizeFactor = Math.random() * 50 + 20; // Reset size with new random values
                             comet.scale.set(newSizeFactor, newSizeFactor / 2, 1);
+                            comet.rotation.z = Math.atan2(-0.7, -1); // Reorient to maintain correct direction
                         }
                     });
         
@@ -841,6 +839,7 @@
                 });
             });
         </script>
+
 
 
 
