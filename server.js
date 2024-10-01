@@ -255,11 +255,12 @@ app.use(
                 "'unsafe-inline'", // Consider replacing with nonces or hashes for better security
                 "https://fonts.googleapis.com",
                 "https://cdnjs.cloudflare.com",
-                "https://www.youtube.com"
+                "https://www.youtube.com",
+                "https://unpkg.com"  // Added unpkg CDN for three.js
             ],
             styleSrc: [
                 "'self'",
-                "'unsafe-inline'", // Consider replacing with nonces or hashes for better security
+                "'unsafe-inline'",
                 "https://fonts.googleapis.com"
             ],
             imgSrc: [
@@ -268,7 +269,7 @@ app.use(
                 "https://i.ytimg.com",
                 "https://img.youtube.com",
                 "https://openweathermap.org",
-                "https://i.postimg.cc" // Added Postimg to allow custom browsing thumbnail
+                "https://i.postimg.cc"
             ],
             fontSrc: [
                 "'self'",
@@ -297,6 +298,7 @@ app.use(
         }
     })
 );
+
 
 
 // Serve static files from 'public'
