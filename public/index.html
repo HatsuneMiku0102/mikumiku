@@ -172,6 +172,9 @@
         <!-- Import Three.js module setup -->
         <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/controls/OrbitControls.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/postprocessing/EffectComposer.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/postprocessing/RenderPass.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/loaders/GLTFLoader.js"></script>
 
         <!-- Import Haru AI script -->
@@ -704,15 +707,27 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.5; // Increase exposure for better visibility
+            renderer.toneMappingExposure = 2.0; // Increased exposure for vibrancy
             renderer.outputEncoding = THREE.sRGBEncoding;
-            renderer.gammaFactor = 2.2; // Adjust gamma factor for better color accuracy
+        
+            // Post-Processing Setup with EffectComposer
+            const composer = new THREE.EffectComposer(renderer);
+            const renderPass = new THREE.RenderPass(scene, camera);
+            composer.addPass(renderPass);
+        
+            // Unreal Bloom Pass for Glow Effect
+            const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+            bloomPass.threshold = 0.1;
+            bloomPass.strength = 2.5; // Intensity of the bloom effect
+            bloomPass.radius = 0.5;
+            composer.addPass(bloomPass);
         
             // Resize Handler
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
+                composer.setSize(window.innerWidth, window.innerHeight);
             });
         
             // Lighting Setup - Improved for Realism
@@ -758,18 +773,14 @@
                             node.receiveShadow = true;
         
                             if (node.material) {
-                                // If the material uses the KHR_materials_unlit extension, adjust accordingly
-                                if (node.material.isMeshStandardMaterial || node.material.isMeshBasicMaterial) {
-                                    node.material.envMap = envMap;
-                                    node.material.envMapIntensity = 1.5;
-                                    node.material.metalness = 0.5;
-                                    node.material.roughness = 0.5;
-                                    node.material.needsUpdate = true;
-                                }
-                                // Explicitly set vertex colors if available
-                                if (node.material.vertexColors) {
-                                    node.material.vertexColors = true;
-                                }
+                                // Adjust emissive material settings
+                                node.material.envMap = envMap;
+                                node.material.envMapIntensity = 1.5;
+                                node.material.metalness = 0.5;
+                                node.material.roughness = 0.5;
+                                node.material.emissive = new THREE.Color(0xffffff); // Add emissive color
+                                node.material.emissiveIntensity = 1.0; // Adjust intensity for the glow effect
+                                node.material.needsUpdate = true;
                             }
                         }
                     });
@@ -828,18 +839,17 @@
                 }
             });
         
-            // Animation Loop for Smooth Rendering
+            // Animation Loop for Smooth Rendering with Post-Processing
             function animate() {
                 requestAnimationFrame(animate);
                 if (mixer) {
                     mixer.update(0.01);
                 }
-                renderer.render(scene, camera);
+                composer.render(); // Use composer for post-processing
             }
         
             animate();
         </script>
-
 
 
 
