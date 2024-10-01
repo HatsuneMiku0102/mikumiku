@@ -171,7 +171,7 @@
 
         <!-- Import Three.js module setup -->
         <script type="module" src="/js/three-setup.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three-orbitcontrols@2.110.3/OrbitControls.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/controls/OrbitControls.js"></script>
 
         <!-- Import Haru AI script -->
         <script src="haru.js"></script>
@@ -693,23 +693,20 @@
 
             
             
-        <script type="module">
-            import * as THREE from './js/three.module.min.js';
-            import { OrbitControls } from './js/OrbitControls.js';
-    
+        <script>
             // Scene, Camera, Renderer Setup
             const scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000000); // Deep space background
-            
+    
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, 20, 100);
-            
+    
             // Renderer setup
-            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             document.body.appendChild(renderer.domElement);
-            
+    
             // Orbit Controls setup
             const controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
@@ -717,38 +714,38 @@
             controls.minDistance = 20;
             controls.maxDistance = 200;
             controls.maxPolarAngle = Math.PI / 2; // Prevent camera from going below ground level
-            
+    
             // Resize Handler
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
-            
+    
             // Stars setup
             function createStars() {
                 const starGeometry = new THREE.BufferGeometry();
                 const starCount = 5000;
-            
+    
                 const positions = [];
                 for (let i = 0; i < starCount; i++) {
                     positions.push((Math.random() - 0.5) * 2000, (Math.random() - 0.5) * 2000, (Math.random() - 0.5) * 2000);
                 }
-            
+    
                 starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-                
+    
                 const starMaterial = new THREE.PointsMaterial({
                     color: 0xffffff,
                     size: 0.7,
                     transparent: true,
                     blending: THREE.AdditiveBlending,
                 });
-            
+    
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
             }
             createStars();
-            
+    
             // Planets setup (simply spheres for now)
             function createPlanet(radius, color, position) {
                 const geometry = new THREE.SphereGeometry(radius, 32, 32);
@@ -758,45 +755,45 @@
                 scene.add(planet);
                 return planet;
             }
-            
+    
             createPlanet(10, 0xff6347, [100, 50, -200]);  // Example planet 1
             createPlanet(15, 0x4682b4, [-150, -30, -300]); // Example planet 2
             createPlanet(8, 0x32cd32, [200, -10, 150]);    // Example planet 3
-            
+    
             // Shooting stars setup
             function createShootingStars() {
                 const shootingStarCount = 20;
-            
+    
                 const positions = [];
                 for (let i = 0; i < shootingStarCount; i++) {
                     positions.push((Math.random() - 0.5) * 1000, (Math.random() - 0.5) * 500, (Math.random() - 0.5) * 1000);
                 }
-            
+    
                 const shootingStarGeometry = new THREE.BufferGeometry();
                 shootingStarGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-            
+    
                 const shootingStarMaterial = new THREE.PointsMaterial({
                     color: 0xffd700,
                     size: 2,
                     transparent: true,
                     blending: THREE.AdditiveBlending,
                 });
-            
+    
                 const shootingStars = new THREE.Points(shootingStarGeometry, shootingStarMaterial);
                 scene.add(shootingStars);
-            
+    
                 return shootingStars;
             }
-            
+    
             const shootingStars = createShootingStars();
-            
+    
             // Shooting Stars Animation
             function animateShootingStars() {
                 const positions = shootingStars.geometry.attributes.position.array;
                 for (let i = 0; i < positions.length; i += 3) {
                     positions[i] += 2; // Moving along the x-axis
                     positions[i + 1] -= 1.5; // Moving along the y-axis
-            
+    
                     if (positions[i] > 1000 || positions[i + 1] < -500) {
                         positions[i] = (Math.random() - 0.5) * 1000;
                         positions[i + 1] = (Math.random() - 0.5) * 500;
@@ -805,15 +802,15 @@
                 }
                 shootingStars.geometry.attributes.position.needsUpdate = true;
             }
-            
+    
             // Lighting setup
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
-            
+    
             const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
             directionalLight.position.set(50, 50, 50);
             scene.add(directionalLight);
-            
+    
             // Animation Loop
             function animate() {
                 requestAnimationFrame(animate);
@@ -821,8 +818,9 @@
                 controls.update();
                 renderer.render(scene, camera);
             }
-            
+    
             animate();
+        </script>
 
 
 
