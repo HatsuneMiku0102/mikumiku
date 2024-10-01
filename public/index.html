@@ -7,35 +7,6 @@
     <title>MikuMiku | Home</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
-    <style>
-        /* Add styles for loading spinner and audio visualizer */
-        #loadingSpinner {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            border: 8px solid #f3f3f3;
-            border-top: 8px solid #3498db;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            animation: spin 2s linear infinite;
-            z-index: 1000;
-        }
-        
-        @keyframes spin {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-        
-        #audioVisualizer {
-            width: 100%;
-            height: 100px;
-            background-color: #000;
-            display: none; /* Initially hidden */
-        }
-    </style>
 </head>
 
 <body>
@@ -87,44 +58,35 @@
                         <span>Category:</span> <span id="videoCategory">Loading...</span>
                     </div>
                 </div>
-        
+
                 <div class="video-section" style="position: relative;">
                     <div class="video-title-container">
                         <h2>Currently Playing</h2>
                         <p id="videoTitle">Loading...</p>
                     </div>
-        
-                    <!-- Replace img with video element -->
+
                     <div class="thumbnail-container" style="position: relative;">
-                        <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls style="width: 100%; height: auto; display: none;">
-                            <!-- Video source will be set dynamically -->
+                        <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls>
                             Your browser does not support the video tag.
                         </video>
                         <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
+                        <div id="loadingSpinner"></div>
+                        <canvas id="audioVisualizer"></canvas>
                     </div>
-        
+
                     <div id="offline-indicator" class="offline-indicator">I’m not on YouTube at the moment, soz :(</div>
-        
-                    <!-- Progress Bar -->
+
                     <div class="progress-bar-container">
                         <div id="progressBar" class="progress-bar"></div>
                     </div>
 
-                    <!-- Time Elapsed under Progress Bar -->
                     <div id="timeElapsedContainer" class="time-elapsed"><span id="timeElapsed">0s</span></div>
-        
-                    <!-- Toggle Description Button -->
+
                     <button class="toggle-description" id="toggleDescriptionButton">Show Description</button>
-                    
-                    <!-- Loading Spinner -->
-                    <div id="loadingSpinner"></div>
-                    
-                    <!-- Audio Visualizer -->
-                    <canvas id="audioVisualizer"></canvas>
                 </div>
             </div>
         </div>
-        
+
         <!-- Modal Structure -->
         <div id="descriptionModal" class="modal">
             <div class="modal-content">
@@ -200,15 +162,14 @@
             let isSessionExpired = false;
             let browsingStartTime = null;
             let browsingInterval = null;
-    
+
             // Now Playing Elements
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
-            const videoThumbnailImage = document.getElementById("videoThumbnailImage"); // Image element
-            const videoThumbnailElement = document.getElementById("videoThumbnail"); // Video element
+            const videoThumbnailImage = document.getElementById("videoThumbnailImage");
+            const videoThumbnailElement = document.getElementById("videoThumbnail");
             const offlineIndicatorElement = document.getElementById("offline-indicator");
             const progressBarElement = document.getElementById("progressBar");
-            const progressBarContainerElement = document.querySelector(".progress-bar-container");
             const channelNameElement = document.getElementById("channelName");
             const viewCountElement = document.getElementById("viewCount");
             const likeCountElement = document.getElementById("likeCount");
@@ -219,11 +180,11 @@
             const loadingSpinner = document.getElementById("loadingSpinner");
             const audioVisualizer = document.getElementById("audioVisualizer");
             const canvasCtx = audioVisualizer.getContext('2d');
-    
+
             let audioContext;
             let analyser;
             let dataArray;
-    
+
             // Helper function to format numbers with commas
             function formatNumber(number) {
                 if (typeof number === 'string') {
@@ -232,7 +193,7 @@
                 const num = Number(number);
                 return isNaN(num) ? "N/A" : num.toLocaleString();
             }
-    
+
             // Function to clear the current display
             function clearDisplay() {
                 nowPlayingBox.classList.add("offline");
@@ -249,9 +210,10 @@
                 videoCategoryElement.textContent = "";
                 progressBarElement.style.width = "0%";
                 videoDescriptionElement.textContent = "";
-                timeElapsedElement.style.display = "none"; // Hide time elapsed when offline
+                timeElapsedElement.style.display = "none";
+                audioVisualizer.style.display = "none";
             }
-    
+
             // Function to clear video presence specifically
             function clearVideoPresence() {
                 videoTitleElement.textContent = "";
@@ -266,21 +228,22 @@
                 videoCategoryElement.textContent = "";
                 progressBarElement.style.width = "0%";
                 videoDescriptionElement.textContent = "";
+                audioVisualizer.style.display = "none";
             }
-    
+
             // Function to reinitialize the session
             function reinitializeSession() {
                 console.warn("[Client] Reinitializing session due to mismatch or timeout.");
                 clearDisplay();
                 isSessionExpired = true;
             }
-    
+
             // Function to format time elapsed
             function formatTimeElapsed(seconds) {
                 const hours = Math.floor(seconds / 3600);
                 const minutes = Math.floor((seconds % 3600) / 60);
                 const remainingSeconds = seconds % 60;
-    
+
                 if (hours > 0) {
                     return `${hours}h ${minutes}m ${remainingSeconds}s`;
                 } else if (minutes > 0) {
@@ -289,17 +252,16 @@
                     return `${remainingSeconds}s`;
                 }
             }
-    
+
             // Function to display video presence
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
-    
+
                 videoTitleElement.textContent = data.title || "Unknown Title";
-    
+
                 if (data.thumbnail) {
-                    // Show image thumbnail and hide video thumbnail
                     videoThumbnailImage.src = data.thumbnail;
                     videoThumbnailImage.style.display = "block";
                     videoThumbnailElement.style.display = "none";
@@ -307,24 +269,23 @@
                     videoThumbnailImage.src = "";
                     videoThumbnailElement.style.display = "none";
                 }
-    
+
                 channelNameElement.textContent = data.channelTitle || "Unknown Channel";
                 viewCountElement.textContent = `Views: ${formatNumber(data.viewCount)}` || "Views: N/A";
                 likeCountElement.textContent = `Likes: ${formatNumber(data.likeCount)}` || "Likes: N/A";
-    
+
                 if (data.publishedAt) {
                     const publishedDate = new Date(data.publishedAt);
                     publishedDateElement.textContent = `Published on: ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
                 } else {
                     publishedDateElement.textContent = "Published on: N/A";
                 }
-    
+
                 videoCategoryElement.textContent = `Category: ${data.category}` || "Category: N/A";
                 videoDescriptionElement.textContent = data.description || "No description available.";
                 handleRealTimeProgress(data);
-                timeElapsedElement.style.display = "none"; // Hide elapsed time during video play
-                
-                // If there's a video source, display video element
+                timeElapsedElement.style.display = "none";
+
                 if (data.videoSrc) {
                     videoThumbnailElement.src = data.videoSrc;
                     videoThumbnailElement.style.display = "block";
@@ -335,7 +296,7 @@
                     videoThumbnailImage.style.display = "block";
                 }
             }
-    
+
             // Function to handle real-time progress
             function handleRealTimeProgress(data) {
                 if (data.duration && data.currentTime) {
@@ -345,17 +306,15 @@
                     progressBarElement.style.width = "0%";
                 }
             }
-    
+
             // Function to display browsing presence
             function displayBrowsingPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
-    
-                // Clear any previous video-related elements before setting browsing state
+
                 clearVideoPresence();
-    
-                // Set browsing details
+
                 videoTitleElement.textContent = data.title || "Browsing YouTube";
                 videoThumbnailImage.src = data.thumbnail || "https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png";
                 videoThumbnailImage.style.display = "block";
@@ -363,19 +322,19 @@
                 channelNameElement.textContent = "Browsing...";
                 videoDescriptionElement.textContent = data.description || "Browsing videos on YouTube";
                 progressBarElement.style.width = "0%";
-    
+
                 if (data.timeElapsed !== undefined) {
                     timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(data.timeElapsed)}`;
-                    timeElapsedElement.style.display = "block"; // Show elapsed time during browsing
+                    timeElapsedElement.style.display = "block";
                 }
             }
-    
+
             function updateBrowsingPresence() {
                 if (browsingStartTime !== null) {
                     const timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
                     timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(timeElapsed)}`;
                     timeElapsedElement.style.display = "block";
-    
+
                     const browsingData = {
                         title: 'YouTube',
                         description: 'Browsing videos',
@@ -386,40 +345,40 @@
                     socket.emit('updateBrowsingPresence', browsingData);
                 }
             }
-    
+
             function startBrowsingPresence() {
                 if (browsingStartTime === null) {
-                    browsingStartTime = Date.now(); // Set browsing start time only if it's not already set
+                    browsingStartTime = Date.now();
                 }
                 if (!browsingInterval) {
-                    browsingInterval = setInterval(updateBrowsingPresence, 5000); // Update every 5 seconds
+                    browsingInterval = setInterval(updateBrowsingPresence, 5000);
                 }
             }
-    
+
             function stopBrowsingPresence() {
                 if (browsingInterval) {
                     clearInterval(browsingInterval);
                     browsingInterval = null;
                 }
-                browsingStartTime = null; // Reset browsing start time when browsing ends
+                browsingStartTime = null;
             }
-    
+
             // Socket.IO event listeners
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
                 isSessionExpired = false;
                 socket.emit('requestLatestData');
             });
-    
+
             socket.on("presenceUpdate", (data) => {
                 if (isSessionExpired) {
                     console.warn("[Client] Ignoring presenceUpdate due to expired session.");
                     return;
                 }
-    
+
                 console.log("[Socket.IO] Received presenceUpdate:", data);
                 lastHeartbeatReceived = Date.now();
-    
+
                 if (data.presenceType === 'video') {
                     stopBrowsingPresence();
                     displayVideoPresence(data);
@@ -430,35 +389,35 @@
                     clearDisplay();
                 }
             });
-    
+
             socket.on("reinitializeSession", (data) => {
                 console.warn(`[Socket.IO] Received reinitializeSession: ${JSON.stringify(data)}`);
                 reinitializeSession();
             });
-    
+
             socket.on("sessionExpired", (data) => {
                 console.warn(`[Socket.IO] Session expired for video ID: ${data.videoId}`);
                 reinitializeSession();
             });
-    
+
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
                 stopBrowsingPresence();
                 clearDisplay();
             });
-    
+
             setInterval(() => {
-                if (Date.now() - lastHeartbeatReceived > 60000) { // 60 seconds
+                if (Date.now() - lastHeartbeatReceived > 60000) {
                     console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
                     clearDisplay();
                 }
             }, 5000);
-    
+
             // Modal Toggle Logic
             const descriptionModal = document.getElementById("descriptionModal");
             const closeDescriptionButton = document.getElementById("closeDescriptionButton");
             const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
-    
+
             toggleDescriptionButton.addEventListener("click", function () {
                 if (descriptionModal.style.display === "block") {
                     descriptionModal.style.display = "none";
@@ -468,19 +427,19 @@
                     toggleDescriptionButton.textContent = "Hide Description";
                 }
             });
-    
+
             closeDescriptionButton.addEventListener("click", function () {
                 descriptionModal.style.display = "none";
                 toggleDescriptionButton.textContent = "Show Description";
             });
-    
+
             window.addEventListener("click", function (event) {
                 if (event.target === descriptionModal) {
                     descriptionModal.style.display = "none";
                     toggleDescriptionButton.textContent = "Show Description";
                 }
             });
-        
+
             // Clock Update Script
             function updateClocks() {
                 const now = new Date();
@@ -491,21 +450,21 @@
                 const currentDateElement = document.getElementById('current-date');
                 if (currentDateElement) currentDateElement.textContent = currentDate;
             }
-        
+
             setInterval(updateClocks, 1000);
             updateClocks();
-        
+
             // Weather Update Script
             const CITY_NAME = 'Leeds';
             async function fetchWeather() {
                 try {
                     const response = await fetch(`/api/weather?city=${encodeURIComponent(CITY_NAME)}`);
                     const data = await response.json();
-        
+
                     if (data.error) {
                         throw new Error(data.error);
                     }
-        
+
                     displayWeather(data);
                 } catch (error) {
                     console.error('Error fetching weather data:', error);
@@ -514,7 +473,7 @@
                     document.getElementById('weather-description').innerText = 'Unable to fetch weather data.';
                 }
             }
-        
+
             function displayWeather(data) {
                 const description = data.weather[0].description;
                 const temperature = Math.round(data.main.temp);
@@ -522,22 +481,22 @@
                 const windSpeed = data.wind.speed;
                 const iconCode = data.weather[0].icon;
                 const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
-        
+
                 document.getElementById('weather-description').innerText = `Condition: ${description}`;
                 document.getElementById('temperature').innerText = `Temperature: ${temperature}°C`;
                 document.getElementById('humidity').innerText = `Humidity: ${humidity}%`;
                 document.getElementById('wind-speed').innerText = `Wind: ${windSpeed} m/s`;
-        
+
                 const weatherIconElement = document.getElementById('weather-icon');
                 if (weatherIconElement) {
                     weatherIconElement.src = iconUrl;
                     weatherIconElement.style.display = 'block';
                 }
             }
-        
-            setInterval(fetchWeather, 3600000); // Update every hour
+
+            setInterval(fetchWeather, 3600000);
             fetchWeather();
-   
+
             // Canvas Animation Script
             const canvas = document.getElementById("techCanvas");
             const ctx = canvas.getContext("2d");
@@ -691,9 +650,6 @@
 
             animate();
 
-            // Modal Toggle Logic (Already included above)
-            // ... [No changes needed]
-
             // Audio Visualizer Functions
             function initializeVisualizer(mediaElement) {
                 if (!audioContext) {
@@ -705,22 +661,22 @@
                     analyser.fftSize = 256;
                     dataArray = new Uint8Array(analyser.frequencyBinCount);
                     drawVisualizer();
-                    audioVisualizer.style.display = 'block'; // Show visualizer when initialized
+                    audioVisualizer.style.display = 'block';
                 }
             }
-    
+
             function drawVisualizer() {
                 requestAnimationFrame(drawVisualizer);
                 if (!analyser) return;
                 analyser.getByteFrequencyData(dataArray);
-    
+
                 canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
                 canvasCtx.fillRect(0, 0, audioVisualizer.width, audioVisualizer.height);
-    
+
                 const barWidth = (audioVisualizer.width / dataArray.length) * 2.5;
                 let barHeight;
                 let x = 0;
-    
+
                 for (let i = 0; i < dataArray.length; i++) {
                     barHeight = dataArray[i] / 2;
                     canvasCtx.fillStyle = `rgb(${barHeight + 100},50,250)`;
@@ -728,17 +684,17 @@
                     x += barWidth + 1;
                 }
             }
-    
+
             // Function to show loading spinner
             function showLoadingSpinner() {
                 loadingSpinner.style.display = 'block';
             }
-    
+
             // Function to hide loading spinner
             function hideLoadingSpinner() {
                 loadingSpinner.style.display = 'none';
             }
-    
+
             // Add event listeners to video element for buffering/loading state
             videoThumbnailElement.addEventListener('waiting', showLoadingSpinner);
             videoThumbnailElement.addEventListener('playing', hideLoadingSpinner);
