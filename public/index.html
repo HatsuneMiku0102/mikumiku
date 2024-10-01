@@ -170,7 +170,7 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
-        <script src="/js/three.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script type="module" src="/js/three-setup.js"></script>
         <script src="haru.js"></script>
         <!-- JavaScript to handle all features -->
         <script>
@@ -686,34 +686,37 @@
             fetchWeather();
         </script>
 
-        <!-- Enhanced Three.js Animation Script -->
+        
         <script>
+            
             // Enhanced Three.js Shooting Stars and Black Hole
-
+            
+            import * as THREE from './three.module.min.js';
+            
             // Scene, Camera, Renderer Setup
             const scene = new THREE.Scene();
-
+            
             const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 10000);
             camera.position.z = 500;
-
+            
             const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setClearColor(0x000000, 0); // Transparent background
-
+            
             // Resize Handler
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
-
+            
             // Black Hole (Event Horizon)
             const blackHoleGeometry = new THREE.SphereGeometry(50, 32, 32);
             const blackHoleMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
             const blackHole = new THREE.Mesh(blackHoleGeometry, blackHoleMaterial);
             scene.add(blackHole);
-
+            
             // Accretion Disk
             const accDiskGeometry = new THREE.RingGeometry(60, 200, 64);
             const accDiskMaterial = new THREE.MeshBasicMaterial({
@@ -725,28 +728,24 @@
             const accDisk = new THREE.Mesh(accDiskGeometry, accDiskMaterial);
             accDisk.rotation.x = -Math.PI / 2;
             scene.add(accDisk);
-
-            // Gravitational Lensing (Post-processing)
-            // Using ShaderPass with custom shader would be ideal, but for simplicity, we'll skip it.
-            // Advanced lensing requires complex shaders and is beyond the scope of this example.
-
+            
             // Shooting Stars Particle System
             const shootingStarsCount = 100;
             const shootingStarsGeometry = new THREE.BufferGeometry();
             const positions = [];
             const colors = [];
             const sizes = [];
-
+            
             for (let i = 0; i < shootingStarsCount; i++) {
                 positions.push(Math.random() * 2000 - 1000, Math.random() * 2000 - 1000, Math.random() * 2000 - 1000);
                 colors.push(1, 1, 1); // White color
                 sizes.push(1.5);
             }
-
+            
             shootingStarsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
             shootingStarsGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
             shootingStarsGeometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
-
+            
             const shootingStarsMaterial = new THREE.ShaderMaterial({
                 uniforms: {
                     pointTexture: { value: new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/spark1.png') }
@@ -774,16 +773,16 @@
                 transparent: true,
                 vertexColors: true
             });
-
+            
             const shootingStars = new THREE.Points(shootingStarsGeometry, shootingStarsMaterial);
             scene.add(shootingStars);
-
+            
             // Shooting Stars Animation
             function animateShootingStars() {
                 const positions = shootingStars.geometry.attributes.position.array;
                 for (let i = 0; i < shootingStarsCount; i++) {
                     positions[i * 3 + 2] += 2; // Move forward in z-axis
-
+            
                     if (positions[i * 3 + 2] > 1000) {
                         positions[i * 3] = Math.random() * 2000 - 1000;
                         positions[i * 3 + 1] = Math.random() * 2000 - 1000;
@@ -792,24 +791,24 @@
                 }
                 shootingStars.geometry.attributes.position.needsUpdate = true;
             }
-
+            
             // Starfield Background (Twinkling Stars)
             const starGeometry = new THREE.BufferGeometry();
             const starCount = 1000;
             const starPositions = [];
             const starColors = [];
             const starSizes = [];
-
+            
             for (let i = 0; i < starCount; i++) {
                 starPositions.push(Math.random() * 2000 - 1000, Math.random() * 2000 - 1000, Math.random() * 2000 - 1000);
                 starColors.push(1, 1, 1);
                 starSizes.push(Math.random() * 1.5 + 0.5);
             }
-
+            
             starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
             starGeometry.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3));
             starGeometry.setAttribute('size', new THREE.Float32BufferAttribute(starSizes, 1));
-
+            
             const starMaterial = new THREE.ShaderMaterial({
                 uniforms: {
                     pointTexture: { value: new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/star.png') }
@@ -837,10 +836,10 @@
                 transparent: true,
                 vertexColors: true
             });
-
+            
             const stars = new THREE.Points(starGeometry, starMaterial);
             scene.add(stars);
-
+            
             // Twinkling Stars Animation
             function animateTwinklingStars() {
                 const colors = starGeometry.attributes.color.array;
@@ -852,24 +851,25 @@
                 }
                 starGeometry.attributes.color.needsUpdate = true;
             }
-
+            
             // Animation Loop
             function animate() {
                 requestAnimationFrame(animate);
-
+            
                 // Rotate Accretion Disk
                 accDisk.rotation.z += 0.001;
-
+            
                 // Animate Shooting Stars
                 animateShootingStars();
-
+            
                 // Animate Twinkling Stars
                 animateTwinklingStars();
-
+            
                 renderer.render(scene, camera);
             }
-
+            
             animate();
+
 
             // Additional Optimizations:
             // - Limit the number of particles.
