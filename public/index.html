@@ -149,7 +149,6 @@
         </div>
     </div>
 
-   
     <!-- Consent Modal -->
     <div id="consentModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="consentModalTitle" aria-describedby="consentModalDescription">
         <div class="modal-content">
@@ -173,7 +172,7 @@
         // Cookie Consent Script
         (function() {
             'use strict';
-    
+
             // Configuration
             const CONFIG = {
                 consentCookieName: 'cookieConsent',
@@ -184,46 +183,46 @@
                 declineButtonId: 'declineConsent',
                 focusableSelectors: 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
             };
-    
+
             // Elements
             const consentModal = document.getElementById(CONFIG.consentModalId);
             const acceptButton = document.getElementById(CONFIG.acceptButtonId);
             const declineButton = document.getElementById(CONFIG.declineButtonId);
-    
+
             // Utility Functions
             function setCookie(name, value, days, path = '/') {
                 let expires = "";
                 if (days) {
                     const date = new Date();
-                    date.setTime(date.getTime() + (days*24*60*60*1000));
+                    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
                     expires = "; expires=" + date.toUTCString();
                 }
                 const secure = location.protocol === 'https:' ? "; Secure" : "";
                 const sameSite = "; SameSite=Lax"; // Adjust as needed (Strict, Lax, or None)
-                document.cookie = name + "=" + (value || "")  + expires + "; path=" + path + secure + sameSite;
+                document.cookie = name + "=" + (value || "") + expires + "; path=" + path + secure + sameSite;
             }
-    
+
             function getCookie(name) {
                 const nameEQ = name + "=";
                 const ca = document.cookie.split(';');
-                for(let i=0;i < ca.length;i++) {
+                for (let i = 0; i < ca.length; i++) {
                     let c = ca[i];
-                    while (c.charAt(0)==' ') c = c.substring(1,c.length);
-                    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length,c.length);
+                    while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+                    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
                 }
                 return null;
             }
-    
-            function eraseCookie(name, path = '/') {   
-                document.cookie = name+'=; Max-Age=-99999999; path=' + path;  
+
+            function eraseCookie(name, path = '/') {
+                document.cookie = name + '=; Max-Age=-99999999; path=' + path + ';';
             }
-    
+
             // Accessibility: Trap focus within modal
             function trapFocus(modal) {
                 const focusableElements = modal.querySelectorAll(CONFIG.focusableSelectors);
                 const firstFocusableElement = focusableElements[0];
                 const lastFocusableElement = focusableElements[focusableElements.length - 1];
-    
+
                 function handleFocus(event) {
                     if (event.key === 'Tab') {
                         if (event.shiftKey) { // Shift + Tab
@@ -243,54 +242,54 @@
                         event.preventDefault();
                     }
                 }
-    
+
                 modal.addEventListener('keydown', handleFocus);
             }
-    
+
             // Show Modal
             function showModal() {
                 consentModal.classList.add('active');
                 document.body.classList.add('modal-active');
                 consentModal.setAttribute('aria-hidden', 'false');
-    
+
                 // Focus the first focusable element
                 const focusableElements = consentModal.querySelectorAll(CONFIG.focusableSelectors);
                 if (focusableElements.length) {
                     focusableElements[0].focus();
                 }
-    
+
                 trapFocus(consentModal);
             }
-    
+
             // Hide Modal
             function hideModal() {
                 consentModal.classList.remove('active');
                 document.body.classList.remove('modal-active');
                 consentModal.setAttribute('aria-hidden', 'true');
             }
-    
+
             // Initialize Consent Modal
             function initConsentModal() {
                 const existingConsent = getCookie(CONFIG.consentCookieName);
-    
+
                 if (!existingConsent) {
                     // Show modal if no consent found
                     showModal();
                 }
-    
+
                 // Event Listeners
                 acceptButton.addEventListener('click', function() {
                     setCookie(CONFIG.consentCookieName, 'accepted', CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
                     hideModal();
                     // Optionally, initialize any functionalities that require consent here
                 });
-    
+
                 declineButton.addEventListener('click', function() {
                     setCookie(CONFIG.consentCookieName, 'declined', CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
                     hideModal();
                     // Optionally, handle the decline action (e.g., disable certain features)
                 });
-    
+
                 // Prevent closing the modal by clicking outside
                 window.addEventListener('click', function(event) {
                     if (event.target === consentModal) {
@@ -298,11 +297,11 @@
                         event.stopPropagation();
                     }
                 });
-    
+
                 // Optional: Prevent scrolling when modal is active
                 // Already handled by 'modal-active' class setting overflow: hidden
             }
-    
+
             // Check if cookies are enabled
             function areCookiesEnabled() {
                 const testCookie = 'test_cookie_consent';
@@ -311,7 +310,7 @@
                 eraseCookie(testCookie);
                 return result;
             }
-    
+
             // Initialize
             function init() {
                 if (areCookiesEnabled()) {
@@ -321,499 +320,499 @@
                     // Optionally, handle the case where cookies are disabled
                 }
             }
-    
+
             // Run the initialization on DOMContentLoaded
             document.addEventListener('DOMContentLoaded', init);
         })();
-        <script>
+    </script>
 
-            // Now Playing Elements
-            const socket = io("https://mikumiku.dev");
-            let lastHeartbeatReceived = Date.now();
-            let isSessionExpired = false;
-            let browsingStartTime = null;
-            let browsingInterval = null;
+    <script>
+        // Now Playing Elements
+        const socket = io("https://mikumiku.dev");
+        let lastHeartbeatReceived = Date.now();
+        let isSessionExpired = false;
+        let browsingStartTime = null;
+        let browsingInterval = null;
 
-            const nowPlayingBox = document.getElementById("nowPlayingBox");
-            const videoTitleElement = document.getElementById("videoTitle");
-            const videoThumbnailImage = document.getElementById("videoThumbnailImage");
-            const videoThumbnailElement = document.getElementById("videoThumbnail");
-            const offlineIndicatorElement = document.getElementById("offline-indicator");
-            const progressBarElement = document.getElementById("progressBar");
-            const channelNameElement = document.getElementById("channelName");
-            const viewCountElement = document.getElementById("viewCount");
-            const likeCountElement = document.getElementById("likeCount");
-            const publishedDateElement = document.getElementById("publishedDate");
-            const videoCategoryElement = document.getElementById("videoCategory");
-            const videoDescriptionElement = document.getElementById("videoDescription");
-            const timeElapsedElement = document.getElementById("timeElapsed");
+        const nowPlayingBox = document.getElementById("nowPlayingBox");
+        const videoTitleElement = document.getElementById("videoTitle");
+        const videoThumbnailImage = document.getElementById("videoThumbnailImage");
+        const videoThumbnailElement = document.getElementById("videoThumbnail");
+        const offlineIndicatorElement = document.getElementById("offline-indicator");
+        const progressBarElement = document.getElementById("progressBar");
+        const channelNameElement = document.getElementById("channelName");
+        const viewCountElement = document.getElementById("viewCount");
+        const likeCountElement = document.getElementById("likeCount");
+        const publishedDateElement = document.getElementById("publishedDate");
+        const videoCategoryElement = document.getElementById("videoCategory");
+        const videoDescriptionElement = document.getElementById("videoDescription");
+        const timeElapsedElement = document.getElementById("timeElapsed");
 
-            // Helper function to format numbers with commas
-            function formatNumber(number) {
-                if (typeof number === 'string') {
-                    number = number.replace(/,/g, '');
-                }
-                const num = Number(number);
-                return isNaN(num) ? "N/A" : num.toLocaleString();
+        // Helper function to format numbers with commas
+        function formatNumber(number) {
+            if (typeof number === 'string') {
+                number = number.replace(/,/g, '');
             }
+            const num = Number(number);
+            return isNaN(num) ? "N/A" : num.toLocaleString();
+        }
 
-            // Function to clear the current display
-            function clearDisplay() {
-                nowPlayingBox.classList.add("offline");
-                offlineIndicatorElement.style.display = "block";
-                videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
-                videoThumbnailImage.src = "";
-                videoThumbnailImage.style.display = "none";
-                videoThumbnailElement.src = "";
-                videoThumbnailElement.style.display = "none";
-                channelNameElement.textContent = "";
-                viewCountElement.textContent = "";
-                likeCountElement.textContent = "";
-                publishedDateElement.textContent = "";
-                videoCategoryElement.textContent = "";
-                progressBarElement.style.width = "0%";
-                videoDescriptionElement.textContent = "";
-                timeElapsedElement.style.display = "none"; // Hide time elapsed when offline
+        // Function to clear the current display
+        function clearDisplay() {
+            nowPlayingBox.classList.add("offline");
+            offlineIndicatorElement.style.display = "block";
+            videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
+            videoThumbnailImage.src = "";
+            videoThumbnailImage.style.display = "none";
+            videoThumbnailElement.src = "";
+            videoThumbnailElement.style.display = "none";
+            channelNameElement.textContent = "";
+            viewCountElement.textContent = "";
+            likeCountElement.textContent = "";
+            publishedDateElement.textContent = "";
+            videoCategoryElement.textContent = "";
+            progressBarElement.style.width = "0%";
+            videoDescriptionElement.textContent = "";
+            timeElapsedElement.style.display = "none"; // Hide time elapsed when offline
+        }
+
+        // Function to clear video presence specifically
+        function clearVideoPresence() {
+            videoTitleElement.textContent = "";
+            videoThumbnailImage.src = "";
+            videoThumbnailImage.style.display = "none";
+            videoThumbnailElement.src = "";
+            videoThumbnailElement.style.display = "none";
+            channelNameElement.textContent = "";
+            viewCountElement.textContent = "";
+            likeCountElement.textContent = "";
+            publishedDateElement.textContent = "";
+            videoCategoryElement.textContent = "";
+            progressBarElement.style.width = "0%";
+            videoDescriptionElement.textContent = "";
+        }
+
+        // Function to reinitialize the session
+        function reinitializeSession() {
+            console.warn("[Client] Reinitializing session due to mismatch or timeout.");
+            clearDisplay();
+            isSessionExpired = true;
+        }
+
+        // Function to format time elapsed
+        function formatTimeElapsed(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const remainingSeconds = seconds % 60;
+
+            if (hours > 0) {
+                return `${hours}h ${minutes}m ${remainingSeconds}s`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${remainingSeconds}s`;
+            } else {
+                return `${remainingSeconds}s`;
             }
+        }
 
-            // Function to clear video presence specifically
-            function clearVideoPresence() {
-                videoTitleElement.textContent = "";
-                videoThumbnailImage.src = "";
-                videoThumbnailImage.style.display = "none";
-                videoThumbnailElement.src = "";
-                videoThumbnailElement.style.display = "none";
-                channelNameElement.textContent = "";
-                viewCountElement.textContent = "";
-                likeCountElement.textContent = "";
-                publishedDateElement.textContent = "";
-                videoCategoryElement.textContent = "";
-                progressBarElement.style.width = "0%";
-                videoDescriptionElement.textContent = "";
-            }
+        // Function to display video presence
+        function displayVideoPresence(data) {
+            lastHeartbeatReceived = Date.now();
+            nowPlayingBox.classList.remove("offline");
+            offlineIndicatorElement.style.display = "none";
 
-            // Function to reinitialize the session
-            function reinitializeSession() {
-                console.warn("[Client] Reinitializing session due to mismatch or timeout.");
-                clearDisplay();
-                isSessionExpired = true;
-            }
+            videoTitleElement.textContent = data.title || "Unknown Title";
 
-            // Function to format time elapsed
-            function formatTimeElapsed(seconds) {
-                const hours = Math.floor(seconds / 3600);
-                const minutes = Math.floor((seconds % 3600) / 60);
-                const remainingSeconds = seconds % 60;
-
-                if (hours > 0) {
-                    return `${hours}h ${minutes}m ${remainingSeconds}s`;
-                } else if (minutes > 0) {
-                    return `${minutes}m ${remainingSeconds}s`;
-                } else {
-                    return `${remainingSeconds}s`;
-                }
-            }
-
-            // Function to display video presence
-            function displayVideoPresence(data) {
-                lastHeartbeatReceived = Date.now();
-                nowPlayingBox.classList.remove("offline");
-                offlineIndicatorElement.style.display = "none";
-
-                videoTitleElement.textContent = data.title || "Unknown Title";
-
-                if (data.thumbnail) {
-                    // Show image thumbnail and hide video thumbnail
-                    videoThumbnailImage.src = data.thumbnail;
-                    videoThumbnailImage.style.display = "block";
-                    videoThumbnailElement.style.display = "none";
-                } else {
-                    videoThumbnailImage.src = "";
-                    videoThumbnailElement.style.display = "none";
-                }
-
-                channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-                viewCountElement.textContent = `Views: ${formatNumber(data.viewCount)}` || "Views: N/A";
-                likeCountElement.textContent = `Likes: ${formatNumber(data.likeCount)}` || "Likes: N/A";
-
-                if (data.publishedAt) {
-                    const publishedDate = new Date(data.publishedAt);
-                    publishedDateElement.textContent = `Published on: ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
-                } else {
-                    publishedDateElement.textContent = "Published on: N/A";
-                }
-
-                videoCategoryElement.textContent = `Category: ${data.category}` || "Category: N/A";
-                videoDescriptionElement.textContent = data.description || "No description available.";
-                handleRealTimeProgress(data);
-                timeElapsedElement.style.display = "none"; // Hide elapsed time during video play
-
-                // If there's a video source, display video element
-                if (data.videoSrc) {
-                    videoThumbnailElement.src = data.videoSrc;
-                    videoThumbnailElement.style.display = "block";
-                    videoThumbnailImage.style.display = "none";
-                } else {
-                    videoThumbnailElement.style.display = "none";
-                    videoThumbnailImage.style.display = "block";
-                }
-            }
-
-            // Function to handle real-time progress
-            function handleRealTimeProgress(data) {
-                if (data.duration && data.currentTime) {
-                    const progressPercentage = (data.currentTime / data.duration) * 100;
-                    progressBarElement.style.width = `${progressPercentage}%`;
-                } else {
-                    progressBarElement.style.width = "0%";
-                }
-            }
-
-            // Function to display browsing presence
-            function displayBrowsingPresence(data) {
-                lastHeartbeatReceived = Date.now();
-                nowPlayingBox.classList.remove("offline");
-                offlineIndicatorElement.style.display = "none";
-
-                // Clear any previous video-related elements before setting browsing state
-                clearVideoPresence();
-
-                // Set browsing details
-                videoTitleElement.textContent = data.title || "Browsing YouTube";
-                videoThumbnailImage.src = data.thumbnail || "https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png";
+            if (data.thumbnail) {
+                // Show image thumbnail and hide video thumbnail
+                videoThumbnailImage.src = data.thumbnail;
                 videoThumbnailImage.style.display = "block";
                 videoThumbnailElement.style.display = "none";
-                channelNameElement.textContent = "Browsing...";
-                videoDescriptionElement.textContent = data.description || "Browsing videos on YouTube";
+            } else {
+                videoThumbnailImage.src = "";
+                videoThumbnailElement.style.display = "none";
+            }
+
+            channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+            viewCountElement.textContent = `Views: ${formatNumber(data.viewCount)}` || "Views: N/A";
+            likeCountElement.textContent = `Likes: ${formatNumber(data.likeCount)}` || "Likes: N/A";
+
+            if (data.publishedAt) {
+                const publishedDate = new Date(data.publishedAt);
+                publishedDateElement.textContent = `Published on: ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
+            } else {
+                publishedDateElement.textContent = "Published on: N/A";
+            }
+
+            videoCategoryElement.textContent = `Category: ${data.category}` || "Category: N/A";
+            videoDescriptionElement.textContent = data.description || "No description available.";
+            handleRealTimeProgress(data);
+            timeElapsedElement.style.display = "none"; // Hide elapsed time during video play
+
+            // If there's a video source, display video element
+            if (data.videoSrc) {
+                videoThumbnailElement.src = data.videoSrc;
+                videoThumbnailElement.style.display = "block";
+                videoThumbnailImage.style.display = "none";
+            } else {
+                videoThumbnailElement.style.display = "none";
+                videoThumbnailImage.style.display = "block";
+            }
+        }
+
+        // Function to handle real-time progress
+        function handleRealTimeProgress(data) {
+            if (data.duration && data.currentTime) {
+                const progressPercentage = (data.currentTime / data.duration) * 100;
+                progressBarElement.style.width = `${progressPercentage}%`;
+            } else {
                 progressBarElement.style.width = "0%";
+            }
+        }
 
-                if (data.timeElapsed !== undefined) {
-                    timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(data.timeElapsed)}`;
-                    timeElapsedElement.style.display = "block"; // Show elapsed time during browsing
-                }
+        // Function to display browsing presence
+        function displayBrowsingPresence(data) {
+            lastHeartbeatReceived = Date.now();
+            nowPlayingBox.classList.remove("offline");
+            offlineIndicatorElement.style.display = "none";
+
+            // Clear any previous video-related elements before setting browsing state
+            clearVideoPresence();
+
+            // Set browsing details
+            videoTitleElement.textContent = data.title || "Browsing YouTube";
+            videoThumbnailImage.src = data.thumbnail || "https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png";
+            videoThumbnailImage.style.display = "block";
+            videoThumbnailElement.style.display = "none";
+            channelNameElement.textContent = "Browsing...";
+            videoDescriptionElement.textContent = data.description || "Browsing videos on YouTube";
+            progressBarElement.style.width = "0%";
+
+            if (data.timeElapsed !== undefined) {
+                timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(data.timeElapsed)}`;
+                timeElapsedElement.style.display = "block"; // Show elapsed time during browsing
+            }
+        }
+
+        function updateBrowsingPresence() {
+            if (browsingStartTime !== null) {
+                const timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
+                timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(timeElapsed)}`;
+                timeElapsedElement.style.display = "block";
+
+                const browsingData = {
+                    title: 'YouTube',
+                    description: 'Browsing videos',
+                    thumbnail: 'https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png',
+                    timeElapsed: timeElapsed,
+                    presenceType: 'browsing'
+                };
+                socket.emit('updateBrowsingPresence', browsingData);
+            }
+        }
+
+        function startBrowsingPresence() {
+            if (browsingStartTime === null) {
+                browsingStartTime = Date.now(); // Set browsing start time only if it's not already set
+            }
+            if (!browsingInterval) {
+                browsingInterval = setInterval(updateBrowsingPresence, 5000); // Update every 5 seconds
+            }
+        }
+
+        function stopBrowsingPresence() {
+            if (browsingInterval) {
+                clearInterval(browsingInterval);
+                browsingInterval = null;
+            }
+            browsingStartTime = null; // Reset browsing start time when browsing ends
+        }
+
+        // Socket.IO event listeners
+        socket.on("connect", () => {
+            console.log("[Socket.IO] Connected to server.");
+            isSessionExpired = false;
+            socket.emit('requestLatestData');
+        });
+
+        socket.on("presenceUpdate", (data) => {
+            if (isSessionExpired) {
+                console.warn("[Client] Ignoring presenceUpdate due to expired session.");
+                return;
             }
 
-            function updateBrowsingPresence() {
-                if (browsingStartTime !== null) {
-                    const timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
-                    timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(timeElapsed)}`;
-                    timeElapsedElement.style.display = "block";
+            console.log("[Socket.IO] Received presenceUpdate:", data);
+            lastHeartbeatReceived = Date.now();
 
-                    const browsingData = {
-                        title: 'YouTube',
-                        description: 'Browsing videos',
-                        thumbnail: 'https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png',
-                        timeElapsed: timeElapsed,
-                        presenceType: 'browsing'
-                    };
-                    socket.emit('updateBrowsingPresence', browsingData);
-                }
-            }
-
-            function startBrowsingPresence() {
-                if (browsingStartTime === null) {
-                    browsingStartTime = Date.now(); // Set browsing start time only if it's not already set
-                }
-                if (!browsingInterval) {
-                    browsingInterval = setInterval(updateBrowsingPresence, 5000); // Update every 5 seconds
-                }
-            }
-
-            function stopBrowsingPresence() {
-                if (browsingInterval) {
-                    clearInterval(browsingInterval);
-                    browsingInterval = null;
-                }
-                browsingStartTime = null; // Reset browsing start time when browsing ends
-            }
-
-            // Socket.IO event listeners
-            socket.on("connect", () => {
-                console.log("[Socket.IO] Connected to server.");
-                isSessionExpired = false;
-                socket.emit('requestLatestData');
-            });
-
-            socket.on("presenceUpdate", (data) => {
-                if (isSessionExpired) {
-                    console.warn("[Client] Ignoring presenceUpdate due to expired session.");
-                    return;
-                }
-
-                console.log("[Socket.IO] Received presenceUpdate:", data);
-                lastHeartbeatReceived = Date.now();
-
-                if (data.presenceType === 'video') {
-                    stopBrowsingPresence();
-                    displayVideoPresence(data);
-                } else if (data.presenceType === 'browsing') {
-                    displayBrowsingPresence(data);
-                    startBrowsingPresence();
-                } else {
-                    clearDisplay();
-                }
-            });
-
-            socket.on("reinitializeSession", (data) => {
-                console.warn(`[Socket.IO] Received reinitializeSession: ${JSON.stringify(data)}`);
-                reinitializeSession();
-            });
-
-            socket.on("sessionExpired", (data) => {
-                console.warn(`[Socket.IO] Session expired for video ID: ${data.videoId}`);
-                reinitializeSession();
-            });
-
-            socket.on("disconnect", () => {
-                console.warn("[Socket.IO] Disconnected from server.");
+            if (data.presenceType === 'video') {
                 stopBrowsingPresence();
+                displayVideoPresence(data);
+            } else if (data.presenceType === 'browsing') {
+                displayBrowsingPresence(data);
+                startBrowsingPresence();
+            } else {
                 clearDisplay();
-            });
+            }
+        });
 
-            setInterval(() => {
-                if (Date.now() - lastHeartbeatReceived > 60000) { // 60 seconds
-                    console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
-                    clearDisplay();
-                }
-            }, 5000);
+        socket.on("reinitializeSession", (data) => {
+            console.warn(`[Socket.IO] Received reinitializeSession: ${JSON.stringify(data)}`);
+            reinitializeSession();
+        });
 
-            // Modal Toggle Logic
-            const descriptionModal = document.getElementById("descriptionModal");
-            const closeDescriptionButton = document.getElementById("closeDescriptionButton");
-            const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
+        socket.on("sessionExpired", (data) => {
+            console.warn(`[Socket.IO] Session expired for video ID: ${data.videoId}`);
+            reinitializeSession();
+        });
 
-            toggleDescriptionButton.addEventListener("click", function () {
-                if (descriptionModal.style.display === "block") {
-                    descriptionModal.style.display = "none";
-                    toggleDescriptionButton.textContent = "Show Description";
-                } else {
-                    descriptionModal.style.display = "block";
-                    toggleDescriptionButton.textContent = "Hide Description";
-                }
-            });
+        socket.on("disconnect", () => {
+            console.warn("[Socket.IO] Disconnected from server.");
+            stopBrowsingPresence();
+            clearDisplay();
+        });
 
-            closeDescriptionButton.addEventListener("click", function () {
+        setInterval(() => {
+            if (Date.now() - lastHeartbeatReceived > 60000) { // 60 seconds
+                console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
+                clearDisplay();
+            }
+        }, 5000);
+
+        // Modal Toggle Logic
+        const descriptionModal = document.getElementById("descriptionModal");
+        const closeDescriptionButton = document.getElementById("closeDescriptionButton");
+        const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
+
+        toggleDescriptionButton.addEventListener("click", function () {
+            if (descriptionModal.style.display === "block") {
                 descriptionModal.style.display = "none";
                 toggleDescriptionButton.textContent = "Show Description";
-            });
-
-            window.addEventListener("click", function (event) {
-                if (event.target === descriptionModal) {
-                    descriptionModal.style.display = "none";
-                    toggleDescriptionButton.textContent = "Show Description";
-                }
-            });
-
-            // Clock Update Script
-            function updateClocks() {
-                const now = new Date();
-                const localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                const localTimeElement = document.getElementById('local-time');
-                if (localTimeElement) localTimeElement.textContent = localTime;
-                const currentDate = now.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-                const currentDateElement = document.getElementById('current-date');
-                if (currentDateElement) currentDateElement.textContent = currentDate;
+            } else {
+                descriptionModal.style.display = "block";
+                toggleDescriptionButton.textContent = "Hide Description";
             }
+        });
 
-            setInterval(updateClocks, 1000);
-            updateClocks();
+        closeDescriptionButton.addEventListener("click", function () {
+            descriptionModal.style.display = "none";
+            toggleDescriptionButton.textContent = "Show Description";
+        });
 
-            // Weather Update Script
-            const CITY_NAME = 'Leeds';
-            async function fetchWeather() {
-                try {
-                    const response = await fetch(`/api/weather?city=${encodeURIComponent(CITY_NAME)}`);
-                    const data = await response.json();
-
-                    if (data.error) {
-                        throw new Error(data.error);
-                    }
-
-                    displayWeather(data);
-                } catch (error) {
-                    console.error('Error fetching weather data:', error);
-                    const weatherIconElement = document.getElementById('weather-icon');
-                    if (weatherIconElement) weatherIconElement.style.display = 'none';
-                    document.getElementById('weather-description').innerText = 'Unable to fetch weather data.';
-                }
+        window.addEventListener("click", function (event) {
+            if (event.target === descriptionModal) {
+                descriptionModal.style.display = "none";
+                toggleDescriptionButton.textContent = "Show Description";
             }
+        });
 
-            function displayWeather(data) {
-                const description = data.weather[0].description;
-                const temperature = Math.round(data.main.temp);
-                const humidity = data.main.humidity;
-                const windSpeed = data.wind.speed;
-                const iconCode = data.weather[0].icon;
-                const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+        // Clock Update Script
+        function updateClocks() {
+            const now = new Date();
+            const localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const localTimeElement = document.getElementById('local-time');
+            if (localTimeElement) localTimeElement.textContent = localTime;
+            const currentDate = now.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+            const currentDateElement = document.getElementById('current-date');
+            if (currentDateElement) currentDateElement.textContent = currentDate;
+        }
 
-                document.getElementById('weather-description').innerText = `Condition: ${description}`;
-                document.getElementById('temperature').innerText = `Temperature: ${temperature}°C`;
-                document.getElementById('humidity').innerText = `Humidity: ${humidity}%`;
-                document.getElementById('wind-speed').innerText = `Wind: ${windSpeed} m/s`;
+        setInterval(updateClocks, 1000);
+        updateClocks();
 
+        // Weather Update Script
+        const CITY_NAME = 'Leeds';
+        async function fetchWeather() {
+            try {
+                const response = await fetch(`/api/weather?city=${encodeURIComponent(CITY_NAME)}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                displayWeather(data);
+            } catch (error) {
+                console.error('Error fetching weather data:', error);
                 const weatherIconElement = document.getElementById('weather-icon');
-                if (weatherIconElement) {
-                    weatherIconElement.src = iconUrl;
-                    weatherIconElement.style.display = 'block';
-                }
+                if (weatherIconElement) weatherIconElement.style.display = 'none';
+                document.getElementById('weather-description').innerText = 'Unable to fetch weather data.';
             }
+        }
 
-            setInterval(fetchWeather, 3600000); // Update every hour
-            fetchWeather();
+        function displayWeather(data) {
+            const description = data.weather[0].description;
+            const temperature = Math.round(data.main.temp);
+            const humidity = data.main.humidity;
+            const windSpeed = data.wind.speed;
+            const iconCode = data.weather[0].icon;
+            const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
 
-            // Canvas Animation Script
-            const canvas = document.getElementById("techCanvas");
-            const ctx = canvas.getContext("2d");
-            let width = window.innerWidth;
-            let height = window.innerHeight;
+            document.getElementById('weather-description').innerText = `Condition: ${description}`;
+            document.getElementById('temperature').innerText = `Temperature: ${temperature}°C`;
+            document.getElementById('humidity').innerText = `Humidity: ${humidity}%`;
+            document.getElementById('wind-speed').innerText = `Wind: ${windSpeed} m/s`;
+
+            const weatherIconElement = document.getElementById('weather-icon');
+            if (weatherIconElement) {
+                weatherIconElement.src = iconUrl;
+                weatherIconElement.style.display = 'block';
+            }
+        }
+
+        setInterval(fetchWeather, 3600000); // Update every hour
+        fetchWeather();
+
+        // Canvas Animation Script
+        const canvas = document.getElementById("techCanvas");
+        const ctx = canvas.getContext("2d");
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+
+        window.addEventListener('resize', () => {
+            width = window.innerWidth;
+            height = window.innerHeight;
             canvas.width = width;
             canvas.height = height;
+            preRenderNebula();
+        });
 
-            window.addEventListener('resize', () => {
-                width = window.innerWidth;
-                height = window.innerHeight;
-                canvas.width = width;
-                canvas.height = height;
-                preRenderNebula();
+        const offscreenCanvas = document.createElement('canvas');
+        const offscreenCtx = offscreenCanvas.getContext('2d');
+        offscreenCanvas.width = width;
+        offscreenCanvas.height = height;
+
+        const nebulaColors = [
+            'rgba(52, 7, 91, 0.8)',
+            'rgba(73, 48, 107, 0.7)',
+            'rgba(118, 24, 120, 0.6)',
+            'rgba(255, 144, 253, 0.4)',
+            'rgba(255, 255, 255, 0.1)'
+        ];
+
+        function preRenderNebula() {
+            offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+            const gradient = offscreenCtx.createRadialGradient(
+                width / 2,
+                height / 2,
+                100,
+                width / 2,
+                height / 2,
+                Math.max(width, height) / 2
+            );
+
+            nebulaColors.forEach((color, index) => {
+                gradient.addColorStop(index / (nebulaColors.length - 1), color);
             });
 
-            const offscreenCanvas = document.createElement('canvas');
-            const offscreenCtx = offscreenCanvas.getContext('2d');
-            offscreenCanvas.width = width;
-            offscreenCanvas.height = height;
+            offscreenCtx.fillStyle = gradient;
+            offscreenCtx.fillRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+        }
 
-            const nebulaColors = [
-                'rgba(52, 7, 91, 0.8)',
-                'rgba(73, 48, 107, 0.7)',
-                'rgba(118, 24, 120, 0.6)',
-                'rgba(255, 144, 253, 0.4)',
-                'rgba(255, 255, 255, 0.1)'
-            ];
+        preRenderNebula();
 
-            function preRenderNebula() {
-                offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-                const gradient = offscreenCtx.createRadialGradient(
-                    width / 2,
-                    height / 2,
-                    100,
-                    width / 2,
-                    height / 2,
-                    Math.max(width, height) / 2
-                );
+        const stars = [];
+        const STAR_COUNT = 100;
 
-                nebulaColors.forEach((color, index) => {
-                    gradient.addColorStop(index / (nebulaColors.length - 1), color);
-                });
+        for (let i = 0; i < STAR_COUNT; i++) {
+            stars.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                radius: Math.random() * 1.5 + 0.5,
+                speed: Math.random() * 0.5 + 0.2,
+                brightness: Math.random() * 0.5 + 0.5,
+                twinkleSpeed: Math.random() * 0.02 + 0.01
+            });
+        }
 
-                offscreenCtx.fillStyle = gradient;
-                offscreenCtx.fillRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-            }
+        const shootingStars = [];
+        const SHOOTING_STAR_POOL_SIZE = 10;
+        const MAX_SHOOTING_STARS = 5;
+        let activeShootingStars = 0;
 
-            preRenderNebula();
+        for (let i = 0; i < SHOOTING_STAR_POOL_SIZE; i++) {
+            shootingStars.push({
+                x: Math.random() * width,
+                y: Math.random() * height * 0.5,
+                length: Math.random() * 100 + 50,
+                speed: Math.random() * 8 + 4,
+                active: false
+            });
+        }
 
-            const stars = [];
-            const STAR_COUNT = 100;
-
-            for (let i = 0; i < STAR_COUNT; i++) {
-                stars.push({
-                    x: Math.random() * width,
-                    y: Math.random() * height,
-                    radius: Math.random() * 1.5 + 0.5,
-                    speed: Math.random() * 0.5 + 0.2,
-                    brightness: Math.random() * 0.5 + 0.5,
-                    twinkleSpeed: Math.random() * 0.02 + 0.01
-                });
-            }
-
-            const shootingStars = [];
-            const SHOOTING_STAR_POOL_SIZE = 10;
-            const MAX_SHOOTING_STARS = 5;
-            let activeShootingStars = 0;
-
-            for (let i = 0; i < SHOOTING_STAR_POOL_SIZE; i++) {
-                shootingStars.push({
-                    x: Math.random() * width,
-                    y: Math.random() * height * 0.5,
-                    length: Math.random() * 100 + 50,
-                    speed: Math.random() * 8 + 4,
-                    active: false
-                });
-            }
-
-            function activateShootingStar() {
-                for (let star of shootingStars) {
-                    if (!star.active) {
-                        star.x = Math.random() * width;
-                        star.y = Math.random() * height * 0.5;
-                        star.length = Math.random() * 100 + 50;
-                        star.speed = Math.random() * 8 + 4;
-                        star.active = true;
-                        activeShootingStars++;
-                        break;
-                    }
+        function activateShootingStar() {
+            for (let star of shootingStars) {
+                if (!star.active) {
+                    star.x = Math.random() * width;
+                    star.y = Math.random() * height * 0.5;
+                    star.length = Math.random() * 100 + 50;
+                    star.speed = Math.random() * 8 + 4;
+                    star.active = true;
+                    activeShootingStars++;
+                    break;
                 }
             }
+        }
 
-            function deactivateShootingStar(star) {
-                star.active = false;
-                activeShootingStars--;
+        function deactivateShootingStar(star) {
+            star.active = false;
+            activeShootingStars--;
+        }
+
+        setInterval(() => {
+            if (activeShootingStars < MAX_SHOOTING_STARS) {
+                activateShootingStar();
             }
+        }, 2000);
 
-            setInterval(() => {
-                if (activeShootingStars < MAX_SHOOTING_STARS) {
-                    activateShootingStar();
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            ctx.drawImage(offscreenCanvas, 0, 0, width, height);
+
+            ctx.fillStyle = 'white';
+            for (let star of stars) {
+                star.brightness += star.twinkleSpeed;
+                if (star.brightness > 1 || star.brightness < 0.5) {
+                    star.twinkleSpeed *= -1;
                 }
-            }, 2000);
 
-            function animate() {
-                ctx.clearRect(0, 0, width, height);
-                ctx.drawImage(offscreenCanvas, 0, 0, width, height);
+                star.x -= star.speed;
+                if (star.x < 0) star.x = width;
 
-                ctx.fillStyle = 'white';
-                for (let star of stars) {
-                    star.brightness += star.twinkleSpeed;
-                    if (star.brightness > 1 || star.brightness < 0.5) {
-                        star.twinkleSpeed *= -1;
-                    }
+                ctx.globalAlpha = star.brightness;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = 'white';
+            ctx.globalCompositeOperation = 'lighter';
+            for (let star of shootingStars) {
+                if (star.active) {
+                    ctx.beginPath();
+                    ctx.moveTo(star.x, star.y);
+                    ctx.lineTo(star.x + star.length, star.y - star.length * 0.5);
+                    ctx.stroke();
 
                     star.x -= star.speed;
-                    if (star.x < 0) star.x = width;
+                    star.y += star.speed * 0.5;
 
-                    ctx.globalAlpha = star.brightness;
-                    ctx.beginPath();
-                    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                ctx.globalAlpha = 1;
-
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-                ctx.lineWidth = 2;
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = 'white';
-                ctx.globalCompositeOperation = 'lighter';
-                for (let star of shootingStars) {
-                    if (star.active) {
-                        ctx.beginPath();
-                        ctx.moveTo(star.x, star.y);
-                        ctx.lineTo(star.x + star.length, star.y - star.length * 0.5);
-                        ctx.stroke();
-
-                        star.x -= star.speed;
-                        star.y += star.speed * 0.5;
-
-                        if (star.x < 0 || star.y > height) {
-                            deactivateShootingStar(star);
-                        }
+                    if (star.x < 0 || star.y > height) {
+                        deactivateShootingStar(star);
                     }
                 }
-                ctx.shadowBlur = 0;
-                ctx.globalCompositeOperation = 'source-over';
-
-                requestAnimationFrame(animate);
             }
+            ctx.shadowBlur = 0;
+            ctx.globalCompositeOperation = 'source-over';
 
-            animate();
-        });
+            requestAnimationFrame(animate);
+        }
+
+        animate();
     </script>
 </body>
 
