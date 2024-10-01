@@ -707,7 +707,7 @@
                 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1500);
                 camera.position.z = 50;
         
-                // Static Background
+                // Static Background with Nebula
                 const textureLoader = new THREE.TextureLoader();
                 textureLoader.load('/textures/nebula.webp', (texture) => {
                     texture.wrapS = THREE.ClampToEdgeWrapping;
@@ -720,72 +720,92 @@
                     scene.add(background);
                 });
         
-                // Improved Stars Geometry for Depth Effect
-                const starGeometry = new THREE.BufferGeometry();
-                const starCount = 5000;
-                const starVertices = new Float32Array(starCount * 3);
-                for (let i = 0; i < starCount * 3; i++) {
-                    starVertices[i] = (Math.random() - 0.5) * 1500; // Place stars far away for depth
-                }
-                starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
+                // Fog Effect to Add Depth
+                scene.fog = new THREE.FogExp2(0x000000, 0.00025);
         
-                // Array of Star Textures
-                const starTextures = [
-                    '/textures/stars 001.png',
-                    '/textures/stars 002.png',
-                    '/textures/stars 003.png',
-                    '/textures/stars 004.png',
-                    '/textures/stars 005.png',
-                    '/textures/stars 006.png',
-                ].map(path => textureLoader.load(path));
+                // Star Layers for Depth Effect
+                const starLayers = 3;
+                const starMaterials = [];
+                const starsArray = [];
         
-                // Create multiple star materials for variety
-                const starMaterials = starTextures.map(texture => new THREE.PointsMaterial({
-                    size: Math.random() * 3 + 0.5, // Vary the size slightly
-                    map: texture,
-                    transparent: true,
-                    opacity: 0.8,
-                    depthWrite: false,
-                    blending: THREE.AdditiveBlending,
-                    color: new THREE.Color(`hsl(${Math.random() * 360}, 70%, 90%)`) // Subtle color variations for stars
-                }));
+                for (let i = 0; i < starLayers; i++) {
+                    // Improved Stars Geometry for Depth Effect
+                    const starGeometry = new THREE.BufferGeometry();
+                    const starCount = 2000;
+                    const starVertices = new Float32Array(starCount * 3);
+                    for (let j = 0; j < starCount * 3; j++) {
+                        starVertices[j] = (Math.random() - 0.5) * 1500 * (i + 1);
+                    }
+                    starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
         
-                // Create Stars using different materials for a natural look
-                const starsArray = starMaterials.map(material => {
-                    const stars = new THREE.Points(starGeometry, material);
+                    // Assign Textures to Stars
+                    const starTexture = textureLoader.load('/textures/stars 001.png');
+                    const starMaterial = new THREE.PointsMaterial({
+                        size: 1.5 + Math.random() * 2,
+                        map: starTexture,
+                        transparent: true,
+                        opacity: 0.8,
+                        depthWrite: false,
+                        blending: THREE.AdditiveBlending,
+                        color: new THREE.Color(`hsl(${Math.random() * 360}, 70%, 90%)`)
+                    });
+        
+                    const stars = new THREE.Points(starGeometry, starMaterial);
+                    stars.position.z = -500 * (i + 1);
                     scene.add(stars);
-                    return stars;
-                });
+                    starMaterials.push(starMaterial);
+                    starsArray.push(stars);
+                }
         
-                // Post-processing with Bloom for a subtle glow
+                // Shooting Stars (Comets)
+                const cometGeometry = new THREE.CircleGeometry(1, 32);
+                const cometMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true });
+                const comets = [];
+                for (let i = 0; i < 3; i++) {
+                    const comet = new THREE.Mesh(cometGeometry, cometMaterial);
+                    comet.position.set((Math.random() - 0.5) * 200, Math.random() * 100, Math.random() * -500);
+                    comet.scale.set(3, 1, 1);
+                    comets.push(comet);
+                    scene.add(comet);
+                }
+        
+                // Post-processing with Bloom for a Subtle Glow
                 const composer = new THREE.EffectComposer(renderer);
                 const renderPass = new THREE.RenderPass(scene, camera);
                 composer.addPass(renderPass);
         
                 const bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    1.5, // Bloom strength for glowy stars
-                    0.6, // Bloom radius
-                    0.7 // Bloom threshold
+                    1.5,
+                    0.6,
+                    0.7
                 );
                 composer.addPass(bloomPass);
         
-                // Animate
-                let clock = new THREE.Clock();
+                // Clock for Smooth Animations
+                const clock = new THREE.Clock();
                 const animate = () => {
                     requestAnimationFrame(animate);
         
                     const elapsedTime = clock.getElapsedTime();
         
-                    // Make the stars "twinkle" by smoothly adjusting opacity and slight movement
+                    // Twinkling and Movement for Stars
                     starsArray.forEach((stars, index) => {
                         const material = stars.material;
-                        material.opacity = 0.7 + Math.sin(elapsedTime * 0.5 + index) * 0.2; // Twinkling effect
-                        stars.rotation.y += 0.0005; // Slight rotation to make stars move subtly
-                        stars.rotation.x += 0.0003;
+                        material.opacity = 0.7 + Math.sin(elapsedTime * 0.3 + index) * 0.2;
+                        stars.rotation.y += 0.0002 * (index + 1);
+                        stars.rotation.x += 0.0001 * (index + 1);
+                    });
         
-                        // Apply a very subtle float effect for depth
-                        stars.position.z = -500 + Math.sin(elapsedTime * 0.1 + index) * 2;
+                    // Moving Comets
+                    comets.forEach(comet => {
+                        comet.position.x -= 1.0;
+                        comet.position.y -= 0.5;
+                        if (comet.position.x < -150) {
+                            comet.position.x = Math.random() * 200 + 150;
+                            comet.position.y = Math.random() * 100 - 50;
+                            comet.material.opacity = 0.5 + Math.random() * 0.5;
+                        }
                     });
         
                     // Render with Post-Processing
@@ -802,6 +822,7 @@
                 });
             });
         </script>
+
 
 
 
