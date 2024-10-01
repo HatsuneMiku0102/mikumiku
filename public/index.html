@@ -717,19 +717,19 @@
             });
     
             // Black Hole Geometry and Material
-            const blackHoleGeometry = new THREE.SphereGeometry(50, 32, 32);
-            const blackHoleMaterial = new THREE.MeshStandardMaterial({
-                color: 0x000000,
-                emissive: 0x000000
+            const blackHoleGeometry = new THREE.SphereGeometry(50, 64, 64);
+            const blackHoleMaterial = new THREE.MeshBasicMaterial({
+                color: 0x000000
             });
             const blackHole = new THREE.Mesh(blackHoleGeometry, blackHoleMaterial);
             scene.add(blackHole);
     
             // Accretion Disk Geometry and Material
-            const accretionDiskGeometry = new THREE.TorusGeometry(100, 10, 32, 100);
+            const accretionDiskGeometry = new THREE.RingGeometry(60, 120, 64);
+            const accretionDiskTexture = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/disc.png');
             const accretionDiskMaterial = new THREE.MeshBasicMaterial({
+                map: accretionDiskTexture,
                 color: 0xff4500,
-                emissive: 0xff6347,
                 side: THREE.DoubleSide,
                 transparent: true,
                 opacity: 0.7
@@ -738,10 +738,39 @@
             accretionDisk.rotation.x = Math.PI / 2;
             scene.add(accretionDisk);
     
+            // Gravitational Lensing Effect (Shader)
+            const lensGeometry = new THREE.PlaneGeometry(400, 400, 64, 64);
+            const lensMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    color: { value: new THREE.Color(0x000000) },
+                    time: { value: 0.0 }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    varying vec2 vUv;
+                    uniform float time;
+                    void main() {
+                        float dist = length(vUv - 0.5);
+                        float lensEffect = 1.0 / (dist * 10.0 + 1.0);
+                        gl_FragColor = vec4(vec3(0.0, 0.0, 0.0), lensEffect);
+                    }
+                `,
+                transparent: true
+            });
+            const lensMesh = new THREE.Mesh(lensGeometry, lensMaterial);
+            lensMesh.position.z = -1;
+            scene.add(lensMesh);
+    
             // Starfield Geometry and Material
             const starGeometry = new THREE.BufferGeometry();
             const starVertices = [];
-            for (let i = 0; i < 2000; i++) {
+            for (let i = 0; i < 5000; i++) {
                 const x = THREE.MathUtils.randFloatSpread(2000);
                 const y = THREE.MathUtils.randFloatSpread(2000);
                 const z = THREE.MathUtils.randFloatSpread(2000);
@@ -749,7 +778,12 @@
             }
             starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
     
-            const starMaterial = new THREE.PointsMaterial({ color: 0xffffff });
+            const starMaterial = new THREE.PointsMaterial({
+                size: 1.5,
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.8
+            });
             const stars = new THREE.Points(starGeometry, starMaterial);
             scene.add(stars);
     
@@ -765,13 +799,15 @@
             function animate() {
                 requestAnimationFrame(animate);
     
-                // Rotate accretion disk and black hole
-                blackHole.rotation.y += 0.002;
-                accretionDisk.rotation.z += 0.004;
+                // Rotate accretion disk
+                accretionDisk.rotation.z += 0.002;
+    
+                // Animate the lens effect
+                lensMaterial.uniforms.time.value += 0.01;
     
                 // Move stars slowly to create a parallax effect
-                stars.rotation.y += 0.0005;
-                stars.rotation.x += 0.0003;
+                stars.rotation.y += 0.0003;
+                stars.rotation.x += 0.0001;
     
                 // Render scene
                 renderer.render(scene, camera);
