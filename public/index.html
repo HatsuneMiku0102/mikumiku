@@ -7,6 +7,35 @@
     <title>MikuMiku | Home</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
+    <style>
+        /* Add styles for loading spinner and audio visualizer */
+        #loadingSpinner {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 2s linear infinite;
+            z-index: 1000;
+        }
+        
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        #audioVisualizer {
+            width: 100%;
+            height: 100px;
+            background-color: #000;
+            display: none; /* Initially hidden */
+        }
+    </style>
 </head>
 
 <body>
@@ -59,14 +88,19 @@
                     </div>
                 </div>
         
-                <div class="video-section">
+                <div class="video-section" style="position: relative;">
                     <div class="video-title-container">
                         <h2>Currently Playing</h2>
                         <p id="videoTitle">Loading...</p>
                     </div>
         
-                    <div class="thumbnail-container">
-                        <img id="videoThumbnail" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
+                    <!-- Replace img with video element -->
+                    <div class="thumbnail-container" style="position: relative;">
+                        <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls style="width: 100%; height: auto; display: none;">
+                            <!-- Video source will be set dynamically -->
+                            Your browser does not support the video tag.
+                        </video>
+                        <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
                     </div>
         
                     <div id="offline-indicator" class="offline-indicator">I’m not on YouTube at the moment, soz :(</div>
@@ -81,6 +115,12 @@
         
                     <!-- Toggle Description Button -->
                     <button class="toggle-description" id="toggleDescriptionButton">Show Description</button>
+                    
+                    <!-- Loading Spinner -->
+                    <div id="loadingSpinner"></div>
+                    
+                    <!-- Audio Visualizer -->
+                    <canvas id="audioVisualizer"></canvas>
                 </div>
             </div>
         </div>
@@ -164,7 +204,8 @@
             // Now Playing Elements
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
-            const videoThumbnailElement = document.getElementById("videoThumbnail");
+            const videoThumbnailImage = document.getElementById("videoThumbnailImage"); // Image element
+            const videoThumbnailElement = document.getElementById("videoThumbnail"); // Video element
             const offlineIndicatorElement = document.getElementById("offline-indicator");
             const progressBarElement = document.getElementById("progressBar");
             const progressBarContainerElement = document.querySelector(".progress-bar-container");
@@ -175,6 +216,13 @@
             const videoCategoryElement = document.getElementById("videoCategory");
             const videoDescriptionElement = document.getElementById("videoDescription");
             const timeElapsedElement = document.getElementById("timeElapsed");
+            const loadingSpinner = document.getElementById("loadingSpinner");
+            const audioVisualizer = document.getElementById("audioVisualizer");
+            const canvasCtx = audioVisualizer.getContext('2d');
+    
+            let audioContext;
+            let analyser;
+            let dataArray;
     
             // Helper function to format numbers with commas
             function formatNumber(number) {
@@ -190,6 +238,8 @@
                 nowPlayingBox.classList.add("offline");
                 offlineIndicatorElement.style.display = "block";
                 videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
+                videoThumbnailImage.src = "";
+                videoThumbnailImage.style.display = "none";
                 videoThumbnailElement.src = "";
                 videoThumbnailElement.style.display = "none";
                 channelNameElement.textContent = "";
@@ -205,6 +255,8 @@
             // Function to clear video presence specifically
             function clearVideoPresence() {
                 videoTitleElement.textContent = "";
+                videoThumbnailImage.src = "";
+                videoThumbnailImage.style.display = "none";
                 videoThumbnailElement.src = "";
                 videoThumbnailElement.style.display = "none";
                 channelNameElement.textContent = "";
@@ -247,10 +299,12 @@
                 videoTitleElement.textContent = data.title || "Unknown Title";
     
                 if (data.thumbnail) {
-                    videoThumbnailElement.src = data.thumbnail;
-                    videoThumbnailElement.style.display = "block";
+                    // Show image thumbnail and hide video thumbnail
+                    videoThumbnailImage.src = data.thumbnail;
+                    videoThumbnailImage.style.display = "block";
+                    videoThumbnailElement.style.display = "none";
                 } else {
-                    videoThumbnailElement.src = "";
+                    videoThumbnailImage.src = "";
                     videoThumbnailElement.style.display = "none";
                 }
     
@@ -269,6 +323,17 @@
                 videoDescriptionElement.textContent = data.description || "No description available.";
                 handleRealTimeProgress(data);
                 timeElapsedElement.style.display = "none"; // Hide elapsed time during video play
+                
+                // If there's a video source, display video element
+                if (data.videoSrc) {
+                    videoThumbnailElement.src = data.videoSrc;
+                    videoThumbnailElement.style.display = "block";
+                    videoThumbnailImage.style.display = "none";
+                    initializeVisualizer(videoThumbnailElement);
+                } else {
+                    videoThumbnailElement.style.display = "none";
+                    videoThumbnailImage.style.display = "block";
+                }
             }
     
             // Function to handle real-time progress
@@ -292,8 +357,9 @@
     
                 // Set browsing details
                 videoTitleElement.textContent = data.title || "Browsing YouTube";
-                videoThumbnailElement.src = data.thumbnail || "https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png";
-                videoThumbnailElement.style.display = "block";
+                videoThumbnailImage.src = data.thumbnail || "https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png";
+                videoThumbnailImage.style.display = "block";
+                videoThumbnailElement.style.display = "none";
                 channelNameElement.textContent = "Browsing...";
                 videoDescriptionElement.textContent = data.description || "Browsing videos on YouTube";
                 progressBarElement.style.width = "0%";
@@ -326,7 +392,7 @@
                     browsingStartTime = Date.now(); // Set browsing start time only if it's not already set
                 }
                 if (!browsingInterval) {
-                    browsingInterval = setInterval(updateBrowsingPresence, 5000); // Update every 15 seconds
+                    browsingInterval = setInterval(updateBrowsingPresence, 5000); // Update every 5 seconds
                 }
             }
     
@@ -382,7 +448,7 @@
             });
     
             setInterval(() => {
-                if (Date.now() - lastHeartbeatReceived > 60000) {
+                if (Date.now() - lastHeartbeatReceived > 60000) { // 60 seconds
                     console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
                     clearDisplay();
                 }
@@ -469,7 +535,7 @@
                 }
             }
         
-            setInterval(fetchWeather, 3600000);
+            setInterval(fetchWeather, 3600000); // Update every hour
             fetchWeather();
    
             // Canvas Animation Script
@@ -624,6 +690,62 @@
             }
 
             animate();
+
+            // Modal Toggle Logic (Already included above)
+            // ... [No changes needed]
+
+            // Audio Visualizer Functions
+            function initializeVisualizer(mediaElement) {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const source = audioContext.createMediaElementSource(mediaElement);
+                    analyser = audioContext.createAnalyser();
+                    source.connect(analyser);
+                    analyser.connect(audioContext.destination);
+                    analyser.fftSize = 256;
+                    dataArray = new Uint8Array(analyser.frequencyBinCount);
+                    drawVisualizer();
+                    audioVisualizer.style.display = 'block'; // Show visualizer when initialized
+                }
+            }
+    
+            function drawVisualizer() {
+                requestAnimationFrame(drawVisualizer);
+                if (!analyser) return;
+                analyser.getByteFrequencyData(dataArray);
+    
+                canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                canvasCtx.fillRect(0, 0, audioVisualizer.width, audioVisualizer.height);
+    
+                const barWidth = (audioVisualizer.width / dataArray.length) * 2.5;
+                let barHeight;
+                let x = 0;
+    
+                for (let i = 0; i < dataArray.length; i++) {
+                    barHeight = dataArray[i] / 2;
+                    canvasCtx.fillStyle = `rgb(${barHeight + 100},50,250)`;
+                    canvasCtx.fillRect(x, audioVisualizer.height - barHeight, barWidth, barHeight);
+                    x += barWidth + 1;
+                }
+            }
+    
+            // Function to show loading spinner
+            function showLoadingSpinner() {
+                loadingSpinner.style.display = 'block';
+            }
+    
+            // Function to hide loading spinner
+            function hideLoadingSpinner() {
+                loadingSpinner.style.display = 'none';
+            }
+    
+            // Add event listeners to video element for buffering/loading state
+            videoThumbnailElement.addEventListener('waiting', showLoadingSpinner);
+            videoThumbnailElement.addEventListener('playing', hideLoadingSpinner);
+            videoThumbnailElement.addEventListener('play', () => {
+                initializeVisualizer(videoThumbnailElement);
+                hideLoadingSpinner();
+            });
         });
     </script>
 </body>
