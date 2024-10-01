@@ -721,22 +721,24 @@
             const loader = new THREE.PLYLoader();
             loader.load('/textures/model.ply', function (geometry) {
                 geometry.computeVertexNormals();
-        
+            
                 // Material to reflect vertex colors
                 const material = new THREE.MeshStandardMaterial({
-                    vertexColors: THREE.VertexColors,
+                    vertexColors: true,
                     flatShading: false,
                     roughness: 0.5,
                     metalness: 0.1,
                 });
-        
+            
                 // Create the mesh and adjust the scale/position
                 const model = new THREE.Mesh(geometry, material);
                 model.scale.set(10, 10, 10); // Adjust scale to fit model properly
                 model.position.set(0, 0, 0);
                 model.geometry.center(); // Center the geometry
-        
+            
                 scene.add(model);
+            }, function (xhr) {
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
             }, function (error) {
                 console.error('An error occurred while loading the PLY model:', error);
             });
