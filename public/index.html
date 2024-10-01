@@ -694,223 +694,205 @@
             fetchWeather();
         </script>
         
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                const canvas = document.getElementById('techCanvas');
-                const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-                renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.setPixelRatio(window.devicePixelRatio);
-                renderer.toneMapping = THREE.ACESFilmicToneMapping;
-                renderer.outputEncoding = THREE.sRGBEncoding;
-        
-                const scene = new THREE.Scene();
-                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
-                camera.position.z = 200;
-        
-                // Static Background - Nebula
-                const textureLoader = new THREE.TextureLoader();
-                textureLoader.load('/textures/nebula.webp', (texture) => {
-                    scene.background = texture;  // Set the background texture to the nebula
-                });
-        
-                // Stars Geometry for Depth Effect
-                const starGeometry = new THREE.BufferGeometry();
-                const starCount = 3000;
-                const starVertices = new Float32Array(starCount * 3);
-                for (let i = 0; i < starCount * 3; i++) {
-                    starVertices[i] = (Math.random() - 0.5) * 3000;
-                }
-                starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
-        
-                const starMaterial = new THREE.PointsMaterial({
-                    size: 1.5,
-                    color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, 90%)`),
-                    transparent: true,
-                    opacity: 0.7,
-                    blending: THREE.AdditiveBlending,
-                    depthWrite: false,
-                });
-        
-                const stars = new THREE.Points(starGeometry, starMaterial);
-                scene.add(stars);
-        
-                // Nebula Particle Field
-                const particleGeometry = new THREE.BufferGeometry();
-                const particleCount = 1000;
-                const particleVertices = new Float32Array(particleCount * 3);
-                for (let i = 0; i < particleCount * 3; i++) {
-                    particleVertices[i] = (Math.random() - 0.5) * 2000;
-                }
-                particleGeometry.setAttribute('position', new THREE.BufferAttribute(particleVertices, 3));
-                const particleMaterial = new THREE.PointsMaterial({
-                    size: 5,
-                    map: textureLoader.load('/textures/nebula.webp'),
-                    transparent: true,
-                    blending: THREE.AdditiveBlending,
-                    depthWrite: false,
-                    opacity: 0.2,
-                });
-        
-                const particles = new THREE.Points(particleGeometry, particleMaterial);
-                scene.add(particles);
-        
-                // Comets
-                const cometTextures = [
-                    textureLoader.load('/textures/comet1.png'),
-                    textureLoader.load('/textures/comet2.png')
-                ];
-                const cometGeometry = new THREE.PlaneGeometry(1, 1);
-                const comets = [];
-                const cometSprites = [];
-        
-                for (let i = 0; i < 8; i++) {
-                    const cometMaterial = new THREE.MeshBasicMaterial({
-                        map: cometTextures[Math.floor(Math.random() * cometTextures.length)],
-                        transparent: true,
-                        blending: THREE.AdditiveBlending,
-                        depthWrite: false,
-                    });
-                    const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
-        
-                    // Set initial random values for each comet to start from top left or right
-                    const sizeFactor = Math.random() * 30 + 15; // Larger comets
-                    comet.scale.set(sizeFactor, sizeFactor / 2, 1);
-                    comet.position.set((Math.random() > 0.5 ? 1 : -1) * (Math.random() * 500 + 500), Math.random() * 500 + 300, -800);
-                    comet.speed = Math.random() * 1.5 + 0.5;  // Varying speeds for comets
-        
-                    scene.add(comet);
-                    comets.push(comet);
-        
-                    // Glare effect (Sprite)
-                    const glareTexture = textureLoader.load('/textures/flare.png'); // Add appropriate glare texture here
-                    const glareMaterial = new THREE.SpriteMaterial({ map: glareTexture, blending: THREE.AdditiveBlending, transparent: true });
-                    const glare = new THREE.Sprite(glareMaterial);
-                    glare.scale.set(sizeFactor * 3, sizeFactor * 3, 1); // Make the glare effect larger
-                    scene.add(glare);
-                    cometSprites.push(glare);
-                }
-        
-                // Lens Flare Effect
-                const flareTexture = textureLoader.load('https://cdn.jsdelivr.net/gh/ronaldsm/star-texture@main/flare.png');
-                const flareMaterial = new THREE.SpriteMaterial({ map: flareTexture, transparent: true, blending: THREE.AdditiveBlending });
-                const flare = new THREE.Sprite(flareMaterial);
-                flare.scale.set(100, 100, 1);
-                scene.add(flare);
-        
-                // Moving Stars/Shooting Stars
-                const shootStarGeometry = new THREE.PlaneGeometry(10, 2);
-                const shootingStars = [];
-                const shootingStarTexture = cometTextures[1];  // Reusing comet texture
-                for (let i = 0; i < 3; i++) {
-                    const shootingStarMaterial = new THREE.MeshBasicMaterial({
-                        map: shootingStarTexture,
-                        transparent: true,
-                        blending: THREE.AdditiveBlending,
-                    });
-                    const shootingStar = new THREE.Mesh(shootStarGeometry, shootingStarMaterial);
-                    shootingStar.position.set((Math.random() - 0.5) * 1500, (Math.random() - 0.5) * 800, -800);
-                    shootingStar.visible = false;
-                    scene.add(shootingStar);
-                    shootingStars.push(shootingStar);
-                }
-        
-                // Post-processing with Bloom for a subtle glow
-                const composer = new THREE.EffectComposer(renderer);
-                const renderPass = new THREE.RenderPass(scene, camera);
-                composer.addPass(renderPass);
-        
-                const bloomPass = new THREE.UnrealBloomPass(
-                    new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    1.5,
-                    0.4,
-                    0.85
-                );
-                composer.addPass(bloomPass);
-        
-                // Animate
-                const animate = () => {
-                    requestAnimationFrame(animate);
-        
-                    // Flickering stars effect
-                    stars.material.color.setHSL(Math.random() * 0.1, 1, 0.9); // Slight color change for natural flickering effect
-        
-                    // Animate Comets and Glare Effect
-                    comets.forEach((comet, index) => {
-                        comet.position.x -= comet.speed;
-                        comet.position.y -= comet.speed * 0.5; // Move diagonally downward
-                        comet.material.opacity = Math.random() * 0.2 + 0.8; // Flashing effect
-        
-                        // Update glare to follow comet
-                        cometSprites[index].position.set(comet.position.x, comet.position.y, comet.position.z);
-                        cometSprites[index].material.opacity = comet.material.opacity * 0.6; // Slightly reduced opacity for glare
-        
-                        if (comet.position.x < -1600 || comet.position.y < -800) {
-                            // Reset comet to start from the top corners again
-                            comet.position.set((Math.random() > 0.5 ? 1 : -1) * (Math.random() * 500 + 500), Math.random() * 500 + 300, -800);
-                            comet.speed = Math.random() * 1.5 + 0.5;  // Reset speed for variation
-                            const newSizeFactor = Math.random() * 30 + 15; // Reset size with larger values
-                            comet.scale.set(newSizeFactor, newSizeFactor / 2, 1);
-                        }
-                    });
-        
-                    // Shooting Stars Random Activation
-                    shootingStars.forEach(shootingStar => {
-                        if (!shootingStar.visible && Math.random() < 0.001) {
-                            shootingStar.visible = true;
-                            shootingStar.position.set((Math.random() - 0.5) * 1500, 500, -800);
-                            shootingStar.speed = Math.random() * 3 + 1;
-                        }
-                        if (shootingStar.visible) {
-                            shootingStar.position.x -= shootingStar.speed;
-                            shootingStar.position.y -= shootingStar.speed * 0.5;
-                            if (shootingStar.position.y < -500 || shootingStar.position.x < -1000) {
-                                shootingStar.visible = false;
-                            }
-                        }
-                    });
-        
-                    // Lens Flare Animation
-                    flare.position.set(Math.sin(Date.now() * 0.0005) * 400, Math.cos(Date.now() * 0.0003) * 300, -1000);
-        
-                    // Render with Post-Processing
-                    composer.render();
-                };
-        
-                // Mouse Move Interaction - Canvas and Camera Shake Effect
-                let mouseX = 0;
-                let mouseY = 0;
-        
-                document.addEventListener('mousemove', (event) => {
-                    mouseX = (event.clientX - window.innerWidth / 2) * 0.005;
-                    mouseY = (event.clientY - window.innerHeight / 2) * 0.005;
-                });
-        
-                const updateCanvasPosition = () => {
-                    // Apply slight movement to camera for parallax effect
-                    camera.position.x += (mouseX - camera.position.x) * 0.05;
-                    camera.position.y += (mouseY - camera.position.y) * 0.05;
-                    camera.lookAt(scene.position);
-        
-                    // Apply slight movement to renderer to simulate entire canvas movement
-                    canvas.style.transform = `translate(${mouseX * 1.5}px, ${mouseY * 1.5}px)`;
-                };
-        
-                const animateWithMouseInteraction = () => {
-                    requestAnimationFrame(animateWithMouseInteraction);
-                    updateCanvasPosition();
-                };
-        
-                animate();
-                animateWithMouseInteraction();
-        
-                window.addEventListener('resize', () => {
-                    camera.aspect = window.innerWidth / window.innerHeight;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(window.innerWidth, window.innerHeight);
-                    composer.setSize(window.innerWidth, window.innerHeight);
-                });
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const canvas = document.getElementById('techCanvas');
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+    
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
+        camera.position.z = 100;
+    
+        // Layered Background - Multiple Nebula Layers for Parallax Effect
+        const textureLoader = new THREE.TextureLoader();
+        const nebulaLayers = [];
+        for (let i = 0; i < 3; i++) {
+            textureLoader.load('/textures/nebula.webp', (texture) => {
+                const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+                const layer = new THREE.Mesh(new THREE.PlaneGeometry(3000, 2000), material);
+                layer.position.z = -1000 - (i * 500);
+                scene.add(layer);
+                nebulaLayers.push(layer);
             });
-        </script>
+        }
+    
+        // Animated Nebula Shader
+        const nebulaShaderMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                time: { value: 0.0 },
+                resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float time;
+                varying vec2 vUv;
+    
+                void main() {
+                    vec2 uv = vUv;
+                    uv.x += sin(time * 0.05) * 0.02; // Animate nebula
+                    float noise = fract(sin(dot(uv * 10.0, vec2(12.9898, 78.233))) * 43758.5453123);
+                    gl_FragColor = vec4(vec3(noise) * vec3(0.3, 0.4, 1.0), 1.0);
+                }
+            `,
+            transparent: true,
+        });
+    
+        const nebulaShaderPlane = new THREE.Mesh(new THREE.PlaneGeometry(3000, 2000), nebulaShaderMaterial);
+        nebulaShaderPlane.position.z = -800;
+        scene.add(nebulaShaderPlane);
+    
+        // Stars Geometry for Depth Effect - Realistic Star Clusters and Brightness Variations
+        const starGeometry = new THREE.BufferGeometry();
+        const starCount = 3000;
+        const starVertices = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount * 3; i++) {
+            starVertices[i] = (Math.random() - 0.5) * 3000;
+        }
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
+        const starMaterial = new THREE.PointsMaterial({
+            size: Math.random() * 2 + 1,
+            color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, ${Math.random() * 60 + 20}%)`),
+            transparent: true,
+            opacity: Math.random() * 0.6 + 0.4,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+        });
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+    
+        // Dynamic Lighting and Light Flares
+        const light1 = new THREE.PointLight(0xffffff, 1.5, 1500);
+        light1.position.set(-500, 300, -500);
+        scene.add(light1);
+    
+        const light2 = new THREE.PointLight(0xffaa00, 1, 1500);
+        light2.position.set(500, -300, -500);
+        scene.add(light2);
+    
+        const flareTexture = textureLoader.load('https://cdn.jsdelivr.net/gh/ronaldsm/star-texture@main/flare.png');
+        const flareMaterial = new THREE.SpriteMaterial({ map: flareTexture, transparent: true, blending: THREE.AdditiveBlending });
+        const flare = new THREE.Sprite(flareMaterial);
+        flare.scale.set(150, 150, 1);
+        light1.add(flare);
+    
+        // Comets with Particle Trails
+        const cometTextures = [
+            textureLoader.load('/textures/comet1.png'),
+            textureLoader.load('/textures/comet2.png')
+        ];
+        const comets = [];
+        for (let i = 0; i < 8; i++) {
+            const cometMaterial = new THREE.MeshBasicMaterial({
+                map: cometTextures[Math.floor(Math.random() * cometTextures.length)],
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+            });
+            const cometGeometry = new THREE.PlaneGeometry(Math.random() * 30 + 15, Math.random() * 10 + 5);
+            const comet = new THREE.Mesh(cometGeometry, cometMaterial);
+            comet.position.set((Math.random() - 0.5) * 1000, Math.random() * 800 - 400, -600);
+            comet.speed = Math.random() * 3 + 1;
+            scene.add(comet);
+            comets.push(comet);
+    
+            // Adding Particle Trails to Comets
+            const trailMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending });
+            const trailGeometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(-50, -25, 0)]);
+            const cometTrail = new THREE.Line(trailGeometry, trailMaterial);
+            comet.add(cometTrail);
+        }
+    
+        // Post-processing with Bloom for Subtle Glow
+        const composer = new THREE.EffectComposer(renderer);
+        const renderPass = new THREE.RenderPass(scene, camera);
+        composer.addPass(renderPass);
+    
+        const bloomPass = new THREE.UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            1.8,
+            0.5,
+            0.85
+        );
+        composer.addPass(bloomPass);
+    
+        // Animation Loop
+        const animate = () => {
+            requestAnimationFrame(animate);
+    
+            // Animated Nebula Shader Update
+            nebulaShaderMaterial.uniforms.time.value += 0.01;
+    
+            // Parallax Effect for Layered Nebula
+            nebulaLayers.forEach((layer, index) => {
+                layer.position.x = Math.sin(Date.now() * 0.0002 * (index + 1)) * (index + 1) * 10;
+                layer.position.y = Math.cos(Date.now() * 0.0002 * (index + 1)) * (index + 1) * 10;
+            });
+    
+            // Comet Movement and Reposition
+            comets.forEach(comet => {
+                comet.position.x -= comet.speed;
+                comet.position.y -= comet.speed * 0.2;
+    
+                if (comet.position.x < -1500) {
+                    comet.position.x = Math.random() * 1500 + 500;
+                    comet.position.y = Math.random() * 800 - 400;
+                    comet.speed = Math.random() * 3 + 1;
+                    comet.scale.set(Math.random() * 30 + 15, Math.random() * 10 + 5, 1); // Reset size
+                }
+            });
+    
+            // Lens Flare Animation
+            flare.position.set(Math.sin(Date.now() * 0.0003) * 600, Math.cos(Date.now() * 0.0005) * 400, -800);
+    
+            // Render Scene with Post-Processing
+            composer.render();
+        };
+    
+        // Mouse Move Interaction - Canvas and Camera Shake Effect
+        let mouseX = 0;
+        let mouseY = 0;
+    
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX - window.innerWidth / 2) * 0.005;
+            mouseY = (event.clientY - window.innerHeight / 2) * 0.005;
+        });
+    
+        const updateCanvasPosition = () => {
+            camera.position.x += (mouseX - camera.position.x) * 0.05;
+            camera.position.y += (mouseY - camera.position.y) * 0.05;
+            camera.lookAt(scene.position);
+    
+            // Slight canvas movement for parallax effect
+            canvas.style.transform = `translate(${mouseX * 1.5}px, ${mouseY * 1.5}px)`;
+        };
+    
+        const animateWithMouseInteraction = () => {
+            requestAnimationFrame(animateWithMouseInteraction);
+            updateCanvasPosition();
+        };
+    
+        animate();
+        animateWithMouseInteraction();
+    
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+    });
+    </script>
+
 
 
 
