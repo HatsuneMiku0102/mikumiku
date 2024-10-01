@@ -59,15 +59,14 @@
                     </div>
                 </div>
 
-                <div class="video-section" style="position: relative;">
+                <div class="video-section">
                     <div class="video-title-container">
                         <h2>Currently Playing</h2>
                         <p id="videoTitle">Loading...</p>
                     </div>
 
-                    <!-- Video and Image Thumbnails -->
-                    <div class="thumbnail-container" style="position: relative;">
-                        <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls style="width: 100%; height: auto; display: none;">
+                    <div class="thumbnail-container">
+                        <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls style="display: none;">
                             Your browser does not support the video tag.
                         </video>
                         <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
@@ -75,27 +74,21 @@
 
                     <div id="offline-indicator" class="offline-indicator">I’m not on YouTube at the moment, soz :(</div>
 
-                    <!-- Progress Bar -->
                     <div class="progress-bar-container">
                         <div id="progressBar" class="progress-bar"></div>
                     </div>
 
-                    <!-- Time Elapsed under Progress Bar -->
                     <div id="timeElapsedContainer" class="time-elapsed"><span id="timeElapsed">0s</span></div>
 
-                    <!-- Toggle Description Button -->
                     <button class="toggle-description" id="toggleDescriptionButton">Show Description</button>
 
-                    <!-- Loading Spinner -->
                     <div id="loadingSpinner" class="loading-spinner"></div>
 
-                    <!-- Audio Visualizer -->
                     <canvas id="audioVisualizer" class="audio-visualizer"></canvas>
                 </div>
             </div>
         </div>
 
-        <!-- Modal Structure -->
         <div id="descriptionModal" class="modal">
             <div class="modal-content">
                 <span class="close-button" id="closeDescriptionButton">&times;</span>
@@ -157,12 +150,10 @@
         </div>
     </div>
 
-    <!-- Socket.io Client Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="haru.js"></script>
 
-    <!-- JavaScript to handle all features -->
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const socket = io("https://mikumiku.dev");
@@ -171,14 +162,12 @@
             let browsingStartTime = null;
             let browsingInterval = null;
 
-            // Now Playing Elements
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
-            const videoThumbnailImage = document.getElementById("videoThumbnailImage"); // Image element
-            const videoThumbnailElement = document.getElementById("videoThumbnail"); // Video element
+            const videoThumbnailImage = document.getElementById("videoThumbnailImage");
+            const videoThumbnailElement = document.getElementById("videoThumbnail");
             const offlineIndicatorElement = document.getElementById("offline-indicator");
             const progressBarElement = document.getElementById("progressBar");
-            const progressBarContainerElement = document.querySelector(".progress-bar-container");
             const channelNameElement = document.getElementById("channelName");
             const viewCountElement = document.getElementById("viewCount");
             const likeCountElement = document.getElementById("likeCount");
@@ -194,7 +183,6 @@
             let analyser;
             let dataArray;
 
-            // Helper function to format numbers with commas
             function formatNumber(number) {
                 if (typeof number === 'string') {
                     number = number.replace(/,/g, '');
@@ -203,7 +191,6 @@
                 return isNaN(num) ? "N/A" : num.toLocaleString();
             }
 
-            // Function to clear the current display
             function clearDisplay() {
                 nowPlayingBox.classList.add("offline");
                 offlineIndicatorElement.style.display = "block";
@@ -219,11 +206,10 @@
                 videoCategoryElement.textContent = "";
                 progressBarElement.style.width = "0%";
                 videoDescriptionElement.textContent = "";
-                timeElapsedElement.style.display = "none"; // Hide time elapsed when offline
-                audioVisualizer.style.display = 'none'; // Hide visualizer when offline
+                timeElapsedElement.style.display = "none";
+                audioVisualizer.style.display = "none"; // Hide visualizer when offline
             }
 
-            // Function to clear video presence specifically
             function clearVideoPresence() {
                 videoTitleElement.textContent = "";
                 videoThumbnailImage.src = "";
@@ -237,17 +223,14 @@
                 videoCategoryElement.textContent = "";
                 progressBarElement.style.width = "0%";
                 videoDescriptionElement.textContent = "";
-                audioVisualizer.style.display = 'none'; // Hide visualizer when clearing video
             }
 
-            // Function to reinitialize the session
             function reinitializeSession() {
                 console.warn("[Client] Reinitializing session due to mismatch or timeout.");
                 clearDisplay();
                 isSessionExpired = true;
             }
 
-            // Function to format time elapsed
             function formatTimeElapsed(seconds) {
                 const hours = Math.floor(seconds / 3600);
                 const minutes = Math.floor((seconds % 3600) / 60);
@@ -262,7 +245,6 @@
                 }
             }
 
-            // Function to display video presence
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
@@ -271,13 +253,12 @@
                 videoTitleElement.textContent = data.title || "Unknown Title";
 
                 if (data.thumbnail) {
-                    // Show image thumbnail and hide video thumbnail
                     videoThumbnailImage.src = data.thumbnail;
                     videoThumbnailImage.style.display = "block";
                     videoThumbnailElement.style.display = "none";
                 } else {
                     videoThumbnailImage.src = "";
-                    videoThumbnailImage.style.display = "none";
+                    videoThumbnailElement.style.display = "none";
                 }
 
                 channelNameElement.textContent = data.channelTitle || "Unknown Channel";
@@ -294,9 +275,8 @@
                 videoCategoryElement.textContent = `Category: ${data.category}` || "Category: N/A";
                 videoDescriptionElement.textContent = data.description || "No description available.";
                 handleRealTimeProgress(data);
-                timeElapsedElement.style.display = "none"; // Hide elapsed time during video play
+                timeElapsedElement.style.display = "none";
 
-                // If there's a video source, display video element
                 if (data.videoSrc) {
                     videoThumbnailElement.src = data.videoSrc;
                     videoThumbnailElement.style.display = "block";
@@ -305,11 +285,10 @@
                 } else {
                     videoThumbnailElement.style.display = "none";
                     videoThumbnailImage.style.display = "block";
-                    audioVisualizer.style.display = 'none'; // Ensure visualizer is hidden when not playing video
+                    audioVisualizer.style.display = "none"; // Hide visualizer if no video
                 }
             }
 
-            // Function to handle real-time progress
             function handleRealTimeProgress(data) {
                 if (data.duration && data.currentTime) {
                     const progressPercentage = (data.currentTime / data.duration) * 100;
@@ -319,16 +298,13 @@
                 }
             }
 
-            // Function to display browsing presence
             function displayBrowsingPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
 
-                // Clear any previous video-related elements before setting browsing state
                 clearVideoPresence();
 
-                // Set browsing details
                 videoTitleElement.textContent = data.title || "Browsing YouTube";
                 videoThumbnailImage.src = data.thumbnail || "https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png";
                 videoThumbnailImage.style.display = "block";
@@ -339,7 +315,7 @@
 
                 if (data.timeElapsed !== undefined) {
                     timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(data.timeElapsed)}`;
-                    timeElapsedElement.style.display = "block"; // Show elapsed time during browsing
+                    timeElapsedElement.style.display = "block";
                 }
             }
 
@@ -362,10 +338,10 @@
 
             function startBrowsingPresence() {
                 if (browsingStartTime === null) {
-                    browsingStartTime = Date.now(); // Set browsing start time only if it's not already set
+                    browsingStartTime = Date.now();
                 }
                 if (!browsingInterval) {
-                    browsingInterval = setInterval(updateBrowsingPresence, 5000); // Update every 5 seconds
+                    browsingInterval = setInterval(updateBrowsingPresence, 5000);
                 }
             }
 
@@ -374,10 +350,9 @@
                     clearInterval(browsingInterval);
                     browsingInterval = null;
                 }
-                browsingStartTime = null; // Reset browsing start time when browsing ends
+                browsingStartTime = null;
             }
 
-            // Socket.IO event listeners
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
                 isSessionExpired = false;
@@ -421,13 +396,12 @@
             });
 
             setInterval(() => {
-                if (Date.now() - lastHeartbeatReceived > 60000) { // 60 seconds
+                if (Date.now() - lastHeartbeatReceived > 60000) {
                     console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
                     clearDisplay();
                 }
             }, 5000);
 
-            // Modal Toggle Logic
             const descriptionModal = document.getElementById("descriptionModal");
             const closeDescriptionButton = document.getElementById("closeDescriptionButton");
             const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
@@ -454,7 +428,6 @@
                 }
             });
 
-            // Clock Update Script
             function updateClocks() {
                 const now = new Date();
                 const localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -468,7 +441,6 @@
             setInterval(updateClocks, 1000);
             updateClocks();
 
-            // Weather Update Script
             const CITY_NAME = 'Leeds';
             async function fetchWeather() {
                 try {
@@ -508,10 +480,9 @@
                 }
             }
 
-            setInterval(fetchWeather, 3600000); // Update every hour
+            setInterval(fetchWeather, 3600000);
             fetchWeather();
 
-            // Canvas Animation Script
             const canvas = document.getElementById("techCanvas");
             const ctx = canvas.getContext("2d");
             let width = window.innerWidth;
@@ -664,7 +635,6 @@
 
             animate();
 
-            // Audio Visualizer Functions
             function initializeVisualizer(mediaElement) {
                 if (!audioContext) {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -675,7 +645,7 @@
                     analyser.fftSize = 256;
                     dataArray = new Uint8Array(analyser.frequencyBinCount);
                     drawVisualizer();
-                    audioVisualizer.style.display = 'block'; // Show visualizer when initialized
+                    audioVisualizer.style.display = 'block';
                 }
             }
 
@@ -699,36 +669,19 @@
                 }
             }
 
-            // Function to show loading spinner
             function showLoadingSpinner() {
                 loadingSpinner.style.display = 'block';
             }
 
-            // Function to hide loading spinner
             function hideLoadingSpinner() {
                 loadingSpinner.style.display = 'none';
             }
 
-            // Add event listeners to video element for buffering/loading state
             videoThumbnailElement.addEventListener('waiting', showLoadingSpinner);
             videoThumbnailElement.addEventListener('playing', hideLoadingSpinner);
             videoThumbnailElement.addEventListener('play', () => {
                 initializeVisualizer(videoThumbnailElement);
                 hideLoadingSpinner();
-            });
-
-            // Optional: Pause visualizer when video is paused
-            videoThumbnailElement.addEventListener('pause', () => {
-                if (audioContext && audioContext.state === 'running') {
-                    audioContext.suspend();
-                }
-            });
-
-            // Optional: Resume visualizer when video resumes playing
-            videoThumbnailElement.addEventListener('play', () => {
-                if (audioContext && audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
             });
         });
     </script>
