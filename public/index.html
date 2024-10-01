@@ -719,11 +719,22 @@
         
         // Load JPEG Background without delay
         const loader = new THREE.TextureLoader();
-        loader.load('/textures/heic1007a.jpg', (texture) => {
-            texture.mapping = THREE.EquirectangularReflectionMapping;
-            scene.background = texture;
-            console.log('Background texture loaded successfully');
-        });
+        loader.load('/textures/heic1007a.jpg',
+            (texture) => {
+                // Debugging log to ensure the texture is loaded
+                console.log('Background texture loaded successfully');
+        
+                // Proper mapping for the JPEG background
+                texture.mapping = THREE.EquirectangularReflectionMapping;
+        
+                // Assign the texture as the background
+                scene.background = texture;
+            },
+            undefined,
+            (error) => {
+                console.error('Error loading background texture:', error);
+            }
+        );
         
         // Post-Processing Setup with EffectComposer
         const composer = new THREE.EffectComposer(renderer);
@@ -756,7 +767,7 @@
         
         // Debug Sphere to Verify Visibility
         const sphereGeometry = new THREE.SphereGeometry(100, 32, 32);
-        const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 }); // Yellow color for visibility
         const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
         sphere.position.set(0, 0, -300); // Place it at a visible location
         scene.add(sphere);
@@ -769,6 +780,7 @@
             '/textures/radiation_of_space.glb',
             function (gltf) {
                 const model = gltf.scene;
+        
                 model.traverse((node) => {
                     if (node.isMesh) {
                         node.castShadow = true;
@@ -782,6 +794,15 @@
                         }
                     }
                 });
+        
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                const center = box.getCenter(new THREE.Vector3());
+        
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const scale = Math.min(window.innerWidth, window.innerHeight) / (maxDim * 5);
+                model.scale.setScalar(scale);
+                model.position.sub(center.multiplyScalar(scale));
                 scene.add(model);
         
                 // Handle Animations
@@ -817,6 +838,7 @@
             composer.render();
         }
         animate();
+
         </script>
 
 
