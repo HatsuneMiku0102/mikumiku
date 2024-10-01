@@ -693,10 +693,10 @@
         <script>
             // Scene, Camera, Renderer Setup
             const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x000000); // Set a black background
+            scene.background = new THREE.Color(0x000000); // Deep space background
         
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-            camera.position.set(0, 50, 500);
+            camera.position.set(0, 0, 300);
         
             const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -709,25 +709,37 @@
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
         
-            // Load PLY Model
-            const loader = new THREE.PLYLoader();
-            loader.load('/textures/model.ply', (geometry) => {
-                geometry.computeVertexNormals();
-                const material = new THREE.MeshStandardMaterial({ color: 0x808080 });
-                const model = new THREE.Mesh(geometry, material);
-                scene.add(model);
-                model.position.set(0, 0, 0); // Adjust the position as necessary
-            }, undefined, (error) => {
-                console.error('An error occurred while loading the PLY model:', error);
-            });
-        
             // Lighting Setup
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // Soft ambient light
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
         
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // Strong directional light
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
             directionalLight.position.set(200, 400, 300);
             scene.add(directionalLight);
+        
+            // PLY Loader to Load the Model
+            const loader = new THREE.PLYLoader();
+            loader.load('/public/textures/model.ply', function (geometry) {
+                geometry.computeVertexNormals();
+        
+                // Material to reflect vertex colors
+                const material = new THREE.MeshStandardMaterial({
+                    vertexColors: THREE.VertexColors,
+                    flatShading: false,
+                    roughness: 0.5,
+                    metalness: 0.1,
+                });
+        
+                // Create the mesh and adjust the scale/position
+                const model = new THREE.Mesh(geometry, material);
+                model.scale.set(10, 10, 10); // Adjust scale to fit model properly
+                model.position.set(0, 0, 0);
+                model.geometry.center(); // Center the geometry
+        
+                scene.add(model);
+            }, function (error) {
+                console.error('An error occurred while loading the PLY model:', error);
+            });
         
             // Animation Loop
             function animate() {
