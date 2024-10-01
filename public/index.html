@@ -734,7 +734,7 @@
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
         
-                // Comets with Improved Natural Movement
+                // Comets with Improved Natural Diagonal Movement
                 const cometTextures = [
                     textureLoader.load('/textures/comet1.png'),
                     textureLoader.load('/textures/comet2.png')
@@ -752,15 +752,12 @@
                     });
                     const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
         
-                    // Set initial random values for each comet to start from top-right
+                    // Set initial random values for each comet to start from a top-right diagonal position
                     const sizeFactor = Math.random() * 50 + 20; // Larger size for more dramatic effect
                     comet.scale.set(sizeFactor, sizeFactor / 2, 1);
                     comet.position.set(Math.random() * 500 + 800, Math.random() * 500 + 300, -800);
                     comet.speed = Math.random() * 2.0 + 1.5;  // Increased speed for dynamic effect
-                    comet.direction = { x: -1, y: -1 }; // Always top-right to bottom-left
-        
-                    // Assign sinusoidal movement for a natural curve
-                    comet.curveFactor = (Math.random() - 0.5) * 0.02; // Determines how wavy the movement is
+                    comet.direction = { x: -1, y: -1 }; // Always from top-right to bottom-left
         
                     scene.add(comet);
                     comets.push(comet);
@@ -789,21 +786,27 @@
                     // Twinkling stars effect
                     starMaterial.opacity = 0.7 + Math.sin(Date.now() * 0.001) * 0.1;
         
-                    // Animate Comets with Natural Path
+                    // Animate Comets with Natural Diagonal Path
                     comets.forEach(comet => {
                         comet.position.x += comet.speed * comet.direction.x;
-                        comet.position.y += comet.speed * 0.5 * comet.direction.y;
+                        comet.position.y += comet.speed * comet.direction.y;
         
-                        // Add a natural curved path by adjusting the x and y components using sine
-                        comet.position.y += Math.sin(Date.now() * 0.002 * comet.curveFactor) * 5;
+                        // Add sinusoidal variation to create a natural, dynamic trajectory
+                        comet.position.y += Math.sin(Date.now() * 0.002) * 3;
+        
+                        // Keep the comet oriented to ensure the tail follows the head
+                        comet.lookAt(new THREE.Vector3(
+                            comet.position.x + comet.direction.x,
+                            comet.position.y + comet.direction.y,
+                            comet.position.z
+                        ));
         
                         if (comet.position.x < -1600 || comet.position.y < -800) {
-                            // Reset comet to start from the top-right corner again
+                            // Reset comet to start from a new position at the top-right diagonal
                             comet.position.set(Math.random() * 500 + 800, Math.random() * 500 + 300, -800);
                             comet.speed = Math.random() * 2.0 + 1.5;  // Reset speed for variation
                             const newSizeFactor = Math.random() * 50 + 20; // Reset size with new random values
                             comet.scale.set(newSizeFactor, newSizeFactor / 2, 1);
-                            comet.lookAt(camera.position); // Keep the comet oriented properly
                         }
                     });
         
@@ -846,6 +849,7 @@
                 });
             });
         </script>
+
 
 
 
