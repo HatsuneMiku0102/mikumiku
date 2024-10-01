@@ -704,72 +704,101 @@
                 renderer.outputEncoding = THREE.sRGBEncoding;
         
                 const scene = new THREE.Scene();
-                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1500);
-                camera.position.z = 50;
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
+                camera.position.z = 100;
         
-                // Static Background with Nebula
+                // Static Background - Nebula
                 const textureLoader = new THREE.TextureLoader();
                 textureLoader.load('/textures/nebula.webp', (texture) => {
-                    texture.wrapS = THREE.ClampToEdgeWrapping;
-                    texture.wrapT = THREE.ClampToEdgeWrapping;
-                    const aspect = window.innerWidth / window.innerHeight;
-                    const geometry = new THREE.PlaneGeometry(2000 * aspect, 2000);
-                    const backgroundMaterial = new THREE.MeshBasicMaterial({ map: texture });
-                    const background = new THREE.Mesh(geometry, backgroundMaterial);
-                    background.position.z = -1000;
-                    scene.add(background);
+                    scene.background = texture;  // Set the background texture to the nebula
                 });
         
-                // Fog Effect to Add Depth
-                scene.fog = new THREE.FogExp2(0x000000, 0.00025);
-        
-                // Star Layers for Depth Effect
-                const starLayers = 3;
-                const starMaterials = [];
-                const starsArray = [];
-        
-                for (let i = 0; i < starLayers; i++) {
-                    // Improved Stars Geometry for Depth Effect
-                    const starGeometry = new THREE.BufferGeometry();
-                    const starCount = 2000;
-                    const starVertices = new Float32Array(starCount * 3);
-                    for (let j = 0; j < starCount * 3; j++) {
-                        starVertices[j] = (Math.random() - 0.5) * 1500 * (i + 1);
-                    }
-                    starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
-        
-                    // Assign Textures to Stars
-                    const starTexture = textureLoader.load('/textures/stars 001.png');
-                    const starMaterial = new THREE.PointsMaterial({
-                        size: 1.5 + Math.random() * 2,
-                        map: starTexture,
-                        transparent: true,
-                        opacity: 0.8,
-                        depthWrite: false,
-                        blending: THREE.AdditiveBlending,
-                        color: new THREE.Color(`hsl(${Math.random() * 360}, 70%, 90%)`)
-                    });
-        
-                    const stars = new THREE.Points(starGeometry, starMaterial);
-                    stars.position.z = -500 * (i + 1);
-                    scene.add(stars);
-                    starMaterials.push(starMaterial);
-                    starsArray.push(stars);
+                // Stars Geometry for Depth Effect
+                const starGeometry = new THREE.BufferGeometry();
+                const starCount = 3000;
+                const starVertices = new Float32Array(starCount * 3);
+                for (let i = 0; i < starCount * 3; i++) {
+                    starVertices[i] = (Math.random() - 0.5) * 3000;
                 }
+                starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
+                
+                const starMaterial = new THREE.PointsMaterial({
+                    size: 1.5,
+                    color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, 90%)`),
+                    transparent: true,
+                    opacity: 0.7,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false,
+                });
         
-                // Shooting Stars (Comets)
-                const cometGeometry = new THREE.CircleGeometry(1, 32);
-                const cometMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true });
+                const stars = new THREE.Points(starGeometry, starMaterial);
+                scene.add(stars);
+        
+                // Nebula Particle Field
+                const particleGeometry = new THREE.BufferGeometry();
+                const particleCount = 1000;
+                const particleVertices = new Float32Array(particleCount * 3);
+                for (let i = 0; i < particleCount * 3; i++) {
+                    particleVertices[i] = (Math.random() - 0.5) * 2000;
+                }
+                particleGeometry.setAttribute('position', new THREE.BufferAttribute(particleVertices, 3));
+                const particleMaterial = new THREE.PointsMaterial({
+                    size: 5,
+                    map: textureLoader.load('/textures/nebula.webp'), // A subtle texture
+                    transparent: true,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false,
+                    opacity: 0.2,
+                });
+        
+                const particles = new THREE.Points(particleGeometry, particleMaterial);
+                scene.add(particles);
+        
+                // Comets
+                const cometTextures = [
+                    textureLoader.load('/path/to/comet1.png'), // replace with actual paths
+                    textureLoader.load('/path/to/comet2.png')
+                ];
+                const cometGeometry = new THREE.PlaneGeometry(20, 10);
                 const comets = [];
-                for (let i = 0; i < 3; i++) {
+        
+                for (let i = 0; i < 5; i++) {
+                    const cometMaterial = new THREE.MeshBasicMaterial({
+                        map: cometTextures[Math.floor(Math.random() * cometTextures.length)],
+                        transparent: true,
+                        blending: THREE.AdditiveBlending
+                    });
                     const comet = new THREE.Mesh(cometGeometry, cometMaterial);
-                    comet.position.set((Math.random() - 0.5) * 200, Math.random() * 100, Math.random() * -500);
-                    comet.scale.set(3, 1, 1);
-                    comets.push(comet);
+                    comet.position.set((Math.random() - 0.5) * 1000, (Math.random() - 0.5) * 500, -500);
                     scene.add(comet);
+                    comets.push(comet);
                 }
         
-                // Post-processing with Bloom for a Subtle Glow
+                // Lens Flare Effect
+                const flareTexture = textureLoader.load('https://cdn.jsdelivr.net/gh/ronaldsm/star-texture@main/flare.png');
+                const flareMaterial = new THREE.SpriteMaterial({ map: flareTexture, transparent: true, blending: THREE.AdditiveBlending });
+                const flare = new THREE.Sprite(flareMaterial);
+                flare.scale.set(100, 100, 1);
+                scene.add(flare);
+        
+                // Moving Stars/Shooting Stars
+                const shootStarGeometry = new THREE.PlaneGeometry(10, 2);
+                const shootingStars = [];
+                const shootingStarTexture = cometTextures[1];  // Reusing comet texture
+                for (let i = 0; i < 3; i++) {
+                    const shootingStarMaterial = new THREE.MeshBasicMaterial({
+                        map: shootingStarTexture,
+                        transparent: true,
+                        blending: THREE.AdditiveBlending,
+                    });
+                    const shootingStar = new THREE.Mesh(shootStarGeometry, shootingStarMaterial);
+                    shootingStar.position.set((Math.random() - 0.5) * 1500, (Math.random() - 0.5) * 800, -800);
+                    shootingStar.visible = false;
+                    scene.add(shootingStar);
+                    shootingStars.push(shootingStar);
+                }
+        
+                // Post-processing with Bloom for a subtle glow
                 const composer = new THREE.EffectComposer(renderer);
                 const renderPass = new THREE.RenderPass(scene, camera);
                 composer.addPass(renderPass);
@@ -777,43 +806,53 @@
                 const bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
                     1.5,
-                    0.6,
-                    0.7
+                    0.4,
+                    0.85
                 );
                 composer.addPass(bloomPass);
         
-                // Clock for Smooth Animations
-                const clock = new THREE.Clock();
+                // Animate
                 const animate = () => {
                     requestAnimationFrame(animate);
         
-                    const elapsedTime = clock.getElapsedTime();
+                    // Flickering stars effect
+                    stars.material.color.setHSL(Math.random() * 0.1, 1, 0.9); // Slight color change for natural flickering effect
         
-                    // Twinkling and Movement for Stars
-                    starsArray.forEach((stars, index) => {
-                        const material = stars.material;
-                        material.opacity = 0.7 + Math.sin(elapsedTime * 0.3 + index) * 0.2;
-                        stars.rotation.y += 0.0002 * (index + 1);
-                        stars.rotation.x += 0.0001 * (index + 1);
-                    });
-        
-                    // Moving Comets
+                    // Animate Comets
                     comets.forEach(comet => {
-                        comet.position.x -= 1.0;
+                        comet.position.x -= 1;
                         comet.position.y -= 0.5;
-                        if (comet.position.x < -150) {
-                            comet.position.x = Math.random() * 200 + 150;
-                            comet.position.y = Math.random() * 100 - 50;
-                            comet.material.opacity = 0.5 + Math.random() * 0.5;
+                        if (comet.position.x < -1500) {
+                            comet.position.x = Math.random() * 1500 + 1000;
+                            comet.position.y = Math.random() * 500 - 250;
                         }
                     });
+        
+                    // Shooting Stars Random Activation
+                    shootingStars.forEach(shootingStar => {
+                        if (!shootingStar.visible && Math.random() < 0.001) {
+                            shootingStar.visible = true;
+                            shootingStar.position.set((Math.random() - 0.5) * 1500, 500, -800);
+                            shootingStar.speed = Math.random() * 3 + 1;
+                        }
+                        if (shootingStar.visible) {
+                            shootingStar.position.x -= shootingStar.speed;
+                            shootingStar.position.y -= shootingStar.speed * 0.5;
+                            if (shootingStar.position.y < -500 || shootingStar.position.x < -1000) {
+                                shootingStar.visible = false;
+                            }
+                        }
+                    });
+        
+                    // Lens Flare Animation
+                    flare.position.set(Math.sin(Date.now() * 0.0005) * 400, Math.cos(Date.now() * 0.0003) * 300, -1000);
         
                     // Render with Post-Processing
                     composer.render();
                 };
                 animate();
         
-                // Handle window resizing
+                // Resize Handling
                 window.addEventListener('resize', () => {
                     camera.aspect = window.innerWidth / window.innerHeight;
                     camera.updateProjectionMatrix();
@@ -822,6 +861,7 @@
                 });
             });
         </script>
+
 
 
 
