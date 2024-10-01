@@ -712,10 +712,23 @@
                 textureLoader.load('/textures/nebula.webp', (texture) => {
                     const backgroundMaterial = new THREE.MeshBasicMaterial({ map: texture });
                     backgroundMaterial.depthWrite = false;
-                    const backgroundGeometry = new THREE.PlaneGeometry(window.innerWidth * 3, window.innerHeight * 3);
+        
+                    // Scale down the background size to appear more natural but ensure full coverage
+                    const backgroundGeometry = new THREE.PlaneGeometry(window.innerWidth * 2, window.innerHeight * 2);
                     const background = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
-                    background.position.z = -1000;
+                    background.position.z = -500; // Set it far enough so it stays in the background
+        
                     scene.add(background);
+        
+                    // Add parallax effect to background after it is loaded
+                    document.addEventListener('mousemove', (event) => {
+                        const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+                        const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+        
+                        // Subtle parallax for depth effect
+                        background.position.x = mouseX * 20; // Adjust movement sensitivity for less motion
+                        background.position.y = mouseY * 20;
+                    });
                 });
         
                 // Improved Stars Geometry for Depth Effect
@@ -741,15 +754,6 @@
         
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
-        
-                // Subtle Parallax Effect for Background
-                document.addEventListener('mousemove', (event) => {
-                    const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-                    const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
-        
-                    background.position.x = mouseX * 50; // Adjust movement sensitivity
-                    background.position.y = mouseY * 50;
-                });
         
                 // Post-processing with Bloom for subtle glow
                 const composer = new THREE.EffectComposer(renderer);
@@ -782,12 +786,10 @@
                     camera.updateProjectionMatrix();
                     renderer.setSize(window.innerWidth, window.innerHeight);
                     composer.setSize(window.innerWidth, window.innerHeight);
-        
-                    // Resize background plane
-                    background.scale.set(window.innerWidth * 3, window.innerHeight * 3, 1);
                 });
             });
         </script>
+
 
 
 
