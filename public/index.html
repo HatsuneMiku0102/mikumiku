@@ -694,62 +694,64 @@
             // Scene, Camera, Renderer Setup
             const scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000000); // Deep space background
-        
+            
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-            camera.position.set(0, 0, 300);
-        
+            camera.position.set(0, 50, 500);
+            
             const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
-        
+            
             // Resize Handler
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
-        
+            
             // Lighting Setup
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
-        
+            
             const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
             directionalLight.position.set(200, 400, 300);
             scene.add(directionalLight);
-        
-            // PLY Loader to Load the Model
-            const loader = new THREE.PLYLoader();
-            loader.load('/textures/model.ply', function (geometry) {
-                geometry.computeVertexNormals();
             
-                // Material to reflect vertex colors
+            const pointLight = new THREE.PointLight(0xffa07a, 1.5, 1000);
+            pointLight.position.set(0, 200, 200);
+            scene.add(pointLight);
+            
+            // Load PLY Model
+            const loader = new THREE.PLYLoader();
+            loader.load('/public/textures/model.ply', function (geometry) {
+                geometry.computeVertexNormals(); // Ensure normals are computed for better lighting
+            
                 const material = new THREE.MeshStandardMaterial({
-                    vertexColors: true,
-                    flatShading: false,
-                    roughness: 0.5,
+                    color: 0x888888, // Adjust this color as needed or set it dynamically based on the model's data
+                    roughness: 0.4,
                     metalness: 0.1,
                 });
             
-                // Create the mesh and adjust the scale/position
-                const model = new THREE.Mesh(geometry, material);
-                model.scale.set(10, 10, 10); // Adjust scale to fit model properly
-                model.position.set(0, 0, 0);
-                model.geometry.center(); // Center the geometry
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.scale.multiplyScalar(10); // Adjust scaling as needed
+                mesh.position.set(0, 0, 0);
+                scene.add(mesh);
             
-                scene.add(model);
+                console.log('Model loaded successfully');
             }, function (xhr) {
                 console.log((xhr.loaded / xhr.total * 100) + '% loaded');
             }, function (error) {
                 console.error('An error occurred while loading the PLY model:', error);
             });
-        
+            
             // Animation Loop
             function animate() {
                 requestAnimationFrame(animate);
                 renderer.render(scene, camera);
             }
-        
+            
             animate();
+
         </script>
 
     </body>
