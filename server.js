@@ -270,7 +270,8 @@ app.use(
                 "https://i.ytimg.com",
                 "https://img.youtube.com",
                 "https://openweathermap.org",
-                "https://i.postimg.cc" // Added Postimg to allow custom browsing thumbnail
+                "https://i.postimg.cc", // Added Postimg to allow custom browsing thumbnail
+                "https://threejs.org" // Added Three.js to allow spark1.png
             ],
             fontSrc: [
                 "'self'",
