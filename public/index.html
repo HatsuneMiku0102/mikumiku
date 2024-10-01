@@ -695,9 +695,12 @@
             const scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000000); // Deep space background
             
+            // Camera Setup
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-            camera.position.set(0, 50, 50); // Bring the camera closer to the model
+            camera.position.set(0, 300, 0); // Position the camera high above (bird's-eye view)
+            camera.lookAt(0, 0, 0); // Ensure the camera looks directly at the center of the scene
             
+            // Renderer Setup
             const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
@@ -722,10 +725,10 @@
             loader.load('/textures/need_some_space.glb', function (gltf) {
                 const model = gltf.scene;
             
-                // Adjust the scale to make the model more visible
-                model.scale.set(40, 40, 40); // Increase the scale even more
-                model.rotation.set(Math.PI / 2, 0, 0); // Rotate to orient properly
-                model.position.set(0, 0, 0); // Position the model to the center of the canvas
+                // Adjust the scale and position to make the model more visible
+                model.scale.set(50, 50, 50); // Increase the scale for better visibility
+                model.position.set(0, 0, 0); // Ensure the model is centered
+                model.rotation.set(Math.PI / 2, 0, 0); // Rotate the model if needed
             
                 scene.add(model);
                 console.log('Model loaded successfully');
@@ -735,14 +738,14 @@
                 console.error('An error occurred while loading the GLB model:', error);
             });
             
-            // Animation Loop for Subtle Movement
+            // Animation Loop
             function animate() {
                 requestAnimationFrame(animate);
             
                 // Rotate the model slowly for better visualization
                 scene.traverse((object) => {
                     if (object.isMesh) {
-                        object.rotation.y += 0.001; // Slow rotation for a dynamic effect
+                        object.rotation.y += 0.0005; // Slow rotation for a dynamic effect
                     }
                 });
             
@@ -751,6 +754,7 @@
             
             animate();
         </script>
+
 
 
 
