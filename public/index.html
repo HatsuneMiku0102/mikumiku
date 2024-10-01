@@ -697,7 +697,7 @@
         
         // Camera Setup
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-        camera.position.set(0, 50, 150); // Adjusted camera position to bring it closer
+        camera.position.set(0, 0, 200); // Position the camera to directly face the model
         
         // Renderer Setup
         const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
@@ -724,18 +724,19 @@
         loader.load('/textures/need_some_space.glb', function (gltf) {
             const model = gltf.scene;
         
-            // Adjust the scale and position to make the model larger and centered
-            model.scale.set(150, 150, 150); // Increased the scale to make the model more prominent
-            model.position.set(0, 0, 0); // Set the model's position to the center
+            // Adjust the scale and position to ensure the model is centered
+            model.scale.set(100, 100, 100); // Increase the scale to make it fit well in the view
+            model.position.set(0, -10, 0); // Adjust position to better fit on the screen vertically
         
             scene.add(model);
         
-            // Ensure the camera points at the center of the model
+            // Camera Look At the Center of the Model
             camera.lookAt(model.position);
         
-            // Use OrbitControls to ensure the camera smoothly targets the model center
+            // Adjust OrbitControls to maintain the focus on the center
             const controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.target.copy(model.position); // Target the model center
+            controls.target.set(0, 0, 0); // Keep target fixed at the center of the model
+            controls.enableZoom = false; // Disable zoom to prevent accidental changes
             controls.update();
         
             console.log('Model loaded successfully');
@@ -745,22 +746,17 @@
             console.error('An error occurred while loading the GLB model:', error);
         });
         
-        // Animation Loop
+        // Animation Loop for Continuous Rendering
         function animate() {
             requestAnimationFrame(animate);
         
-            // Optionally rotate the model slowly for a dynamic visual effect
-            scene.traverse((object) => {
-                if (object.isMesh) {
-                    object.rotation.y += 0.0005; // Slow rotation
-                }
-            });
-        
+            // Render Scene
             renderer.render(scene, camera);
         }
         
         animate();
         </script>
+
 
 
 
