@@ -735,23 +735,10 @@
             accretionDisk.rotation.x = Math.PI / 2;
             scene.add(accretionDisk);
     
-            // Second Accretion Disk Layer for Depth
-            const accretionDiskInnerGeometry = new THREE.RingGeometry(60, 90, 128, 32);
-            const accretionDiskInnerMaterial = new THREE.MeshBasicMaterial({
-                color: 0xff8c00,
-                side: THREE.DoubleSide,
-                transparent: true,
-                opacity: 0.7
-            });
-            const accretionDiskInner = new THREE.Mesh(accretionDiskInnerGeometry, accretionDiskInnerMaterial);
-            accretionDiskInner.rotation.x = Math.PI / 2;
-            scene.add(accretionDiskInner);
-    
             // Starfield using Points
             const starGeometry = new THREE.BufferGeometry();
             const starVertices = [];
             const starColors = [];
-            const starSizes = [];
     
             for (let i = 0; i < 5000; i++) {
                 starVertices.push(THREE.MathUtils.randFloatSpread(2000)); // X
@@ -761,40 +748,17 @@
                 const color = new THREE.Color();
                 color.setHSL(Math.random(), 0.8, Math.random() * 0.5 + 0.5);
                 starColors.push(color.r, color.g, color.b);
-    
-                starSizes.push(Math.random() * 2 + 0.5);
             }
     
             starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
             starGeometry.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3));
-            starGeometry.setAttribute('size', new THREE.Float32BufferAttribute(starSizes, 1));
     
-            const starMaterial = new THREE.ShaderMaterial({
-                uniforms: {
-                    pointTexture: { value: new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/circle.png') }
-                },
-                vertexShader: `
-                    attribute float size;
-                    attribute vec3 color;
-                    varying vec3 vColor;
-                    void main() {
-                        vColor = color;
-                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                        gl_PointSize = size * (300.0 / -mvPosition.z);
-                        gl_Position = projectionMatrix * mvPosition;
-                    }
-                `,
-                fragmentShader: `
-                    uniform sampler2D pointTexture;
-                    varying vec3 vColor;
-                    void main() {
-                        gl_FragColor = vec4(vColor, 1.0) * texture2D(pointTexture, gl_PointCoord);
-                    }
-                `,
+            const starMaterial = new THREE.PointsMaterial({
+                size: 2,
+                vertexColors: true,
                 blending: THREE.AdditiveBlending,
-                depthTest: false,
                 transparent: true,
-                vertexColors: true
+                depthTest: false
             });
     
             const stars = new THREE.Points(starGeometry, starMaterial);
@@ -812,9 +776,8 @@
             function animate() {
                 requestAnimationFrame(animate);
     
-                // Rotate accretion disks
+                // Rotate accretion disk
                 accretionDisk.rotation.z += 0.002;
-                accretionDiskInner.rotation.z -= 0.0015;
     
                 // Rotate stars slowly for a depth effect
                 stars.rotation.y += 0.0002;
