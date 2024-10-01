@@ -696,7 +696,7 @@
             scene.background = new THREE.Color(0x000000); // Deep space background
             
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-            camera.position.set(0, 50, 500);
+            camera.position.set(0, 50, 200); // Move the camera closer to the model initially to make sure it's visible
             
             const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -710,15 +710,15 @@
             });
             
             // Lighting Setup
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
             scene.add(ambientLight);
             
             const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-            directionalLight.position.set(200, 400, 300);
+            directionalLight.position.set(100, 200, 100);
             scene.add(directionalLight);
             
-            const pointLight = new THREE.PointLight(0xffa07a, 1.5, 1000);
-            pointLight.position.set(0, 200, 200);
+            const pointLight = new THREE.PointLight(0xffa07a, 2, 1000);
+            pointLight.position.set(0, 200, 100);
             scene.add(pointLight);
             
             // Load PLY Model
@@ -727,16 +727,17 @@
                 geometry.computeVertexNormals(); // Ensure normals are computed for better lighting
             
                 const material = new THREE.MeshStandardMaterial({
-                    color: 0x888888, // Adjust this color as needed or set it dynamically based on the model's data
-                    roughness: 0.4,
-                    metalness: 0.1,
+                    color: 0x888888, // Adjust this color to match your desired visual style
+                    roughness: 0.5,
+                    metalness: 0.3,
                 });
             
                 const mesh = new THREE.Mesh(geometry, material);
-                mesh.scale.multiplyScalar(10); // Adjust scaling as needed
-                mesh.position.set(0, 0, 0);
-                scene.add(mesh);
+                mesh.scale.multiplyScalar(10); // Adjust the scale of the model as needed
+                mesh.position.set(0, -50, 0); // Adjust position to ensure it sits well within the viewport
+                mesh.rotation.set(0, Math.PI / 4, 0); // Rotate the model for better visibility initially
             
+                scene.add(mesh);
                 console.log('Model loaded successfully');
             }, function (xhr) {
                 console.log((xhr.loaded / xhr.total * 100) + '% loaded');
@@ -747,6 +748,12 @@
             // Animation Loop
             function animate() {
                 requestAnimationFrame(animate);
+                
+                // Rotate the camera around the model slowly for a better visual effect
+                camera.position.x = Math.sin(Date.now() * 0.0005) * 300;
+                camera.position.z = Math.cos(Date.now() * 0.0005) * 300;
+                camera.lookAt(0, 0, 0);
+            
                 renderer.render(scene, camera);
             }
             
