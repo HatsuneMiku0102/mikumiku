@@ -691,70 +691,70 @@
         </script>
 
         <script>
-            // Scene, Camera, Renderer Setup
-            const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x000000); // Deep space background
-            
-            // Camera Setup
-            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-            camera.position.set(0, 50, 200); // Brought the camera closer for a better view
-            
-            // Renderer Setup
-            const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
+        // Scene, Camera, Renderer Setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000); // Deep space background
+        
+        // Camera Setup
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 50, 200); // Brought the camera closer for a better view
+        
+        // Renderer Setup
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        
+        // Resize Handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            
-            // Resize Handler
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Lighting Setup
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        directionalLight.position.set(100, 200, 100);
+        scene.add(directionalLight);
+        
+        // Load GLB Model
+        const loader = new THREE.GLTFLoader();
+        loader.load('/textures/need_some_space.glb', function (gltf) {
+            const model = gltf.scene;
+        
+            // Adjust the scale and position to make the model larger and centered
+            model.scale.set(200, 200, 200); // Increased the scale to make the model more prominent
+            model.position.set(0, 0, 0); // Set the model's position to the center
+        
+            scene.add(model);
+        
+            // Ensure the camera points at the center of the model
+            camera.lookAt(model.position);
+        
+            console.log('Model loaded successfully');
+        }, function (xhr) {
+            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+        }, function (error) {
+            console.error('An error occurred while loading the GLB model:', error);
+        });
+        
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+        
+            // Rotate the model slowly for a dynamic visual effect
+            scene.traverse((object) => {
+                if (object.isMesh) {
+                    object.rotation.y += 0.0005; // Slow rotation
+                }
             });
-            
-            // Lighting Setup
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
-            scene.add(ambientLight);
-            
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
-            directionalLight.position.set(100, 200, 100);
-            scene.add(directionalLight);
-            
-            // Load GLB Model
-            const loader = new THREE.GLTFLoader();
-            loader.load('/textures/need_some_space.glb', function (gltf) {
-                const model = gltf.scene;
-            
-                // Adjust the scale and position to make the model larger and centered
-                model.scale.set(200, 200, 200); // Increased the scale to make the model more prominent
-                model.position.set(0, 0, 0); // Set the model's position to the center
-            
-                scene.add(model);
-            
-                // Ensure the camera points at the center of the model
-                camera.lookAt(model.position);
-            
-                console.log('Model loaded successfully');
-            }, function (xhr) {
-                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-            }, function (error) {
-                console.error('An error occurred while loading the GLB model:', error);
-            });
-            
-            // Animation Loop
-            function animate() {
-                requestAnimationFrame(animate);
-            
-                // Rotate the model slowly for a dynamic visual effect
-                scene.traverse((object) => {
-                    if (object.isMesh) {
-                        object.rotation.y += 0.0005; // Slow rotation
-                    }
-                });
-            
-                renderer.render(scene, camera);
-            }
-            
-            animate();
+        
+            renderer.render(scene, camera);
+        }
+        
+        animate();
         </script>
 
 
