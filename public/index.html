@@ -702,7 +702,7 @@
             scene.background = new THREE.Color(0x000000); // Deep space background
         
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-            camera.position.set(0, 50, 500);
+            camera.position.set(0, 0, 200);
         
             const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -715,42 +715,49 @@
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
         
-            // Nebula Effect using Textured Particles
-            const particleSystem = { geometry: null, material: null, nebula: null };
-        
-            function createNebula() {
-                const nebulaGeometry = new THREE.BufferGeometry();
-                const nebulaParticleCount = 10000;
+            // Ring Particles to Mimic Saturn's Rings
+            function createSaturnRings() {
+                const ringGeometry = new THREE.BufferGeometry();
+                const ringParticleCount = 15000; // Increase for a dense effect
                 const positions = [];
                 const colors = [];
                 const sizes = [];
         
-                for (let i = 0; i < nebulaParticleCount; i++) {
-                    const r = Math.random() * 500;
-                    const theta = Math.random() * 2 * Math.PI;
-                    const phi = Math.acos(2 * Math.random() - 1);
-                    const x = r * Math.sin(phi) * Math.cos(theta);
-                    const y = r * Math.sin(phi) * Math.sin(theta);
-                    const z = r * Math.cos(phi);
+                for (let i = 0; i < ringParticleCount; i++) {
+                    // Position particles within a ring-like toroidal area
+                    const radius = Math.random() * 150 + 200; // Spread from 200 to 350
+                    const angle = Math.random() * Math.PI * 2;
+                    const height = (Math.random() - 0.5) * 20; // Small height variation for depth
+        
+                    const x = radius * Math.cos(angle);
+                    const y = height;
+                    const z = radius * Math.sin(angle);
                     positions.push(x, y, z);
         
-                    // Using vibrant colors for nebula
+                    // Colors: mix of ice-like white, light gray, and light brown
                     const color = new THREE.Color();
-                    color.setHSL(Math.random() * 0.3 + 0.7, 0.9, Math.random() * 0.4 + 0.5);
+                    const colorRand = Math.random();
+                    if (colorRand < 0.5) {
+                        color.setRGB(0.8, 0.8, 0.8); // Light gray-white for ice
+                    } else if (colorRand < 0.8) {
+                        color.setRGB(0.9, 0.9, 0.9); // More towards white
+                    } else {
+                        color.setRGB(0.7, 0.6, 0.5); // Light brown
+                    }
                     colors.push(color.r, color.g, color.b);
         
-                    sizes.push(Math.random() * 15 + 5); // Varying sizes of the particles
+                    sizes.push(Math.random() * 8 + 2); // Varying sizes from small to larger chunks
                 }
         
-                nebulaGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-                nebulaGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-                nebulaGeometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
+                ringGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                ringGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+                ringGeometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
         
-                // Load the circle texture for each particle
+                // Load the particle texture
                 const textureLoader = new THREE.TextureLoader();
                 textureLoader.load("https://threejs.org/examples/textures/sprites/circle.png", (texture) => {
-                    const nebulaMaterial = new THREE.PointsMaterial({
-                        size: 15,
+                    const ringMaterial = new THREE.PointsMaterial({
+                        size: 10,
                         map: texture,
                         vertexColors: true,
                         blending: THREE.AdditiveBlending,
@@ -759,93 +766,49 @@
                         depthWrite: false,
                     });
         
-                    const nebula = new THREE.Points(nebulaGeometry, nebulaMaterial);
-                    scene.add(nebula);
-        
-                    particleSystem.geometry = nebulaGeometry;
-                    particleSystem.material = nebulaMaterial;
-                    particleSystem.nebula = nebula;
+                    const ringParticles = new THREE.Points(ringGeometry, ringMaterial);
+                    scene.add(ringParticles);
                 });
             }
         
-            createNebula();
-        
-            // Add Stars in the Background
-            function createStars() {
-                const starGeometry = new THREE.BufferGeometry();
-                const starCount = 8000;
-                const positions = [];
-        
-                for (let i = 0; i < starCount; i++) {
-                    positions.push((Math.random() - 0.5) * 4000, (Math.random() - 0.5) * 4000, (Math.random() - 0.5) * 4000);
-                }
-        
-                starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-        
-                const starMaterial = new THREE.PointsMaterial({
-                    color: 0xffffff,
-                    size: 1.5,
-                    transparent: true,
-                    blending: THREE.AdditiveBlending,
-                });
-        
-                const stars = new THREE.Points(starGeometry, starMaterial);
-                scene.add(stars);
-            }
-        
-            createStars();
+            createSaturnRings();
         
             // Lighting Setup
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
             scene.add(ambientLight);
         
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
-            directionalLight.position.set(200, 400, 300);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(200, 300, 400);
             scene.add(directionalLight);
         
-            // Soft Point Light for Nebula Glow
-            const pointLight = new THREE.PointLight(0xffa07a, 1.5, 1000);
-            pointLight.position.set(0, 200, 200);
+            // Point Light to simulate light scattering in rings
+            const pointLight = new THREE.PointLight(0xffffff, 1, 1000);
+            pointLight.position.set(0, 0, 300);
             scene.add(pointLight);
         
-            // Post-Processing Bloom Effect
-            const composer = new THREE.EffectComposer(renderer);
-            composer.addPass(new THREE.RenderPass(scene, camera));
+            // Camera Movement to Weave Through the Rings
+            let angle = 0;
+            const movementSpeed = 0.0005;
         
-            const bloomPass = new THREE.UnrealBloomPass(
-                new THREE.Vector2(window.innerWidth, window.innerHeight),
-                1.0,  // Adjusted bloom intensity
-                0.3,  // Bloom radius
-                0.85  // Bloom threshold
-            );
-            composer.addPass(bloomPass);
-        
-            // Nebula Animation Function (Add some subtle movement)
-            function animateNebula() {
-                const time = Date.now() * 0.00005;
-        
-                particleSystem.geometry.attributes.position.array.forEach((value, index) => {
-                    particleSystem.geometry.attributes.position.array[index] += Math.sin(time + index) * 0.1;  // Subtle movement
-                });
-        
-                particleSystem.geometry.attributes.position.needsUpdate = true;  // Mark for update
-            }
-        
-            // Animation Loop for Subtle Movement
+            // Animation Loop for Subtle Movement Through Rings
             function animate() {
                 requestAnimationFrame(animate);
         
-                // Nebula subtle movement
-                animateNebula();
+                // Camera smoothly weaving through the rings in a sinusoidal pattern
+                angle += movementSpeed;
+                camera.position.x = 100 * Math.sin(angle * 2); // Weave side to side
+                camera.position.y = 10 * Math.sin(angle);      // Subtle up-down movement
+                camera.position.z -= 0.1;                      // Gradually move forward
         
-                // Slow rotation for dynamic visuals
-                scene.rotation.y += 0.0002;
+                // Focus camera towards center of the rings
+                camera.lookAt(new THREE.Vector3(0, 0, -1000));
         
-                composer.render();
+                renderer.render(scene, camera);
             }
         
             animate();
         </script>
+
 
 
 
