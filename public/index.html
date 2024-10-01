@@ -735,78 +735,34 @@
             fetchWeather();
         </script>
 
-        <!-- Canvas Animation Script with Enhanced Shooting Stars and Black Hole -->
+        <!-- Enhanced Canvas Animation Script -->
         <script>
-            // ShootingStar Class
-            class ShootingStar {
-                constructor(canvasWidth, canvasHeight) {
-                    this.canvasWidth = canvasWidth;
-                    this.canvasHeight = canvasHeight;
-                    this.reset();
-                }
+            // Enhanced Shooting Stars and Black Hole with Performance Optimizations
 
-                reset() {
-                    // Starting position
-                    this.x = Math.random() * this.canvasWidth;
-                    this.y = Math.random() * this.canvasHeight * 0.5; // Start from upper half
+            // Canvas Setup
+            const canvas = document.getElementById("techCanvas");
+            const ctx = canvas.getContext("2d");
+            let width = window.innerWidth;
+            let height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
 
-                    // Velocity
-                    const angle = Math.PI / 4 + Math.random() * (Math.PI / 4); // Between 45 and 90 degrees
-                    const speed = 5 + Math.random() * 5; // Speed between 5 and 10
-                    this.vx = speed * Math.cos(angle);
-                    this.vy = speed * Math.sin(angle);
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                width = window.innerWidth;
+                height = window.innerHeight;
+                canvas.width = width;
+                canvas.height = height;
+                preRenderStaticLayers();
+            });
 
-                    // Length and opacity
-                    this.length = 100 + Math.random() * 100;
-                    this.opacity = 1;
+            // Offscreen Canvas for Static Elements (e.g., Black Hole and Accretion Disk)
+            const offscreenCanvas = document.createElement('canvas');
+            const offscreenCtx = offscreenCanvas.getContext('2d');
+            offscreenCanvas.width = width;
+            offscreenCanvas.height = height;
 
-                    // Trail particles
-                    this.trail = [];
-                }
-
-                update() {
-                    this.x += this.vx;
-                    this.y += this.vy;
-                    this.opacity -= 0.005; // Fade out
-
-                    // Add to trail
-                    this.trail.push({ x: this.x, y: this.y, opacity: this.opacity });
-                    if (this.trail.length > 10) this.trail.shift();
-
-                    // Reset if out of bounds or fully faded
-                    if (this.x > this.canvasWidth || this.y > this.canvasHeight || this.opacity <= 0) {
-                        this.reset();
-                    }
-                }
-
-                draw(ctx) {
-                    ctx.save();
-                    ctx.globalAlpha = this.opacity;
-                    ctx.strokeStyle = '#FFFFFF';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.moveTo(this.x, this.y);
-                    ctx.lineTo(this.x - this.vx * this.length / 100, this.y - this.vy * this.length / 100);
-                    ctx.stroke();
-                    ctx.restore();
-
-                    // Draw trail
-                    ctx.save();
-                    for (let i = 0; i < this.trail.length; i++) {
-                        const particle = this.trail[i];
-                        ctx.globalAlpha = particle.opacity * (i / this.trail.length);
-                        ctx.strokeStyle = '#FFFFFF';
-                        ctx.lineWidth = 1;
-                        ctx.beginPath();
-                        ctx.moveTo(particle.x, particle.y);
-                        ctx.lineTo(particle.x - this.vx * this.length / 100, particle.y - this.vy * this.length / 100);
-                        ctx.stroke();
-                    }
-                    ctx.restore();
-                }
-            }
-
-            // BlackHole Class
+            // Black Hole Class
             class BlackHole {
                 constructor(x, y, radius) {
                     this.x = x;
@@ -814,30 +770,31 @@
                     this.radius = radius;
                     this.accDiskRadius = radius * 3;
                     this.angle = 0;
+                    this.rotationSpeed = 0.002; // Adjust for desired rotation speed
                 }
 
                 update() {
-                    this.angle += 0.005;
+                    this.angle += this.rotationSpeed;
                 }
 
-                draw(ctx) {
-                    // Draw accretion disk
+                render(ctx) {
+                    // Draw Accretion Disk
                     ctx.save();
                     ctx.translate(this.x, this.y);
                     ctx.rotate(this.angle);
 
-                    const gradient = ctx.createLinearGradient(-this.accDiskRadius, 0, this.accDiskRadius, 0);
-                    gradient.addColorStop(0, 'rgba(255, 69, 0, 0.6)');
-                    gradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.6)');
-                    gradient.addColorStop(1, 'rgba(255, 69, 0, 0.6)');
+                    const accDiskGradient = ctx.createRadialGradient(0, 0, this.accDiskRadius / 2, 0, 0, this.accDiskRadius);
+                    accDiskGradient.addColorStop(0, 'rgba(255, 140, 0, 0.8)');
+                    accDiskGradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.6)');
+                    accDiskGradient.addColorStop(1, 'rgba(255, 140, 0, 0.2)');
 
                     ctx.beginPath();
                     ctx.ellipse(0, 0, this.accDiskRadius, this.accDiskRadius / 2, 0, 0, 2 * Math.PI);
-                    ctx.fillStyle = gradient;
+                    ctx.fillStyle = accDiskGradient;
                     ctx.fill();
                     ctx.restore();
 
-                    // Draw event horizon (black hole)
+                    // Draw Event Horizon
                     ctx.save();
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
@@ -845,17 +802,16 @@
                     ctx.fill();
                     ctx.restore();
 
-                    // Optional: Add gravitational lensing effect
-                    this.drawLensing(ctx);
+                    // Draw Gravitational Lensing (Optional)
+                    this.drawGravitationalLensing(ctx);
                 }
 
-                drawLensing(ctx) {
+                drawGravitationalLensing(ctx) {
                     ctx.save();
                     ctx.globalAlpha = 0.2;
                     ctx.strokeStyle = '#FFFFFF';
                     ctx.lineWidth = 2;
 
-                    // Simulate gravitational lensing with concentric circles
                     for (let i = 1; i <= 5; i++) {
                         ctx.beginPath();
                         ctx.arc(this.x, this.y, this.radius + i * 20, 0, 2 * Math.PI);
@@ -866,145 +822,191 @@
                 }
             }
 
-            // Canvas Setup
-            const canvasElement = document.getElementById("techCanvas");
-            const ctxCanvas = canvasElement.getContext("2d");
-            let canvasWidth = window.innerWidth;
-            let canvasHeight = window.innerHeight;
-            canvasElement.width = canvasWidth;
-            canvasElement.height = canvasHeight;
+            // Initialize Black Hole
+            const blackHole = new BlackHole(width / 2, height / 2, 50);
+            preRenderStaticLayers();
 
-            window.addEventListener('resize', () => {
-                canvasWidth = window.innerWidth;
-                canvasHeight = window.innerHeight;
-                canvasElement.width = canvasWidth;
-                canvasElement.height = canvasHeight;
-                preRenderNebula();
-            });
-
-            // Pre-render Nebula (Optional: You can remove this if you prefer only the black hole)
-            const offscreenCanvas = document.createElement('canvas');
-            const offscreenCtx = offscreenCanvas.getContext('2d');
-            offscreenCanvas.width = canvasWidth;
-            offscreenCanvas.height = canvasHeight;
-
-            const nebulaColors = [
-                'rgba(52, 7, 91, 0.8)',
-                'rgba(73, 48, 107, 0.7)',
-                'rgba(118, 24, 120, 0.6)',
-                'rgba(255, 144, 253, 0.4)',
-                'rgba(255, 255, 255, 0.1)'
-            ];
-
-            function preRenderNebula() {
+            // Pre-render Static Layers
+            function preRenderStaticLayers() {
                 offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-                const gradient = offscreenCtx.createRadialGradient(
-                    canvasWidth / 2,
-                    canvasHeight / 2,
-                    100,
-                    canvasWidth / 2,
-                    canvasHeight / 2,
-                    Math.max(canvasWidth, canvasHeight) / 2
-                );
-
-                nebulaColors.forEach((color, index) => {
-                    gradient.addColorStop(index / (nebulaColors.length - 1), color);
-                });
-
-                offscreenCtx.fillStyle = gradient;
-                offscreenCtx.fillRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+                // Render Black Hole and Accretion Disk
+                blackHole.render(offscreenCtx);
             }
 
-            preRenderNebula();
+            // Particle Class for Shooting Stars
+            class Particle {
+                constructor(x, y, vx, vy, size, color, lifespan) {
+                    this.x = x;
+                    this.y = y;
+                    this.vx = vx;
+                    this.vy = vy;
+                    this.size = size;
+                    this.color = color;
+                    this.lifespan = lifespan;
+                    this.opacity = 1;
+                }
 
-            // Initialize Stars
+                update() {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.lifespan -= 1;
+                    this.opacity = this.lifespan / 100; // Adjust based on initial lifespan
+                }
+
+                draw(ctx) {
+                    if (this.opacity <= 0) return;
+                    ctx.save();
+                    ctx.globalAlpha = this.opacity;
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            // Shooting Star Class with Particle System
+            class ShootingStar {
+                constructor() {
+                    this.reset();
+                }
+
+                reset() {
+                    this.x = Math.random() * width;
+                    this.y = Math.random() * height * 0.5;
+                    this.length = Math.random() * 100 + 50;
+                    this.speed = Math.random() * 4 + 6;
+                    this.angle = Math.PI / 4 + Math.random() * (Math.PI / 8); // Between 45 and 67.5 degrees
+                    this.vx = Math.cos(this.angle) * this.speed;
+                    this.vy = Math.sin(this.angle) * this.speed;
+                    this.particles = [];
+                    this.maxParticles = 20;
+                    this.particleLifespan = 100;
+                    this.active = true;
+
+                    // Initialize particles
+                    for (let i = 0; i < this.maxParticles; i++) {
+                        const px = this.x - this.vx * (i / this.maxParticles);
+                        const py = this.y - this.vy * (i / this.maxParticles);
+                        const pvx = this.vx * 0.9;
+                        const pvy = this.vy * 0.9;
+                        const size = Math.random() * 1.5 + 0.5;
+                        const color = `rgba(255, 255, 255, ${1 - i / this.maxParticles})`;
+                        this.particles.push(new Particle(px, py, pvx, pvy, size, color, this.particleLifespan));
+                    }
+                }
+
+                update() {
+                    this.x += this.vx;
+                    this.y += this.vy;
+
+                    // Update particles
+                    this.particles.forEach(p => p.update());
+
+                    // Remove dead particles
+                    this.particles = this.particles.filter(p => p.lifespan > 0);
+
+                    // Reset shooting star if out of bounds
+                    if (this.x > width || this.y > height || this.particles.length === 0) {
+                        this.reset();
+                    }
+                }
+
+                draw(ctx) {
+                    // Draw particles
+                    this.particles.forEach(p => p.draw(ctx));
+                }
+            }
+
+            // Object Pool for Shooting Stars
+            class ObjectPool {
+                constructor(maxSize, constructorFn) {
+                    this.pool = [];
+                    this.maxSize = maxSize;
+                    this.constructorFn = constructorFn;
+                }
+
+                get() {
+                    return this.pool.length > 0 ? this.pool.pop() : this.constructorFn();
+                }
+
+                release(obj) {
+                    if (this.pool.length < this.maxSize) {
+                        this.pool.push(obj);
+                    }
+                }
+            }
+
+            // Initialize Shooting Stars Pool
+            const shootingStarPool = new ObjectPool(10, () => new ShootingStar());
+            const activeShootingStars = [];
+
+            // Activate Shooting Stars at Random Intervals
+            function activateShootingStar() {
+                if (activeShootingStars.length < 5) { // Limit active shooting stars
+                    const star = shootingStarPool.get();
+                    activeShootingStars.push(star);
+                }
+            }
+
+            setInterval(activateShootingStar, 2000); // Every 2 seconds
+
+            // Twinkling Stars
             const stars = [];
             const STAR_COUNT = 100;
 
             for (let i = 0; i < STAR_COUNT; i++) {
                 stars.push({
-                    x: Math.random() * canvasWidth,
-                    y: Math.random() * canvasHeight,
+                    x: Math.random() * width,
+                    y: Math.random() * height,
                     radius: Math.random() * 1.5 + 0.5,
-                    speed: Math.random() * 0.5 + 0.2,
                     brightness: Math.random() * 0.5 + 0.5,
-                    twinkleSpeed: Math.random() * 0.02 + 0.01
+                    twinkleSpeed: Math.random() * 0.02 + 0.01,
+                    twinkleDirection: 1
                 });
             }
 
-            // Initialize Shooting Stars
-            const shootingStars = [];
-            const SHOOTING_STAR_POOL_SIZE = 10;
-            const MAX_SHOOTING_STARS = 5;
-            let activeShootingStars = 0;
-
-            for (let i = 0; i < SHOOTING_STAR_POOL_SIZE; i++) {
-                shootingStars.push(new ShootingStar(canvasWidth, canvasHeight));
-            }
-
-            // Create Black Hole at Center
-            const blackHole = new BlackHole(canvasWidth / 2, canvasHeight / 2, 50);
-
-            // Function to activate shooting stars at random intervals
-            function activateShootingStar() {
-                for (let star of shootingStars) {
-                    if (!star.active) {
-                        star.reset();
-                        star.active = true;
-                        activeShootingStars++;
-                        break;
+            function drawTwinklingStars() {
+                stars.forEach(star => {
+                    star.brightness += star.twinkleSpeed * star.twinkleDirection;
+                    if (star.brightness >= 1 || star.brightness <= 0.5) {
+                        star.twinkleDirection *= -1;
                     }
-                }
+
+                    ctx.save();
+                    ctx.globalAlpha = star.brightness;
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.beginPath();
+                    ctx.arc(star.x, star.y, star.radius, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.restore();
+                });
             }
 
-            // Periodically activate shooting stars
-            setInterval(() => {
-                if (activeShootingStars < MAX_SHOOTING_STARS) {
-                    activateShootingStar();
-                }
-            }, 2000);
-
-            // Function to update and draw all elements
+            // Animation Loop
             function animate() {
-                ctxCanvas.clearRect(0, 0, canvasWidth, canvasHeight);
+                ctx.clearRect(0, 0, width, height);
+                ctx.drawImage(offscreenCanvas, 0, 0, width, height);
 
-                // Optionally draw the pre-rendered nebula
-                // ctxCanvas.drawImage(offscreenCanvas, 0, 0, canvasWidth, canvasHeight);
+                // Update and draw twinkling stars
+                drawTwinklingStars();
 
-                // Draw Black Hole
+                // Update and draw active shooting stars
+                for (let i = activeShootingStars.length - 1; i >= 0; i--) {
+                    const star = activeShootingStars[i];
+                    star.update();
+                    star.draw(ctx);
+
+                    // If shooting star is inactive, release it back to the pool
+                    if (star.x > width || star.y > height || star.particles.length === 0) {
+                        shootingStarPool.release(star);
+                        activeShootingStars.splice(i, 1);
+                    }
+                }
+
+                // Update and render Black Hole
                 blackHole.update();
-                blackHole.draw(ctxCanvas);
-
-                // Update and draw stars
-                ctxCanvas.fillStyle = 'white';
-                for (let star of stars) {
-                    star.brightness += star.twinkleSpeed;
-                    if (star.brightness > 1 || star.brightness < 0.5) {
-                        star.twinkleSpeed *= -1;
-                    }
-
-                    star.x -= star.speed;
-                    if (star.x < 0) star.x = canvasWidth;
-
-                    ctxCanvas.globalAlpha = star.brightness;
-                    ctxCanvas.beginPath();
-                    ctxCanvas.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-                    ctxCanvas.fill();
-                }
-                ctxCanvas.globalAlpha = 1;
-
-                // Update and draw shooting stars
-                for (let star of shootingStars) {
-                    if (star.active) {
-                        star.update();
-                        star.draw(ctxCanvas);
-
-                        // Deactivate shooting star if it's no longer active
-                        if (!star.active) {
-                            activeShootingStars--;
-                        }
-                    }
-                }
+                preRenderStaticLayers();
 
                 requestAnimationFrame(animate);
             }
