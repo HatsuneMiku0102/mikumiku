@@ -169,6 +169,12 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
+
+        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/postprocessing/EffectComposer.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/postprocessing/RenderPass.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
         <!-- Import Haru AI script -->
         <script src="haru.js"></script>
             
@@ -685,12 +691,7 @@
             fetchWeather();
         </script>
         
-        <script type="module">
-            import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.module.js';
-            import { EffectComposer } from 'https://cdn.jsdelivr.net/npm/three@0.146.0/examples/jsm/postprocessing/EffectComposer.js';
-            import { RenderPass } from 'https://cdn.jsdelivr.net/npm/three@0.146.0/examples/jsm/postprocessing/RenderPass.js';
-            import { UnrealBloomPass } from 'https://cdn.jsdelivr.net/npm/three@0.146.0/examples/jsm/postprocessing/UnrealBloomPass.js';
-        
+        <script>
             document.addEventListener('DOMContentLoaded', () => {
                 const canvas = document.getElementById('techCanvas');
                 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -698,11 +699,11 @@
                 renderer.setPixelRatio(window.devicePixelRatio);
                 renderer.toneMapping = THREE.ACESFilmicToneMapping;
                 renderer.outputEncoding = THREE.sRGBEncoding;
-        
+    
                 const scene = new THREE.Scene();
                 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1500);
                 camera.position.z = 20;
-        
+    
                 // Shader Background
                 const shaderMaterial = new THREE.ShaderMaterial({
                     uniforms: {
@@ -719,7 +720,7 @@
                     fragmentShader: `
                         varying vec2 vUv;
                         uniform float time;
-        
+    
                         void main() {
                             vec2 uv = vUv;
                             uv.x += sin(time * 0.1) * 0.05; // Add movement
@@ -730,11 +731,11 @@
                     `,
                     transparent: true,
                 });
-        
+    
                 const shaderBackground = new THREE.Mesh(new THREE.PlaneGeometry(2000, 1000), shaderMaterial);
                 shaderBackground.position.z = -500;
                 scene.add(shaderBackground);
-        
+    
                 // Parallax Starfield Layers
                 const textureLoader = new THREE.TextureLoader();
                 const layers = [];
@@ -746,16 +747,16 @@
                     layers.push(plane);
                     scene.add(plane);
                 }
-        
+    
                 // Stars Geometry for Depth Effect
                 const starGeometry = new THREE.BufferGeometry();
                 const starCount = 3000;
                 const starVertices = new Float32Array(starCount * 3);
-        
+    
                 for (let i = 0; i < starCount * 3; i++) {
                     starVertices[i] = (Math.random() - 0.5) * 1500; // Place stars far away
                 }
-        
+    
                 starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
                 const starMaterial = new THREE.PointsMaterial({
                     size: Math.random() * 1.2 + 0.3,
@@ -765,53 +766,53 @@
                     depthWrite: false,
                     blending: THREE.AdditiveBlending
                 });
-        
+    
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
-        
+    
                 // Post-processing with Bloom
-                const composer = new EffectComposer(renderer);
-                const renderPass = new RenderPass(scene, camera);
+                const composer = new THREE.EffectComposer(renderer);
+                const renderPass = new THREE.RenderPass(scene, camera);
                 composer.addPass(renderPass);
-        
-                const bloomPass = new UnrealBloomPass(
+    
+                const bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
                     1.5, // Bloom strength
                     0.4, // Bloom radius
                     0.85 // Bloom threshold
                 );
                 composer.addPass(bloomPass);
-        
+    
                 // Animate
                 const animate = () => {
                     requestAnimationFrame(animate);
-        
+    
                     // Shader Background Animation
                     shaderMaterial.uniforms.time.value += 0.05;
-        
+    
                     // Parallax Effect with Star Layers
                     const time = Date.now() * 0.00005;
                     layers.forEach((layer, index) => {
                         layer.position.x = Math.sin(time * (index + 1)) * (index + 1) * 20;
                         layer.position.y = Math.cos(time * (index + 1)) * (index + 1) * 5;
                     });
-        
+    
                     // Rotate stars for depth
                     stars.rotation.x += 0.0001;
                     stars.rotation.y += 0.0002;
-        
+    
                     // Camera Movement (Smooth Orbit)
                     camera.position.x = Math.sin(time) * 30;
                     camera.position.z = Math.cos(time) * 30;
                     camera.position.y = Math.sin(time * 0.7) * 10;
                     camera.lookAt(0, 0, 0);
-        
+    
                     // Render with Post-Processing
                     composer.render();
                 };
-        
+    
                 animate();
-        
+    
                 window.addEventListener('resize', () => {
                     camera.aspect = window.innerWidth / window.innerHeight;
                     camera.updateProjectionMatrix();
