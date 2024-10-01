@@ -697,58 +697,83 @@
     
             // Scene, Camera, Renderer Setup
             const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 200;
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.set(0, 0, 400);
     
-            const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
+            const renderer = new THREE.WebGLRenderer({
+                canvas: document.getElementById('techCanvas'),
+                antialias: true,
+                alpha: true // Ensure transparency for the canvas
+            });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
             document.body.appendChild(renderer.domElement);
     
-            // Handle window resize
+            // Resize handling
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
     
-            // Geometry and Material for stars
-            const starGeometry = new THREE.BufferGeometry();
-            const starMaterial = new THREE.PointsMaterial({ color: 0xffffff });
+            // Black Hole Geometry and Material
+            const blackHoleGeometry = new THREE.SphereGeometry(50, 32, 32);
+            const blackHoleMaterial = new THREE.MeshStandardMaterial({
+                color: 0x000000,
+                emissive: 0x000000
+            });
+            const blackHole = new THREE.Mesh(blackHoleGeometry, blackHoleMaterial);
+            scene.add(blackHole);
     
-            // Creating stars
+            // Accretion Disk Geometry and Material
+            const accretionDiskGeometry = new THREE.TorusGeometry(100, 10, 32, 100);
+            const accretionDiskMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff4500,
+                emissive: 0xff6347,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.7
+            });
+            const accretionDisk = new THREE.Mesh(accretionDiskGeometry, accretionDiskMaterial);
+            accretionDisk.rotation.x = Math.PI / 2;
+            scene.add(accretionDisk);
+    
+            // Starfield Geometry and Material
+            const starGeometry = new THREE.BufferGeometry();
             const starVertices = [];
-            for (let i = 0; i < 1000; i++) {
-                const x = (Math.random() - 0.5) * 2000;
-                const y = (Math.random() - 0.5) * 2000;
-                const z = (Math.random() - 0.5) * 2000;
+            for (let i = 0; i < 2000; i++) {
+                const x = THREE.MathUtils.randFloatSpread(2000);
+                const y = THREE.MathUtils.randFloatSpread(2000);
+                const z = THREE.MathUtils.randFloatSpread(2000);
                 starVertices.push(x, y, z);
             }
             starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
     
+            const starMaterial = new THREE.PointsMaterial({ color: 0xffffff });
             const stars = new THREE.Points(starGeometry, starMaterial);
             scene.add(stars);
     
-            // Black Hole
-            const blackHoleGeometry = new THREE.SphereGeometry(50, 32, 32);
-            const blackHoleMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-            const blackHole = new THREE.Mesh(blackHoleGeometry, blackHoleMaterial);
-            scene.add(blackHole);
+            // Adding Lighting to Enhance Visuals
+            const ambientLight = new THREE.AmbientLight(0x404040, 1.5); // Soft white ambient light
+            scene.add(ambientLight);
     
-            // Accretion Disk
-            const accDiskGeometry = new THREE.RingGeometry(60, 100, 32);
-            const accDiskMaterial = new THREE.MeshBasicMaterial({ color: 0xff4500, side: THREE.DoubleSide });
-            const accDisk = new THREE.Mesh(accDiskGeometry, accDiskMaterial);
-            accDisk.rotation.x = Math.PI / 2;
-            scene.add(accDisk);
+            const pointLight = new THREE.PointLight(0xffffff, 1);
+            pointLight.position.set(200, 200, 200);
+            scene.add(pointLight);
     
-            // Animation loop
+            // Animation Loop
             function animate() {
                 requestAnimationFrame(animate);
     
-                // Rotate accretion disk
-                accDisk.rotation.z += 0.01;
+                // Rotate accretion disk and black hole
+                blackHole.rotation.y += 0.002;
+                accretionDisk.rotation.z += 0.004;
     
-                // Render the scene
+                // Move stars slowly to create a parallax effect
+                stars.rotation.y += 0.0005;
+                stars.rotation.x += 0.0003;
+    
+                // Render scene
                 renderer.render(scene, camera);
             }
     
