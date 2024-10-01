@@ -704,15 +704,15 @@
                 renderer.outputEncoding = THREE.sRGBEncoding;
         
                 const scene = new THREE.Scene();
-                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
-                camera.position.z = 300;  // Adjusted to zoom out the camera
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
+                camera.position.z = 500;  // Set further back to zoom out significantly
         
                 // Static Background with Nebula
                 const textureLoader = new THREE.TextureLoader();
                 textureLoader.load('/textures/nebula.webp', (texture) => {
                     const nebulaMaterial = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
-                    const nebula = new THREE.Mesh(new THREE.PlaneGeometry(6000, 4000), nebulaMaterial); // Increased size to zoom out
-                    nebula.position.z = -800;  // Set further back for a larger view
+                    const nebula = new THREE.Mesh(new THREE.PlaneGeometry(10000, 6000), nebulaMaterial); // Increased size drastically to zoom out
+                    nebula.position.z = -1500;  // Set further back for larger perspective
                     scene.add(nebula);
                 });
         
@@ -721,7 +721,7 @@
                 const starCount = 5000;
                 const starVertices = new Float32Array(starCount * 3);
                 for (let i = 0; i < starCount * 3; i++) {
-                    starVertices[i] = (Math.random() - 0.5) * 3000;
+                    starVertices[i] = (Math.random() - 0.5) * 5000;
                 }
                 starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
                 
@@ -754,7 +754,7 @@
                     });
                     const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
         
-                    comet.position.set((Math.random() - 0.5) * 1500, Math.random() * 800 - 400, -500);
+                    comet.position.set((Math.random() - 0.5) * 3000, Math.random() * 1200 - 600, -1000);
                     comet.speed = Math.random() * 3 + 1;  
                     comet.scale.set(Math.random() * 25 + 10, Math.random() * 10 + 5, 1);
                     comet.direction = Math.random() < 0.5 ? -1 : 1; // Randomize direction for top to bottom
@@ -809,9 +809,9 @@
                         comet.position.x -= comet.speed * comet.direction;
                         comet.position.y -= comet.speed * 0.3 * comet.direction;
         
-                        if (comet.position.x < -1500 || comet.position.x > 1500) {
-                            comet.position.x = comet.direction < 0 ? 1500 : -1500;
-                            comet.position.y = Math.random() * 800 - 400;
+                        if (comet.position.x < -3000 || comet.position.x > 3000) {
+                            comet.position.x = comet.direction < 0 ? 3000 : -3000;
+                            comet.position.y = Math.random() * 1200 - 600;
                         }
                     });
         
@@ -856,6 +856,7 @@
                 });
             });
         </script>
+
 
 
 
