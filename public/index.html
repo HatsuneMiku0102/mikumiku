@@ -696,7 +696,7 @@
             scene.background = new THREE.Color(0x000000); // Deep space background
             
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-            camera.position.set(0, 50, 200); // Move the camera closer to the model initially to make sure it's visible
+            camera.position.set(0, 100, 300); // Adjusted the camera position
             
             const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -710,32 +710,34 @@
             });
             
             // Lighting Setup
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
             scene.add(ambientLight);
             
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
             directionalLight.position.set(100, 200, 100);
             scene.add(directionalLight);
-            
-            const pointLight = new THREE.PointLight(0xffa07a, 2, 1000);
-            pointLight.position.set(0, 200, 100);
-            scene.add(pointLight);
             
             // Load PLY Model
             const loader = new THREE.PLYLoader();
             loader.load('/textures/model.ply', function (geometry) {
                 geometry.computeVertexNormals(); // Ensure normals are computed for better lighting
             
-                const material = new THREE.MeshStandardMaterial({
-                    color: 0x888888, // Adjust this color to match your desired visual style
-                    roughness: 0.5,
-                    metalness: 0.3,
+                // Use MeshLambertMaterial for better smooth shading
+                const material = new THREE.MeshLambertMaterial({
+                    color: 0x8888ff, // Adjust color for a softer, more galaxy-like tone
+                    emissive: 0x111144, // Add slight emissive to give a glowing effect
+                    flatShading: false // Disable flat shading to reduce the "spiky" look
                 });
             
                 const mesh = new THREE.Mesh(geometry, material);
-                mesh.scale.multiplyScalar(10); // Adjust the scale of the model as needed
-                mesh.position.set(0, -50, 0); // Adjust position to ensure it sits well within the viewport
-                mesh.rotation.set(0, Math.PI / 4, 0); // Rotate the model for better visibility initially
+            
+                // Adjust the scale to ensure it fits nicely in the view
+                mesh.scale.set(2, 2, 2); // Scale down the model
+                mesh.rotation.set(Math.PI / 2, 0, 0); // Rotate to orient properly
+                mesh.position.set(0, 0, 0); // Position the model to the center of the canvas
+            
+                // Smooth geometry to avoid sharp spikes
+                mesh.geometry.computeVertexNormals(); 
             
                 scene.add(mesh);
                 console.log('Model loaded successfully');
@@ -745,19 +747,22 @@
                 console.error('An error occurred while loading the PLY model:', error);
             });
             
-            // Animation Loop
+            // Animation Loop for Subtle Movement
             function animate() {
                 requestAnimationFrame(animate);
-                
-                // Rotate the camera around the model slowly for a better visual effect
-                camera.position.x = Math.sin(Date.now() * 0.0005) * 300;
-                camera.position.z = Math.cos(Date.now() * 0.0005) * 300;
-                camera.lookAt(0, 0, 0);
+            
+                // Optionally rotate the model slowly for dynamic effect
+                scene.traverse((object) => {
+                    if (object.isMesh) {
+                        object.rotation.y += 0.0005; // Slow rotation for better visualization
+                    }
+                });
             
                 renderer.render(scene, camera);
             }
             
             animate();
+
 
         </script>
 
