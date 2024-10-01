@@ -7,9 +7,12 @@
     <title>MikuMiku | Home</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
+    <!-- Include Three.js via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r148/three.min.js" integrity="sha512-XRTkQJrmpQzNxOYosDzRBR97P8E2Czj/E2KM6GhF9xH2XxG5DS4CfrZ8gE0OlHvAmgPDKdhcHdEH2HRHQs1A3A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 
 <body>
+    <!-- Three.js Canvas -->
     <canvas id="techCanvas"></canvas>
 
     <div class="page-container">
@@ -171,11 +174,10 @@
 
         <!-- JavaScript to handle all features -->
         <script>
-            // Cookie Consent Script
-            (function() {
+            // [Cookie Consent Script]
+            (function () {
                 'use strict';
-            
-                // Configuration
+
                 const CONFIG = {
                     consentCookieName: 'cookieConsent',
                     consentCookieExpiryDays: 365,
@@ -183,26 +185,23 @@
                     consentModalId: 'consentModal',
                     acceptButtonId: 'acceptConsent',
                     declineButtonId: 'declineConsent',
-                    manageButtonIds: ['manageConsentModal', 'manageConsentFooter'], // Array of manage buttons
+                    manageButtonIds: ['manageConsentModal', 'manageConsentFooter'],
                     closeButtonId: 'closeConsentModal',
                     cookieCategories: {
                         necessary: {
-                            enabled: true, // Always enabled
+                            enabled: true,
                             description: 'Necessary cookies enable core functionalities and security features of the website.'
                         }
-                        // No additional categories
                     },
                     focusableSelectors: 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
                 };
-            
-                // Elements
+
                 const consentModal = document.getElementById(CONFIG.consentModalId);
                 const acceptButton = document.getElementById(CONFIG.acceptButtonId);
                 const declineButton = document.getElementById(CONFIG.declineButtonId);
                 const closeButton = document.getElementById(CONFIG.closeButtonId);
                 const manageConsentButtons = CONFIG.manageButtonIds.map(id => document.getElementById(id));
-            
-                // Utility Functions
+
                 function setCookie(name, value, days, path = '/') {
                     let expires = "";
                     if (days) {
@@ -211,10 +210,10 @@
                         expires = "; expires=" + date.toUTCString();
                     }
                     const secure = location.protocol === 'https:' ? "; Secure" : "";
-                    const sameSite = "; SameSite=Lax"; // Adjust as needed (Strict, Lax, or None)
+                    const sameSite = "; SameSite=Lax";
                     document.cookie = name + "=" + (value || "") + expires + "; path=" + path + secure + sameSite;
                 }
-            
+
                 function getCookie(name) {
                     const nameEQ = name + "=";
                     const ca = document.cookie.split(';');
@@ -225,26 +224,25 @@
                     }
                     return null;
                 }
-            
+
                 function eraseCookie(name, path = '/') {
                     document.cookie = name + '=; Max-Age=-99999999; path=' + path + ';';
                 }
-            
-                // Accessibility: Trap focus within modal
+
                 function trapFocus(modal) {
                     const focusableElements = modal.querySelectorAll(CONFIG.focusableSelectors);
                     if (focusableElements.length === 0) return;
                     const firstFocusableElement = focusableElements[0];
                     const lastFocusableElement = focusableElements[focusableElements.length - 1];
-            
+
                     function handleFocus(event) {
                         if (event.key === 'Tab') {
-                            if (event.shiftKey) { // Shift + Tab
+                            if (event.shiftKey) {
                                 if (document.activeElement === firstFocusableElement) {
                                     event.preventDefault();
                                     lastFocusableElement.focus();
                                 }
-                            } else { // Tab
+                            } else {
                                 if (document.activeElement === lastFocusableElement) {
                                     event.preventDefault();
                                     firstFocusableElement.focus();
@@ -252,103 +250,80 @@
                             }
                         }
                         if (event.key === 'Escape') {
-                            // Optionally, prevent closing the modal with Escape
                             event.preventDefault();
                         }
                     }
-            
+
                     modal.addEventListener('keydown', handleFocus);
                 }
-            
-                // Show Modal
+
                 function showModal() {
                     consentModal.classList.add('active');
                     document.body.classList.add('modal-active');
                     consentModal.setAttribute('aria-hidden', 'false');
-            
-                    // Focus the first focusable element
+
                     const focusableElements = consentModal.querySelectorAll(CONFIG.focusableSelectors);
                     if (focusableElements.length) {
                         focusableElements[0].focus();
                     }
-            
+
                     trapFocus(consentModal);
                 }
-            
-                // Hide Modal
+
                 function hideModal() {
                     consentModal.classList.remove('active');
                     document.body.classList.remove('modal-active');
                     consentModal.setAttribute('aria-hidden', 'true');
                 }
-            
-                // Initialize Consent Modal
+
                 function initConsentModal() {
                     const existingConsent = getCookie(CONFIG.consentCookieName);
-            
+
                     if (!existingConsent) {
-                        // Show modal if no consent found
                         showModal();
                     } else {
-                        // Apply existing consent preferences
                         applyConsent(existingConsent);
                     }
-            
-                    // Event Listeners
-                    acceptButton.addEventListener('click', function() {
-                        // Accept necessary cookies (since it's a personal site, assuming no other categories)
+
+                    acceptButton.addEventListener('click', function () {
                         setCookie(CONFIG.consentCookieName, JSON.stringify({
                             necessary: true
                         }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
                         hideModal();
-                        // Initialize functionalities that require consent here
                         initializeCookies();
                     });
-            
-                    declineButton.addEventListener('click', function() {
-                        // Decline necessary cookies
+
+                    declineButton.addEventListener('click', function () {
                         setCookie(CONFIG.consentCookieName, JSON.stringify({
                             necessary: false
                         }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
                         hideModal();
-                        // Disable functionalities that rely on cookies here
                         disableCookies();
                     });
-            
-                    // Event Listeners for Manage Consent Buttons
+
                     manageConsentButtons.forEach(button => {
                         if (button) {
-                            button.addEventListener('click', function(event) {
-                                event.preventDefault(); // Prevent default link behavior
+                            button.addEventListener('click', function (event) {
+                                event.preventDefault();
                                 showModal();
                             });
                         }
                     });
-            
-                    closeButton.addEventListener('click', function() {
-                        // Optional: Close the modal without making a choice
-                        // For compliance, you might want to force a choice
-                        // hideModal();
-                        // Or keep the modal open
+
+                    closeButton.addEventListener('click', function () {
                         alert('Please make a choice regarding cookie usage.');
                     });
-            
-                    // Prevent closing the modal by clicking outside
-                    window.addEventListener('click', function(event) {
+
+                    window.addEventListener('click', function (event) {
                         if (event.target === consentModal) {
-                            // Optionally, prevent closing the modal when clicking outside
-                            // Uncomment the next line to prevent closing
-                            // event.stopPropagation();
                             alert('Please make a choice regarding cookie usage.');
                         }
                     });
                 }
-            
-                // Apply Existing Consent
+
                 function applyConsent(consentValue) {
                     try {
                         const consent = JSON.parse(consentValue);
-                        // Initialize or disable functionalities based on consent
                         if (consent.necessary) {
                             initializeCookies(consent);
                         } else {
@@ -356,26 +331,18 @@
                         }
                     } catch (error) {
                         console.error('Error parsing consent cookie:', error);
-                        // If parsing fails, show the modal again
                         showModal();
                     }
                 }
-            
-                // Initialize Cookies based on Consent
+
                 function initializeCookies(consent) {
-                    // Initialize necessary cookies (always enabled)
                     console.log('Necessary cookies enabled.');
-                    // Add actual initialization logic here if needed
                 }
-            
-                // Disable Cookies based on Consent
+
                 function disableCookies() {
-                    // Disable necessary cookies
                     console.log('Necessary cookies disabled.');
-                    // Add actual disabling logic here if needed
                 }
-            
-                // Check if cookies are enabled
+
                 function areCookiesEnabled() {
                     const testCookie = 'test_cookie_consent';
                     setCookie(testCookie, 'test', 1);
@@ -383,24 +350,21 @@
                     eraseCookie(testCookie);
                     return result;
                 }
-            
-                // Initialize
+
                 function init() {
                     if (areCookiesEnabled()) {
                         initConsentModal();
                     } else {
                         console.warn('Cookies are disabled in this browser. Consent modal will not be displayed.');
-                        // Optionally, handle the case where cookies are disabled
                     }
                 }
-            
-                // Run the initialization on DOMContentLoaded
+
                 document.addEventListener('DOMContentLoaded', init);
             })();
         </script>
 
         <script>
-            // Now Playing Elements
+            // Now Playing Elements and Socket.IO Integration
             const socket = io("https://mikumiku.dev");
             let lastHeartbeatReceived = Date.now();
             let isSessionExpired = false;
@@ -421,7 +385,6 @@
             const videoDescriptionElement = document.getElementById("videoDescription");
             const timeElapsedElement = document.getElementById("timeElapsed");
 
-            // Helper function to format numbers with commas
             function formatNumber(number) {
                 if (typeof number === 'string') {
                     number = number.replace(/,/g, '');
@@ -430,7 +393,6 @@
                 return isNaN(num) ? "N/A" : num.toLocaleString();
             }
 
-            // Function to clear the current display
             function clearDisplay() {
                 nowPlayingBox.classList.add("offline");
                 offlineIndicatorElement.style.display = "block";
@@ -446,10 +408,9 @@
                 videoCategoryElement.textContent = "";
                 progressBarElement.style.width = "0%";
                 videoDescriptionElement.textContent = "";
-                timeElapsedElement.style.display = "none"; // Hide time elapsed when offline
+                timeElapsedElement.style.display = "none";
             }
 
-            // Function to clear video presence specifically
             function clearVideoPresence() {
                 videoTitleElement.textContent = "";
                 videoThumbnailImage.src = "";
@@ -465,14 +426,12 @@
                 videoDescriptionElement.textContent = "";
             }
 
-            // Function to reinitialize the session
             function reinitializeSession() {
                 console.warn("[Client] Reinitializing session due to mismatch or timeout.");
                 clearDisplay();
                 isSessionExpired = true;
             }
 
-            // Function to format time elapsed
             function formatTimeElapsed(seconds) {
                 const hours = Math.floor(seconds / 3600);
                 const minutes = Math.floor((seconds % 3600) / 60);
@@ -487,7 +446,6 @@
                 }
             }
 
-            // Function to display video presence
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
@@ -496,7 +454,6 @@
                 videoTitleElement.textContent = data.title || "Unknown Title";
 
                 if (data.thumbnail) {
-                    // Show image thumbnail and hide video thumbnail
                     videoThumbnailImage.src = data.thumbnail;
                     videoThumbnailImage.style.display = "block";
                     videoThumbnailElement.style.display = "none";
@@ -519,9 +476,8 @@
                 videoCategoryElement.textContent = `Category: ${data.category}` || "Category: N/A";
                 videoDescriptionElement.textContent = data.description || "No description available.";
                 handleRealTimeProgress(data);
-                timeElapsedElement.style.display = "none"; // Hide elapsed time during video play
+                timeElapsedElement.style.display = "none";
 
-                // If there's a video source, display video element
                 if (data.videoSrc) {
                     videoThumbnailElement.src = data.videoSrc;
                     videoThumbnailElement.style.display = "block";
@@ -532,7 +488,6 @@
                 }
             }
 
-            // Function to handle real-time progress
             function handleRealTimeProgress(data) {
                 if (data.duration && data.currentTime) {
                     const progressPercentage = (data.currentTime / data.duration) * 100;
@@ -542,16 +497,13 @@
                 }
             }
 
-            // Function to display browsing presence
             function displayBrowsingPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
 
-                // Clear any previous video-related elements before setting browsing state
                 clearVideoPresence();
 
-                // Set browsing details
                 videoTitleElement.textContent = data.title || "Browsing YouTube";
                 videoThumbnailImage.src = data.thumbnail || "https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png";
                 videoThumbnailImage.style.display = "block";
@@ -562,7 +514,7 @@
 
                 if (data.timeElapsed !== undefined) {
                     timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(data.timeElapsed)}`;
-                    timeElapsedElement.style.display = "block"; // Show elapsed time during browsing
+                    timeElapsedElement.style.display = "block";
                 }
             }
 
@@ -585,10 +537,10 @@
 
             function startBrowsingPresence() {
                 if (browsingStartTime === null) {
-                    browsingStartTime = Date.now(); // Set browsing start time only if it's not already set
+                    browsingStartTime = Date.now();
                 }
                 if (!browsingInterval) {
-                    browsingInterval = setInterval(updateBrowsingPresence, 5000); // Update every 5 seconds
+                    browsingInterval = setInterval(updateBrowsingPresence, 5000);
                 }
             }
 
@@ -597,10 +549,9 @@
                     clearInterval(browsingInterval);
                     browsingInterval = null;
                 }
-                browsingStartTime = null; // Reset browsing start time when browsing ends
+                browsingStartTime = null;
             }
 
-            // Socket.IO event listeners
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
                 isSessionExpired = false;
@@ -644,7 +595,7 @@
             });
 
             setInterval(() => {
-                if (Date.now() - lastHeartbeatReceived > 60000) { // 60 seconds
+                if (Date.now() - lastHeartbeatReceived > 60000) {
                     console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
                     clearDisplay();
                 }
@@ -735,283 +686,197 @@
             fetchWeather();
         </script>
 
-        <!-- Enhanced Canvas Animation Script -->
+        <!-- Enhanced Three.js Animation Script -->
         <script>
-            // Enhanced Shooting Stars and Black Hole with Performance Optimizations
+            // Enhanced Three.js Shooting Stars and Black Hole
 
-            // Canvas Setup
-            const canvas = document.getElementById("techCanvas");
-            const ctx = canvas.getContext("2d");
-            let width = window.innerWidth;
-            let height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
+            // Scene, Camera, Renderer Setup
+            const scene = new THREE.Scene();
 
-            // Handle window resize
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 10000);
+            camera.position.z = 500;
+
+            const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setClearColor(0x000000, 0); // Transparent background
+
+            // Resize Handler
             window.addEventListener('resize', () => {
-                width = window.innerWidth;
-                height = window.innerHeight;
-                canvas.width = width;
-                canvas.height = height;
-                preRenderStaticLayers();
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
             });
 
-            // Offscreen Canvas for Static Elements (e.g., Black Hole and Accretion Disk)
-            const offscreenCanvas = document.createElement('canvas');
-            const offscreenCtx = offscreenCanvas.getContext('2d');
-            offscreenCanvas.width = width;
-            offscreenCanvas.height = height;
+            // Black Hole (Event Horizon)
+            const blackHoleGeometry = new THREE.SphereGeometry(50, 32, 32);
+            const blackHoleMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            const blackHole = new THREE.Mesh(blackHoleGeometry, blackHoleMaterial);
+            scene.add(blackHole);
 
-            // Black Hole Class
-            class BlackHole {
-                constructor(x, y, radius) {
-                    this.x = x;
-                    this.y = y;
-                    this.radius = radius;
-                    this.accDiskRadius = radius * 3;
-                    this.angle = 0;
-                    this.rotationSpeed = 0.002; // Adjust for desired rotation speed
-                }
+            // Accretion Disk
+            const accDiskGeometry = new THREE.RingGeometry(60, 200, 64);
+            const accDiskMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff4500,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.8
+            });
+            const accDisk = new THREE.Mesh(accDiskGeometry, accDiskMaterial);
+            accDisk.rotation.x = -Math.PI / 2;
+            scene.add(accDisk);
 
-                update() {
-                    this.angle += this.rotationSpeed;
-                }
+            // Gravitational Lensing (Post-processing)
+            // Using ShaderPass with custom shader would be ideal, but for simplicity, we'll skip it.
+            // Advanced lensing requires complex shaders and is beyond the scope of this example.
 
-                render(ctx) {
-                    // Draw Accretion Disk
-                    ctx.save();
-                    ctx.translate(this.x, this.y);
-                    ctx.rotate(this.angle);
+            // Shooting Stars Particle System
+            const shootingStarsCount = 100;
+            const shootingStarsGeometry = new THREE.BufferGeometry();
+            const positions = [];
+            const colors = [];
+            const sizes = [];
 
-                    const accDiskGradient = ctx.createRadialGradient(0, 0, this.accDiskRadius / 2, 0, 0, this.accDiskRadius);
-                    accDiskGradient.addColorStop(0, 'rgba(255, 140, 0, 0.8)');
-                    accDiskGradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.6)');
-                    accDiskGradient.addColorStop(1, 'rgba(255, 140, 0, 0.2)');
+            for (let i = 0; i < shootingStarsCount; i++) {
+                positions.push(Math.random() * 2000 - 1000, Math.random() * 2000 - 1000, Math.random() * 2000 - 1000);
+                colors.push(1, 1, 1); // White color
+                sizes.push(1.5);
+            }
 
-                    ctx.beginPath();
-                    ctx.ellipse(0, 0, this.accDiskRadius, this.accDiskRadius / 2, 0, 0, 2 * Math.PI);
-                    ctx.fillStyle = accDiskGradient;
-                    ctx.fill();
-                    ctx.restore();
+            shootingStarsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            shootingStarsGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            shootingStarsGeometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
 
-                    // Draw Event Horizon
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
-                    ctx.fillStyle = '#000000';
-                    ctx.fill();
-                    ctx.restore();
-
-                    // Draw Gravitational Lensing (Optional)
-                    this.drawGravitationalLensing(ctx);
-                }
-
-                drawGravitationalLensing(ctx) {
-                    ctx.save();
-                    ctx.globalAlpha = 0.2;
-                    ctx.strokeStyle = '#FFFFFF';
-                    ctx.lineWidth = 2;
-
-                    for (let i = 1; i <= 5; i++) {
-                        ctx.beginPath();
-                        ctx.arc(this.x, this.y, this.radius + i * 20, 0, 2 * Math.PI);
-                        ctx.stroke();
+            const shootingStarsMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    pointTexture: { value: new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/spark1.png') }
+                },
+                vertexShader: `
+                    attribute float size;
+                    attribute vec3 color;
+                    varying vec3 vColor;
+                    void main() {
+                        vColor = color;
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = size * (300.0 / -mvPosition.z);
+                        gl_Position = projectionMatrix * mvPosition;
                     }
+                `,
+                fragmentShader: `
+                    uniform sampler2D pointTexture;
+                    varying vec3 vColor;
+                    void main() {
+                        gl_FragColor = vec4(vColor, 1.0) * texture2D(pointTexture, gl_PointCoord);
+                    }
+                `,
+                blending: THREE.AdditiveBlending,
+                depthTest: false,
+                transparent: true,
+                vertexColors: true
+            });
 
-                    ctx.restore();
-                }
-            }
+            const shootingStars = new THREE.Points(shootingStarsGeometry, shootingStarsMaterial);
+            scene.add(shootingStars);
 
-            // Initialize Black Hole
-            const blackHole = new BlackHole(width / 2, height / 2, 50);
-            preRenderStaticLayers();
+            // Shooting Stars Animation
+            function animateShootingStars() {
+                const positions = shootingStars.geometry.attributes.position.array;
+                for (let i = 0; i < shootingStarsCount; i++) {
+                    positions[i * 3 + 2] += 2; // Move forward in z-axis
 
-            // Pre-render Static Layers
-            function preRenderStaticLayers() {
-                offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-                // Render Black Hole and Accretion Disk
-                blackHole.render(offscreenCtx);
-            }
-
-            // Particle Class for Shooting Stars
-            class Particle {
-                constructor(x, y, vx, vy, size, color, lifespan) {
-                    this.x = x;
-                    this.y = y;
-                    this.vx = vx;
-                    this.vy = vy;
-                    this.size = size;
-                    this.color = color;
-                    this.lifespan = lifespan;
-                    this.opacity = 1;
-                }
-
-                update() {
-                    this.x += this.vx;
-                    this.y += this.vy;
-                    this.lifespan -= 1;
-                    this.opacity = this.lifespan / 100; // Adjust based on initial lifespan
-                }
-
-                draw(ctx) {
-                    if (this.opacity <= 0) return;
-                    ctx.save();
-                    ctx.globalAlpha = this.opacity;
-                    ctx.fillStyle = this.color;
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.size, 0, 2 * Math.PI);
-                    ctx.fill();
-                    ctx.restore();
-                }
-            }
-
-            // Shooting Star Class with Particle System
-            class ShootingStar {
-                constructor() {
-                    this.reset();
-                }
-
-                reset() {
-                    this.x = Math.random() * width;
-                    this.y = Math.random() * height * 0.5;
-                    this.length = Math.random() * 100 + 50;
-                    this.speed = Math.random() * 4 + 6;
-                    this.angle = Math.PI / 4 + Math.random() * (Math.PI / 8); // Between 45 and 67.5 degrees
-                    this.vx = Math.cos(this.angle) * this.speed;
-                    this.vy = Math.sin(this.angle) * this.speed;
-                    this.particles = [];
-                    this.maxParticles = 20;
-                    this.particleLifespan = 100;
-                    this.active = true;
-
-                    // Initialize particles
-                    for (let i = 0; i < this.maxParticles; i++) {
-                        const px = this.x - this.vx * (i / this.maxParticles);
-                        const py = this.y - this.vy * (i / this.maxParticles);
-                        const pvx = this.vx * 0.9;
-                        const pvy = this.vy * 0.9;
-                        const size = Math.random() * 1.5 + 0.5;
-                        const color = `rgba(255, 255, 255, ${1 - i / this.maxParticles})`;
-                        this.particles.push(new Particle(px, py, pvx, pvy, size, color, this.particleLifespan));
+                    if (positions[i * 3 + 2] > 1000) {
+                        positions[i * 3] = Math.random() * 2000 - 1000;
+                        positions[i * 3 + 1] = Math.random() * 2000 - 1000;
+                        positions[i * 3 + 2] = -1000;
                     }
                 }
+                shootingStars.geometry.attributes.position.needsUpdate = true;
+            }
 
-                update() {
-                    this.x += this.vx;
-                    this.y += this.vy;
+            // Starfield Background (Twinkling Stars)
+            const starGeometry = new THREE.BufferGeometry();
+            const starCount = 1000;
+            const starPositions = [];
+            const starColors = [];
+            const starSizes = [];
 
-                    // Update particles
-                    this.particles.forEach(p => p.update());
+            for (let i = 0; i < starCount; i++) {
+                starPositions.push(Math.random() * 2000 - 1000, Math.random() * 2000 - 1000, Math.random() * 2000 - 1000);
+                starColors.push(1, 1, 1);
+                starSizes.push(Math.random() * 1.5 + 0.5);
+            }
 
-                    // Remove dead particles
-                    this.particles = this.particles.filter(p => p.lifespan > 0);
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+            starGeometry.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3));
+            starGeometry.setAttribute('size', new THREE.Float32BufferAttribute(starSizes, 1));
 
-                    // Reset shooting star if out of bounds
-                    if (this.x > width || this.y > height || this.particles.length === 0) {
-                        this.reset();
+            const starMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    pointTexture: { value: new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/star.png') }
+                },
+                vertexShader: `
+                    attribute float size;
+                    attribute vec3 color;
+                    varying vec3 vColor;
+                    void main() {
+                        vColor = color;
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = size * (300.0 / -mvPosition.z);
+                        gl_Position = projectionMatrix * mvPosition;
                     }
-                }
-
-                draw(ctx) {
-                    // Draw particles
-                    this.particles.forEach(p => p.draw(ctx));
-                }
-            }
-
-            // Object Pool for Shooting Stars
-            class ObjectPool {
-                constructor(maxSize, constructorFn) {
-                    this.pool = [];
-                    this.maxSize = maxSize;
-                    this.constructorFn = constructorFn;
-                }
-
-                get() {
-                    return this.pool.length > 0 ? this.pool.pop() : this.constructorFn();
-                }
-
-                release(obj) {
-                    if (this.pool.length < this.maxSize) {
-                        this.pool.push(obj);
+                `,
+                fragmentShader: `
+                    uniform sampler2D pointTexture;
+                    varying vec3 vColor;
+                    void main() {
+                        gl_FragColor = vec4(vColor, 1.0) * texture2D(pointTexture, gl_PointCoord);
                     }
+                `,
+                blending: THREE.AdditiveBlending,
+                depthTest: false,
+                transparent: true,
+                vertexColors: true
+            });
+
+            const stars = new THREE.Points(starGeometry, starMaterial);
+            scene.add(stars);
+
+            // Twinkling Stars Animation
+            function animateTwinklingStars() {
+                const colors = starGeometry.attributes.color.array;
+                for (let i = 0; i < starCount; i++) {
+                    const brightness = 0.5 + 0.5 * Math.sin(Date.now() * 0.001 + i);
+                    colors[i * 3] = brightness;
+                    colors[i * 3 + 1] = brightness;
+                    colors[i * 3 + 2] = brightness;
                 }
-            }
-
-            // Initialize Shooting Stars Pool
-            const shootingStarPool = new ObjectPool(10, () => new ShootingStar());
-            const activeShootingStars = [];
-
-            // Activate Shooting Stars at Random Intervals
-            function activateShootingStar() {
-                if (activeShootingStars.length < 5) { // Limit active shooting stars
-                    const star = shootingStarPool.get();
-                    activeShootingStars.push(star);
-                }
-            }
-
-            setInterval(activateShootingStar, 2000); // Every 2 seconds
-
-            // Twinkling Stars
-            const stars = [];
-            const STAR_COUNT = 100;
-
-            for (let i = 0; i < STAR_COUNT; i++) {
-                stars.push({
-                    x: Math.random() * width,
-                    y: Math.random() * height,
-                    radius: Math.random() * 1.5 + 0.5,
-                    brightness: Math.random() * 0.5 + 0.5,
-                    twinkleSpeed: Math.random() * 0.02 + 0.01,
-                    twinkleDirection: 1
-                });
-            }
-
-            function drawTwinklingStars() {
-                stars.forEach(star => {
-                    star.brightness += star.twinkleSpeed * star.twinkleDirection;
-                    if (star.brightness >= 1 || star.brightness <= 0.5) {
-                        star.twinkleDirection *= -1;
-                    }
-
-                    ctx.save();
-                    ctx.globalAlpha = star.brightness;
-                    ctx.fillStyle = '#FFFFFF';
-                    ctx.beginPath();
-                    ctx.arc(star.x, star.y, star.radius, 0, 2 * Math.PI);
-                    ctx.fill();
-                    ctx.restore();
-                });
+                starGeometry.attributes.color.needsUpdate = true;
             }
 
             // Animation Loop
             function animate() {
-                ctx.clearRect(0, 0, width, height);
-                ctx.drawImage(offscreenCanvas, 0, 0, width, height);
-
-                // Update and draw twinkling stars
-                drawTwinklingStars();
-
-                // Update and draw active shooting stars
-                for (let i = activeShootingStars.length - 1; i >= 0; i--) {
-                    const star = activeShootingStars[i];
-                    star.update();
-                    star.draw(ctx);
-
-                    // If shooting star is inactive, release it back to the pool
-                    if (star.x > width || star.y > height || star.particles.length === 0) {
-                        shootingStarPool.release(star);
-                        activeShootingStars.splice(i, 1);
-                    }
-                }
-
-                // Update and render Black Hole
-                blackHole.update();
-                preRenderStaticLayers();
-
                 requestAnimationFrame(animate);
+
+                // Rotate Accretion Disk
+                accDisk.rotation.z += 0.001;
+
+                // Animate Shooting Stars
+                animateShootingStars();
+
+                // Animate Twinkling Stars
+                animateTwinklingStars();
+
+                renderer.render(scene, camera);
             }
 
             animate();
+
+            // Additional Optimizations:
+            // - Limit the number of particles.
+            // - Use buffer geometries for efficient rendering.
+            // - Optimize shaders for performance.
+
+            // Disable gravitational lensing for performance reasons or implement it with post-processing if feasible.
         </script>
     </body>
 
