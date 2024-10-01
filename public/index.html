@@ -694,118 +694,64 @@
             
         <script type="module">
             import * as THREE from './js/three.module.min.js';
-        
+    
             // Scene, Camera, Renderer Setup
             const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 10000);
-            camera.position.z = 500;
-        
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 200;
+    
             const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('techCanvas'), antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.setClearColor(0x000000, 0); // Transparent background
-        
-            // Resize Handler
+            document.body.appendChild(renderer.domElement);
+    
+            // Handle window resize
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
-        
-            // Black Hole (Event Horizon)
+    
+            // Geometry and Material for stars
+            const starGeometry = new THREE.BufferGeometry();
+            const starMaterial = new THREE.PointsMaterial({ color: 0xffffff });
+    
+            // Creating stars
+            const starVertices = [];
+            for (let i = 0; i < 1000; i++) {
+                const x = (Math.random() - 0.5) * 2000;
+                const y = (Math.random() - 0.5) * 2000;
+                const z = (Math.random() - 0.5) * 2000;
+                starVertices.push(x, y, z);
+            }
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+    
+            const stars = new THREE.Points(starGeometry, starMaterial);
+            scene.add(stars);
+    
+            // Black Hole
             const blackHoleGeometry = new THREE.SphereGeometry(50, 32, 32);
             const blackHoleMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
             const blackHole = new THREE.Mesh(blackHoleGeometry, blackHoleMaterial);
             scene.add(blackHole);
-        
+    
             // Accretion Disk
-            const accDiskGeometry = new THREE.RingGeometry(60, 200, 64);
-            const accDiskMaterial = new THREE.MeshBasicMaterial({
-                color: 0xff4500,
-                side: THREE.DoubleSide,
-                transparent: true,
-                opacity: 0.8
-            });
+            const accDiskGeometry = new THREE.RingGeometry(60, 100, 32);
+            const accDiskMaterial = new THREE.MeshBasicMaterial({ color: 0xff4500, side: THREE.DoubleSide });
             const accDisk = new THREE.Mesh(accDiskGeometry, accDiskMaterial);
-            accDisk.rotation.x = -Math.PI / 2;
+            accDisk.rotation.x = Math.PI / 2;
             scene.add(accDisk);
-        
-            // Shooting Stars Particle System
-            const shootingStarsCount = 100;
-            const shootingStarsGeometry = new THREE.BufferGeometry();
-            const positions = [];
-            const pointColors = [];
-            const sizes = [];
-        
-            for (let i = 0; i < shootingStarsCount; i++) {
-                positions.push(Math.random() * 2000 - 1000, Math.random() * 2000 - 1000, Math.random() * 2000 - 1000);
-                pointColors.push(1, 1, 1); // White color
-                sizes.push(1.5);
-            }
-        
-            shootingStarsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-            shootingStarsGeometry.setAttribute('pointColor', new THREE.Float32BufferAttribute(pointColors, 3));
-            shootingStarsGeometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
-        
-            const shootingStarsMaterial = new THREE.ShaderMaterial({
-                uniforms: {
-                    pointTexture: { value: new THREE.TextureLoader().load('/images/spark1.png') }
-                },
-                vertexShader: `
-                    attribute float size;
-                    attribute vec3 pointColor;
-                    varying vec3 vColor;
-                    void main() {
-                        vColor = pointColor;
-                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                        gl_PointSize = size * (300.0 / -mvPosition.z);
-                        gl_Position = projectionMatrix * mvPosition;
-                    }
-                `,
-                fragmentShader: `
-                    uniform sampler2D pointTexture;
-                    varying vec3 vColor;
-                    void main() {
-                        gl_FragColor = vec4(vColor, 1.0) * texture2D(pointTexture, gl_PointCoord);
-                    }
-                `,
-                blending: THREE.AdditiveBlending,
-                depthTest: false,
-                transparent: true,
-                vertexColors: true
-            });
-        
-            const shootingStars = new THREE.Points(shootingStarsGeometry, shootingStarsMaterial);
-            scene.add(shootingStars);
-        
-            // Shooting Stars Animation
-            function animateShootingStars() {
-                const positions = shootingStars.geometry.attributes.position.array;
-                for (let i = 0; i < shootingStarsCount; i++) {
-                    positions[i * 3 + 2] += 2; // Move forward in z-axis
-        
-                    if (positions[i * 3 + 2] > 1000) {
-                        positions[i * 3] = Math.random() * 2000 - 1000;
-                        positions[i * 3 + 1] = Math.random() * 2000 - 1000;
-                        positions[i * 3 + 2] = -1000;
-                    }
-                }
-                shootingStars.geometry.attributes.position.needsUpdate = true;
-            }
-        
-            // Animation Loop
+    
+            // Animation loop
             function animate() {
                 requestAnimationFrame(animate);
-        
-                // Rotate Accretion Disk
-                accDisk.rotation.z += 0.001;
-        
-                // Animate Shooting Stars
-                animateShootingStars();
-        
+    
+                // Rotate accretion disk
+                accDisk.rotation.z += 0.01;
+    
+                // Render the scene
                 renderer.render(scene, camera);
             }
-        
+    
             animate();
 
 
