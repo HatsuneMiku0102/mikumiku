@@ -279,6 +279,7 @@ app.use(
             ],
             connectSrc: [
                 "'self'",
+                "'blob:'", // Added blob to allow loading from blob URLs
                 "https://www.googleapis.com",
                 "https://*.youtube.com",
                 "https://api.openweathermap.org"
@@ -300,6 +301,7 @@ app.use(
         }
     })
 );
+
 
 
 
