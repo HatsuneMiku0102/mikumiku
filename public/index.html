@@ -744,7 +744,7 @@
                 particleGeometry.setAttribute('position', new THREE.BufferAttribute(particleVertices, 3));
                 const particleMaterial = new THREE.PointsMaterial({
                     size: 5,
-                    map: textureLoader.load('/textures/nebula.webp'), // A subtle texture
+                    map: textureLoader.load('/textures/nebula.webp'), 
                     transparent: true,
                     blending: THREE.AdditiveBlending,
                     depthWrite: false,
@@ -756,8 +756,8 @@
         
                 // Comets
                 const cometTextures = [
-                    textureLoader.load('/path/to/comet1.png'), // replace with actual paths
-                    textureLoader.load('/path/to/comet2.png')
+                    textureLoader.load('/textures/comet1.png'), 
+                    textureLoader.load('/textures/comet2.png')
                 ];
                 const cometGeometry = new THREE.PlaneGeometry(1, 1);
                 const comets = [];
@@ -861,36 +861,33 @@
                     composer.render();
                 };
         
-                // Mouse Move Interaction - Camera Shake Effect
+                // Mouse Move Interaction - Canvas and Camera Shake Effect
                 let mouseX = 0;
                 let mouseY = 0;
-                let targetX = 0;
-                let targetY = 0;
         
                 document.addEventListener('mousemove', (event) => {
-                    mouseX = (event.clientX - window.innerWidth / 2) * 0.0005;
-                    mouseY = (event.clientY - window.innerHeight / 2) * 0.0005;
+                    mouseX = (event.clientX - window.innerWidth / 2) * 0.005;
+                    mouseY = (event.clientY - window.innerHeight / 2) * 0.005;
                 });
         
-                const updateCameraPosition = () => {
-                    targetX = mouseX * 10;
-                    targetY = mouseY * 10;
-        
-                    camera.position.x += (targetX - camera.position.x) * 0.05;
-                    camera.position.y += (targetY - camera.position.y) * 0.05;
-        
+                const updateCanvasPosition = () => {
+                    // Apply slight movement to camera for parallax effect
+                    camera.position.x += (mouseX - camera.position.x) * 0.05;
+                    camera.position.y += (mouseY - camera.position.y) * 0.05;
                     camera.lookAt(scene.position);
+        
+                    // Apply slight movement to renderer to simulate entire canvas movement
+                    canvas.style.transform = `translate(${mouseX * 1.5}px, ${mouseY * 1.5}px)`;
                 };
         
                 const animateWithMouseInteraction = () => {
                     requestAnimationFrame(animateWithMouseInteraction);
-                    updateCameraPosition();
+                    updateCanvasPosition();
                 };
         
                 animate();
                 animateWithMouseInteraction();
         
-                // Resize Handling
                 window.addEventListener('resize', () => {
                     camera.aspect = window.innerWidth / window.innerHeight;
                     camera.updateProjectionMatrix();
