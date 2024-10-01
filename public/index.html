@@ -712,7 +712,7 @@
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
     
-            // Nebula Effect using Particles
+            // Nebula Effect using Textured Particles
             function createNebula() {
                 const nebulaGeometry = new THREE.BufferGeometry();
                 const nebulaParticleCount = 10000;
@@ -720,7 +720,7 @@
                 const colors = [];
     
                 for (let i = 0; i < nebulaParticleCount; i++) {
-                    const r = Math.random() * 300;
+                    const r = Math.random() * 400;
                     const theta = Math.random() * 2 * Math.PI;
                     const phi = Math.acos(2 * Math.random() - 1);
                     const x = r * Math.sin(phi) * Math.cos(theta);
@@ -736,17 +736,21 @@
                 nebulaGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
                 nebulaGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     
-                const nebulaMaterial = new THREE.PointsMaterial({
-                    size: 6,
-                    vertexColors: true,
-                    blending: THREE.AdditiveBlending,
-                    transparent: true,
-                    opacity: 0.7,
-                    depthWrite: false
-                });
+                const loader = new THREE.TextureLoader();
+                loader.load('/textures/smoke4.png', function (texture) {
+                    const nebulaMaterial = new THREE.PointsMaterial({
+                        size: 20,
+                        map: texture,
+                        vertexColors: true,
+                        blending: THREE.AdditiveBlending,
+                        transparent: true,
+                        opacity: 0.8,
+                        depthWrite: false
+                    });
     
-                const nebula = new THREE.Points(nebulaGeometry, nebulaMaterial);
-                scene.add(nebula);
+                    const nebula = new THREE.Points(nebulaGeometry, nebulaMaterial);
+                    scene.add(nebula);
+                });
             }
     
             createNebula();
@@ -813,8 +817,6 @@
                 requestAnimationFrame(animate);
                 // Adding slow rotation for dynamic visuals
                 scene.rotation.y += 0.0005;
-                scene.rotation.x = Math.sin(Date.now() * 0.00005) * 0.02;
-    
                 renderer.render(scene, camera);
             }
     
