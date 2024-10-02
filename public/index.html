@@ -753,15 +753,22 @@
                 let texturesLoaded = 0;
     
                 cometTexturePaths.forEach((path) => {
-                    textureLoader.load(path, (texture) => {
-                        texture.encoding = THREE.sRGBEncoding;
-                        texture.flipY = false; // Ensure texture is not flipped vertically
-                        cometTextures.push(texture);
-                        texturesLoaded++;
-                        if (texturesLoaded === cometTexturePaths.length) {
-                            initComets();
+                    textureLoader.load(
+                        path,
+                        (texture) => {
+                            texture.encoding = THREE.sRGBEncoding;
+                            texture.flipY = false; // Ensure texture is not flipped vertically
+                            cometTextures.push(texture);
+                            texturesLoaded++;
+                            if (texturesLoaded === cometTexturePaths.length) {
+                                initComets();
+                            }
+                        },
+                        undefined,
+                        (error) => {
+                            console.error(`Failed to load texture: ${path}`, error);
                         }
-                    });
+                    );
                 });
     
                 // -------------------------------
@@ -792,7 +799,7 @@
                 // Comet Class and Initialization
                 // -------------------------------
                 class Comet {
-                    constructor(texture) {
+                    constructor(texture, rotationOffset = -Math.PI / 2) { // Default offset for upward-pointing sprites
                         const material = new THREE.SpriteMaterial({
                             map: texture,
                             transparent: true,
@@ -800,6 +807,7 @@
                             depthWrite: false,
                         });
                         this.sprite = new THREE.Sprite(material);
+                        this.rotationOffset = rotationOffset; // Store the rotation offset
                         this.reset();
                         scene.add(this.sprite);
                     }
@@ -873,7 +881,7 @@
                     updateRotation() {
                         // Calculate the angle based on velocity
                         const angle = Math.atan2(this.velocity.y, this.velocity.x);
-                        this.sprite.rotation.z = angle; // Correct assignment
+                        this.sprite.rotation.z = angle + this.rotationOffset; // Apply rotation offset
                     }
     
                     update(delta) {
@@ -895,6 +903,7 @@
                     // Initialize comets
                     for (let i = 0; i < maxComets; i++) {
                         const texture = cometTextures[Math.floor(Math.random() * cometTextures.length)];
+                        // Assuming the sprite's head points upwards, use default rotationOffset
                         const comet = new Comet(texture);
                         cometPool.push(comet);
                     }
