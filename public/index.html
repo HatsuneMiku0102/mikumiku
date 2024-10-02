@@ -746,89 +746,6 @@
         scene.add(stars);
 
         // -------------------------------
-        // Comets with Image Tail and Flashing Head
-        // -------------------------------
-        const cometTailTexture = textureLoader.load('/textures/comet2.png'); // Update with the actual path to the tail image
-        const comets = [];
-
-        function spawnComet() {
-            // Create comet head with emissive material for glowing and flashing effect
-            const headGeometry = new THREE.SphereGeometry(8, 16, 16);
-            const headMaterial = new THREE.MeshStandardMaterial({
-                color: 0xffffff,
-                emissive: 0xff8c00,
-                emissiveIntensity: 1.0,
-                transparent: true,
-                opacity: 0.95,
-            });
-            const cometHead = new THREE.Mesh(headGeometry, headMaterial);
-
-            // Create comet tail using uploaded image as a texture
-            const tailGeometry = new THREE.PlaneGeometry(60, 150);
-            const tailMaterial = new THREE.MeshBasicMaterial({
-                map: cometTailTexture,
-                transparent: true,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false,
-                opacity: 0.7,
-                side: THREE.DoubleSide,
-            });
-            const cometTail = new THREE.Mesh(tailGeometry, tailMaterial);
-
-            // Group comet head and tail
-            const cometGroup = new THREE.Group();
-            cometGroup.add(cometHead);
-            cometGroup.add(cometTail);
-
-            // Set initial random size for each comet
-            const sizeFactor = Math.random() * 0.6 + 0.6; // Random size between 0.6 and 1.2
-            cometGroup.scale.set(sizeFactor, sizeFactor, sizeFactor);
-
-            // Determine which side of the screen the comet will spawn from
-            const spawnSide = Math.floor(Math.random() * 4);
-            let startX, startY, velocityX, velocityY;
-            const speed = Math.random() * 3.0 + 2.0; // Speed between 2.0 and 5.0
-
-            if (spawnSide === 0) {
-                startX = (Math.random() - 0.5) * window.innerWidth;
-                startY = window.innerHeight / 2;
-                velocityX = (Math.random() - 0.5) * 2 * speed;
-                velocityY = -speed;
-            } else if (spawnSide === 1) {
-                startX = window.innerWidth / 2;
-                startY = (Math.random() - 0.5) * window.innerHeight;
-                velocityX = -speed;
-                velocityY = (Math.random() - 0.5) * 2 * speed;
-            } else if (spawnSide === 2) {
-                startX = (Math.random() - 0.5) * window.innerWidth;
-                startY = -window.innerHeight / 2;
-                velocityX = (Math.random() - 0.5) * 2 * speed;
-                velocityY = speed;
-            } else {
-                startX = -window.innerWidth / 2;
-                startY = (Math.random() - 0.5) * window.innerHeight;
-                velocityX = speed;
-                velocityY = (Math.random() - 0.5) * 2 * speed;
-            }
-
-            // Set comet initial position and velocity
-            cometGroup.position.set(startX, startY, -800);
-            cometGroup.velocity = new THREE.Vector3(velocityX, velocityY, 0);
-
-            // Calculate rotation to face the direction of travel
-            cometGroup.rotation.z = Math.atan2(cometGroup.velocity.y, cometGroup.velocity.x) - Math.PI / 2;
-
-            // Add comet group to the scene
-            scene.add(cometGroup);
-            comets.push(cometGroup);
-        }
-
-        // Spawn initial comets
-        for (let i = 0; i < 8; i++) {
-            spawnComet();
-        }
-
-        // -------------------------------
         // Post-processing with Bloom for a Glowing Effect
         // -------------------------------
         const composer = new THREE.EffectComposer(renderer);
@@ -837,7 +754,7 @@
 
         const bloomPass = new THREE.UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
-            1.5, // Reduced bloom strength to minimize background over-brightness
+            1.2, // Reduced bloom strength to minimize background over-brightness
             0.8, // Radius for more focused bloom
             0.6  // Bloom threshold
         );
@@ -851,27 +768,6 @@
 
             // Twinkling stars effect
             starMaterial.opacity = 0.7 + Math.sin(Date.now() * 0.001) * 0.1;
-
-            // Animate Comets
-            comets.forEach((comet, index) => {
-                comet.position.add(comet.velocity);
-
-                // Create a flashing effect for the comet head
-                comet.children[0].material.emissiveIntensity = 1.5 + Math.sin(Date.now() * 0.005) * 0.5;
-
-                // Check if comet is out of view
-                if (comet.position.x < -window.innerWidth / 2 ||
-                    comet.position.x > window.innerWidth / 2 ||
-                    comet.position.y < -window.innerHeight / 2 ||
-                    comet.position.y > window.innerHeight / 2) {
-                    // Remove the comet from the scene and array
-                    scene.remove(comet);
-                    comets.splice(index, 1);
-
-                    // Spawn a new comet to replace it
-                    spawnComet();
-                }
-            });
 
             // Render with Post-Processing
             composer.render();
@@ -918,15 +814,6 @@
         });
     });
 </script>
-
-
-
-
-
-
-
-
-
 
 
 
