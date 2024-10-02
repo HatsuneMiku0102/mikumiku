@@ -803,30 +803,8 @@
                     comet.velocity = new THREE.Vector3(velocityX, velocityY, 0);
         
                     // Calculate rotation to face the direction of travel
-                    comet.rotation.z = Math.atan2(comet.velocity.y, comet.velocity.x);
-        
-                    // Create tail effect using Points geometry
-                    const tailCount = 100; // Number of points in the tail
-                    const tailGeometry = new THREE.BufferGeometry();
-                    const tailVertices = new Float32Array(tailCount * 3);
-                    for (let i = 0; i < tailCount; i++) {
-                        tailVertices[i * 3] = 0; // X coordinate (comet's center)
-                        tailVertices[i * 3 + 1] = -i * 2; // Y coordinate (extending backward)
-                        tailVertices[i * 3 + 2] = 0; // Z coordinate
-                    }
-                    tailGeometry.setAttribute('position', new THREE.BufferAttribute(tailVertices, 3));
-        
-                    const tailMaterial = new THREE.PointsMaterial({
-                        color: new THREE.Color(0xffffff),
-                        size: 2.0,
-                        transparent: true,
-                        opacity: 0.5,
-                        blending: THREE.AdditiveBlending,
-                        depthWrite: false,
-                    });
-        
-                    const tail = new THREE.Points(tailGeometry, tailMaterial);
-                    comet.add(tail); // Attach the tail to the comet
+                    // Manually adjust this rotation if the comet is still not aligned properly
+                    comet.rotation.z = Math.atan2(comet.velocity.y, comet.velocity.x) + Math.PI / 2;
         
                     // Add comet to the scene
                     scene.add(comet);
@@ -925,6 +903,7 @@
                 });
             });
         </script>
+
 
 
 
