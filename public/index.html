@@ -720,8 +720,6 @@
                 const textureLoader = new THREE.TextureLoader();
                 textureLoader.load('/textures/nebula.webp', (texture) => {
                     scene.background = texture;
-                }, undefined, (error) => {
-                    console.error('Error loading nebula texture:', error);
                 });
     
                 // -------------------------------
@@ -755,22 +753,14 @@
                 let texturesLoaded = 0;
     
                 cometTexturePaths.forEach((path) => {
-                    textureLoader.load(
-                        path,
-                        (texture) => {
-                            texture.encoding = THREE.sRGBEncoding;
-                            texture.flipY = false; // Ensure texture is not flipped vertically
-                            cometTextures.push(texture);
-                            texturesLoaded++;
-                            if (texturesLoaded === cometTexturePaths.length) {
-                                initComets();
-                            }
-                        },
-                        undefined,
-                        (error) => {
-                            console.error(`Failed to load comet texture: ${path}`, error);
+                    textureLoader.load(path, (texture) => {
+                        texture.encoding = THREE.sRGBEncoding;
+                        cometTextures.push(texture);
+                        texturesLoaded++;
+                        if (texturesLoaded === cometTexturePaths.length) {
+                            initComets();
                         }
-                    );
+                    });
                 });
     
                 // -------------------------------
@@ -797,16 +787,39 @@
                 );
                 composer.addPass(glarePass);
     
+                // Motion Blur ShaderPass
+                const MotionBlurShader = {
+                    uniforms: {
+                        "tDiffuse": { value: null },
+                        "delta": { value: 0.002 },
+                    },
+                    vertexShader: `
+                        varying vec2 vUv;
+                        void main() {
+                            vUv = uv;
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+                        }
+                    `,
+                    fragmentShader: `
+                        uniform sampler2D tDiffuse;
+                        uniform float delta;
+                        varying vec2 vUv;
+                        void main() {
+                            vec4 current = texture2D(tDiffuse, vUv);
+                            vec4 previous = texture2D(tDiffuse, vUv - vec2(delta, delta));
+                            gl_FragColor = mix(current, previous, 0.5);
+                        }
+                    `
+                };
+    
+                const motionBlurPass = new THREE.ShaderPass(MotionBlurShader);
+                composer.addPass(motionBlurPass);
+    
                 // -------------------------------
                 // Comet Class and Initialization
                 // -------------------------------
                 class Comet {
-                    /**
-                     * Creates a new Comet instance.
-                     * @param {THREE.Texture} texture - The texture for the comet sprite.
-                     * @param {number} rotationOffset - The rotation offset in radians to align the sprite's head with movement.
-                     */
-                    constructor(texture, rotationOffset = -Math.PI * 3 / 4) { // -135 degrees
+                    constructor(texture) {
                         const material = new THREE.SpriteMaterial({
                             map: texture,
                             transparent: true,
@@ -814,62 +827,78 @@
                             depthWrite: false,
                         });
                         this.sprite = new THREE.Sprite(material);
-                        this.rotationOffset = rotationOffset; // Store the rotation offset
                         this.reset();
                         scene.add(this.sprite);
                     }
     
-                    /**
-                     * Resets the comet's position, velocity, and rotation.
-                     */
                     reset() {
-                        // Spawn only from the top right quadrant
-                        const spawnX = Math.random() * 800 + 200; // x from 200 to 1000
-                        const spawnY = Math.random() * 800 + 200; // y from 200 to 1000
-                        const spawnZ = (Math.random() - 0.5) * 3000; // z from -1500 to 1500
-    
-                        this.sprite.position.set(spawnX, spawnY, spawnZ);
-    
-                        // Set velocity towards bottom left with some variation
-                        const velocityX = - (Math.random() * 2 + 1); // x negative
-                        const velocityY = - (Math.random() * 2 + 1); // y negative
-                        const velocityZ = Math.random() * -3; // z negative (moving away from camera)
-    
-                        this.velocity = new THREE.Vector3(velocityX, velocityY, velocityZ);
+                        // Initialize position at a random edge
+                        const edge = Math.floor(Math.random() * 4);
+                        switch (edge) {
+                            case 0: // Top
+                                this.sprite.position.set(
+                                    (Math.random() - 0.5) * 1000,
+                                    500,
+                                    (Math.random() - 0.5) * 3000
+                                );
+                                this.velocity = new THREE.Vector3(
+                                    (Math.random() - 0.5) * 2,
+                                    -Math.random() * 5 - 2,
+                                    Math.random() * -5
+                                );
+                                break;
+                            case 1: // Bottom
+                                this.sprite.position.set(
+                                    (Math.random() - 0.5) * 1000,
+                                    -500,
+                                    (Math.random() - 0.5) * 3000
+                                );
+                                this.velocity = new THREE.Vector3(
+                                    (Math.random() - 0.5) * 2,
+                                    Math.random() * 5 + 2,
+                                    Math.random() * -5
+                                );
+                                break;
+                            case 2: // Left
+                                this.sprite.position.set(
+                                    -1000,
+                                    (Math.random() - 0.5) * 1000,
+                                    (Math.random() - 0.5) * 3000
+                                );
+                                this.velocity = new THREE.Vector3(
+                                    Math.random() * 5 + 2,
+                                    (Math.random() - 0.5) * 2,
+                                    Math.random() * -5
+                                );
+                                break;
+                            case 3: // Right
+                                this.sprite.position.set(
+                                    1000,
+                                    (Math.random() - 0.5) * 1000,
+                                    (Math.random() - 0.5) * 3000
+                                );
+                                this.velocity = new THREE.Vector3(
+                                    -Math.random() * 5 - 2,
+                                    (Math.random() - 0.5) * 2,
+                                    Math.random() * -5
+                                );
+                                break;
+                        }
     
                         // Randomly select a texture
                         const textureIndex = Math.floor(Math.random() * cometTextures.length);
                         this.sprite.material.map = cometTextures[textureIndex];
                         this.sprite.scale.set(20, 20, 1);
     
-                        // Ensure the sprite faces the direction of movement
-                        this.updateRotation();
-    
                         // Lifespan
                         this.lifespan = 1000; // Frames or time units
                     }
     
-                    /**
-                     * Updates the rotation of the comet sprite to face its movement direction.
-                     */
-                    updateRotation() {
-                        // Calculate the angle based on velocity
-                        const angle = Math.atan2(this.velocity.y, this.velocity.x);
-                        this.sprite.rotation.z = angle + this.rotationOffset; // Apply rotation offset
-                    }
-    
-                    /**
-                     * Updates the comet's position and rotation.
-                     * @param {number} delta - The time delta since the last frame.
-                     */
                     update(delta) {
                         this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
                         this.lifespan -= delta;
                         if (this.lifespan <= 0) {
                             this.reset();
-                        } else {
-                            // Update rotation in case velocity changes
-                            this.updateRotation();
                         }
                     }
                 }
@@ -877,25 +906,18 @@
                 const cometPool = [];
                 const maxComets = 10;
     
-                /**
-                 * Initializes the comet pool and starts spawning comets.
-                 */
                 function initComets() {
                     // Initialize comets
                     for (let i = 0; i < maxComets; i++) {
                         const texture = cometTextures[Math.floor(Math.random() * cometTextures.length)];
-                        // Assuming the sprite's head points upwards, use default rotationOffset
                         const comet = new Comet(texture);
                         cometPool.push(comet);
                     }
     
                     // Spawn comets at random intervals
-                    setInterval(spawnComet, 2000); // Every 2 seconds
+                    setInterval(spawnComet, 2000);
                 }
     
-                /**
-                 * Spawns a comet from the pool if available.
-                 */
                 const spawnComet = () => {
                     const availableComet = cometPool.find(comet => comet.lifespan <= 0);
                     if (availableComet) {
@@ -908,9 +930,6 @@
                 // -------------------------------
                 const clock = new THREE.Clock();
     
-                /**
-                 * The main animation loop.
-                 */
                 const animateLoop = () => {
                     requestAnimationFrame(animateLoop);
     
@@ -932,17 +951,11 @@
                 let mouseX = 0;
                 let mouseY = 0;
     
-                /**
-                 * Updates mouseX and mouseY based on mouse movement.
-                 */
                 document.addEventListener('mousemove', (event) => {
                     mouseX = (event.clientX - window.innerWidth / 2) * 0.005;
                     mouseY = (event.clientY - window.innerHeight / 2) * 0.005;
                 });
     
-                /**
-                 * Applies a slight movement to the camera and canvas based on mouse position for a parallax effect.
-                 */
                 const updateCanvasPosition = () => {
                     // Apply slight movement to camera for parallax effect
                     camera.position.x += (mouseX - camera.position.x) * 0.05;
@@ -953,9 +966,6 @@
                     canvas.style.transform = `translate(${mouseX * 1.5}px, ${mouseY * 1.5}px)`;
                 };
     
-                /**
-                 * The animation loop for mouse interaction.
-                 */
                 const animateWithMouseInteraction = () => {
                     requestAnimationFrame(animateWithMouseInteraction);
                     updateCanvasPosition();
@@ -976,7 +986,6 @@
                 });
             });
         </script>
-
 
 
     </body>
