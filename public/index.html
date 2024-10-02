@@ -716,11 +716,13 @@
                     0.1, 
                     20000 // Far plane
                 );
-                camera.position.set(0, 0, 500); // Zoomed out position
+                camera.position.set(0, 0, 1000); // Zoomed out position
                 camera.lookAt(new THREE.Vector3(0, 0, 0));
     
-                // Function to calculate the visible size at a specific z-depth
-                function getViewSizeAtZ(z) {
+                // -------------------------------
+                // Function to Calculate Frustum Size at a Given Z
+                // -------------------------------
+                function getFrustumSizeAtZ(z) {
                     const vFOV = THREE.MathUtils.degToRad(camera.fov); // vertical field of view in radians
                     const distance = Math.abs(z - camera.position.z);
                     const height = 2 * distance * Math.tan(vFOV / 2);
@@ -750,7 +752,7 @@
                 const starCount = 3000;
                 const starVertices = new Float32Array(starCount * 3);
                 for (let i = 0; i < starCount * 3; i++) {
-                    starVertices[i] = (Math.random() - 0.5) * 10000; // Increased spread for depth
+                    starVertices[i] = (Math.random() - 0.5) * 20000; // Increased spread for depth
                 }
                 starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
     
@@ -790,7 +792,7 @@
                         this.mesh = new THREE.Mesh(cometGeometry.clone(), this.material);
     
                         // Set Initial Random Size
-                        const sizeFactor = Math.random() * 50 + 20; // Random size between 20 and 70
+                        const sizeFactor = THREE.MathUtils.randFloat(20, 70); // Random size between 20 and 70
                         this.mesh.scale.set(sizeFactor, sizeFactor / 2, 1);
     
                         // Initialize Position and Velocity
@@ -800,23 +802,22 @@
                     }
     
                     reset() {
-                        const spawnZ = -800; // Fixed Z position
+                        const spawnZ = camera.position.z - 1300; // Spawn 1300 units in front of the camera
     
-                        // Calculate visible size at spawnZ
-                        const viewSize = getViewSizeAtZ(spawnZ);
+                        // Calculate frustum size at spawnZ
+                        const viewSize = getFrustumSizeAtZ(spawnZ);
     
                         // Define spawn area within top-right quadrant
-                        // Adjust these fractions as needed to fine-tune spawn area
-                        const spawnWidthStart = viewSize.width * 0.3; // 30% from center to right
-                        const spawnWidthEnd = viewSize.width * 0.5;   // 50% from center to right
-                        const spawnHeightStart = viewSize.height * 0.2; // 20% from top
-                        const spawnHeightEnd = viewSize.height * 0.4;   // 40% from top
+                        // SpawnX: 30% to 50% of the frustum width (right side)
+                        // SpawnY: 30% to 50% of the frustum height (top side)
+                        const spawnXMin = viewSize.width * 0.3 - viewSize.width / 2;
+                        const spawnXMax = viewSize.width * 0.5 - viewSize.width / 2;
+                        const spawnYMin = viewSize.height * 0.3 - viewSize.height / 2;
+                        const spawnYMax = viewSize.height * 0.5 - viewSize.height / 2;
     
-                        // Randomly generate spawnX and spawnY within the defined spawn area
-                        const spawnX = THREE.MathUtils.randFloat(spawnWidthStart, spawnWidthEnd);
-                        const spawnY = THREE.MathUtils.randFloat(spawnHeightStart, spawnHeightEnd);
+                        const spawnX = THREE.MathUtils.randFloat(spawnXMin, spawnXMax);
+                        const spawnY = THREE.MathUtils.randFloat(spawnYMin, spawnYMax);
     
-                        // Set position
                         this.mesh.position.set(spawnX, spawnY, spawnZ);
     
                         // Define a fixed velocity vector for strict diagonal movement to bottom-left
@@ -832,11 +833,11 @@
                         this.mesh.position.add(this.velocity);
     
                         // Calculate distance traveled towards bottom-left (arbitrary far point)
-                        const targetPosition = new THREE.Vector3(-10000, -10000, -800); // Far bottom-left
+                        const targetPosition = new THREE.Vector3(-10000, -10000, this.mesh.position.z); // Far bottom-left
                         const distanceTraveled = this.mesh.position.distanceTo(targetPosition);
     
                         // Total distance from start to end (approximate)
-                        const totalDistance = Math.sqrt(Math.pow(10000 + 100, 2) + Math.pow(10000 + 100, 2)); // Increased for longer flight
+                        const totalDistance = Math.sqrt(Math.pow(10000 + Math.abs(this.mesh.position.x), 2) + Math.pow(10000 + Math.abs(this.mesh.position.y), 2)); // Increased for longer flight
     
                         // Calculate opacity based on distance traveled
                         const fadeStartDistance = totalDistance * 0.8; // Start fading after 80% of the journey
@@ -846,7 +847,11 @@
                         }
     
                         // Reset the comet once it moves out of the screen bounds
-                        if (this.mesh.position.x < -1000 || this.mesh.position.y < -1000) { // Far beyond visible area
+                        const frustumSize = getFrustumSizeAtZ(this.mesh.position.z);
+                        if (
+                            this.mesh.position.x < -frustumSize.width / 2 ||
+                            this.mesh.position.y < -frustumSize.height / 2
+                        ) {
                             this.reset();
                         }
                     }
