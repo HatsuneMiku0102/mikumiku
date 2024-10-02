@@ -761,8 +761,8 @@
                     // Set the direction vector for each comet
                     comet.direction = new THREE.Vector3(-1, -0.7, 0).normalize(); // Diagonal down-left direction
         
-                    // Calculate the rotation required to point in the direction of motion
-                    comet.rotation.z = Math.atan2(comet.direction.y, comet.direction.x);
+                    // Calculate the rotation required to point in the direction of motion and flip by 180 degrees
+                    comet.rotation.z = Math.atan2(comet.direction.y, comet.direction.x) + Math.PI;
         
                     scene.add(comet);
                     comets.push(comet);
@@ -775,9 +775,9 @@
         
                 const bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    1.5,
-                    0.4,
-                    0.85
+                    1.5, // strength
+                    0.4, // radius
+                    0.85 // threshold
                 );
                 composer.addPass(bloomPass);
         
@@ -800,15 +800,13 @@
                             const newSizeFactor = Math.random() * 50 + 20; // Reset size with new random values
                             comet.scale.set(newSizeFactor, newSizeFactor / 2, 1);
         
-                            // Optionally, update direction and rotation if direction changes
-                            // For fixed direction, this part can be omitted
-                            // comet.direction = new THREE.Vector3(-1, -0.7, 0).normalize();
-                            // comet.rotation.z = Math.atan2(comet.direction.y, comet.direction.x);
+                            // Reset rotation to ensure it points towards bottom left
+                            comet.rotation.z = Math.atan2(comet.direction.y, comet.direction.x) + Math.PI;
                         }
         
-                        // Ensure rotation aligns with direction (redundant if direction is fixed)
-                        // Uncomment if direction might change dynamically
-                        // comet.rotation.z = Math.atan2(comet.direction.y, comet.direction.x);
+                        // If direction changes dynamically in the future, update rotation here
+                        // For fixed direction, this step can be omitted
+                        // comet.rotation.z = Math.atan2(comet.direction.y, comet.direction.x) + Math.PI;
                     });
         
                     // Render with Post-Processing
