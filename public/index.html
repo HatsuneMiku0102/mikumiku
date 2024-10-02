@@ -764,17 +764,19 @@
                     const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
     
                     // Set initial random values for each comet to start from top-right area
-                    const sizeFactor = Math.random() * 50 + 20; // Random size
+                    const sizeFactor = Math.random() * 50 + 20; // Random size between 20 and 70
                     comet.scale.set(sizeFactor, sizeFactor / 2, 1);
                     comet.position.set(Math.random() * 500 + 800, Math.random() * 500 + 300, -800);
-                    comet.speed = Math.random() * 3.0 + 2.0;  // Speed increase for dynamic effect
+                    comet.speed = Math.random() * 3.0 + 2.0;  // Speed between 2.0 and 5.0
     
                     // Define velocity vector (moving diagonally down-left)
                     comet.velocity = new THREE.Vector3(-comet.speed, -comet.speed * 0.7, 0);
     
                     // Calculate rotation based on velocity
                     const angle = Math.atan2(comet.velocity.y, comet.velocity.x);
-                    comet.rotation.z = angle;
+                    // Adjust rotation to align the comet's head with the movement direction
+                    // Assuming the comet's head is initially pointing upwards (positive Y-axis)
+                    comet.rotation.z = angle - Math.PI / 2;
     
                     scene.add(comet);
                     comets.push(comet);
@@ -789,9 +791,9 @@
     
                 const bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    1.5,
-                    0.4,
-                    0.85
+                    1.5, // strength
+                    0.4, // radius
+                    0.85 // threshold
                 );
                 composer.addPass(bloomPass);
     
@@ -806,8 +808,8 @@
     
                     // Animate Comets with Realistic Diagonal Path
                     comets.forEach(comet => {
-                        comet.position.x += comet.velocity.x;
-                        comet.position.y += comet.velocity.y;
+                        // Move comet based on its velocity vector
+                        comet.position.add(comet.velocity);
     
                         // Check if comet is out of bounds and reset if necessary
                         if (comet.position.x < -1600 || comet.position.y < -800) {
@@ -822,7 +824,7 @@
     
                             // Recalculate rotation based on new velocity
                             const newAngle = Math.atan2(comet.velocity.y, comet.velocity.x);
-                            comet.rotation.z = newAngle;
+                            comet.rotation.z = newAngle - Math.PI / 2;
                         }
                     });
     
