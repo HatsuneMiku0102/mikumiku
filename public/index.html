@@ -768,20 +768,23 @@
                     }
     
                     reset() {
-                        // Convert screen coordinates to Three.js world coordinates
-                        const aspect = window.innerWidth / window.innerHeight;
-                        const frustumHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * Math.abs(camera.position.z);
-                        const frustumWidth = frustumHeight * aspect;
+                        // Calculate distance between camera and comet's z-position
+                        const cometZ = -800;
+                        const distance = Math.abs(camera.position.z - cometZ); // 200 - (-800) = 1000
+    
+                        // Calculate frustum dimensions based on distance
+                        const frustumHeight = 2 * distance * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+                        const frustumWidth = frustumHeight * (window.innerWidth / window.innerHeight);
     
                         // Define a small spawning area near the top-right corner
                         const spawnAreaWidth = frustumWidth * 0.1;  // 10% of frustum width
                         const spawnAreaHeight = frustumHeight * 0.1; // 10% of frustum height
     
                         // Start slightly outside the top-right edges within the spawn area
-                        const offset = 50; // Extra distance to start off-screen
+                        const offset = 100; // Extra distance to start off-screen
                         const startX = (frustumWidth / 2) - (spawnAreaWidth / 2) + Math.random() * spawnAreaWidth + offset; // Near top-right
                         const startY = (frustumHeight / 2) - (spawnAreaHeight / 2) + Math.random() * spawnAreaHeight + offset; // Near top-right
-                        this.mesh.position.set(startX, startY, -800); // Positioned deeper into the scene
+                        this.mesh.position.set(startX, startY, cometZ); // Positioned deeper into the scene
     
                         // Define a fixed velocity vector for strict diagonal movement to bottom-left
                         const speed = THREE.MathUtils.randFloat(1.0, 3.0); // Speed between 1 and 3
@@ -795,7 +798,7 @@
                         // Update position based on velocity
                         this.mesh.position.add(this.velocity);
     
-                        // Calculate distance traveled towards bottom-left
+                        // Calculate distance traveled towards bottom-left (arbitrary far point)
                         const targetPosition = new THREE.Vector3(-10000, -10000, -800); // Far bottom-left
                         const distanceTraveled = this.mesh.position.distanceTo(targetPosition);
     
