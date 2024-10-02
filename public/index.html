@@ -762,21 +762,24 @@
                         side: THREE.DoubleSide,
                     });
                     const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
-        
+                
                     // Set initial random values for each comet to start from the top-right area
                     const sizeFactor = Math.random() * 50 + 20; // Random size between 20 and 70
                     comet.scale.set(sizeFactor, sizeFactor / 2, 1);
                     comet.position.set(Math.random() * 500 + 800, Math.random() * 500 + 300, -800);
                     comet.speed = Math.random() * 3.0 + 2.0;  // Speed between 2.0 and 5.0
-        
+                
                     // Define velocity vector (moving diagonally down-left)
                     comet.velocity = new THREE.Vector3(-comet.speed, -comet.speed * 0.7, 0);
-        
+                
                     // Calculate rotation based on velocity vector
-                    // Use the angle directly without additional adjustment
-                    const angle = Math.atan2(comet.velocity.y, comet.velocity.x);
+                    let angle = Math.atan2(comet.velocity.y, comet.velocity.x);
+                
+                    // Flip the comet image 180 degrees if necessary
+                    angle += Math.PI;
+                
                     comet.rotation.z = angle;
-        
+                
                     // Add comet to the scene
                     scene.add(comet);
                     comets.push(comet);
@@ -808,23 +811,24 @@
         
                     // Animate Comets with Realistic Diagonal Path
                     comets.forEach(comet => {
-                        // Move comet based on its velocity vector
                         comet.position.add(comet.velocity);
-        
-                        // Check if comet is out of bounds and reset if necessary
+                    
                         if (comet.position.x < -1600 || comet.position.y < -800) {
-                            // Reset comet to start from the top-right area again
                             comet.position.set(Math.random() * 500 + 800, Math.random() * 500 + 300, -800);
                             comet.speed = Math.random() * 3.0 + 2.0;  // Reset speed for variation
                             comet.velocity.set(-comet.speed, -comet.speed * 0.7, 0); // Update velocity
-        
+                    
+                            // Recalculate rotation based on new velocity
+                            let newAngle = Math.atan2(comet.velocity.y, comet.velocity.x);
+                    
+                            // Flip the comet image 180 degrees if necessary
+                            newAngle += Math.PI;
+                    
+                            comet.rotation.z = newAngle;
+                    
                             // Reset size with new random values
                             const newSizeFactor = Math.random() * 50 + 20;
                             comet.scale.set(newSizeFactor, newSizeFactor / 2, 1);
-        
-                            // Recalculate rotation based on new velocity
-                            const newAngle = Math.atan2(comet.velocity.y, comet.velocity.x);
-                            comet.rotation.z = newAngle;
                         }
                     });
         
