@@ -720,6 +720,8 @@
                 const textureLoader = new THREE.TextureLoader();
                 textureLoader.load('/textures/nebula.webp', (texture) => {
                     scene.background = texture;
+                }, undefined, (error) => {
+                    console.error('Error loading nebula texture:', error);
                 });
     
                 // -------------------------------
@@ -766,7 +768,7 @@
                         },
                         undefined,
                         (error) => {
-                            console.error(`Failed to load texture: ${path}`, error);
+                            console.error(`Failed to load comet texture: ${path}`, error);
                         }
                     );
                 });
@@ -799,7 +801,12 @@
                 // Comet Class and Initialization
                 // -------------------------------
                 class Comet {
-                    constructor(texture, rotationOffset = -Math.PI / 2) { // Default offset for upward-pointing sprites
+                    /**
+                     * Creates a new Comet instance.
+                     * @param {THREE.Texture} texture - The texture for the comet sprite.
+                     * @param {number} rotationOffset - The rotation offset in radians to align the sprite's head with movement.
+                     */
+                    constructor(texture, rotationOffset = -Math.PI * 3 / 4) { // -135 degrees
                         const material = new THREE.SpriteMaterial({
                             map: texture,
                             transparent: true,
@@ -812,59 +819,23 @@
                         scene.add(this.sprite);
                     }
     
+                    /**
+                     * Resets the comet's position, velocity, and rotation.
+                     */
                     reset() {
-                        // Initialize position at a random edge
-                        const edge = Math.floor(Math.random() * 4);
-                        switch (edge) {
-                            case 0: // Top
-                                this.sprite.position.set(
-                                    (Math.random() - 0.5) * 1000,
-                                    500,
-                                    (Math.random() - 0.5) * 3000
-                                );
-                                this.velocity = new THREE.Vector3(
-                                    (Math.random() - 0.5) * 2,
-                                    -Math.random() * 5 - 2,
-                                    Math.random() * -5
-                                );
-                                break;
-                            case 1: // Bottom
-                                this.sprite.position.set(
-                                    (Math.random() - 0.5) * 1000,
-                                    -500,
-                                    (Math.random() - 0.5) * 3000
-                                );
-                                this.velocity = new THREE.Vector3(
-                                    (Math.random() - 0.5) * 2,
-                                    Math.random() * 5 + 2,
-                                    Math.random() * -5
-                                );
-                                break;
-                            case 2: // Left
-                                this.sprite.position.set(
-                                    -1000,
-                                    (Math.random() - 0.5) * 1000,
-                                    (Math.random() - 0.5) * 3000
-                                );
-                                this.velocity = new THREE.Vector3(
-                                    Math.random() * 5 + 2,
-                                    (Math.random() - 0.5) * 2,
-                                    Math.random() * -5
-                                );
-                                break;
-                            case 3: // Right
-                                this.sprite.position.set(
-                                    1000,
-                                    (Math.random() - 0.5) * 1000,
-                                    (Math.random() - 0.5) * 3000
-                                );
-                                this.velocity = new THREE.Vector3(
-                                    -Math.random() * 5 - 2,
-                                    (Math.random() - 0.5) * 2,
-                                    Math.random() * -5
-                                );
-                                break;
-                        }
+                        // Spawn only from the top right quadrant
+                        const spawnX = Math.random() * 800 + 200; // x from 200 to 1000
+                        const spawnY = Math.random() * 800 + 200; // y from 200 to 1000
+                        const spawnZ = (Math.random() - 0.5) * 3000; // z from -1500 to 1500
+    
+                        this.sprite.position.set(spawnX, spawnY, spawnZ);
+    
+                        // Set velocity towards bottom left with some variation
+                        const velocityX = - (Math.random() * 2 + 1); // x negative
+                        const velocityY = - (Math.random() * 2 + 1); // y negative
+                        const velocityZ = Math.random() * -3; // z negative (moving away from camera)
+    
+                        this.velocity = new THREE.Vector3(velocityX, velocityY, velocityZ);
     
                         // Randomly select a texture
                         const textureIndex = Math.floor(Math.random() * cometTextures.length);
@@ -878,12 +849,19 @@
                         this.lifespan = 1000; // Frames or time units
                     }
     
+                    /**
+                     * Updates the rotation of the comet sprite to face its movement direction.
+                     */
                     updateRotation() {
                         // Calculate the angle based on velocity
                         const angle = Math.atan2(this.velocity.y, this.velocity.x);
                         this.sprite.rotation.z = angle + this.rotationOffset; // Apply rotation offset
                     }
     
+                    /**
+                     * Updates the comet's position and rotation.
+                     * @param {number} delta - The time delta since the last frame.
+                     */
                     update(delta) {
                         this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
                         this.lifespan -= delta;
@@ -899,6 +877,9 @@
                 const cometPool = [];
                 const maxComets = 10;
     
+                /**
+                 * Initializes the comet pool and starts spawning comets.
+                 */
                 function initComets() {
                     // Initialize comets
                     for (let i = 0; i < maxComets; i++) {
@@ -909,9 +890,12 @@
                     }
     
                     // Spawn comets at random intervals
-                    setInterval(spawnComet, 2000);
+                    setInterval(spawnComet, 2000); // Every 2 seconds
                 }
     
+                /**
+                 * Spawns a comet from the pool if available.
+                 */
                 const spawnComet = () => {
                     const availableComet = cometPool.find(comet => comet.lifespan <= 0);
                     if (availableComet) {
@@ -924,6 +908,9 @@
                 // -------------------------------
                 const clock = new THREE.Clock();
     
+                /**
+                 * The main animation loop.
+                 */
                 const animateLoop = () => {
                     requestAnimationFrame(animateLoop);
     
@@ -945,11 +932,17 @@
                 let mouseX = 0;
                 let mouseY = 0;
     
+                /**
+                 * Updates mouseX and mouseY based on mouse movement.
+                 */
                 document.addEventListener('mousemove', (event) => {
                     mouseX = (event.clientX - window.innerWidth / 2) * 0.005;
                     mouseY = (event.clientY - window.innerHeight / 2) * 0.005;
                 });
     
+                /**
+                 * Applies a slight movement to the camera and canvas based on mouse position for a parallax effect.
+                 */
                 const updateCanvasPosition = () => {
                     // Apply slight movement to camera for parallax effect
                     camera.position.x += (mouseX - camera.position.x) * 0.05;
@@ -960,6 +953,9 @@
                     canvas.style.transform = `translate(${mouseX * 1.5}px, ${mouseY * 1.5}px)`;
                 };
     
+                /**
+                 * The animation loop for mouse interaction.
+                 */
                 const animateWithMouseInteraction = () => {
                     requestAnimationFrame(animateWithMouseInteraction);
                     updateCanvasPosition();
