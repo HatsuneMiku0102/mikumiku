@@ -694,127 +694,298 @@
             fetchWeather();
         </script>
 
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // -------------------------------
-        // Renderer Setup
-        // -------------------------------
-        const canvas = document.getElementById('techCanvas');
-        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.outputEncoding = THREE.sRGBEncoding;
-
-        // Adjust the exposure to prevent excessive brightness
-        renderer.toneMappingExposure = 0.8;
-
-        // -------------------------------
-        // Scene and Camera Setup
-        // -------------------------------
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
-        camera.position.z = 300;
-
-        // Static Background - Nebula
-        const textureLoader = new THREE.TextureLoader();
-        textureLoader.load('/textures/nebula.webp', (texture) => {
-            scene.background = texture;
-        });
-
-        // -------------------------------
-        // Stars Geometry for Depth Effect
-        // -------------------------------
-        const starGeometry = new THREE.BufferGeometry();
-        const starCount = 3000;
-        const starVertices = new Float32Array(starCount * 3);
-        for (let i = 0; i < starCount * 3; i++) {
-            starVertices[i] = (Math.random() - 0.5) * 3000;
-        }
-        starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
-
-        const starMaterial = new THREE.PointsMaterial({
-            size: 1.5,
-            color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, 90%)`),
-            transparent: true,
-            opacity: 0.7,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-        });
-
-        const stars = new THREE.Points(starGeometry, starMaterial);
-        scene.add(stars);
-
-        // -------------------------------
-        // Post-processing with Bloom for a Glowing Effect
-        // -------------------------------
-        const composer = new THREE.EffectComposer(renderer);
-        const renderPass = new THREE.RenderPass(scene, camera);
-        composer.addPass(renderPass);
-
-        const bloomPass = new THREE.UnrealBloomPass(
-            new THREE.Vector2(window.innerWidth, window.innerHeight),
-            1.2, // Reduced bloom strength to minimize background over-brightness
-            0.8, // Radius for more focused bloom
-            0.6  // Bloom threshold
-        );
-        composer.addPass(bloomPass);
-
-        // -------------------------------
-        // Animate
-        // -------------------------------
-        const animate = () => {
-            requestAnimationFrame(animate);
-
-            // Twinkling stars effect
-            starMaterial.opacity = 0.7 + Math.sin(Date.now() * 0.001) * 0.1;
-
-            // Render with Post-Processing
-            composer.render();
-        };
-
-        // -------------------------------
-        // Mouse Move Interaction - Canvas and Camera Shake Effect
-        // -------------------------------
-        let mouseX = 0;
-        let mouseY = 0;
-
-        document.addEventListener('mousemove', (event) => {
-            mouseX = (event.clientX - window.innerWidth / 2) * 0.005;
-            mouseY = (event.clientY - window.innerHeight / 2) * 0.005;
-        });
-
-        const updateCanvasPosition = () => {
-            // Apply slight movement to camera for parallax effect
-            camera.position.x += (mouseX - camera.position.x) * 0.05;
-            camera.position.y += (mouseY - camera.position.y) * 0.05;
-            camera.lookAt(scene.position);
-
-            // Apply slight movement to renderer to simulate entire canvas movement
-            canvas.style.transform = `translate(${mouseX * 1.5}px, ${mouseY * 1.5}px)`;
-        };
-
-        const animateWithMouseInteraction = () => {
-            requestAnimationFrame(animateWithMouseInteraction);
-            updateCanvasPosition();
-        };
-
-        // Start Animations
-        animate();
-        animateWithMouseInteraction();
-
-        // -------------------------------
-        // Handle Window Resize
-        // -------------------------------
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            composer.setSize(window.innerWidth, window.innerHeight);
-        });
-    });
-</script>
-
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                // -------------------------------
+                // Renderer Setup
+                // -------------------------------
+                const canvas = document.getElementById('techCanvas');
+                const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                renderer.outputEncoding = THREE.sRGBEncoding;
+    
+                // Adjust the exposure to prevent excessive brightness
+                renderer.toneMappingExposure = 0.8;
+    
+                // -------------------------------
+                // Scene and Camera Setup
+                // -------------------------------
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
+                camera.position.z = 300;
+    
+                // Static Background - Nebula
+                const textureLoader = new THREE.TextureLoader();
+                textureLoader.load('/textures/nebula.webp', (texture) => {
+                    scene.background = texture;
+                });
+    
+                // -------------------------------
+                // Stars Geometry for Depth Effect
+                // -------------------------------
+                const starGeometry = new THREE.BufferGeometry();
+                const starCount = 3000;
+                const starVertices = new Float32Array(starCount * 3);
+                for (let i = 0; i < starCount * 3; i++) {
+                    starVertices[i] = (Math.random() - 0.5) * 3000;
+                }
+                starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
+    
+                const starMaterial = new THREE.PointsMaterial({
+                    size: 1.5,
+                    color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, 90%)`),
+                    transparent: true,
+                    opacity: 0.7,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false,
+                });
+    
+                const stars = new THREE.Points(starGeometry, starMaterial);
+                scene.add(stars);
+    
+                // -------------------------------
+                // Load Comet Textures
+                // -------------------------------
+                const cometTextures = [];
+                const cometTexturePaths = ['/textures/comet1.png', '/textures/comet2.png'];
+                let texturesLoaded = 0;
+    
+                cometTexturePaths.forEach((path) => {
+                    textureLoader.load(path, (texture) => {
+                        texture.encoding = THREE.sRGBEncoding;
+                        cometTextures.push(texture);
+                        texturesLoaded++;
+                        if (texturesLoaded === cometTexturePaths.length) {
+                            initComets();
+                        }
+                    });
+                });
+    
+                // -------------------------------
+                // Post-processing with Bloom and Glare for a Glowing Effect
+                // -------------------------------
+                const composer = new THREE.EffectComposer(renderer);
+                const renderPass = new THREE.RenderPass(scene, camera);
+                composer.addPass(renderPass);
+    
+                const bloomPass = new THREE.UnrealBloomPass(
+                    new THREE.Vector2(window.innerWidth, window.innerHeight),
+                    1.2, // strength
+                    0.8, // radius
+                    0.6  // threshold
+                );
+                composer.addPass(bloomPass);
+    
+                // Glare Pass (using another BloomPass for simplicity)
+                const glarePass = new THREE.UnrealBloomPass(
+                    new THREE.Vector2(window.innerWidth, window.innerHeight),
+                    0.5, // strength
+                    0.4, // radius
+                    0.3  // threshold
+                );
+                composer.addPass(glarePass);
+    
+                // Motion Blur ShaderPass
+                const MotionBlurShader = {
+                    uniforms: {
+                        "tDiffuse": { value: null },
+                        "delta": { value: 0.002 },
+                    },
+                    vertexShader: `
+                        varying vec2 vUv;
+                        void main() {
+                            vUv = uv;
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+                        }
+                    `,
+                    fragmentShader: `
+                        uniform sampler2D tDiffuse;
+                        uniform float delta;
+                        varying vec2 vUv;
+                        void main() {
+                            vec4 current = texture2D(tDiffuse, vUv);
+                            vec4 previous = texture2D(tDiffuse, vUv - vec2(delta, delta));
+                            gl_FragColor = mix(current, previous, 0.5);
+                        }
+                    `
+                };
+    
+                const motionBlurPass = new THREE.ShaderPass(MotionBlurShader);
+                composer.addPass(motionBlurPass);
+    
+                // -------------------------------
+                // Comet Class and Initialization
+                // -------------------------------
+                class Comet {
+                    constructor(texture) {
+                        const material = new THREE.SpriteMaterial({
+                            map: texture,
+                            transparent: true,
+                            blending: THREE.AdditiveBlending,
+                            depthWrite: false,
+                        });
+                        this.sprite = new THREE.Sprite(material);
+                        this.reset();
+                        scene.add(this.sprite);
+                    }
+    
+                    reset() {
+                        // Initialize position at a random edge
+                        const edge = Math.floor(Math.random() * 4);
+                        switch (edge) {
+                            case 0: // Top
+                                this.sprite.position.set(
+                                    (Math.random() - 0.5) * 1000,
+                                    500,
+                                    (Math.random() - 0.5) * 3000
+                                );
+                                this.velocity = new THREE.Vector3(
+                                    (Math.random() - 0.5) * 2,
+                                    -Math.random() * 5 - 2,
+                                    Math.random() * -5
+                                );
+                                break;
+                            case 1: // Bottom
+                                this.sprite.position.set(
+                                    (Math.random() - 0.5) * 1000,
+                                    -500,
+                                    (Math.random() - 0.5) * 3000
+                                );
+                                this.velocity = new THREE.Vector3(
+                                    (Math.random() - 0.5) * 2,
+                                    Math.random() * 5 + 2,
+                                    Math.random() * -5
+                                );
+                                break;
+                            case 2: // Left
+                                this.sprite.position.set(
+                                    -1000,
+                                    (Math.random() - 0.5) * 1000,
+                                    (Math.random() - 0.5) * 3000
+                                );
+                                this.velocity = new THREE.Vector3(
+                                    Math.random() * 5 + 2,
+                                    (Math.random() - 0.5) * 2,
+                                    Math.random() * -5
+                                );
+                                break;
+                            case 3: // Right
+                                this.sprite.position.set(
+                                    1000,
+                                    (Math.random() - 0.5) * 1000,
+                                    (Math.random() - 0.5) * 3000
+                                );
+                                this.velocity = new THREE.Vector3(
+                                    -Math.random() * 5 - 2,
+                                    (Math.random() - 0.5) * 2,
+                                    Math.random() * -5
+                                );
+                                break;
+                        }
+    
+                        // Randomly select a texture
+                        const textureIndex = Math.floor(Math.random() * cometTextures.length);
+                        this.sprite.material.map = cometTextures[textureIndex];
+                        this.sprite.scale.set(20, 20, 1);
+    
+                        // Lifespan
+                        this.lifespan = 1000; // Frames or time units
+                    }
+    
+                    update(delta) {
+                        this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
+                        this.lifespan -= delta;
+                        if (this.lifespan <= 0) {
+                            this.reset();
+                        }
+                    }
+                }
+    
+                const cometPool = [];
+                const maxComets = 10;
+    
+                function initComets() {
+                    // Initialize comets
+                    for (let i = 0; i < maxComets; i++) {
+                        const texture = cometTextures[Math.floor(Math.random() * cometTextures.length)];
+                        const comet = new Comet(texture);
+                        cometPool.push(comet);
+                    }
+    
+                    // Spawn comets at random intervals
+                    setInterval(spawnComet, 2000);
+                }
+    
+                const spawnComet = () => {
+                    const availableComet = cometPool.find(comet => comet.lifespan <= 0);
+                    if (availableComet) {
+                        availableComet.reset();
+                    }
+                };
+    
+                // -------------------------------
+                // Animate
+                // -------------------------------
+                const clock = new THREE.Clock();
+    
+                const animateLoop = () => {
+                    requestAnimationFrame(animateLoop);
+    
+                    const delta = clock.getDelta();
+    
+                    // Twinkling stars effect
+                    starMaterial.opacity = 0.7 + Math.sin(Date.now() * 0.001) * 0.1;
+    
+                    // Update comets
+                    cometPool.forEach(comet => comet.update(delta * 60)); // Adjust multiplier as needed
+    
+                    // Render with Post-Processing
+                    composer.render();
+                };
+    
+                // -------------------------------
+                // Mouse Move Interaction - Canvas and Camera Shake Effect
+                // -------------------------------
+                let mouseX = 0;
+                let mouseY = 0;
+    
+                document.addEventListener('mousemove', (event) => {
+                    mouseX = (event.clientX - window.innerWidth / 2) * 0.005;
+                    mouseY = (event.clientY - window.innerHeight / 2) * 0.005;
+                });
+    
+                const updateCanvasPosition = () => {
+                    // Apply slight movement to camera for parallax effect
+                    camera.position.x += (mouseX - camera.position.x) * 0.05;
+                    camera.position.y += (mouseY - camera.position.y) * 0.05;
+                    camera.lookAt(scene.position);
+    
+                    // Apply slight movement to renderer to simulate entire canvas movement
+                    canvas.style.transform = `translate(${mouseX * 1.5}px, ${mouseY * 1.5}px)`;
+                };
+    
+                const animateWithMouseInteraction = () => {
+                    requestAnimationFrame(animateWithMouseInteraction);
+                    updateCanvasPosition();
+                };
+    
+                // Start Animations after textures are loaded
+                animateLoop();
+                animateWithMouseInteraction();
+    
+                // -------------------------------
+                // Handle Window Resize
+                // -------------------------------
+                window.addEventListener('resize', () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    composer.setSize(window.innerWidth, window.innerHeight);
+                });
+            });
+        </script>
 
 
 
