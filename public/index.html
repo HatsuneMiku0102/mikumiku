@@ -753,7 +753,7 @@
                 const cometGeometry = new THREE.PlaneGeometry(1, 1);
                 const comets = [];
         
-                for (let i = 0; i < 8; i++) {
+                 for (let i = 0; i < 8; i++) {
                     const cometMaterial = new THREE.MeshBasicMaterial({
                         map: cometTextures[Math.floor(Math.random() * cometTextures.length)],
                         transparent: true,
@@ -772,18 +772,14 @@
                     // Define velocity vector (moving diagonally down-left)
                     comet.velocity = new THREE.Vector3(-comet.speed, -comet.speed * 0.7, 0);
                 
-                    // Calculate rotation based on velocity vector
-                    let angle = Math.atan2(comet.velocity.y, comet.velocity.x);
-                
-                    // Flip the comet image 180 degrees if necessary
-                    angle += Math.PI;
-                
-                    comet.rotation.z = angle;
+                    // Set a rotation increment to apply a continuous 360-degree rotation
+                    comet.rotationIncrement = 0.02;  // Value to control rotation speed
                 
                     // Add comet to the scene
                     scene.add(comet);
                     comets.push(comet);
                 }
+
         
                 // -------------------------------
                 // Post-processing with Bloom for a subtle glow
@@ -805,37 +801,35 @@
                 // -------------------------------
                 const animate = () => {
                     requestAnimationFrame(animate);
-        
+                
                     // Twinkling stars effect
                     starMaterial.opacity = 0.7 + Math.sin(Date.now() * 0.001) * 0.1;
-        
+                
                     // Animate Comets with Realistic Diagonal Path
                     comets.forEach(comet => {
+                        // Move comet based on its velocity vector
                         comet.position.add(comet.velocity);
-                    
+                
+                        // Apply continuous 360-degree rotation
+                        comet.rotation.z += comet.rotationIncrement;
+                
+                        // Check if comet is out of bounds and reset if necessary
                         if (comet.position.x < -1600 || comet.position.y < -800) {
+                            // Reset comet to start from the top-right area again
                             comet.position.set(Math.random() * 500 + 800, Math.random() * 500 + 300, -800);
                             comet.speed = Math.random() * 3.0 + 2.0;  // Reset speed for variation
                             comet.velocity.set(-comet.speed, -comet.speed * 0.7, 0); // Update velocity
-                    
-                            // Recalculate rotation based on new velocity
-                            let newAngle = Math.atan2(comet.velocity.y, comet.velocity.x);
-                    
-                            // Flip the comet image 180 degrees if necessary
-                            newAngle += Math.PI;
-                    
-                            comet.rotation.z = newAngle;
-                    
+                
                             // Reset size with new random values
                             const newSizeFactor = Math.random() * 50 + 20;
                             comet.scale.set(newSizeFactor, newSizeFactor / 2, 1);
                         }
                     });
-        
+                
                     // Render with Post-Processing
                     composer.render();
                 };
-        
+                        
                 // -------------------------------
                 // Mouse Move Interaction - Canvas and Camera Shake Effect
                 // -------------------------------
