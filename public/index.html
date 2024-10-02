@@ -711,12 +711,12 @@
                 // -------------------------------
                 const scene = new THREE.Scene();
                 const camera = new THREE.PerspectiveCamera(
-                    75, 
+                    75, // Field of View (degrees)
                     window.innerWidth / window.innerHeight, 
                     0.1, 
-                    20000 // Increased far plane for longer flight paths
+                    20000 // Far plane
                 );
-                camera.position.set(0, 0, 200);
+                camera.position.set(0, 0, 500); // Zoomed out position
                 camera.lookAt(new THREE.Vector3(0, 0, 0));
     
                 // Function to calculate the visible size at a specific z-depth
@@ -809,8 +809,8 @@
                         // Adjust these fractions as needed to fine-tune spawn area
                         const spawnWidthStart = viewSize.width * 0.3; // 30% from center to right
                         const spawnWidthEnd = viewSize.width * 0.5;   // 50% from center to right
-                        const spawnHeightStart = -viewSize.height * 0.5; // Start from center vertically
-                        const spawnHeightEnd = -viewSize.height * 0.2;   // 20% below center
+                        const spawnHeightStart = viewSize.height * 0.2; // 20% from top
+                        const spawnHeightEnd = viewSize.height * 0.4;   // 40% from top
     
                         // Randomly generate spawnX and spawnY within the defined spawn area
                         const spawnX = THREE.MathUtils.randFloat(spawnWidthStart, spawnWidthEnd);
@@ -906,9 +906,11 @@
     
                 const updateCameraPosition = () => {
                     // Apply slight movement to camera for parallax effect
-                    const parallaxStrength = 5; // Adjust for more or less movement
-                    camera.position.x += mouseX * parallaxStrength - camera.position.x * 0.05;
-                    camera.position.y += mouseY * parallaxStrength - camera.position.y * 0.05;
+                    const parallaxStrength = 1; // Reduced from 5 to 1 for less movement
+                    const damping = 0.05; // Smoothing factor
+    
+                    camera.position.x += (mouseX * parallaxStrength - camera.position.x) * damping;
+                    camera.position.y += (mouseY * parallaxStrength - camera.position.y) * damping;
                     camera.lookAt(scene.position);
                 };
     
