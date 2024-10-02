@@ -743,28 +743,52 @@
                 scene.add(stars);
         
                 // -------------------------------
-                // Comets with Dynamic Spawning and Tail Effects
+                // Comet Geometry and Particle-Based Tail
                 // -------------------------------
-                const cometTextures = [
-                    textureLoader.load('/textures/comet1.png'),
-                    textureLoader.load('/textures/comet2.png')
-                ];
-                const cometGeometry = new THREE.PlaneGeometry(1, 1);
                 const comets = [];
         
                 function spawnComet() {
-                    const cometMaterial = new THREE.MeshBasicMaterial({
-                        map: cometTextures[Math.floor(Math.random() * cometTextures.length)],
+                    // Create comet head
+                    const headGeometry = new THREE.SphereGeometry(5, 16, 16);  // Small sphere as the comet head
+                    const headMaterial = new THREE.MeshBasicMaterial({
+                        color: 0xffffff,
+                        emissive: 0xffff00,
+                        emissiveIntensity: 1,
                         transparent: true,
+                        opacity: 0.8,
+                    });
+                    const cometHead = new THREE.Mesh(headGeometry, headMaterial);
+        
+                    // Create comet tail
+                    const tailCount = 100; // Number of points in the tail
+                    const tailGeometry = new THREE.BufferGeometry();
+                    const tailVertices = new Float32Array(tailCount * 3);
+                    for (let i = 0; i < tailCount; i++) {
+                        tailVertices[i * 3] = 0; // X coordinate (aligned with head)
+                        tailVertices[i * 3 + 1] = -i * 10; // Y coordinate (trailing behind head)
+                        tailVertices[i * 3 + 2] = 0; // Z coordinate
+                    }
+                    tailGeometry.setAttribute('position', new THREE.BufferAttribute(tailVertices, 3));
+        
+                    const tailMaterial = new THREE.PointsMaterial({
+                        color: new THREE.Color(0xffffff),
+                        size: 2.5,
+                        transparent: true,
+                        opacity: 0.5,
                         blending: THREE.AdditiveBlending,
                         depthWrite: false,
-                        side: THREE.DoubleSide,
                     });
-                    const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
+        
+                    const cometTail = new THREE.Points(tailGeometry, tailMaterial);
+        
+                    // Group comet head and tail
+                    const cometGroup = new THREE.Group();
+                    cometGroup.add(cometHead);
+                    cometGroup.add(cometTail);
         
                     // Set initial random size for each comet
-                    const sizeFactor = Math.random() * 50 + 20; // Random size between 20 and 70
-                    comet.scale.set(sizeFactor, sizeFactor / 2, 1);
+                    const sizeFactor = Math.random() * 0.5 + 0.5; // Random size between 0.5 and 1.0
+                    cometGroup.scale.set(sizeFactor, sizeFactor, sizeFactor);
         
                     // Determine which side of the screen the comet will spawn from (0 = top, 1 = right, 2 = bottom, 3 = left)
                     const spawnSide = Math.floor(Math.random() * 4);
@@ -799,28 +823,15 @@
                     }
         
                     // Set comet initial position and velocity
-                    comet.position.set(startX, startY, -800);
-                    comet.velocity = new THREE.Vector3(velocityX, velocityY, 0);
+                    cometGroup.position.set(startX, startY, -800);
+                    cometGroup.velocity = new THREE.Vector3(velocityX, velocityY, 0);
         
                     // Calculate rotation to face the direction of travel
-                    let angle = Math.atan2(comet.velocity.y, comet.velocity.x);
+                    cometGroup.rotation.z = Math.atan2(cometGroup.velocity.y, cometGroup.velocity.x) - Math.PI / 2;
         
-                    // Adjust the rotation based on the texture type
-                    let adjustmentAngle = 0;
-                    if (comet.material.map === cometTextures[0]) {
-                        // Adjustment specific to comet1.png (assuming it needs a 45-degree adjustment)
-                        adjustmentAngle = Math.PI / 4; // 45 degrees
-                    } else if (comet.material.map === cometTextures[1]) {
-                        // Adjustment specific to comet2.png (assuming it needs 40-degree adjustment)
-                        adjustmentAngle = Math.PI / 4 - 0.0873; // 40 degrees
-                    }
-        
-                    // Apply calculated rotation with additional adjustment
-                    comet.rotation.z = angle + adjustmentAngle;
-        
-                    // Add comet to the scene
-                    scene.add(comet);
-                    comets.push(comet);
+                    // Add comet group to the scene
+                    scene.add(cometGroup);
+                    comets.push(cometGroup);
                 }
         
                 // Spawn initial comets
@@ -915,6 +926,7 @@
                 });
             });
         </script>
+
 
 
 
