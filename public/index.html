@@ -799,45 +799,27 @@
                     }
         
                     reset() {
-                        // Initialize position at a random edge with movement towards bottom left
-                        const edge = Math.floor(Math.random() * 2); // Top or Right
-                        if (edge === 0) { // Top
-                            this.sprite.position.set(
-                                (Math.random() - 0.5) * 1000,
-                                500,
-                                (Math.random() - 0.5) * 3000
-                            );
-                            this.velocity = new THREE.Vector3(
-                                -Math.random() * 2 - 1, // Move left
-                                -Math.random() * 3 - 2, // Move down
-                                Math.random() * -3 // Move forward
-                            );
-                        } else { // Right
-                            this.sprite.position.set(
-                                1000,
-                                (Math.random() - 0.5) * 1000,
-                                (Math.random() - 0.5) * 3000
-                            );
-                            this.velocity = new THREE.Vector3(
-                                -Math.random() * 3 - 2, // Move left
-                                -Math.random() * 2, // Slightly move down
-                                Math.random() * -3 // Move forward
-                            );
-                        }
+                        // Fixed spawn position: Top-Right Corner
+                        this.sprite.position.set(800, 500, (Math.random() - 0.5) * 3000);
+        
+                        // Set velocity to move diagonally towards Bottom-Left
+                        this.velocity = new THREE.Vector3(
+                            -Math.random() * 3 - 2, // Move left
+                            -Math.random() * 3 - 2, // Move down
+                            Math.random() * -3        // Move forward
+                        );
         
                         // Randomly select a texture
                         const textureIndex = Math.floor(Math.random() * cometTextures.length);
                         this.sprite.material.map = cometTextures[textureIndex];
                         this.sprite.scale.set(20, 20, 1);
-        
-                        // Lifespan
-                        this.lifespan = 1000; // Frames or time units
                     }
         
                     update(delta) {
                         this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
-                        this.lifespan -= delta;
-                        if (this.lifespan <= 0) {
+        
+                        // Reset comet if it moves out of bounds (e.g., beyond -1000 on X or Y)
+                        if (this.sprite.position.x < -1000 || this.sprite.position.y < -1000) {
                             this.reset();
                         }
                     }
@@ -854,12 +836,12 @@
                         cometPool.push(comet);
                     }
         
-                    // Spawn comets at random intervals
+                    // Spawn comets at regular intervals
                     setInterval(spawnComet, 2000);
                 }
         
                 const spawnComet = () => {
-                    const availableComet = cometPool.find(comet => comet.lifespan <= 0);
+                    const availableComet = cometPool.find(comet => comet.sprite.position.x === 800 && comet.sprite.position.y === 500);
                     if (availableComet) {
                         availableComet.reset();
                     }
@@ -926,6 +908,7 @@
                 });
             });
         </script>
+
 
 
 
