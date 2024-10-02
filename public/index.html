@@ -752,13 +752,13 @@
                     });
                     const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
         
-                    // Set initial random values for each comet to start from the top-right area
+                    // Set initial random values for each comet
                     const sizeFactor = Math.random() * 50 + 20; // Random size
                     comet.scale.set(sizeFactor, sizeFactor / 2, 1);
                     resetCometPosition(comet);
         
                     // Set rotation to ensure the comet head points in the direction of travel
-                    comet.rotation.z = THREE.MathUtils.degToRad(360); // Rotate 50 degrees to the left
+                    comet.rotation.z = THREE.MathUtils.degToRad(225); // Rotate to face downward and to the left
         
                     scene.add(comet);
                     comets.push(comet);
@@ -777,10 +777,10 @@
                 );
                 composer.addPass(bloomPass);
         
-                // Function to reset the comet to the top-right area
+                // Function to reset the comet to the middle center of the screen
                 function resetCometPosition(comet) {
-                    const startX = Math.random() * (window.innerWidth / 2) + (window.innerWidth / 2);
-                    const startY = Math.random() * (window.innerHeight / 2) + (window.innerHeight / 2);
+                    const startX = window.innerWidth * 0.5; // Start from the middle of the screen
+                    const startY = window.innerHeight; // Start from the top of the screen
                     comet.position.set(startX, startY, -800);
                     comet.speed = Math.random() * 3.0 + 2.0; // Random speed for variation
                 }
@@ -795,11 +795,11 @@
                     // Animate Comets with Fixed Diagonal Path
                     comets.forEach(comet => {
                         // Move diagonally to the bottom-left
-                        comet.position.x -= comet.speed;
+                        comet.position.x -= comet.speed * 0.7; // Reduced horizontal speed
                         comet.position.y -= comet.speed;
         
                         // Reset the comet once it moves out of the screen bounds
-                        if (comet.position.x < -(window.innerWidth / 2) || comet.position.y < -(window.innerHeight / 2)) {
+                        if (comet.position.x < 0 || comet.position.y < 0) {
                             resetCometPosition(comet);
                         }
                     });
