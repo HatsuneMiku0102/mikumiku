@@ -710,13 +710,26 @@
                 // Scene and Camera Setup
                 // -------------------------------
                 const scene = new THREE.Scene();
+    
+                // Set a static background color or texture
+                // Option 1: Solid Color
+                scene.background = new THREE.Color(0x000000); // Black background
+    
+                // Option 2: Static Background Image
+                /*
+                const loader = new THREE.TextureLoader();
+                loader.load('/textures/your-background-image.jpg', (texture) => {
+                    scene.background = texture;
+                });
+                */
+    
                 const camera = new THREE.PerspectiveCamera(
                     75, // Field of View (degrees)
                     window.innerWidth / window.innerHeight, 
                     0.1, 
-                    30000 // Increased far plane to accommodate larger background
+                    30000 // Far plane
                 );
-                camera.position.set(0, 0, 1500); // Further zoomed out position
+                camera.position.set(0, 0, 1500); // Zoomed out position
                 camera.lookAt(new THREE.Vector3(0, 0, 0));
     
                 // -------------------------------
@@ -729,21 +742,6 @@
                     const width = height * camera.aspect;
                     return { width, height };
                 }
-    
-                // -------------------------------
-                // Seamless Background - Inverted Sphere
-                // -------------------------------
-                const textureLoader = new THREE.TextureLoader();
-                textureLoader.load('/textures/nebula.webp', (texture) => {
-                    const geometry = new THREE.SphereGeometry(20000, 60, 40); // Increased radius for a more distant background
-                    const material = new THREE.MeshBasicMaterial({
-                        map: texture,
-                        side: THREE.BackSide, // Invert the normals to render inside the sphere
-                        transparent: false
-                    });
-                    const backgroundSphere = new THREE.Mesh(geometry, material);
-                    scene.add(backgroundSphere);
-                });
     
                 // -------------------------------
                 // Stars Geometry for Depth Effect
@@ -771,6 +769,7 @@
                 // -------------------------------
                 // Comets with Fixed Diagonal Movement
                 // -------------------------------
+                const textureLoader = new THREE.TextureLoader();
                 const cometTextures = [
                     textureLoader.load('/textures/comet1.png'),
                     textureLoader.load('/textures/comet2.png')
@@ -808,12 +807,12 @@
                         const viewSize = getFrustumSizeAtZ(spawnZ);
     
                         // Define spawn area within top-right quadrant
-                        // Adjust these fractions as needed to fine-tune spawn area
-                        // For higher and more right spawn locations, increase the spawnXMin and spawnYMin
-                        const spawnXMin = viewSize.width * 0.6 - viewSize.width / 2; // 60% of width from center to right
-                        const spawnXMax = viewSize.width * 0.8 - viewSize.width / 2; // 80% of width from center to right
-                        const spawnYMin = viewSize.height * 0.6 - viewSize.height / 2; // 60% of height from center to top
-                        const spawnYMax = viewSize.height * 0.8 - viewSize.height / 2; // 80% of height from center to top
+                        // SpawnX: 60% to 80% of the frustum width (right side)
+                        // SpawnY: 60% to 80% of the frustum height (top side)
+                        const spawnXMin = viewSize.width * 0.6 - viewSize.width / 2;
+                        const spawnXMax = viewSize.width * 0.8 - viewSize.width / 2;
+                        const spawnYMin = viewSize.height * 0.6 - viewSize.height / 2;
+                        const spawnYMax = viewSize.height * 0.8 - viewSize.height / 2;
     
                         const spawnX = THREE.MathUtils.randFloat(spawnXMin, spawnXMax);
                         const spawnY = THREE.MathUtils.randFloat(spawnYMin, spawnYMax);
