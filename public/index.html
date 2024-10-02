@@ -762,22 +762,30 @@
                         side: THREE.DoubleSide,
                     });
                     const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
-    
+                
                     // Set initial random values for each comet to start from top-right area
                     const sizeFactor = Math.random() * 50 + 20; // Random size between 20 and 70
                     comet.scale.set(sizeFactor, sizeFactor / 2, 1);
                     comet.position.set(Math.random() * 500 + 800, Math.random() * 500 + 300, -800);
                     comet.speed = Math.random() * 3.0 + 2.0;  // Speed between 2.0 and 5.0
-    
+                
                     // Define velocity vector (moving diagonally down-left)
                     comet.velocity = new THREE.Vector3(-comet.speed, -comet.speed * 0.7, 0);
-    
+                
                     // Calculate rotation based on velocity
                     const angle = Math.atan2(comet.velocity.y, comet.velocity.x);
-                    // Adjust rotation to align the comet's head with the movement direction
-                    // Assuming the comet's head is initially pointing upwards (positive Y-axis)
-                    comet.rotation.z = angle - Math.PI / 2;
-    
+                    
+                    // Adjust rotation based on the initial orientation of the comet image:
+                    // - For the first image, the head is initially pointing left, adjust by -90 degrees (or -Math.PI / 2).
+                    // - For the second image, the head is pointing diagonally, so we may need a smaller adjustment or none.
+                    const isFirstTexture = comet.material.map === cometTextures[0]; // Assuming the first texture corresponds to the first image.
+                    
+                    if (isFirstTexture) {
+                        comet.rotation.z = angle - Math.PI / 2; // Adjust by -90 degrees
+                    } else {
+                        comet.rotation.z = angle; // No adjustment needed for diagonal alignment
+                    }
+                
                     scene.add(comet);
                     comets.push(comet);
                 }
