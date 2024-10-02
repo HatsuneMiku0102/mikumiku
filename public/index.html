@@ -744,81 +744,39 @@
                 scene.add(stars);
     
                 // -------------------------------
-                // Comet Class Definition
-                // -------------------------------
-                class Comet {
-                    constructor(texture) {
-                        this.material = new THREE.MeshBasicMaterial({
-                            map: texture,
-                            transparent: true,
-                            blending: THREE.AdditiveBlending,
-                            depthWrite: false,
-                            side: THREE.DoubleSide,
-                            opacity: 1.0 // Start fully opaque
-                        });
-                        this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.material);
-    
-                        // Set Initial Random Size
-                        const sizeFactor = Math.random() * 50 + 20; // Random size between 20 and 70
-                        this.mesh.scale.set(sizeFactor, sizeFactor / 2, 1);
-    
-                        // Initialize Position and Velocity
-                        this.reset();
-    
-                        scene.add(this.mesh);
-                    }
-    
-                    reset() {
-                        // Set spawn position at top-right within defined boundaries
-                        const spawnX = Math.random() * 500 + 800; // X between 800 and 1300
-                        const spawnY = Math.random() * 500 + 300; // Y between 300 and 800
-                        const spawnZ = -800; // Fixed Z position
-    
-                        this.mesh.position.set(spawnX, spawnY, spawnZ);
-    
-                        // Define speed
-                        this.speed = Math.random() * 3.0 + 2.0;  // Speed between 2.0 and 5.0
-    
-                        // Define movement vector (diagonal down-left)
-                        this.velocity = new THREE.Vector3(-this.speed, -this.speed * 0.7, 0);
-    
-                        // Calculate rotation based on velocity
-                        this.updateRotation();
-    
-                        // Reset opacity
-                        this.material.opacity = 1.0;
-                    }
-    
-                    updateRotation() {
-                        // Calculate angle based on velocity vector
-                        const angle = Math.atan2(this.velocity.y, this.velocity.x);
-                        this.mesh.rotation.z = angle;
-                    }
-    
-                    update() {
-                        // Update position based on velocity
-                        this.mesh.position.add(this.velocity);
-    
-                        // Reset comet if it moves out of bounds
-                        if (this.mesh.position.x < -1600 || this.mesh.position.y < -800) {
-                            this.reset();
-                        }
-                    }
-                }
-    
-                // -------------------------------
-                // Initialize Comets
+                // Comets with Fixed Diagonal Movement
                 // -------------------------------
                 const cometTextures = [
                     textureLoader.load('/textures/comet1.png'),
                     textureLoader.load('/textures/comet2.png')
                 ];
+                const cometGeometry = new THREE.PlaneGeometry(1, 1);
                 const comets = [];
-                const cometCount = 8;
     
-                for (let i = 0; i < cometCount; i++) {
-                    const texture = cometTextures[Math.floor(Math.random() * cometTextures.length)];
-                    const comet = new Comet(texture);
+                for (let i = 0; i < 8; i++) {
+                    const cometMaterial = new THREE.MeshBasicMaterial({
+                        map: cometTextures[Math.floor(Math.random() * cometTextures.length)],
+                        transparent: true,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false,
+                        side: THREE.DoubleSide,
+                    });
+                    const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
+    
+                    // Set initial random values for each comet to start from top-right area
+                    const sizeFactor = Math.random() * 50 + 20; // Random size
+                    comet.scale.set(sizeFactor, sizeFactor / 2, 1);
+                    comet.position.set(Math.random() * 500 + 800, Math.random() * 500 + 300, -800);
+                    comet.speed = Math.random() * 3.0 + 2.0;  // Speed increase for dynamic effect
+    
+                    // Define velocity vector (moving diagonally down-left)
+                    comet.velocity = new THREE.Vector3(-comet.speed, -comet.speed * 0.7, 0);
+    
+                    // Calculate rotation based on velocity
+                    const angle = Math.atan2(comet.velocity.y, comet.velocity.x);
+                    comet.rotation.z = angle;
+    
+                    scene.add(comet);
                     comets.push(comet);
                 }
     
@@ -831,9 +789,9 @@
     
                 const bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    1.5, // strength
-                    0.4, // radius
-                    0.85 // threshold
+                    1.5,
+                    0.4,
+                    0.85
                 );
                 composer.addPass(bloomPass);
     
@@ -848,7 +806,24 @@
     
                     // Animate Comets with Realistic Diagonal Path
                     comets.forEach(comet => {
-                        comet.update();
+                        comet.position.x += comet.velocity.x;
+                        comet.position.y += comet.velocity.y;
+    
+                        // Check if comet is out of bounds and reset if necessary
+                        if (comet.position.x < -1600 || comet.position.y < -800) {
+                            // Reset comet to start from the top-right area again
+                            comet.position.set(Math.random() * 500 + 800, Math.random() * 500 + 300, -800);
+                            comet.speed = Math.random() * 3.0 + 2.0;  // Reset speed for variation
+                            comet.velocity.set(-comet.speed, -comet.speed * 0.7, 0); // Update velocity
+    
+                            // Reset size with new random values
+                            const newSizeFactor = Math.random() * 50 + 20;
+                            comet.scale.set(newSizeFactor, newSizeFactor / 2, 1);
+    
+                            // Recalculate rotation based on new velocity
+                            const newAngle = Math.atan2(comet.velocity.y, comet.velocity.x);
+                            comet.rotation.z = newAngle;
+                        }
                     });
     
                     // Render with Post-Processing
@@ -896,7 +871,6 @@
                 });
             });
         </script>
-
 
 
 
