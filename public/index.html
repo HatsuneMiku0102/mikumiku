@@ -772,20 +772,17 @@
                     // Define velocity vector (moving diagonally down-left)
                     comet.velocity = new THREE.Vector3(-comet.speed, -comet.speed * 0.7, 0);
                 
-                    // Calculate rotation based on velocity
+                    // Calculate rotation based on velocity vector
                     const angle = Math.atan2(comet.velocity.y, comet.velocity.x);
-                    
-                    // Adjust rotation based on the initial orientation of the comet image:
-                    // - For the first image, the head is initially pointing left, adjust by -90 degrees (or -Math.PI / 2).
-                    // - For the second image, the head is pointing diagonally, so we may need a smaller adjustment or none.
-                    const isFirstTexture = comet.material.map === cometTextures[0]; // Assuming the first texture corresponds to the first image.
-                    
-                    if (isFirstTexture) {
-                        comet.rotation.z = angle - Math.PI / 2; // Adjust by -90 degrees
-                    } else {
-                        comet.rotation.z = angle; // No adjustment needed for diagonal alignment
-                    }
                 
+                    // Adjust rotation based on the initial orientation of the comet image:
+                    // - Assume the comet head is initially pointing to the right (positive X-axis).
+                    // - Rotate by angle.
+                    comet.rotation.z = angle;
+                
+                    // If the initial orientation of the comet texture points left or any other way,
+                    // you might need to adjust by subtracting or adding angles.
+                    
                     scene.add(comet);
                     comets.push(comet);
                 }
