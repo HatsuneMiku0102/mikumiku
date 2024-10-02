@@ -696,64 +696,32 @@
         
         <script>
             document.addEventListener('DOMContentLoaded', () => {
-                // -------------------------------
-                // Renderer Setup
-                // -------------------------------
                 const canvas = document.getElementById('techCanvas');
                 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 renderer.setPixelRatio(window.devicePixelRatio);
                 renderer.toneMapping = THREE.ACESFilmicToneMapping;
                 renderer.outputEncoding = THREE.sRGBEncoding;
-    
-                // -------------------------------
-                // Scene and Camera Setup
-                // -------------------------------
+        
                 const scene = new THREE.Scene();
-    
-                // Set a static background color or texture
-                // Option 1: Solid Color
-                scene.background = new THREE.Color(0x000000); // Black background
-    
-                // Option 2: Static Background Image
-                /*
-                const loader = new THREE.TextureLoader();
-                loader.load('/textures/your-background-image.jpg', (texture) => {
-                    scene.background = texture;
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
+                camera.position.z = 200;
+        
+                // Static Background - Nebula
+                const textureLoader = new THREE.TextureLoader();
+                textureLoader.load('/textures/nebula.webp', (texture) => {
+                    scene.background = texture;  // Set the background texture to the nebula
                 });
-                */
-    
-                const camera = new THREE.PerspectiveCamera(
-                    75, // Field of View (degrees)
-                    window.innerWidth / window.innerHeight, 
-                    0.1, 
-                    30000 // Far plane
-                );
-                camera.position.set(0, 0, 1500); // Zoomed out position
-                camera.lookAt(new THREE.Vector3(0, 0, 0));
-    
-                // -------------------------------
-                // Function to Calculate Frustum Size at a Given Z
-                // -------------------------------
-                function getFrustumSizeAtZ(z) {
-                    const vFOV = THREE.MathUtils.degToRad(camera.fov); // vertical field of view in radians
-                    const distance = Math.abs(z - camera.position.z);
-                    const height = 2 * distance * Math.tan(vFOV / 2);
-                    const width = height * camera.aspect;
-                    return { width, height };
-                }
-    
-                // -------------------------------
+        
                 // Stars Geometry for Depth Effect
-                // -------------------------------
                 const starGeometry = new THREE.BufferGeometry();
                 const starCount = 3000;
                 const starVertices = new Float32Array(starCount * 3);
                 for (let i = 0; i < starCount * 3; i++) {
-                    starVertices[i] = (Math.random() - 0.5) * 40000; // Increased spread for greater depth
+                    starVertices[i] = (Math.random() - 0.5) * 3000;
                 }
                 starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
-    
+        
                 const starMaterial = new THREE.PointsMaterial({
                     size: 1.5,
                     color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, 90%)`),
@@ -762,176 +730,106 @@
                     blending: THREE.AdditiveBlending,
                     depthWrite: false,
                 });
-    
+        
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
-    
-                // -------------------------------
+        
                 // Comets with Fixed Diagonal Movement
-                // -------------------------------
-                const textureLoader = new THREE.TextureLoader();
                 const cometTextures = [
                     textureLoader.load('/textures/comet1.png'),
                     textureLoader.load('/textures/comet2.png')
                 ];
                 const cometGeometry = new THREE.PlaneGeometry(1, 1);
                 const comets = [];
-    
-                // Define a Comet Class for Better Management
-                class Comet {
-                    constructor(texture) {
-                        this.material = new THREE.MeshBasicMaterial({
-                            map: texture,
-                            transparent: true,
-                            blending: THREE.AdditiveBlending,
-                            depthWrite: false,
-                            side: THREE.DoubleSide,
-                            opacity: 1.0 // Start fully opaque
-                        });
-                        this.mesh = new THREE.Mesh(cometGeometry.clone(), this.material);
-    
-                        // Set Initial Random Size
-                        const sizeFactor = THREE.MathUtils.randFloat(20, 70); // Random size between 20 and 70
-                        this.mesh.scale.set(sizeFactor, sizeFactor / 2, 1);
-    
-                        // Initialize Position and Velocity
-                        this.reset();
-    
-                        scene.add(this.mesh);
-                    }
-    
-                    reset() {
-                        const spawnZ = camera.position.z - 1500; // Spawn 1500 units in front of the camera
-    
-                        // Calculate frustum size at spawnZ
-                        const viewSize = getFrustumSizeAtZ(spawnZ);
-    
-                        // Define spawn area within top-right quadrant
-                        // SpawnX: 60% to 80% of the frustum width (right side)
-                        // SpawnY: 60% to 80% of the frustum height (top side)
-                        const spawnXMin = viewSize.width * 0.6 - viewSize.width / 2;
-                        const spawnXMax = viewSize.width * 0.8 - viewSize.width / 2;
-                        const spawnYMin = viewSize.height * 0.6 - viewSize.height / 2;
-                        const spawnYMax = viewSize.height * 0.8 - viewSize.height / 2;
-    
-                        const spawnX = THREE.MathUtils.randFloat(spawnXMin, spawnXMax);
-                        const spawnY = THREE.MathUtils.randFloat(spawnYMin, spawnYMax);
-    
-                        this.mesh.position.set(spawnX, spawnY, spawnZ);
-    
-                        // Define a fixed velocity vector for strict diagonal movement to bottom-left
-                        const speed = THREE.MathUtils.randFloat(1.0, 3.0); // Speed between 1 and 3
-                        this.velocity = new THREE.Vector3(-speed, -speed, 0); // Equal negative x and y for 45-degree angle
-    
-                        // Opacity Reset
-                        this.material.opacity = 1.0;
-                    }
-    
-                    update() {
-                        // Update position based on velocity
-                        this.mesh.position.add(this.velocity);
-    
-                        // Calculate distance traveled towards bottom-left (arbitrary far point)
-                        const targetPosition = new THREE.Vector3(-20000, -20000, this.mesh.position.z); // Far bottom-left
-                        const distanceTraveled = this.mesh.position.distanceTo(targetPosition);
-    
-                        // Total distance from start to end (approximate)
-                        const totalDistance = Math.sqrt(Math.pow(20000 + Math.abs(this.mesh.position.x), 2) + Math.pow(20000 + Math.abs(this.mesh.position.y), 2)); // Increased for longer flight
-    
-                        // Calculate opacity based on distance traveled
-                        const fadeStartDistance = totalDistance * 0.8; // Start fading after 80% of the journey
-                        if (distanceTraveled > fadeStartDistance) {
-                            const fadeFactor = 1 - ((distanceTraveled - fadeStartDistance) / (totalDistance - fadeStartDistance));
-                            this.material.opacity = THREE.MathUtils.clamp(fadeFactor, 0, 1);
-                        }
-    
-                        // Reset the comet once it moves out of the screen bounds
-                        const frustumSize = getFrustumSizeAtZ(this.mesh.position.z);
-                        if (
-                            this.mesh.position.x < -frustumSize.width / 2 ||
-                            this.mesh.position.y < -frustumSize.height / 2
-                        ) {
-                            this.reset();
-                        }
-                    }
-                }
-    
-                // Initialize Comets
+        
                 for (let i = 0; i < 8; i++) {
-                    const texture = cometTextures[Math.floor(Math.random() * cometTextures.length)];
-                    const comet = new Comet(texture);
+                    const cometMaterial = new THREE.MeshBasicMaterial({
+                        map: cometTextures[Math.floor(Math.random() * cometTextures.length)],
+                        transparent: true,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false,
+                        side: THREE.DoubleSide,
+                    });
+                    const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
+        
+                    // Set initial random values for each comet to start from top-right area
+                    const sizeFactor = Math.random() * 50 + 20; // Random size
+                    comet.scale.set(sizeFactor, sizeFactor / 2, 1);
+                    comet.position.set(Math.random() * 500 + 800, Math.random() * 500 + 300, -800);
+                    comet.speed = Math.random() * 3.0 + 2.0;  // Speed increase for dynamic effect
+        
+                    // Rotate to point towards the bottom-left (45 degrees down-left)
+                    comet.rotation.z = Math.PI + Math.PI / 4;
+        
+                    scene.add(comet);
                     comets.push(comet);
                 }
-    
-                // -------------------------------
-                // Post-processing with Bloom for a Subtle Glow
-                // -------------------------------
+        
+                // Post-processing with Bloom for a subtle glow
                 const composer = new THREE.EffectComposer(renderer);
                 const renderPass = new THREE.RenderPass(scene, camera);
                 composer.addPass(renderPass);
-    
+        
                 const bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    1.5, // strength
-                    0.4, // radius
-                    0.85 // threshold
+                    1.5,
+                    0.4,
+                    0.85
                 );
                 composer.addPass(bloomPass);
-    
-                // -------------------------------
-                // Animation Loop
-                // -------------------------------
+        
+                // Animate
                 const animate = () => {
                     requestAnimationFrame(animate);
-    
-                    // Twinkling Stars Effect
+        
+                    // Twinkling stars effect
                     starMaterial.opacity = 0.7 + Math.sin(Date.now() * 0.001) * 0.1;
-    
-                    // Update Each Comet
+        
+                    // Animate Comets with Straight Diagonal Path
                     comets.forEach(comet => {
-                        comet.update();
+                        comet.position.x -= comet.speed; // Move left
+                        comet.position.y -= comet.speed * 0.7; // Move downwards for diagonal effect
+        
+                        if (comet.position.x < -1600 || comet.position.y < -800) {
+                            // Reset comet to start from the top-right area again
+                            comet.position.set(Math.random() * 500 + 800, Math.random() * 500 + 300, -800);
+                            comet.speed = Math.random() * 3.0 + 2.0;  // Reset speed for variation
+                            const newSizeFactor = Math.random() * 50 + 20; // Reset size with new random values
+                            comet.scale.set(newSizeFactor, newSizeFactor / 2, 1);
+                        }
                     });
-    
+        
                     // Render with Post-Processing
                     composer.render();
                 };
-    
-                // -------------------------------
-                // Mouse Move Interaction - Camera Movement for Parallax Effect
-                // -------------------------------
+        
+                // Mouse Move Interaction - Canvas and Camera Shake Effect
                 let mouseX = 0;
                 let mouseY = 0;
-    
+        
                 document.addEventListener('mousemove', (event) => {
-                    // Normalize mouse coordinates between -1 and 1
-                    mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-                    mouseY = -(event.clientY / window.innerHeight) * 2 + 1; // Invert Y for Three.js
+                    mouseX = (event.clientX - window.innerWidth / 2) * 0.005;
+                    mouseY = (event.clientY - window.innerHeight / 2) * 0.005;
                 });
-    
-                const updateCameraPosition = () => {
+        
+                const updateCanvasPosition = () => {
                     // Apply slight movement to camera for parallax effect
-                    const parallaxStrength = 1; // Reduced for subtle movement
-                    const damping = 0.05; // Smoothing factor
-    
-                    camera.position.x += (mouseX * parallaxStrength - camera.position.x) * damping;
-                    camera.position.y += (mouseY * parallaxStrength - camera.position.y) * damping;
+                    camera.position.x += (mouseX - camera.position.x) * 0.05;
+                    camera.position.y += (mouseY - camera.position.y) * 0.05;
                     camera.lookAt(scene.position);
+        
+                    // Apply slight movement to renderer to simulate entire canvas movement
+                    canvas.style.transform = `translate(${mouseX * 1.5}px, ${mouseY * 1.5}px)`;
                 };
-    
-                const animateWithCamera = () => {
-                    requestAnimationFrame(animateWithCamera);
-                    updateCameraPosition();
+        
+                const animateWithMouseInteraction = () => {
+                    requestAnimationFrame(animateWithMouseInteraction);
+                    updateCanvasPosition();
                 };
-    
-                // -------------------------------
-                // Start Animations
-                // -------------------------------
+        
                 animate();
-                animateWithCamera();
-    
-                // -------------------------------
-                // Handle Window Resize
-                // -------------------------------
+                animateWithMouseInteraction();
+        
                 window.addEventListener('resize', () => {
                     camera.aspect = window.innerWidth / window.innerHeight;
                     camera.updateProjectionMatrix();
@@ -940,6 +838,7 @@
                 });
             });
         </script>
+
 
 
 
