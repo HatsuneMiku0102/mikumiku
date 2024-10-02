@@ -758,8 +758,11 @@
                     comet.position.set(Math.random() * 500 + 800, Math.random() * 500 + 300, -800);
                     comet.speed = Math.random() * 3.0 + 2.0;  // Speed increase for dynamic effect
         
-                    // Rotate to point towards the bottom-left (45 degrees down-left)
-                    comet.rotation.z = Math.PI + Math.PI / 4;
+                    // Set the direction vector for each comet
+                    comet.direction = new THREE.Vector3(-1, -0.7, 0).normalize(); // Diagonal down-left direction
+        
+                    // Calculate the rotation required to point in the direction of motion
+                    comet.rotation.z = Math.atan2(comet.direction.y, comet.direction.x);
         
                     scene.add(comet);
                     comets.push(comet);
@@ -787,8 +790,8 @@
         
                     // Animate Comets with Straight Diagonal Path
                     comets.forEach(comet => {
-                        comet.position.x -= comet.speed; // Move left
-                        comet.position.y -= comet.speed * 0.7; // Move downwards for diagonal effect
+                        // Update position based on direction
+                        comet.position.addScaledVector(comet.direction, comet.speed);
         
                         if (comet.position.x < -1600 || comet.position.y < -800) {
                             // Reset comet to start from the top-right area again
@@ -838,6 +841,7 @@
                 });
             });
         </script>
+
 
 
 
