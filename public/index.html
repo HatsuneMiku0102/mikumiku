@@ -706,6 +706,9 @@
                 renderer.toneMapping = THREE.ACESFilmicToneMapping;
                 renderer.outputEncoding = THREE.sRGBEncoding;
         
+                // Lower the exposure to reduce the overall brightness
+                renderer.toneMappingExposure = 0.8;
+        
                 // -------------------------------
                 // Scene and Camera Setup
                 // -------------------------------
@@ -750,10 +753,10 @@
                 function spawnComet() {
                     // Create comet head with emissive material for glowing effect
                     const headGeometry = new THREE.SphereGeometry(8, 16, 16);
-                    const headMaterial = new THREE.MeshBasicMaterial({
+                    const headMaterial = new THREE.MeshStandardMaterial({
                         color: 0xffffff,
                         emissive: 0xff8c00,
-                        emissiveIntensity: 3,
+                        emissiveIntensity: 2.0,
                         transparent: true,
                         opacity: 0.95,
                     });
@@ -774,7 +777,7 @@
                         color: new THREE.Color(0xffffff),
                         size: 4,
                         transparent: true,
-                        opacity: 0.6,
+                        opacity: 0.5,
                         blending: THREE.AdditiveBlending,
                         depthWrite: false,
                     });
@@ -841,11 +844,12 @@
                 const renderPass = new THREE.RenderPass(scene, camera);
                 composer.addPass(renderPass);
         
+                // Bloom with adjusted intensity and radius to reduce background bloom
                 const bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    3.5, // Bloom strength for enhanced glow
-                    1.5, // Radius of the bloom for soft edges
-                    0.3  // Threshold for bloom intensity
+                    1.2, // Reduced bloom strength to minimize background over-brightness
+                    0.8, // Reduced radius for more focus on comets and less on background
+                    0.6  // Slightly increased threshold to focus the bloom effect on brighter areas
                 );
                 composer.addPass(bloomPass);
         
@@ -921,6 +925,7 @@
                 });
             });
         </script>
+
 
 
 
