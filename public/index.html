@@ -719,6 +719,15 @@
                 camera.position.set(0, 0, 200);
                 camera.lookAt(new THREE.Vector3(0, 0, 0));
     
+                // Function to calculate the visible size at a specific z-depth
+                function getViewSizeAtZ(z) {
+                    const vFOV = THREE.MathUtils.degToRad(camera.fov); // vertical field of view in radians
+                    const distance = Math.abs(z - camera.position.z);
+                    const height = 2 * distance * Math.tan(vFOV / 2);
+                    const width = height * camera.aspect;
+                    return { width, height };
+                }
+    
                 // -------------------------------
                 // Seamless Background - Inverted Sphere
                 // -------------------------------
@@ -758,32 +767,6 @@
                 scene.add(stars);
     
                 // -------------------------------
-                // Function to Convert Screen Coordinates to World Coordinates at z=-800
-                // -------------------------------
-                function getWorldPositionFromScreen(x, y, z) {
-                    // Convert screen (pixel) coordinates to Normalized Device Coordinates (NDC)
-                    const ndcX = (x / window.innerWidth) * 2 - 1;
-                    const ndcY = -(y / window.innerHeight) * 2 + 1; // Invert Y for Three.js
-    
-                    // Create a Vector3 in NDC space
-                    const vector = new THREE.Vector3(ndcX, ndcY, 0.5); // z=0.5 to lie within the frustum
-    
-                    // Unproject the NDC vector to world coordinates
-                    vector.unproject(camera);
-    
-                    // Calculate direction from camera to the unprojected vector
-                    const dir = vector.sub(camera.position).normalize();
-    
-                    // Calculate the distance from camera to the desired z position
-                    const distance = (z - camera.position.z) / dir.z;
-    
-                    // Calculate the world position
-                    const worldPosition = camera.position.clone().add(dir.multiplyScalar(distance));
-    
-                    return worldPosition;
-                }
-    
-                // -------------------------------
                 // Comets with Fixed Diagonal Movement
                 // -------------------------------
                 const cometTextures = [
@@ -817,16 +800,24 @@
                     }
     
                     reset() {
-                        // Define spawn positions near the top-right corner of the screen
-                        // Example: 90% of screen width, 10% of screen height
-                        const spawnX = window.innerWidth * 0.9 + Math.random() * window.innerWidth * 0.05; // 90% to 95% of width
-                        const spawnY = window.innerHeight * 0.05 + Math.random() * window.innerHeight * 0.05; // 5% to 10% of height
-    
                         const spawnZ = -800; // Fixed Z position
     
-                        // Convert screen coordinates to world coordinates
-                        const worldPos = getWorldPositionFromScreen(spawnX, spawnY, spawnZ);
-                        this.mesh.position.set(worldPos.x, worldPos.y, worldPos.z);
+                        // Calculate visible size at spawnZ
+                        const viewSize = getViewSizeAtZ(spawnZ);
+    
+                        // Define spawn area within top-right quadrant
+                        // Adjust these fractions as needed to fine-tune spawn area
+                        const spawnWidthStart = viewSize.width * 0.3; // 30% from center to right
+                        const spawnWidthEnd = viewSize.width * 0.5;   // 50% from center to right
+                        const spawnHeightStart = -viewSize.height * 0.5; // Start from center vertically
+                        const spawnHeightEnd = -viewSize.height * 0.2;   // 20% below center
+    
+                        // Randomly generate spawnX and spawnY within the defined spawn area
+                        const spawnX = THREE.MathUtils.randFloat(spawnWidthStart, spawnWidthEnd);
+                        const spawnY = THREE.MathUtils.randFloat(spawnHeightStart, spawnHeightEnd);
+    
+                        // Set position
+                        this.mesh.position.set(spawnX, spawnY, spawnZ);
     
                         // Define a fixed velocity vector for strict diagonal movement to bottom-left
                         const speed = THREE.MathUtils.randFloat(1.0, 3.0); // Speed between 1 and 3
@@ -908,14 +899,16 @@
                 let mouseY = 0;
     
                 document.addEventListener('mousemove', (event) => {
-                    mouseX = (event.clientX - window.innerWidth / 2) * 0.005;
-                    mouseY = (event.clientY - window.innerHeight / 2) * 0.005;
+                    // Normalize mouse coordinates between -1 and 1
+                    mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+                    mouseY = -(event.clientY / window.innerHeight) * 2 + 1; // Invert Y for Three.js
                 });
     
                 const updateCameraPosition = () => {
                     // Apply slight movement to camera for parallax effect
-                    camera.position.x += (mouseX - camera.position.x) * 0.05;
-                    camera.position.y += (mouseY - camera.position.y) * 0.05;
+                    const parallaxStrength = 5; // Adjust for more or less movement
+                    camera.position.x += mouseX * parallaxStrength - camera.position.x * 0.05;
+                    camera.position.y += mouseY * parallaxStrength - camera.position.y * 0.05;
                     camera.lookAt(scene.position);
                 };
     
