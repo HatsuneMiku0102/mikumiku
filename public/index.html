@@ -711,7 +711,7 @@
                 // -------------------------------
                 const scene = new THREE.Scene();
                 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
-                camera.position.z = 200;
+                camera.position.z = 300;
         
                 // Static Background - Nebula
                 const textureLoader = new THREE.TextureLoader();
@@ -748,33 +748,33 @@
                 const comets = [];
         
                 function spawnComet() {
-                    // Create comet head
-                    const headGeometry = new THREE.SphereGeometry(5, 16, 16);  // Small sphere as the comet head
+                    // Create comet head with emissive material for glowing effect
+                    const headGeometry = new THREE.SphereGeometry(6, 16, 16);
                     const headMaterial = new THREE.MeshBasicMaterial({
                         color: 0xffffff,
-                        emissive: 0xffff00,
-                        emissiveIntensity: 1,
+                        emissive: 0xffcc66,
+                        emissiveIntensity: 2,
                         transparent: true,
-                        opacity: 0.8,
+                        opacity: 0.9,
                     });
                     const cometHead = new THREE.Mesh(headGeometry, headMaterial);
         
-                    // Create comet tail
-                    const tailCount = 100; // Number of points in the tail
+                    // Create comet tail using particles
+                    const tailCount = 150; // More particles for a smoother tail effect
                     const tailGeometry = new THREE.BufferGeometry();
                     const tailVertices = new Float32Array(tailCount * 3);
                     for (let i = 0; i < tailCount; i++) {
-                        tailVertices[i * 3] = 0; // X coordinate (aligned with head)
-                        tailVertices[i * 3 + 1] = -i * 10; // Y coordinate (trailing behind head)
-                        tailVertices[i * 3 + 2] = 0; // Z coordinate
+                        tailVertices[i * 3] = (Math.random() - 0.5) * 10; // Random horizontal spread for a wispy effect
+                        tailVertices[i * 3 + 1] = -i * 12; // Y coordinate trailing behind the comet
+                        tailVertices[i * 3 + 2] = (Math.random() - 0.5) * 10; // Random z-coordinate to add depth
                     }
                     tailGeometry.setAttribute('position', new THREE.BufferAttribute(tailVertices, 3));
         
                     const tailMaterial = new THREE.PointsMaterial({
-                        color: new THREE.Color(0xffffff),
-                        size: 2.5,
+                        color: new THREE.Color(0xffd700),
+                        size: 3.5,
                         transparent: true,
-                        opacity: 0.5,
+                        opacity: 0.6,
                         blending: THREE.AdditiveBlending,
                         depthWrite: false,
                     });
@@ -787,35 +787,30 @@
                     cometGroup.add(cometTail);
         
                     // Set initial random size for each comet
-                    const sizeFactor = Math.random() * 0.5 + 0.5; // Random size between 0.5 and 1.0
+                    const sizeFactor = Math.random() * 0.6 + 0.6; // Random size between 0.6 and 1.2
                     cometGroup.scale.set(sizeFactor, sizeFactor, sizeFactor);
         
-                    // Determine which side of the screen the comet will spawn from (0 = top, 1 = right, 2 = bottom, 3 = left)
+                    // Determine which side of the screen the comet will spawn from
                     const spawnSide = Math.floor(Math.random() * 4);
-        
                     let startX, startY, velocityX, velocityY;
-                    const speed = Math.random() * 3.0 + 2.0;  // Speed between 2.0 and 5.0
+                    const speed = Math.random() * 3.0 + 2.0; // Speed between 2.0 and 5.0
         
                     if (spawnSide === 0) {
-                        // Spawn from top
                         startX = (Math.random() - 0.5) * window.innerWidth;
                         startY = window.innerHeight / 2;
                         velocityX = (Math.random() - 0.5) * 2 * speed;
                         velocityY = -speed;
                     } else if (spawnSide === 1) {
-                        // Spawn from right
                         startX = window.innerWidth / 2;
                         startY = (Math.random() - 0.5) * window.innerHeight;
                         velocityX = -speed;
                         velocityY = (Math.random() - 0.5) * 2 * speed;
                     } else if (spawnSide === 2) {
-                        // Spawn from bottom
                         startX = (Math.random() - 0.5) * window.innerWidth;
                         startY = -window.innerHeight / 2;
                         velocityX = (Math.random() - 0.5) * 2 * speed;
                         velocityY = speed;
                     } else {
-                        // Spawn from left
                         startX = -window.innerWidth / 2;
                         startY = (Math.random() - 0.5) * window.innerHeight;
                         velocityX = speed;
@@ -848,9 +843,9 @@
         
                 const bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    1.5, // strength
-                    0.4, // radius
-                    0.85 // threshold
+                    2.0, // Bloom strength for enhanced glow
+                    1.0, // Radius of the bloom
+                    0.5  // Threshold to control blooming
                 );
                 composer.addPass(bloomPass);
         
@@ -926,7 +921,6 @@
                 });
             });
         </script>
-
 
 
 
