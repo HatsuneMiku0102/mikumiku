@@ -749,30 +749,30 @@
         
                 function spawnComet() {
                     // Create comet head with emissive material for glowing effect
-                    const headGeometry = new THREE.SphereGeometry(6, 16, 16);
+                    const headGeometry = new THREE.SphereGeometry(8, 16, 16);
                     const headMaterial = new THREE.MeshBasicMaterial({
                         color: 0xffffff,
-                        emissive: 0xffcc66,
-                        emissiveIntensity: 2,
+                        emissive: 0xff8c00,
+                        emissiveIntensity: 3,
                         transparent: true,
-                        opacity: 0.9,
+                        opacity: 0.95,
                     });
                     const cometHead = new THREE.Mesh(headGeometry, headMaterial);
         
                     // Create comet tail using particles
-                    const tailCount = 150; // More particles for a smoother tail effect
+                    const tailCount = 250; // More particles for a smoother tail effect
                     const tailGeometry = new THREE.BufferGeometry();
                     const tailVertices = new Float32Array(tailCount * 3);
                     for (let i = 0; i < tailCount; i++) {
-                        tailVertices[i * 3] = (Math.random() - 0.5) * 10; // Random horizontal spread for a wispy effect
-                        tailVertices[i * 3 + 1] = -i * 12; // Y coordinate trailing behind the comet
-                        tailVertices[i * 3 + 2] = (Math.random() - 0.5) * 10; // Random z-coordinate to add depth
+                        tailVertices[i * 3] = (Math.random() - 0.5) * 15; // Random horizontal spread for a wispy effect
+                        tailVertices[i * 3 + 1] = -i * 10; // Y coordinate trailing behind the comet
+                        tailVertices[i * 3 + 2] = (Math.random() - 0.5) * 15; // Random z-coordinate to add depth
                     }
                     tailGeometry.setAttribute('position', new THREE.BufferAttribute(tailVertices, 3));
         
                     const tailMaterial = new THREE.PointsMaterial({
-                        color: new THREE.Color(0xffd700),
-                        size: 3.5,
+                        color: new THREE.Color(0xffffff),
+                        size: 4,
                         transparent: true,
                         opacity: 0.6,
                         blending: THREE.AdditiveBlending,
@@ -835,7 +835,7 @@
                 }
         
                 // -------------------------------
-                // Post-processing with Bloom for a subtle glow
+                // Post-processing with Bloom for a Glowing Effect
                 // -------------------------------
                 const composer = new THREE.EffectComposer(renderer);
                 const renderPass = new THREE.RenderPass(scene, camera);
@@ -843,9 +843,9 @@
         
                 const bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    2.0, // Bloom strength for enhanced glow
-                    1.0, // Radius of the bloom
-                    0.5  // Threshold to control blooming
+                    3.5, // Bloom strength for enhanced glow
+                    1.5, // Radius of the bloom for soft edges
+                    0.3  // Threshold for bloom intensity
                 );
                 composer.addPass(bloomPass);
         
@@ -921,6 +921,7 @@
                 });
             });
         </script>
+
 
 
 
