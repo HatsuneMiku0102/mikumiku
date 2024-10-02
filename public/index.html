@@ -696,32 +696,34 @@
         
         <script>
             document.addEventListener('DOMContentLoaded', () => {
+                // Renderer Setup
                 const canvas = document.getElementById('techCanvas');
                 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 renderer.setPixelRatio(window.devicePixelRatio);
                 renderer.toneMapping = THREE.ACESFilmicToneMapping;
                 renderer.outputEncoding = THREE.sRGBEncoding;
-        
+    
+                // Scene and Camera Setup
                 const scene = new THREE.Scene();
-                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000); // Increased far plane for longer distance
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 20000); // Increased far plane for longer distance
                 camera.position.z = 200;
-        
+    
                 // Static Background - Nebula
                 const textureLoader = new THREE.TextureLoader();
                 textureLoader.load('/textures/nebula.webp', (texture) => {
                     scene.background = texture;  // Set the background texture to the nebula
                 });
-        
+    
                 // Stars Geometry for Depth Effect
                 const starGeometry = new THREE.BufferGeometry();
                 const starCount = 3000;
                 const starVertices = new Float32Array(starCount * 3);
                 for (let i = 0; i < starCount * 3; i++) {
-                    starVertices[i] = (Math.random() - 0.5) * 5000; // Increased spread for depth
+                    starVertices[i] = (Math.random() - 0.5) * 10000; // Increased spread for depth
                 }
                 starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
-        
+    
                 const starMaterial = new THREE.PointsMaterial({
                     size: 1.5,
                     color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, 90%)`),
@@ -730,18 +732,18 @@
                     blending: THREE.AdditiveBlending,
                     depthWrite: false,
                 });
-        
+    
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
-        
-                // Comets with Strict Diagonal Movement
+    
+                // Comets with Fixed Diagonal Movement
                 const cometTextures = [
                     textureLoader.load('/textures/comet1.png'),
                     textureLoader.load('/textures/comet2.png')
                 ];
                 const cometGeometry = new THREE.PlaneGeometry(1, 1);
                 const comets = [];
-        
+    
                 // Define a Comet Class for better management
                 class Comet {
                     constructor(texture) {
@@ -754,145 +756,130 @@
                             opacity: 1.0 // Start fully opaque
                         });
                         this.mesh = new THREE.Mesh(cometGeometry.clone(), this.material);
-        
+    
                         // Set initial random size
                         const sizeFactor = Math.random() * 50 + 20; // Random size between 20 and 70
                         this.mesh.scale.set(sizeFactor, sizeFactor / 2, 1);
-        
+    
                         // Initialize position and velocity
                         this.reset();
-        
+    
                         scene.add(this.mesh);
                     }
-        
+    
                     reset() {
                         // Convert screen coordinates to Three.js world coordinates
                         const aspect = window.innerWidth / window.innerHeight;
                         const frustumHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * Math.abs(camera.position.z);
                         const frustumWidth = frustumHeight * aspect;
-        
-                        // Define a larger spawning area for extended flight distance
-                        const spawnAreaWidth = frustumWidth;  // Spawn across the entire width for randomness
-                        const spawnAreaHeight = frustumHeight; // Spawn across the entire height for randomness
-        
-                        // Start significantly outside the top-right edges within the spawn area
-                        const offset = 500; // Increased offset for longer flight
-                        const startX = frustumWidth / 2 + offset + Math.random() * spawnAreaWidth / 2; // Far right
-                        const startY = frustumHeight / 2 + offset + Math.random() * spawnAreaHeight / 2; // Top
-        
+    
+                        // Define a small spawning area near the top-right corner
+                        const spawnAreaWidth = frustumWidth * 0.1;  // 10% of frustum width
+                        const spawnAreaHeight = frustumHeight * 0.1; // 10% of frustum height
+    
+                        // Start slightly outside the top-right edges within the spawn area
+                        const offset = 50; // Extra distance to start off-screen
+                        const startX = (frustumWidth / 2) - (spawnAreaWidth / 2) + Math.random() * spawnAreaWidth + offset; // Near top-right
+                        const startY = (frustumHeight / 2) - (spawnAreaHeight / 2) + Math.random() * spawnAreaHeight + offset; // Near top-right
                         this.mesh.position.set(startX, startY, -800); // Positioned deeper into the scene
-        
-                        // Define a fixed velocity vector for strict diagonal movement (45 degrees)
-                        const angle = THREE.MathUtils.degToRad(-135); // 45 degrees downward-left
-        
-                        // Define speed with dynamic variation
-                        this.speed = THREE.MathUtils.randFloat(1.5, 3.0); // Base speed between 1.5 and 3.0
-                        this.velocity = new THREE.Vector3(Math.cos(angle), Math.sin(angle), 0).multiplyScalar(this.speed);
-        
+    
+                        // Define a fixed velocity vector for strict diagonal movement to bottom-left
+                        const speed = THREE.MathUtils.randFloat(1.0, 3.0); // Speed between 1 and 3
+                        this.velocity = new THREE.Vector3(-speed, -speed, 0); // Equal negative x and y for 45-degree angle
+    
                         // Opacity reset
                         this.material.opacity = 1.0;
-        
-                        // No acceleration to maintain straight path
-                        this.acceleration = 0; // Set to 0 to prevent deviation
                     }
-        
+    
                     update() {
                         // Update position based on velocity
                         this.mesh.position.add(this.velocity);
-        
-                        // **No acceleration applied to maintain straight movement**
-                        // If you want dynamic speed without changing direction:
-                        // Optionally, you can vary the speed within certain bounds without altering the velocity vector direction
-                        const speedVariation = THREE.MathUtils.randFloatSpread(0.01); // Small speed variation
-                        this.speed = THREE.MathUtils.clamp(this.speed + speedVariation, 1.5, 3.5); // Clamp speed between 1.5 and 3.5
-                        this.velocity.set(Math.cos(THREE.MathUtils.degToRad(-135)), Math.sin(THREE.MathUtils.degToRad(-135)), 0).multiplyScalar(this.speed);
-        
+    
                         // Calculate distance traveled towards bottom-left
-                        const distanceTraveled = this.mesh.position.distanceTo(new THREE.Vector3(-1000, -1000, -800)); // Far bottom-left
-        
+                        const targetPosition = new THREE.Vector3(-10000, -10000, -800); // Far bottom-left
+                        const distanceTraveled = this.mesh.position.distanceTo(targetPosition);
+    
                         // Total distance from start to end (approximate)
-                        const totalDistance = Math.sqrt(
-                            Math.pow(1000 + 500, 2) + // Increased for longer flight
-                            Math.pow(1000 + 500, 2)
-                        );
-        
+                        const totalDistance = Math.sqrt(Math.pow(10000 + 100, 2) + Math.pow(10000 + 100, 2)); // Increased for longer flight
+    
                         // Calculate opacity based on distance traveled
                         const fadeStartDistance = totalDistance * 0.8; // Start fading after 80% of the journey
                         if (distanceTraveled > fadeStartDistance) {
                             const fadeFactor = 1 - ((distanceTraveled - fadeStartDistance) / (totalDistance - fadeStartDistance));
                             this.material.opacity = THREE.MathUtils.clamp(fadeFactor, 0, 1);
                         }
-        
+    
                         // Reset the comet once it moves out of the screen bounds
                         if (this.mesh.position.x < -1000 || this.mesh.position.y < -1000) { // Far beyond visible area
                             this.reset();
                         }
                     }
                 }
-        
+    
                 // Initialize comets
                 for (let i = 0; i < 8; i++) {
                     const texture = cometTextures[Math.floor(Math.random() * cometTextures.length)];
                     const comet = new Comet(texture);
                     comets.push(comet);
                 }
-        
+    
                 // Post-processing with Bloom for a subtle glow
                 const composer = new THREE.EffectComposer(renderer);
                 const renderPass = new THREE.RenderPass(scene, camera);
                 composer.addPass(renderPass);
-        
+    
                 const bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    1.5,
-                    0.4,
-                    0.85
+                    1.5, // strength
+                    0.4, // radius
+                    0.85 // threshold
                 );
                 composer.addPass(bloomPass);
-        
+    
                 // Animate
                 const animate = () => {
                     requestAnimationFrame(animate);
-        
+    
                     // Twinkling stars effect
                     starMaterial.opacity = 0.7 + Math.sin(Date.now() * 0.001) * 0.1;
-        
+    
                     // Update each comet
                     comets.forEach(comet => {
                         comet.update();
                     });
-        
+    
                     // Render with Post-Processing
                     composer.render();
                 };
-        
+    
                 // Mouse Move Interaction - Canvas and Camera Shake Effect
                 let mouseX = 0;
                 let mouseY = 0;
-        
+    
                 document.addEventListener('mousemove', (event) => {
                     mouseX = (event.clientX - window.innerWidth / 2) * 0.005;
                     mouseY = (event.clientY - window.innerHeight / 2) * 0.005;
                 });
-        
+    
                 const updateCanvasPosition = () => {
                     // Apply slight movement to camera for parallax effect
                     camera.position.x += (mouseX - camera.position.x) * 0.05;
                     camera.position.y += (mouseY - camera.position.y) * 0.05;
                     camera.lookAt(scene.position);
-        
+    
                     // Apply slight movement to renderer to simulate entire canvas movement
                     canvas.style.transform = `translate(${mouseX * 1.5}px, ${mouseY * 1.5}px)`;
                 };
-        
+    
                 const animateWithMouseInteraction = () => {
                     requestAnimationFrame(animateWithMouseInteraction);
                     updateCanvasPosition();
                 };
-        
+    
                 animate();
                 animateWithMouseInteraction();
-        
+    
+                // Handle window resize
                 window.addEventListener('resize', () => {
                     camera.aspect = window.innerWidth / window.innerHeight;
                     camera.updateProjectionMatrix();
@@ -901,7 +888,6 @@
                 });
             });
         </script>
-
 
 
     </body>
