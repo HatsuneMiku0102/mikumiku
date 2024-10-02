@@ -734,7 +734,7 @@
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
         
-                // Comets with Fixed Diagonal Movement
+                // Comets with Strict Diagonal Movement
                 const cometTextures = [
                     textureLoader.load('/textures/comet1.png'),
                     textureLoader.load('/textures/comet2.png')
@@ -782,39 +782,39 @@
         
                         this.mesh.position.set(startX, startY, -800); // Positioned deeper into the scene
         
-                        // Define a fixed velocity vector for straight movement to bottom-left
-                        // To make it dynamic, we can slightly vary the angle within a small range
-                        const angleVariation = THREE.MathUtils.degToRad(5); // 5 degrees variation
-                        const baseAngle = -135; // Degrees (225 degrees from positive X axis)
-                        const angle = THREE.MathUtils.degToRad(baseAngle) + (Math.random() - 0.5) * angleVariation;
+                        // Define a fixed velocity vector for strict diagonal movement (45 degrees)
+                        const angle = THREE.MathUtils.degToRad(-135); // 45 degrees downward-left
         
                         // Define speed with dynamic variation
-                        this.speed = THREE.MathUtils.randFloat(1.0, 3.0); // Base speed between 1 and 3
+                        this.speed = THREE.MathUtils.randFloat(1.5, 3.0); // Base speed between 1.5 and 3.0
                         this.velocity = new THREE.Vector3(Math.cos(angle), Math.sin(angle), 0).multiplyScalar(this.speed);
         
                         // Opacity reset
                         this.material.opacity = 1.0;
         
-                        // Additional dynamic speed factor for acceleration/deceleration
-                        this.acceleration = THREE.MathUtils.randFloat(-0.01, 0.01); // Small acceleration/deceleration
+                        // No acceleration to maintain straight path
+                        this.acceleration = 0; // Set to 0 to prevent deviation
                     }
         
                     update() {
                         // Update position based on velocity
                         this.mesh.position.add(this.velocity);
         
-                        // Apply acceleration to speed
-                        this.speed += this.acceleration;
-                        // Clamp speed to avoid unrealistic values
-                        this.speed = THREE.MathUtils.clamp(this.speed, 0.5, 5.0);
-                        // Update velocity based on new speed
+                        // **No acceleration applied to maintain straight movement**
+                        // If you want dynamic speed without changing direction:
+                        // Optionally, you can vary the speed within certain bounds without altering the velocity vector direction
+                        const speedVariation = THREE.MathUtils.randFloatSpread(0.01); // Small speed variation
+                        this.speed = THREE.MathUtils.clamp(this.speed + speedVariation, 1.5, 3.5); // Clamp speed between 1.5 and 3.5
                         this.velocity.set(Math.cos(THREE.MathUtils.degToRad(-135)), Math.sin(THREE.MathUtils.degToRad(-135)), 0).multiplyScalar(this.speed);
         
                         // Calculate distance traveled towards bottom-left
                         const distanceTraveled = this.mesh.position.distanceTo(new THREE.Vector3(-1000, -1000, -800)); // Far bottom-left
         
                         // Total distance from start to end (approximate)
-                        const totalDistance = Math.sqrt(Math.pow(1000 + 500, 2) + Math.pow(1000 + 500, 2)); // Increased for longer flight
+                        const totalDistance = Math.sqrt(
+                            Math.pow(1000 + 500, 2) + // Increased for longer flight
+                            Math.pow(1000 + 500, 2)
+                        );
         
                         // Calculate opacity based on distance traveled
                         const fadeStartDistance = totalDistance * 0.8; // Start fading after 80% of the journey
@@ -901,6 +901,7 @@
                 });
             });
         </script>
+
 
 
     </body>
