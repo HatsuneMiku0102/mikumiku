@@ -758,7 +758,7 @@
                     resetCometPosition(comet);
         
                     // Set rotation to ensure the comet head points in the direction of travel
-                    comet.rotation.z = THREE.MathUtils.degToRad(360); // 225 degrees for the correct diagonal direction
+                    comet.rotation.z = THREE.MathUtils.degToRad(360); // Rotate to face downward and to the left
         
                     scene.add(comet);
                     comets.push(comet);
@@ -779,9 +779,10 @@
         
                 // Function to reset the comet to the top-right area
                 function resetCometPosition(comet) {
-                    const startX = window.innerWidth * 0.5 + Math.random() * (window.innerWidth * 0.5);  // Start beyond the middle to the right
-                    const startY = window.innerHeight * 0.5 + Math.random() * (window.innerHeight * 0.5); // Start beyond the middle to the top
-                    comet.position.set(startX, startY, -800);
+                    // Start far to the top-right of the screen to ensure they fully cross the screen
+                    const startX = window.innerWidth + Math.random() * 500; // Start beyond the right edge
+                    const startY = window.innerHeight + Math.random() * 500; // Start beyond the top edge
+                    comet.position.set(startX, startY, -400); // Adjusted Z position to bring it closer to the camera
                     comet.speed = Math.random() * 3.0 + 2.0; // Random speed for variation
                 }
         
@@ -799,7 +800,7 @@
                         comet.position.y -= comet.speed;
         
                         // Reset the comet once it moves out of the screen bounds
-                        if (comet.position.x < -(window.innerWidth / 2) || comet.position.y < -(window.innerHeight / 2)) {
+                        if (comet.position.x < -window.innerWidth || comet.position.y < -window.innerHeight) {
                             resetCometPosition(comet);
                         }
                     });
@@ -843,6 +844,7 @@
                 });
             });
         </script>
+
 
 
 
