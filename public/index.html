@@ -803,8 +803,20 @@
                     comet.velocity = new THREE.Vector3(velocityX, velocityY, 0);
         
                     // Calculate rotation to face the direction of travel
-                    // Added 40-degree adjustment (0.6981 radians)
-                    comet.rotation.z = Math.atan2(comet.velocity.y, comet.velocity.x) + Math.PI / 2 + 0.6981;
+                    let angle = Math.atan2(comet.velocity.y, comet.velocity.x);
+        
+                    // Adjust the rotation based on the texture type
+                    let adjustmentAngle = 0;
+                    if (comet.material.map === cometTextures[0]) {
+                        // Adjustment specific to comet1.png (assuming it needs a 45-degree adjustment)
+                        adjustmentAngle = Math.PI / 4; // 45 degrees
+                    } else if (comet.material.map === cometTextures[1]) {
+                        // Adjustment specific to comet2.png (assuming it needs 40-degree adjustment)
+                        adjustmentAngle = Math.PI / 4 - 0.0873; // 40 degrees
+                    }
+        
+                    // Apply calculated rotation with additional adjustment
+                    comet.rotation.z = angle + adjustmentAngle;
         
                     // Add comet to the scene
                     scene.add(comet);
@@ -903,6 +915,7 @@
                 });
             });
         </script>
+
 
 
 
