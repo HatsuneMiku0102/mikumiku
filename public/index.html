@@ -758,8 +758,8 @@
                     comet.scale.set(sizeFactor, sizeFactor / 2, 1);
                     resetCometPosition(comet);
         
-                    // Set rotation to ensure the comet head points in the direction of travel
-                    comet.rotation.z = THREE.MathUtils.degToRad(225); // Rotate to face downward and to the left
+                    // **Removed Rotation Code**
+                    // Previously: comet.rotation.z = THREE.MathUtils.degToRad(225); // Rotate to face downward and to the left
         
                     scene.add(comet);
                     comets.push(comet);
@@ -785,15 +785,22 @@
                     const frustumHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * Math.abs(camera.position.z);
                     const frustumWidth = frustumHeight * aspect;
         
-                    // Start slightly outside the right and top edges
+                    // Define the spawning area in the top-right quadrant
+                    const spawnAreaWidth = frustumWidth / 4;  // Adjust as needed for spawning density
+                    const spawnAreaHeight = frustumHeight / 4; // Adjust as needed for spawning density
+        
+                    // Start slightly outside the top-right edges within the defined spawn area
                     const offset = 100; // Extra distance to start off-screen
-                    const startX = frustumWidth / 2 + offset; // Just outside the right edge
-                    const startY = frustumHeight / 2 + offset; // Just above the top edge
+                    const startX = (frustumWidth / 2 - spawnAreaWidth / 2) + Math.random() * spawnAreaWidth + offset; // Within top-right quadrant
+                    const startY = (frustumHeight / 2 - spawnAreaHeight / 2) + Math.random() * spawnAreaHeight + offset; // Within top-right quadrant
                     comet.position.set(startX, startY, -800);
                     comet.speed = Math.random() * 1.5 + 0.5; // Slower speed for longer lifespan
         
                     // Reset opacity to fully opaque
                     comet.material.opacity = 1.0;
+        
+                    // **Removed Rotation Reset**
+                    // Previously: comet.rotation.z = THREE.MathUtils.degToRad(225); // Ensure initial direction
                 }
         
                 // Animate
@@ -808,6 +815,9 @@
                         // Move diagonally to the bottom-left
                         comet.position.x -= comet.speed;
                         comet.position.y -= comet.speed;
+        
+                        // **Removed Continuous Rotation**
+                        // Previously: comet.rotation.z += 0.02; // Adjust the rotation speed as desired
         
                         // Calculate distance traveled towards bottom-left
                         const distanceTraveled = Math.sqrt(
@@ -877,6 +887,7 @@
                 });
             });
         </script>
+
 
 
 
