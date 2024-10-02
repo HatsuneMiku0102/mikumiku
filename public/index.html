@@ -755,6 +755,7 @@
                 cometTexturePaths.forEach((path) => {
                     textureLoader.load(path, (texture) => {
                         texture.encoding = THREE.sRGBEncoding;
+                        texture.flipY = false; // Ensure texture is not flipped vertically
                         cometTextures.push(texture);
                         texturesLoaded++;
                         if (texturesLoaded === cometTexturePaths.length) {
@@ -786,34 +787,6 @@
                     0.3  // threshold
                 );
                 composer.addPass(glarePass);
-    
-                // Motion Blur ShaderPass
-                const MotionBlurShader = {
-                    uniforms: {
-                        "tDiffuse": { value: null },
-                        "delta": { value: 0.002 },
-                    },
-                    vertexShader: `
-                        varying vec2 vUv;
-                        void main() {
-                            vUv = uv;
-                            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-                        }
-                    `,
-                    fragmentShader: `
-                        uniform sampler2D tDiffuse;
-                        uniform float delta;
-                        varying vec2 vUv;
-                        void main() {
-                            vec4 current = texture2D(tDiffuse, vUv);
-                            vec4 previous = texture2D(tDiffuse, vUv - vec2(delta, delta));
-                            gl_FragColor = mix(current, previous, 0.5);
-                        }
-                    `
-                };
-    
-                const motionBlurPass = new THREE.ShaderPass(MotionBlurShader);
-                composer.addPass(motionBlurPass);
     
                 // -------------------------------
                 // Comet Class and Initialization
@@ -890,8 +863,17 @@
                         this.sprite.material.map = cometTextures[textureIndex];
                         this.sprite.scale.set(20, 20, 1);
     
+                        // Ensure the sprite faces the direction of movement
+                        this.updateRotation();
+    
                         // Lifespan
                         this.lifespan = 1000; // Frames or time units
+                    }
+    
+                    updateRotation() {
+                        // Calculate the angle based on velocity
+                        const angle = Math.atan2(this.velocity.y, this.velocity.x);
+                        this.sprite.rotation = angle;
                     }
     
                     update(delta) {
@@ -899,6 +881,9 @@
                         this.lifespan -= delta;
                         if (this.lifespan <= 0) {
                             this.reset();
+                        } else {
+                            // Update rotation in case velocity changes
+                            this.updateRotation();
                         }
                     }
                 }
@@ -986,7 +971,6 @@
                 });
             });
         </script>
-
 
 
 
