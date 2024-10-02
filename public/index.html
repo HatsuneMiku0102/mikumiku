@@ -777,10 +777,16 @@
                 );
                 composer.addPass(bloomPass);
         
-                // Function to reset the comet to the middle center of the screen
+                // Function to reset the comet to the top right of the screen
                 function resetCometPosition(comet) {
-                    const startX = window.innerWidth * 0.5; // Start from the middle of the screen
-                    const startY = window.innerHeight; // Start from the top of the screen
+                    // Convert screen coordinates to Three.js world coordinates
+                    const aspect = window.innerWidth / window.innerHeight;
+                    const frustumHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * Math.abs(camera.position.z);
+                    const frustumWidth = frustumHeight * aspect;
+        
+                    // Start near the right edge and top
+                    const startX = frustumWidth / 2 * (Math.random() * 0.5 + 0.5); // 50% to 100% of the right half
+                    const startY = frustumHeight / 2 * (Math.random() * 0.5 + 0.5); // 50% to 100% of the top half
                     comet.position.set(startX, startY, -800);
                     comet.speed = Math.random() * 3.0 + 2.0; // Random speed for variation
                 }
@@ -795,11 +801,15 @@
                     // Animate Comets with Fixed Diagonal Path
                     comets.forEach(comet => {
                         // Move diagonally to the bottom-left
-                        comet.position.x -= comet.speed * 0.7; // Reduced horizontal speed
+                        comet.position.x -= comet.speed;
                         comet.position.y -= comet.speed;
         
                         // Reset the comet once it moves out of the screen bounds
-                        if (comet.position.x < 0 || comet.position.y < 0) {
+                        const aspect = window.innerWidth / window.innerHeight;
+                        const frustumHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * Math.abs(camera.position.z);
+                        const frustumWidth = frustumHeight * aspect;
+        
+                        if (comet.position.x < -frustumWidth / 2 || comet.position.y < -frustumHeight / 2) {
                             resetCometPosition(comet);
                         }
                     });
@@ -843,6 +853,7 @@
                 });
             });
         </script>
+
 
 
 
