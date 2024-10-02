@@ -694,237 +694,231 @@
             fetchWeather();
         </script>
 
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                // -------------------------------
-                // Renderer Setup
-                // -------------------------------
-                const canvas = document.getElementById('techCanvas');
-                const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-                renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.setPixelRatio(window.devicePixelRatio);
-                renderer.toneMapping = THREE.ACESFilmicToneMapping;
-                renderer.outputEncoding = THREE.sRGBEncoding;
-        
-                // Lower the exposure to reduce the overall brightness
-                renderer.toneMappingExposure = 0.8;
-        
-                // -------------------------------
-                // Scene and Camera Setup
-                // -------------------------------
-                const scene = new THREE.Scene();
-                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
-                camera.position.z = 300;
-        
-                // Static Background - Nebula
-                const textureLoader = new THREE.TextureLoader();
-                textureLoader.load('/textures/nebula.webp', (texture) => {
-                    scene.background = texture;
-                });
-        
-                // -------------------------------
-                // Stars Geometry for Depth Effect
-                // -------------------------------
-                const starGeometry = new THREE.BufferGeometry();
-                const starCount = 3000;
-                const starVertices = new Float32Array(starCount * 3);
-                for (let i = 0; i < starCount * 3; i++) {
-                    starVertices[i] = (Math.random() - 0.5) * 3000;
-                }
-                starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
-        
-                const starMaterial = new THREE.PointsMaterial({
-                    size: 1.5,
-                    color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, 90%)`),
-                    transparent: true,
-                    opacity: 0.7,
-                    blending: THREE.AdditiveBlending,
-                    depthWrite: false,
-                });
-        
-                const stars = new THREE.Points(starGeometry, starMaterial);
-                scene.add(stars);
-        
-                // -------------------------------
-                // Comet Geometry and Particle-Based Tail
-                // -------------------------------
-                const comets = [];
-        
-                function spawnComet() {
-                    // Create comet head with emissive material for glowing effect
-                    const headGeometry = new THREE.SphereGeometry(8, 16, 16);
-                    const headMaterial = new THREE.MeshStandardMaterial({
-                        color: 0xffffff,
-                        emissive: 0xff8c00,
-                        emissiveIntensity: 2.0,
-                        transparent: true,
-                        opacity: 0.95,
-                    });
-                    const cometHead = new THREE.Mesh(headGeometry, headMaterial);
-        
-                    // Create comet tail using particles
-                    const tailCount = 250; // More particles for a smoother tail effect
-                    const tailGeometry = new THREE.BufferGeometry();
-                    const tailVertices = new Float32Array(tailCount * 3);
-                    for (let i = 0; i < tailCount; i++) {
-                        tailVertices[i * 3] = (Math.random() - 0.5) * 15; // Random horizontal spread for a wispy effect
-                        tailVertices[i * 3 + 1] = -i * 10; // Y coordinate trailing behind the comet
-                        tailVertices[i * 3 + 2] = (Math.random() - 0.5) * 15; // Random z-coordinate to add depth
-                    }
-                    tailGeometry.setAttribute('position', new THREE.BufferAttribute(tailVertices, 3));
-        
-                    const tailMaterial = new THREE.PointsMaterial({
-                        color: new THREE.Color(0xffffff),
-                        size: 4,
-                        transparent: true,
-                        opacity: 0.5,
-                        blending: THREE.AdditiveBlending,
-                        depthWrite: false,
-                    });
-        
-                    const cometTail = new THREE.Points(tailGeometry, tailMaterial);
-        
-                    // Group comet head and tail
-                    const cometGroup = new THREE.Group();
-                    cometGroup.add(cometHead);
-                    cometGroup.add(cometTail);
-        
-                    // Set initial random size for each comet
-                    const sizeFactor = Math.random() * 0.6 + 0.6; // Random size between 0.6 and 1.2
-                    cometGroup.scale.set(sizeFactor, sizeFactor, sizeFactor);
-        
-                    // Determine which side of the screen the comet will spawn from
-                    const spawnSide = Math.floor(Math.random() * 4);
-                    let startX, startY, velocityX, velocityY;
-                    const speed = Math.random() * 3.0 + 2.0; // Speed between 2.0 and 5.0
-        
-                    if (spawnSide === 0) {
-                        startX = (Math.random() - 0.5) * window.innerWidth;
-                        startY = window.innerHeight / 2;
-                        velocityX = (Math.random() - 0.5) * 2 * speed;
-                        velocityY = -speed;
-                    } else if (spawnSide === 1) {
-                        startX = window.innerWidth / 2;
-                        startY = (Math.random() - 0.5) * window.innerHeight;
-                        velocityX = -speed;
-                        velocityY = (Math.random() - 0.5) * 2 * speed;
-                    } else if (spawnSide === 2) {
-                        startX = (Math.random() - 0.5) * window.innerWidth;
-                        startY = -window.innerHeight / 2;
-                        velocityX = (Math.random() - 0.5) * 2 * speed;
-                        velocityY = speed;
-                    } else {
-                        startX = -window.innerWidth / 2;
-                        startY = (Math.random() - 0.5) * window.innerHeight;
-                        velocityX = speed;
-                        velocityY = (Math.random() - 0.5) * 2 * speed;
-                    }
-        
-                    // Set comet initial position and velocity
-                    cometGroup.position.set(startX, startY, -800);
-                    cometGroup.velocity = new THREE.Vector3(velocityX, velocityY, 0);
-        
-                    // Calculate rotation to face the direction of travel
-                    cometGroup.rotation.z = Math.atan2(cometGroup.velocity.y, cometGroup.velocity.x) - Math.PI / 2;
-        
-                    // Add comet group to the scene
-                    scene.add(cometGroup);
-                    comets.push(cometGroup);
-                }
-        
-                // Spawn initial comets
-                for (let i = 0; i < 8; i++) {
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // -------------------------------
+        // Renderer Setup
+        // -------------------------------
+        const canvas = document.getElementById('techCanvas');
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+
+        // Adjust the exposure to prevent excessive brightness
+        renderer.toneMappingExposure = 0.8;
+
+        // -------------------------------
+        // Scene and Camera Setup
+        // -------------------------------
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
+        camera.position.z = 300;
+
+        // Static Background - Nebula
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load('/textures/nebula.webp', (texture) => {
+            scene.background = texture;
+        });
+
+        // -------------------------------
+        // Stars Geometry for Depth Effect
+        // -------------------------------
+        const starGeometry = new THREE.BufferGeometry();
+        const starCount = 3000;
+        const starVertices = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount * 3; i++) {
+            starVertices[i] = (Math.random() - 0.5) * 3000;
+        }
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
+
+        const starMaterial = new THREE.PointsMaterial({
+            size: 1.5,
+            color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, 90%)`),
+            transparent: true,
+            opacity: 0.7,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+        });
+
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+
+        // -------------------------------
+        // Comets with Image Tail and Flashing Head
+        // -------------------------------
+        const cometTailTexture = textureLoader.load('/textures/comet2.png'); // Update with the actual path to the tail image
+        const comets = [];
+
+        function spawnComet() {
+            // Create comet head with emissive material for glowing and flashing effect
+            const headGeometry = new THREE.SphereGeometry(8, 16, 16);
+            const headMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                emissive: 0xff8c00,
+                emissiveIntensity: 1.0,
+                transparent: true,
+                opacity: 0.95,
+            });
+            const cometHead = new THREE.Mesh(headGeometry, headMaterial);
+
+            // Create comet tail using uploaded image as a texture
+            const tailGeometry = new THREE.PlaneGeometry(60, 150);
+            const tailMaterial = new THREE.MeshBasicMaterial({
+                map: cometTailTexture,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                opacity: 0.7,
+                side: THREE.DoubleSide,
+            });
+            const cometTail = new THREE.Mesh(tailGeometry, tailMaterial);
+
+            // Group comet head and tail
+            const cometGroup = new THREE.Group();
+            cometGroup.add(cometHead);
+            cometGroup.add(cometTail);
+
+            // Set initial random size for each comet
+            const sizeFactor = Math.random() * 0.6 + 0.6; // Random size between 0.6 and 1.2
+            cometGroup.scale.set(sizeFactor, sizeFactor, sizeFactor);
+
+            // Determine which side of the screen the comet will spawn from
+            const spawnSide = Math.floor(Math.random() * 4);
+            let startX, startY, velocityX, velocityY;
+            const speed = Math.random() * 3.0 + 2.0; // Speed between 2.0 and 5.0
+
+            if (spawnSide === 0) {
+                startX = (Math.random() - 0.5) * window.innerWidth;
+                startY = window.innerHeight / 2;
+                velocityX = (Math.random() - 0.5) * 2 * speed;
+                velocityY = -speed;
+            } else if (spawnSide === 1) {
+                startX = window.innerWidth / 2;
+                startY = (Math.random() - 0.5) * window.innerHeight;
+                velocityX = -speed;
+                velocityY = (Math.random() - 0.5) * 2 * speed;
+            } else if (spawnSide === 2) {
+                startX = (Math.random() - 0.5) * window.innerWidth;
+                startY = -window.innerHeight / 2;
+                velocityX = (Math.random() - 0.5) * 2 * speed;
+                velocityY = speed;
+            } else {
+                startX = -window.innerWidth / 2;
+                startY = (Math.random() - 0.5) * window.innerHeight;
+                velocityX = speed;
+                velocityY = (Math.random() - 0.5) * 2 * speed;
+            }
+
+            // Set comet initial position and velocity
+            cometGroup.position.set(startX, startY, -800);
+            cometGroup.velocity = new THREE.Vector3(velocityX, velocityY, 0);
+
+            // Calculate rotation to face the direction of travel
+            cometGroup.rotation.z = Math.atan2(cometGroup.velocity.y, cometGroup.velocity.x) - Math.PI / 2;
+
+            // Add comet group to the scene
+            scene.add(cometGroup);
+            comets.push(cometGroup);
+        }
+
+        // Spawn initial comets
+        for (let i = 0; i < 8; i++) {
+            spawnComet();
+        }
+
+        // -------------------------------
+        // Post-processing with Bloom for a Glowing Effect
+        // -------------------------------
+        const composer = new THREE.EffectComposer(renderer);
+        const renderPass = new THREE.RenderPass(scene, camera);
+        composer.addPass(renderPass);
+
+        const bloomPass = new THREE.UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            1.5, // Reduced bloom strength to minimize background over-brightness
+            0.8, // Radius for more focused bloom
+            0.6  // Bloom threshold
+        );
+        composer.addPass(bloomPass);
+
+        // -------------------------------
+        // Animate
+        // -------------------------------
+        const animate = () => {
+            requestAnimationFrame(animate);
+
+            // Twinkling stars effect
+            starMaterial.opacity = 0.7 + Math.sin(Date.now() * 0.001) * 0.1;
+
+            // Animate Comets
+            comets.forEach((comet, index) => {
+                comet.position.add(comet.velocity);
+
+                // Create a flashing effect for the comet head
+                comet.children[0].material.emissiveIntensity = 1.5 + Math.sin(Date.now() * 0.005) * 0.5;
+
+                // Check if comet is out of view
+                if (comet.position.x < -window.innerWidth / 2 ||
+                    comet.position.x > window.innerWidth / 2 ||
+                    comet.position.y < -window.innerHeight / 2 ||
+                    comet.position.y > window.innerHeight / 2) {
+                    // Remove the comet from the scene and array
+                    scene.remove(comet);
+                    comets.splice(index, 1);
+
+                    // Spawn a new comet to replace it
                     spawnComet();
                 }
-        
-                // -------------------------------
-                // Post-processing with Bloom for a Glowing Effect
-                // -------------------------------
-                const composer = new THREE.EffectComposer(renderer);
-                const renderPass = new THREE.RenderPass(scene, camera);
-                composer.addPass(renderPass);
-        
-                // Bloom with adjusted intensity and radius to reduce background bloom
-                const bloomPass = new THREE.UnrealBloomPass(
-                    new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    1.2, // Reduced bloom strength to minimize background over-brightness
-                    0.8, // Reduced radius for more focus on comets and less on background
-                    0.6  // Slightly increased threshold to focus the bloom effect on brighter areas
-                );
-                composer.addPass(bloomPass);
-        
-                // -------------------------------
-                // Animate
-                // -------------------------------
-                const animate = () => {
-                    requestAnimationFrame(animate);
-        
-                    // Twinkling stars effect
-                    starMaterial.opacity = 0.7 + Math.sin(Date.now() * 0.001) * 0.1;
-        
-                    // Animate Comets
-                    comets.forEach((comet, index) => {
-                        comet.position.add(comet.velocity);
-        
-                        // Check if comet is out of view
-                        if (comet.position.x < -window.innerWidth / 2 ||
-                            comet.position.x > window.innerWidth / 2 ||
-                            comet.position.y < -window.innerHeight / 2 ||
-                            comet.position.y > window.innerHeight / 2) {
-                            // Remove the comet from the scene and array
-                            scene.remove(comet);
-                            comets.splice(index, 1);
-        
-                            // Spawn a new comet to replace it
-                            spawnComet();
-                        }
-                    });
-        
-                    // Render with Post-Processing
-                    composer.render();
-                };
-        
-                // -------------------------------
-                // Mouse Move Interaction - Canvas and Camera Shake Effect
-                // -------------------------------
-                let mouseX = 0;
-                let mouseY = 0;
-        
-                document.addEventListener('mousemove', (event) => {
-                    mouseX = (event.clientX - window.innerWidth / 2) * 0.005;
-                    mouseY = (event.clientY - window.innerHeight / 2) * 0.005;
-                });
-        
-                const updateCanvasPosition = () => {
-                    // Apply slight movement to camera for parallax effect
-                    camera.position.x += (mouseX - camera.position.x) * 0.05;
-                    camera.position.y += (mouseY - camera.position.y) * 0.05;
-                    camera.lookAt(scene.position);
-        
-                    // Apply slight movement to renderer to simulate entire canvas movement
-                    canvas.style.transform = `translate(${mouseX * 1.5}px, ${mouseY * 1.5}px)`;
-                };
-        
-                const animateWithMouseInteraction = () => {
-                    requestAnimationFrame(animateWithMouseInteraction);
-                    updateCanvasPosition();
-                };
-        
-                // Start Animations
-                animate();
-                animateWithMouseInteraction();
-        
-                // -------------------------------
-                // Handle Window Resize
-                // -------------------------------
-                window.addEventListener('resize', () => {
-                    camera.aspect = window.innerWidth / window.innerHeight;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(window.innerWidth, window.innerHeight);
-                    composer.setSize(window.innerWidth, window.innerHeight);
-                });
             });
-        </script>
+
+            // Render with Post-Processing
+            composer.render();
+        };
+
+        // -------------------------------
+        // Mouse Move Interaction - Canvas and Camera Shake Effect
+        // -------------------------------
+        let mouseX = 0;
+        let mouseY = 0;
+
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX - window.innerWidth / 2) * 0.005;
+            mouseY = (event.clientY - window.innerHeight / 2) * 0.005;
+        });
+
+        const updateCanvasPosition = () => {
+            // Apply slight movement to camera for parallax effect
+            camera.position.x += (mouseX - camera.position.x) * 0.05;
+            camera.position.y += (mouseY - camera.position.y) * 0.05;
+            camera.lookAt(scene.position);
+
+            // Apply slight movement to renderer to simulate entire canvas movement
+            canvas.style.transform = `translate(${mouseX * 1.5}px, ${mouseY * 1.5}px)`;
+        };
+
+        const animateWithMouseInteraction = () => {
+            requestAnimationFrame(animateWithMouseInteraction);
+            updateCanvasPosition();
+        };
+
+        // Start Animations
+        animate();
+        animateWithMouseInteraction();
+
+        // -------------------------------
+        // Handle Window Resize
+        // -------------------------------
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+    });
+</script>
+
 
 
 
