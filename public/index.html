@@ -705,20 +705,20 @@
                 renderer.setPixelRatio(window.devicePixelRatio);
                 renderer.toneMapping = THREE.ACESFilmicToneMapping;
                 renderer.outputEncoding = THREE.sRGBEncoding;
-    
+        
                 // -------------------------------
                 // Scene and Camera Setup
                 // -------------------------------
                 const scene = new THREE.Scene();
                 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
                 camera.position.z = 200;
-    
+        
                 // Static Background - Nebula
                 const textureLoader = new THREE.TextureLoader();
                 textureLoader.load('/textures/nebula.webp', (texture) => {
                     scene.background = texture;
                 });
-    
+        
                 // -------------------------------
                 // Stars Geometry for Depth Effect
                 // -------------------------------
@@ -729,7 +729,7 @@
                     starVertices[i] = (Math.random() - 0.5) * 3000;
                 }
                 starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
-    
+        
                 const starMaterial = new THREE.PointsMaterial({
                     size: 1.5,
                     color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, 90%)`),
@@ -738,12 +738,12 @@
                     blending: THREE.AdditiveBlending,
                     depthWrite: false,
                 });
-    
+        
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
-    
+        
                 // -------------------------------
-                // Comets with Dynamic Spawning
+                // Comets with Dynamic Spawning from All Sides
                 // -------------------------------
                 const cometTextures = [
                     textureLoader.load('/textures/comet1.png'),
@@ -751,7 +751,7 @@
                 ];
                 const cometGeometry = new THREE.PlaneGeometry(1, 1);
                 const comets = [];
-    
+        
                 function spawnComet() {
                     const cometMaterial = new THREE.MeshBasicMaterial({
                         map: cometTextures[Math.floor(Math.random() * cometTextures.length)],
@@ -761,45 +761,67 @@
                         side: THREE.DoubleSide,
                     });
                     const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
-                
-                    // Set initial random values for each comet to start from the right side
+        
+                    // Set initial random size for each comet
                     const sizeFactor = Math.random() * 50 + 20; // Random size between 20 and 70
                     comet.scale.set(sizeFactor, sizeFactor / 2, 1);
-                    
-                    // Spawn from right side with random y position
-                    comet.position.set(window.innerWidth / 2, (Math.random() - 0.5) * window.innerHeight, -800);
-                    
-                    // Random speed and direction
+        
+                    // Determine which side of the screen the comet will spawn from (0 = top, 1 = right, 2 = bottom, 3 = left)
+                    const spawnSide = Math.floor(Math.random() * 4);
+        
+                    let startX, startY, velocityX, velocityY;
                     const speed = Math.random() * 3.0 + 2.0;  // Speed between 2.0 and 5.0
-                    const angle = Math.PI / 2 + (Math.random() - 0.5) * Math.PI / 3; // Angle between 30 and 150 degrees
-                    
-                    // Define velocity vector based on angle
-                    comet.velocity = new THREE.Vector3(
-                        -Math.cos(angle) * speed,
-                        -Math.sin(angle) * speed,
-                        0
-                    );
-    
+        
+                    if (spawnSide === 0) {
+                        // Spawn from top
+                        startX = (Math.random() - 0.5) * window.innerWidth;
+                        startY = window.innerHeight / 2;
+                        velocityX = (Math.random() - 0.5) * 2 * speed;
+                        velocityY = -speed;
+                    } else if (spawnSide === 1) {
+                        // Spawn from right
+                        startX = window.innerWidth / 2;
+                        startY = (Math.random() - 0.5) * window.innerHeight;
+                        velocityX = -speed;
+                        velocityY = (Math.random() - 0.5) * 2 * speed;
+                    } else if (spawnSide === 2) {
+                        // Spawn from bottom
+                        startX = (Math.random() - 0.5) * window.innerWidth;
+                        startY = -window.innerHeight / 2;
+                        velocityX = (Math.random() - 0.5) * 2 * speed;
+                        velocityY = speed;
+                    } else {
+                        // Spawn from left
+                        startX = -window.innerWidth / 2;
+                        startY = (Math.random() - 0.5) * window.innerHeight;
+                        velocityX = speed;
+                        velocityY = (Math.random() - 0.5) * 2 * speed;
+                    }
+        
+                    // Set comet initial position and velocity
+                    comet.position.set(startX, startY, -800);
+                    comet.velocity = new THREE.Vector3(velocityX, velocityY, 0);
+        
                     // Calculate rotation to face the direction of travel
                     comet.rotation.z = Math.atan2(comet.velocity.y, comet.velocity.x) + Math.PI / 2;
-    
+        
                     // Add comet to the scene
                     scene.add(comet);
                     comets.push(comet);
                 }
-    
+        
                 // Spawn initial comets
                 for (let i = 0; i < 8; i++) {
                     spawnComet();
                 }
-    
+        
                 // -------------------------------
                 // Post-processing with Bloom for a subtle glow
                 // -------------------------------
                 const composer = new THREE.EffectComposer(renderer);
                 const renderPass = new THREE.RenderPass(scene, camera);
                 composer.addPass(renderPass);
-    
+        
                 const bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
                     1.5, // strength
@@ -807,7 +829,7 @@
                     0.85 // threshold
                 );
                 composer.addPass(bloomPass);
-    
+        
                 // -------------------------------
                 // Animate
                 // -------------------------------
@@ -816,13 +838,14 @@
                 
                     // Twinkling stars effect
                     starMaterial.opacity = 0.7 + Math.sin(Date.now() * 0.001) * 0.1;
-                
+        
                     // Animate Comets
                     comets.forEach((comet, index) => {
                         comet.position.add(comet.velocity);
-                    
+        
                         // Check if comet is out of view
                         if (comet.position.x < -window.innerWidth / 2 || 
+                            comet.position.x > window.innerWidth / 2 ||
                             comet.position.y < -window.innerHeight / 2 || 
                             comet.position.y > window.innerHeight / 2) {
                             // Remove the comet from the scene and array
@@ -833,41 +856,41 @@
                             spawnComet();
                         }
                     });
-    
+        
                     // Render with Post-Processing
                     composer.render();
                 };
-    
+        
                 // -------------------------------
                 // Mouse Move Interaction - Canvas and Camera Shake Effect
                 // -------------------------------
                 let mouseX = 0;
                 let mouseY = 0;
-    
+        
                 document.addEventListener('mousemove', (event) => {
                     mouseX = (event.clientX - window.innerWidth / 2) * 0.005;
                     mouseY = (event.clientY - window.innerHeight / 2) * 0.005;
                 });
-    
+        
                 const updateCanvasPosition = () => {
                     // Apply slight movement to camera for parallax effect
                     camera.position.x += (mouseX - camera.position.x) * 0.05;
                     camera.position.y += (mouseY - camera.position.y) * 0.05;
                     camera.lookAt(scene.position);
-    
+        
                     // Apply slight movement to renderer to simulate entire canvas movement
                     canvas.style.transform = `translate(${mouseX * 1.5}px, ${mouseY * 1.5}px)`;
                 };
-    
+        
                 const animateWithMouseInteraction = () => {
                     requestAnimationFrame(animateWithMouseInteraction);
                     updateCanvasPosition();
                 };
-    
+        
                 // Start Animations
                 animate();
                 animateWithMouseInteraction();
-    
+        
                 // -------------------------------
                 // Handle Window Resize
                 // -------------------------------
@@ -879,6 +902,7 @@
                 });
             });
         </script>
+
 
 
 
