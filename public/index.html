@@ -796,6 +796,16 @@
                         this.sprite = new THREE.Sprite(material);
                         this.reset();
                         scene.add(this.sprite);
+        
+                        // Determine if this comet will flicker (50% chance)
+                        this.canFlicker = Math.random() < 0.5;
+        
+                        // Flicker parameters
+                        if (this.canFlicker) {
+                            this.flickerFrequency = Math.random() * 2 + 1; // Flicker frequency between 1 and 3 Hz
+                            this.flickerPhase = Math.random() * Math.PI * 2; // Random phase for variation
+                            this.flickerIntensity = THREE.MathUtils.clamp(Math.random() * 0.5 + 0.5, 0.5, 1.0); // Intensity between 0.5 and 1.0
+                        }
                     }
         
                     reset() {
@@ -813,10 +823,30 @@
                         const textureIndex = Math.floor(Math.random() * cometTextures.length);
                         this.sprite.material.map = cometTextures[textureIndex];
                         this.sprite.scale.set(20, 20, 1);
+        
+                        // Reset flicker phase if necessary
+                        if (this.canFlicker) {
+                            this.flickerPhase = Math.random() * Math.PI * 2;
+                            // Optionally, reset flicker frequency and intensity to add variation over resets
+                            this.flickerFrequency = Math.random() * 2 + 1; // Flicker frequency between 1 and 3 Hz
+                            this.flickerIntensity = THREE.MathUtils.clamp(Math.random() * 0.5 + 0.5, 0.5, 1.0); // Intensity between 0.5 and 1.0
+                        }
+        
+                        // Restore default opacity
+                        this.sprite.material.opacity = 0.7;
                     }
         
                     update(delta) {
                         this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
+        
+                        // Apply flickering effect if applicable
+                        if (this.canFlicker) {
+                            // Calculate flicker based on sine wave with frequency and phase
+                            const flicker = this.flickerIntensity * (0.5 + 0.5 * Math.sin(this.flickerFrequency * Date.now() * 0.005 + this.flickerPhase));
+                            
+                            // Adjust opacity to simulate brightness flicker
+                            this.sprite.material.opacity = THREE.MathUtils.clamp(flicker, 0.5, 1.0);
+                        }
         
                         // Reset comet if it moves out of bounds (e.g., beyond -1000 on X or Y)
                         if (this.sprite.position.x < -1000 || this.sprite.position.y < -1000) {
@@ -841,7 +871,10 @@
                 }
         
                 const spawnComet = () => {
-                    const availableComet = cometPool.find(comet => comet.sprite.position.x === 800 && comet.sprite.position.y === 500);
+                    const availableComet = cometPool.find(comet => 
+                        comet.sprite.position.x === 800 && 
+                        comet.sprite.position.y === 500
+                    );
                     if (availableComet) {
                         availableComet.reset();
                     }
@@ -908,6 +941,7 @@
                 });
             });
         </script>
+
 
 
 
