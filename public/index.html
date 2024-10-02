@@ -749,6 +749,7 @@
                         blending: THREE.AdditiveBlending,
                         depthWrite: false,
                         side: THREE.DoubleSide,
+                        opacity: 1.0 // Start fully opaque
                     });
                     const comet = new THREE.Mesh(cometGeometry.clone(), cometMaterial);
         
@@ -777,18 +778,22 @@
                 );
                 composer.addPass(bloomPass);
         
-                // Function to reset the comet to the top right of the screen
+                // Function to reset the comet to just outside the top-right of the screen
                 function resetCometPosition(comet) {
                     // Convert screen coordinates to Three.js world coordinates
                     const aspect = window.innerWidth / window.innerHeight;
                     const frustumHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * Math.abs(camera.position.z);
                     const frustumWidth = frustumHeight * aspect;
         
-                    // Start near the right edge and top
-                    const startX = frustumWidth / 2 * (Math.random() * 0.5 + 0.5); // 50% to 100% of the right half
-                    const startY = frustumHeight / 2 * (Math.random() * 0.5 + 0.5); // 50% to 100% of the top half
+                    // Start slightly outside the right and top edges
+                    const offset = 100; // Extra distance to start off-screen
+                    const startX = frustumWidth / 2 + offset; // Just outside the right edge
+                    const startY = frustumHeight / 2 + offset; // Just above the top edge
                     comet.position.set(startX, startY, -800);
-                    comet.speed = Math.random() * 3.0 + 2.0; // Random speed for variation
+                    comet.speed = Math.random() * 1.5 + 0.5; // Slower speed for longer lifespan
+        
+                    // Reset opacity to fully opaque
+                    comet.material.opacity = 1.0;
                 }
         
                 // Animate
@@ -804,12 +809,31 @@
                         comet.position.x -= comet.speed;
                         comet.position.y -= comet.speed;
         
+                        // Calculate distance traveled towards bottom-left
+                        const distanceTraveled = Math.sqrt(
+                            Math.pow(comet.position.x - (-window.innerWidth / 2 - 100), 2) +
+                            Math.pow(comet.position.y - (-window.innerHeight / 2 - 100), 2)
+                        );
+        
+                        // Total distance from start to end
+                        const totalDistance = Math.sqrt(
+                            Math.pow(window.innerWidth + 200, 2) + // frustumWidth/2 * 2 + offset
+                            Math.pow(window.innerHeight + 200, 2) // frustumHeight/2 * 2 + offset
+                        );
+        
+                        // Calculate opacity based on distance traveled
+                        const fadeStartDistance = totalDistance * 0.7; // Start fading after 70% of the journey
+                        if (distanceTraveled > fadeStartDistance) {
+                            const fadeFactor = 1 - ((distanceTraveled - fadeStartDistance) / (totalDistance - fadeStartDistance));
+                            comet.material.opacity = THREE.MathUtils.clamp(fadeFactor, 0, 1);
+                        }
+        
                         // Reset the comet once it moves out of the screen bounds
                         const aspect = window.innerWidth / window.innerHeight;
                         const frustumHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * Math.abs(camera.position.z);
                         const frustumWidth = frustumHeight * aspect;
         
-                        if (comet.position.x < -frustumWidth / 2 || comet.position.y < -frustumHeight / 2) {
+                        if (comet.position.x < -frustumWidth / 2 - 100 || comet.position.y < -frustumHeight / 2 - 100) {
                             resetCometPosition(comet);
                         }
                     });
@@ -853,6 +877,7 @@
                 });
             });
         </script>
+
 
 
 
