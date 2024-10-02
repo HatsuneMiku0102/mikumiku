@@ -714,9 +714,9 @@
                     75, // Field of View (degrees)
                     window.innerWidth / window.innerHeight, 
                     0.1, 
-                    20000 // Far plane
+                    30000 // Increased far plane to accommodate larger background
                 );
-                camera.position.set(0, 0, 1000); // Zoomed out position
+                camera.position.set(0, 0, 1500); // Further zoomed out position
                 camera.lookAt(new THREE.Vector3(0, 0, 0));
     
                 // -------------------------------
@@ -735,7 +735,7 @@
                 // -------------------------------
                 const textureLoader = new THREE.TextureLoader();
                 textureLoader.load('/textures/nebula.webp', (texture) => {
-                    const geometry = new THREE.SphereGeometry(10000, 60, 40); // Very large radius to cover all views
+                    const geometry = new THREE.SphereGeometry(20000, 60, 40); // Increased radius for a more distant background
                     const material = new THREE.MeshBasicMaterial({
                         map: texture,
                         side: THREE.BackSide, // Invert the normals to render inside the sphere
@@ -752,7 +752,7 @@
                 const starCount = 3000;
                 const starVertices = new Float32Array(starCount * 3);
                 for (let i = 0; i < starCount * 3; i++) {
-                    starVertices[i] = (Math.random() - 0.5) * 20000; // Increased spread for depth
+                    starVertices[i] = (Math.random() - 0.5) * 40000; // Increased spread for greater depth
                 }
                 starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
     
@@ -802,18 +802,18 @@
                     }
     
                     reset() {
-                        const spawnZ = camera.position.z - 1300; // Spawn 1300 units in front of the camera
+                        const spawnZ = camera.position.z - 1500; // Spawn 1500 units in front of the camera
     
                         // Calculate frustum size at spawnZ
                         const viewSize = getFrustumSizeAtZ(spawnZ);
     
                         // Define spawn area within top-right quadrant
-                        // SpawnX: 30% to 50% of the frustum width (right side)
-                        // SpawnY: 30% to 50% of the frustum height (top side)
-                        const spawnXMin = viewSize.width * 0.3 - viewSize.width / 2;
-                        const spawnXMax = viewSize.width * 0.5 - viewSize.width / 2;
-                        const spawnYMin = viewSize.height * 0.3 - viewSize.height / 2;
-                        const spawnYMax = viewSize.height * 0.5 - viewSize.height / 2;
+                        // SpawnX: 60% to 80% of the frustum width (right side)
+                        // SpawnY: 60% to 80% of the frustum height (top side)
+                        const spawnXMin = viewSize.width * 0.6 - viewSize.width / 2;
+                        const spawnXMax = viewSize.width * 0.8 - viewSize.width / 2;
+                        const spawnYMin = viewSize.height * 0.6 - viewSize.height / 2;
+                        const spawnYMax = viewSize.height * 0.8 - viewSize.height / 2;
     
                         const spawnX = THREE.MathUtils.randFloat(spawnXMin, spawnXMax);
                         const spawnY = THREE.MathUtils.randFloat(spawnYMin, spawnYMax);
@@ -833,11 +833,11 @@
                         this.mesh.position.add(this.velocity);
     
                         // Calculate distance traveled towards bottom-left (arbitrary far point)
-                        const targetPosition = new THREE.Vector3(-10000, -10000, this.mesh.position.z); // Far bottom-left
+                        const targetPosition = new THREE.Vector3(-20000, -20000, this.mesh.position.z); // Far bottom-left
                         const distanceTraveled = this.mesh.position.distanceTo(targetPosition);
     
                         // Total distance from start to end (approximate)
-                        const totalDistance = Math.sqrt(Math.pow(10000 + Math.abs(this.mesh.position.x), 2) + Math.pow(10000 + Math.abs(this.mesh.position.y), 2)); // Increased for longer flight
+                        const totalDistance = Math.sqrt(Math.pow(20000 + Math.abs(this.mesh.position.x), 2) + Math.pow(20000 + Math.abs(this.mesh.position.y), 2)); // Increased for longer flight
     
                         // Calculate opacity based on distance traveled
                         const fadeStartDistance = totalDistance * 0.8; // Start fading after 80% of the journey
@@ -911,7 +911,7 @@
     
                 const updateCameraPosition = () => {
                     // Apply slight movement to camera for parallax effect
-                    const parallaxStrength = 1; // Reduced from 5 to 1 for less movement
+                    const parallaxStrength = 1; // Reduced for subtle movement
                     const damping = 0.05; // Smoothing factor
     
                     camera.position.x += (mouseX * parallaxStrength - camera.position.x) * damping;
