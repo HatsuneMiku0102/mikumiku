@@ -783,7 +783,7 @@
             });
         
             // -------------------------------
-            // 7. Comet Class Definition with Rapid Flickering Burst Effect
+            // 7. Comet Class Definition with Explosive Flicker Effect
             // -------------------------------
             class Comet {
                 constructor(texture, existingComets) {
@@ -801,12 +801,12 @@
                     this.existingComets = existingComets;
                     this.reset();
         
-                    // Determine if this comet will have a rapid flickering burst effect
+                    // Determine if this comet will have an explosive flicker burst effect
                     this.canBurst = true;
                     this.burstTime = Date.now() + Math.random() * 5000 + 2000; // Random burst interval between 2-7 seconds
-                    this.burstDuration = 3000; // Burst lasts for 1 second
+                    this.burstDuration = 1000; // Burst lasts for 1 second
                     this.inBurst = false; // Track if currently in burst
-                    this.burstFrequency = Math.random() * 20 + 20; // Very rapid flickering
+                    this.burstFrequency = Math.random() * 20 + 30; // Very rapid flickering for explosive effect
                 }
         
                 reset() {
@@ -879,7 +879,7 @@
                 update(delta) {
                     this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
         
-                    // Burst Effect - Rapid Flickering for a Bloom-Like Intensity
+                    // Burst Effect - Explosive Rapid Flickering
                     if (this.canBurst && Date.now() > this.burstTime) {
                         this.inBurst = true;
                         this.burstTime = Date.now() + Math.random() * 5000 + 2000; // Set next burst time
@@ -888,11 +888,11 @@
                     if (this.inBurst) {
                         const elapsedTime = Date.now() - (this.burstTime - this.burstDuration);
                         if (elapsedTime < this.burstDuration) {
-                            // Rapid flickering effect
-                            const flicker = Math.sin(this.burstFrequency * Date.now() * 0.005);
-                            const flickerOpacity = 1.0 + flicker * 0.5;
-                            this.sprite.material.opacity = THREE.MathUtils.clamp(flickerOpacity, 1.0, 2.0);
-                            this.sprite.material.color.set(0xffffcc); // Make the comet color warmer during burst
+                            // Rapid flickering effect to simulate an explosive glow
+                            const flicker = Math.sin(this.burstFrequency * Date.now() * 0.01);
+                            const flickerOpacity = 1.5 + flicker * 0.5; // Increase intensity for explosive effect
+                            this.sprite.material.opacity = THREE.MathUtils.clamp(flickerOpacity, 1.0, 2.5);
+                            this.sprite.material.color.set(0xffe680); // Warmer, explosive-like color
                         } else {
                             this.inBurst = false;
                             this.sprite.material.opacity = Math.random() * 0.4 + 0.6; // Reset opacity after burst
@@ -1011,6 +1011,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
