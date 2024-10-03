@@ -745,7 +745,11 @@
         
                     this.existingComets = existingComets;
         
-                    this.initLightAndLensflare();
+                    // Initialize lights and other effects
+                    this.pointLight = new THREE.PointLight(this.getCometColor(), 1.0, 1000);
+                    scene.add(this.pointLight);
+        
+                    this.initLensflare();
                     this.reset();
                 }
         
@@ -762,12 +766,7 @@
                     }
                 }
         
-                initLightAndLensflare() {
-                    const color = this.getCometColor();
-                    this.pointLight = new THREE.PointLight(color, 1.0, 1000); // Use comet color for point light
-                    scene.add(this.pointLight);
-        
-                    // Lensflare for starburst effect
+                initLensflare() {
                     const textureFlare = textureLoader.load('/textures/lensflare0.png', (texture) => {
                         this.lensflare = new Lensflare();
                         const lensflareElement = new LensflareElement(texture, 150, 0, new THREE.Color(0xffffff));
@@ -775,7 +774,7 @@
                         this.pointLight.add(this.lensflare);
         
                         // Set initial opacity of the lensflare element to 0
-                        lensflareElement.opacity = 0;
+                        this.lensflare.elements[0].opacity = 0;
                     });
                 }
         
@@ -885,7 +884,7 @@
                 triggerStarburst() {
                     console.log("Starburst triggered for comet");
         
-                    if (this.lensflare && this.lensflare.elements.length > 0) {
+                    if (this.lensflare && this.lensflare.elements && this.lensflare.elements.length > 0) {
                         const lensflareElement = this.lensflare.elements[0];
                         lensflareElement.opacity = 1.0;
         
@@ -963,10 +962,6 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
-
-
-
-
 
 
 
