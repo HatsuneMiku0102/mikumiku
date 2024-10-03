@@ -796,7 +796,6 @@
                     this.lifespan = 9; // Reduced lifespan to around 9 seconds
                     this.glowTriggered = false;
                     this.comet.material.opacity = 1.0; // Reset opacity to ensure visibility
-                    this.comet.material.color.set(0x88ccee); // Reset color to a visible state
                 }
         
                 generateSpawnPosition() {
@@ -836,18 +835,12 @@
                 triggerGlow() {
                     if (!this.comet) return;
         
-                    // Save original color and scale for restoration
-                    const originalColor = this.comet.material.color.clone();
-                    const originalScale = this.comet.scale.clone();
+                    // Temporarily increase bloom strength for a vibrant glow effect
+                    bloomPass.strength = 1.5;
         
-                    // Vibrant glow effect - change color to bright white and increase size
-                    this.comet.material.color.set(0xffffff);
-                    this.comet.scale.set(originalScale.x * 1.5, originalScale.y * 1.5, originalScale.z * 1.5);
-        
-                    // Restore original color and scale after glow duration
+                    // Set a timeout to revert the bloom strength back to normal
                     setTimeout(() => {
-                        this.comet.material.color.copy(originalColor);
-                        this.comet.scale.copy(originalScale);
+                        bloomPass.strength = 0.4; // Revert to default bloom strength
                     }, this.glowDuration * 1000);
                 }
             }
@@ -866,7 +859,7 @@
         
             const bloomParams = {
                 exposure: 0.4,
-                bloomStrength: 0.4, // Reduced bloom effect on the nebula
+                bloomStrength: 0.4, // Default bloom effect on the nebula
                 bloomThreshold: 0.1,
                 bloomRadius: 0.3
             };
