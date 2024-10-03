@@ -798,7 +798,7 @@
         
                         // Create Sprite and enforce fixed scale
                         this.sprite = new THREE.Sprite(material);
-                        this.sprite.scale.set(150, 150, 1); // Increased scale from (50, 50, 1) to (150, 150, 1)
+                        this.sprite.scale.set(300, 300, 1); // Increased scale for larger comets
                         scene.add(this.sprite);
         
                         // Initialize Comet Properties
@@ -843,20 +843,32 @@
                     }
         
                     reset() {
-                        // Fixed spawn position: Top-Right Corner in the background
-                        // Adjusted to be within visible area
+                        // Fixed spawn position: Top-Right Corner just outside the visible area
+                        // Adjusted to be within visible area based on camera's FOV and aspect ratio
+                        const spawnOffsetX = 200; // Distance outside the screen horizontally
+                        const spawnOffsetY = 200; // Distance outside the screen vertically
+                        const spawnZ = -2500 + Math.random() * -1000; // z between -2500 and -3500
+        
+                        // Calculate the top-right corner in world coordinates
+                        const aspect = window.innerWidth / window.innerHeight;
+                        const fov = THREE.MathUtils.degToRad(camera.fov);
+                        const height = 2 * Math.tan(fov / 2) * Math.abs(camera.position.z - spawnZ);
+                        const width = height * aspect;
+        
+                        const x = width / 2 + spawnOffsetX;
+                        const y = height / 2 + spawnOffsetY;
+        
                         this.sprite.position.set(
-                            Math.random() * 800 + 400, // x between 400 and 1200
-                            Math.random() * 600 + 200, // y between 200 and 800
-                            -2500 + Math.random() * -1000 // z between -2500 and -3500
+                            x,
+                            y,
+                            spawnZ
                         );
         
-                        // Set velocity to move diagonally towards Bottom-Left
-                        // Increased speed for faster movement
+                        // Set fixed velocity to move diagonally down-left
                         this.velocity = new THREE.Vector3(
-                            -Math.random() * 3 + 1, // Move left (faster)
-                            -Math.random() * 3 + 1, // Move down (faster)
-                            Math.random() * -1 - 0.5  // Move forward more rapidly
+                            -10, // x speed: move left
+                            -10, // y speed: move down
+                            0    // z speed: maintain depth
                         );
         
                         // Randomly select a texture
@@ -894,6 +906,9 @@
         
                         // Restore default opacity
                         this.sprite.material.opacity = 0.7;
+        
+                        // Store base color for head flicker
+                        this.baseColor = this.sprite.material.color.clone();
                     }
         
                     update(delta) {
@@ -944,20 +959,18 @@
                             
                             // Simulate head flicker by adjusting color intensity
                             // Slightly brighten the comet's color
-                            if (!this.baseColor) {
-                                this.baseColor = this.sprite.material.color.clone();
-                            }
                             const brighterColor = this.baseColor.clone().multiplyScalar(1 + headFlicker);
                             this.sprite.material.color.copy(brighterColor);
                         }
         
                         // Ensure comets remain at fixed scale
-                        this.sprite.scale.set(150, 150, 1); // Fixed scale
+                        this.sprite.scale.set(300, 300, 1); // Fixed scale
         
-                        // Reset comet if it moves out of bounds
+                        // Reset comet if it moves out of bounds (bottom-left corner)
+                        const bounds = 2000; // Adjust based on scene size
                         if (
-                            this.sprite.position.x < -2000 ||
-                            this.sprite.position.y < -2000 ||
+                            this.sprite.position.x < -bounds ||
+                            this.sprite.position.y < -bounds ||
                             this.sprite.position.z < -4000
                         ) {
                             this.reset();
@@ -969,7 +982,7 @@
                 // Initialize Comets
                 // -------------------------------
                 const cometPool = [];
-                const maxComets = 15; // Increased number of comets for better distribution
+                const maxComets = 20; // Increased number of comets for better distribution
         
                 function initComets() {
                     // Create comets and add to the pool
@@ -980,16 +993,16 @@
                     }
         
                     // Spawn comets at regular intervals
-                    setInterval(spawnComet, 2000); // Decreased interval to increase spawn rate
+                    setInterval(spawnComet, 1000); // Increased spawn rate for better spread
                 }
         
                 function spawnComet() {
                     // Find comets at the spawn position to reset
                     const availableComet = cometPool.find(comet =>
-                        comet.sprite.position.x >= 1200 && 
+                        comet.sprite.position.x >= 1000 && 
                         comet.sprite.position.x <= 1300 &&
                         comet.sprite.position.y >= 800 && 
-                        comet.sprite.position.y <= 900 &&
+                        comet.sprite.position.y <= 1200 &&
                         comet.sprite.position.z <= -2500
                     );
                     if (availableComet) {
@@ -1049,6 +1062,7 @@
                 });
             });
         </script>
+
 
 
 
