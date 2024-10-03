@@ -786,6 +786,7 @@
                 const comet = new THREE.Sprite(cometMaterial);
                 comet.scale.set(80, 80, 1); // Smaller comets for a more subtle effect
                 comet.light = new THREE.PointLight(0xffaa33, 2, 500, 2); // Add bright light to simulate a flickering effect
+                comet.layers.set(1); // Set comets to layer 1 for bloom effect
                 resetComet(comet);
                 comets.push(comet);
                 scene.add(comet);
@@ -824,16 +825,6 @@
                         comet.light.color.set(0xffffff); // Change to white light for burnout
                         comet.light.intensity = 7.0; // Increase brightness for burnout flash
                         comet.scale.set(120, 120, 1); // Make comet slightly larger during burnout
-        
-                        // Apply extra bloom to simulate glare effect
-                        bloomPass.strength = 1.5; // Temporarily increase bloom strength to simulate glare
-                        bloomPass.threshold = 0.5; // Lower threshold to make the burnout flash more pronounced
-        
-                        // Reset bloom effect after burnout
-                        setTimeout(() => {
-                            bloomPass.strength = 0.5; // Restore default bloom strength
-                            bloomPass.threshold = 0.8; // Restore default bloom threshold
-                        }, 200); // The glare effect lasts for 200 milliseconds
                     } else {
                         // Rapid flicker to simulate burning out
                         comet.light.intensity = 7.0 + Math.sin(clock.getElapsedTime() * 50) * 3.0; // Rapid flickering burnout
@@ -906,22 +897,32 @@
                 // Update cosmic dust shimmer
                 updateCosmicDustShimmer();
         
-                // Render the scene with post-processing
+                // Render the scene without bloom first (background)
+                renderer.autoClear = false;
+                camera.layers.set(0); // Render layer 0 (background and stars)
                 composer.render();
+        
+                // Render comets with bloom effect
+                camera.layers.set(1); // Render layer 1 (comets with bloom)
+                bloomComposer.render();
             }
         
-            // Post-Processing Effects
+            // Post-Processing Effects for background and comets
             const renderScene = new RenderPass(scene, camera);
             const composer = new EffectComposer(renderer);
             composer.addPass(renderScene);
         
+            // Bloom Pass for the comets (layer 1 only)
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                0.5,  // Bloom for background glow and comet effect
-                0.3,  // Bloom radius for a more subtle spread
-                0.8   // Bloom threshold to highlight comet and bright stars
+                1.5,  // Increased bloom strength for comet glare
+                0.4,  // Bloom radius
+                0.4   // Bloom threshold to highlight bright parts of comets
             );
-            composer.addPass(bloomPass);
+        
+            const bloomComposer = new EffectComposer(renderer);
+            bloomComposer.addPass(renderScene);
+            bloomComposer.addPass(bloomPass);
         
             const fxaaPass = new ShaderPass(FXAAShader);
             fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
@@ -933,11 +934,13 @@
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 composer.setSize(window.innerWidth, window.innerHeight);
+                bloomComposer.setSize(window.innerWidth, window.innerHeight);
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         
             animate();
         </script>
+
 
 
 
