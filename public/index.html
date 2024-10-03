@@ -694,7 +694,7 @@
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
         
-            const maxComets = 5;
+            const maxComets = 10; // Increased number of comets
             const cometPool = [];
             const minDistance = 1000;
             const maxAttempts = 30;
@@ -778,9 +778,9 @@
                 }
         
                 initShimmerEffect() {
-                    this.shimmerTime = Math.random() * 4 + 6; // Random time to shimmer between 6 and 10 seconds
+                    this.shimmerTime = Math.random() * 4 + 3; // Random time to shimmer between 3 and 7 seconds
                     this.shimmerTriggered = false;
-                    this.shimmerDuration = Math.random() * 2 + 1; // Shimmer duration between 1 and 2 seconds
+                    this.shimmerDuration = 0.2; // Shimmer duration for fast flicker
                 }
         
                 reset() {
@@ -802,12 +802,12 @@
                     }
         
                     this.velocity = new THREE.Vector3(
-                        -500 + Math.random() * -150,
-                        -500 + Math.random() * -150,
+                        -800 + Math.random() * -300, // Increased speed
+                        -700 + Math.random() * -300,
                         Math.random() * 100 - 50
                     );
         
-                    this.lifespan = Math.random() * 8 + 10;
+                    this.lifespan = Math.random() * 15 + 15; // Increased lifespan
                     this.shimmerTriggered = false;
                 }
         
@@ -872,8 +872,8 @@
                     // Save original opacity to restore later
                     const originalOpacity = this.comet.material.opacity;
         
-                    // Brighten comet for shimmer effect
-                    this.comet.material.opacity = 2.0;
+                    // Brighten comet for shimmer effect (fast flicker)
+                    this.comet.material.opacity = 3.0;
         
                     // Gradually fade back to original opacity
                     setTimeout(() => {
@@ -884,7 +884,9 @@
         
             function initComets() {
                 for (let i = 0; i < maxComets; i++) {
-                    new Comet(cometPool);
+                    setTimeout(() => {
+                        new Comet(cometPool);
+                    }, i * 1000); // Reduced stagger time for faster comet spawning
                 }
             }
         
@@ -893,7 +895,7 @@
             composer.addPass(renderPass);
         
             const bloomParams = {
-                exposure: 0.5, // Reduced exposure for softer blending
+                exposure: 0.5, // Balanced exposure for comet glow visibility
                 bloomStrength: 0.8, // Soft bloom effect for comet glow
                 bloomThreshold: 0.2,
                 bloomRadius: 0.4
@@ -912,9 +914,17 @@
         
             const clock = new THREE.Clock();
         
+            let mouseX = 0;
+            let mouseY = 0;
+        
             function animate() {
                 requestAnimationFrame(animate);
                 const delta = clock.getDelta();
+        
+                // Update camera position based on mouse movement
+                camera.position.x += (mouseX - camera.position.x) * 0.02;
+                camera.position.y += (-mouseY - camera.position.y) * 0.02;
+                camera.lookAt(scene.position);
         
                 cometPool.forEach(comet => {
                     if (comet.comet) comet.update(delta);
@@ -922,6 +932,11 @@
         
                 composer.render();
             }
+        
+            document.addEventListener('mousemove', (event) => {
+                mouseX = (event.clientX - window.innerWidth / 2) * 0.005;
+                mouseY = (event.clientY - window.innerHeight / 2) * 0.005;
+            });
         
             initComets();
             animate();
@@ -934,6 +949,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
