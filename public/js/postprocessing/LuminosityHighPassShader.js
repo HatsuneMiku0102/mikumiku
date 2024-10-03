@@ -7,59 +7,59 @@ import { Color } from '../three.module.min.js';
 
 const LuminosityHighPassShader = {
 
-	name: 'LuminosityHighPassShader',
+    name: 'LuminosityHighPassShader',
 
-	shaderID: 'luminosityHighPass',
+    shaderID: 'luminosityHighPass',
 
-	uniforms: {
+    uniforms: {
 
-		'tDiffuse': { value: null },
-		'luminosityThreshold': { value: 1.0 },
-		'smoothWidth': { value: 1.0 },
-		'defaultColor': { value: new Color( 0x000000 ) },
-		'defaultOpacity': { value: 0.0 }
+        'tDiffuse': { value: null },
+        'luminosityThreshold': { value: 1.0 },
+        'smoothWidth': { value: 1.0 },
+        'defaultColor': { value: new Color( 0x000000 ) },
+        'defaultOpacity': { value: 0.0 }
 
-	},
+    },
 
-	vertexShader: /* glsl */`
+    vertexShader: /* glsl */`
 
-		varying vec2 vUv;
+        varying vec2 vUv;
 
-		void main() {
+        void main() {
 
-			vUv = uv;
+            vUv = uv;
 
-			gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
 
-		}`,
+        }`,
 
-	fragmentShader: /* glsl */`
+    fragmentShader: /* glsl */`
 
-		uniform sampler2D tDiffuse;
-		uniform vec3 defaultColor;
-		uniform float defaultOpacity;
-		uniform float luminosityThreshold;
-		uniform float smoothWidth;
+        uniform sampler2D tDiffuse;
+        uniform vec3 defaultColor;
+        uniform float defaultOpacity;
+        uniform float luminosityThreshold;
+        uniform float smoothWidth;
 
-		varying vec2 vUv;
+        varying vec2 vUv;
 
-		float luminance(vec3 color) {
-			return dot(color, vec3(0.299, 0.587, 0.114));
-		}
+        float calculateLuminance(vec3 color) {
+            return dot(color, vec3(0.299, 0.587, 0.114));
+        }
 
-		void main() {
+        void main() {
 
-			vec4 texel = texture2D( tDiffuse, vUv );
+            vec4 texel = texture2D( tDiffuse, vUv );
 
-			float v = luminance( texel.xyz );
+            float v = calculateLuminance(texel.xyz);
 
-			vec4 outputColor = vec4( defaultColor.rgb, defaultOpacity );
+            vec4 outputColor = vec4( defaultColor.rgb, defaultOpacity );
 
-			float alpha = smoothstep( luminosityThreshold, luminosityThreshold + smoothWidth, v );
+            float alpha = smoothstep( luminosityThreshold, luminosityThreshold + smoothWidth, v );
 
-			gl_FragColor = mix( outputColor, texel, alpha );
+            gl_FragColor = mix( outputColor, texel, alpha );
 
-		}`
+        }`
 
 };
 
