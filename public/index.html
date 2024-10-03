@@ -691,7 +691,6 @@
             import { EffectComposer } from '/js/postprocessing/EffectComposer.js';
             import { RenderPass } from '/js/postprocessing/RenderPass.js';
             import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
-            import { Lensflare, LensflareElement } from '/js/Lensflare.js';
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
         
@@ -706,7 +705,7 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 0.7;
+            renderer.toneMappingExposure = 0.6;
         
             const scene = new THREE.Scene();
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
@@ -775,38 +774,13 @@
                     this.comet.scale.set(150, 150, 1);
                     scene.add(this.comet);
         
-                    this.initLight();
+                    this.initShimmerEffect();
                 }
         
-                getCometColor() {
-                    const colors = [0x88ccee, 0xffe680, 0x99ffff];
-                    return colors[Math.floor(Math.random() * colors.length)];
-                }
-        
-                initLight() {
-                    const color = this.getCometColor();
-                    this.pointLight = new THREE.PointLight(color, 1.5, 1000);
-                    scene.add(this.pointLight);
-        
-                    // Load lens flare after light has been added
-                    this.initLensflare();
-                }
-        
-                initLensflare() {
-                    textureLoader.load('/textures/lensflare0.png', (texture) => {
-                        if (!this.pointLight) return;
-        
-                        this.lensflare = new Lensflare();
-                        const lensflareElement = new LensflareElement(texture, 200, 0, new THREE.Color(0xffffff));
-                        this.lensflare.addElement(lensflareElement);
-                        this.pointLight.add(this.lensflare);
-        
-                        if (this.lensflare.elements[0]) {
-                            this.lensflare.elements[0].opacity = 0; // Set initial opacity to 0
-                        }
-                    }, undefined, (err) => {
-                        console.error('Error loading lens flare texture:', err);
-                    });
+                initShimmerEffect() {
+                    this.shimmerTime = Math.random() * 4 + 6; // Random time to shimmer between 6 and 10 seconds
+                    this.shimmerTriggered = false;
+                    this.shimmerDuration = Math.random() * 2 + 1; // Shimmer duration between 1 and 2 seconds
                 }
         
                 reset() {
@@ -823,9 +797,8 @@
                         position = this.generateSpawnPosition(true);
                     }
         
-                    if (this.comet && this.pointLight) {
+                    if (this.comet) {
                         this.comet.position.set(position.x, position.y, position.z);
-                        this.pointLight.position.set(position.x, position.y, position.z);
                     }
         
                     this.velocity = new THREE.Vector3(
@@ -834,12 +807,8 @@
                         Math.random() * 100 - 50
                     );
         
-                    this.flickerTriggered = false;
-                    this.shouldFlicker = true;
-                    this.flickerTime = Math.random() * 5 + 2;
-                    this.starburstTime = Math.random() * 4 + 6;
-                    this.starburstTriggered = false;
                     this.lifespan = Math.random() * 8 + 10;
+                    this.shimmerTriggered = false;
                 }
         
                 generateSpawnPosition() {
@@ -853,8 +822,9 @@
                     const spawnOffsetY = 300;
                     const spawnZ = -2500 + Math.random() * -1000;
         
-                    const x = (Math.random() - 0.5) * width + spawnOffsetX;
-                    const y = (Math.random() - 0.5) * height + spawnOffsetY;
+                    // Comets should spawn in the top middle or right side of the screen
+                    const x = (Math.random() * width / 2) + spawnOffsetX;
+                    const y = height / 2 + Math.random() * 500;
         
                     return new THREE.Vector3(x, y, spawnZ);
                 }
@@ -874,30 +844,21 @@
                 }
         
                 update(delta) {
-                    if (!this.comet || !this.pointLight) return;
+                    if (!this.comet) return;
         
                     this.velocity.x += Math.sin(Date.now() * 0.0001) * 10 * delta;
                     this.velocity.y += Math.cos(Date.now() * 0.0001) * 10 * delta;
         
                     this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
-                    this.pointLight.position.copy(this.comet.position);
         
                     this.lifespan -= delta;
                     if (this.lifespan < 3) {
                         this.comet.material.opacity = THREE.MathUtils.lerp(this.comet.material.opacity, 0, 0.02);
                     }
         
-                    if (this.shouldFlicker && !this.flickerTriggered) {
-                        this.flickerTime -= delta;
-                        if (this.flickerTime <= 0) {
-                            this.triggerFlicker();
-                            this.flickerTriggered = true;
-                        }
-                    }
-        
-                    if (!this.starburstTriggered && this.lifespan < this.starburstTime) {
-                        this.triggerStarburst();
-                        this.starburstTriggered = true;
+                    if (!this.shimmerTriggered && this.lifespan < this.shimmerTime) {
+                        this.triggerShimmer();
+                        this.shimmerTriggered = true;
                     }
         
                     if (this.lifespan <= 0) {
@@ -905,28 +866,19 @@
                     }
                 }
         
-                triggerFlicker() {
-                    if (!this.pointLight) return;
+                triggerShimmer() {
+                    if (!this.comet) return;
         
-                    const flickerDuration = 100;
-                    this.pointLight.intensity = 5.0;
+                    // Save original opacity to restore later
+                    const originalOpacity = this.comet.material.opacity;
         
+                    // Brighten comet for shimmer effect
+                    this.comet.material.opacity = 2.0;
+        
+                    // Gradually fade back to original opacity
                     setTimeout(() => {
-                        this.pointLight.intensity = 1.5;
-                    }, flickerDuration);
-                }
-        
-                triggerStarburst() {
-                    if (!this.lensflare || !this.lensflare.elements || this.lensflare.elements.length === 0) return;
-        
-                    const lensflareElement = this.lensflare.elements[0];
-                    if (lensflareElement) {
-                        lensflareElement.opacity = 1.0;
-        
-                        setTimeout(() => {
-                            lensflareElement.opacity = 0;
-                        }, 200);
-                    }
+                        this.comet.material.opacity = originalOpacity;
+                    }, this.shimmerDuration * 1000);
                 }
             }
         
@@ -941,8 +893,8 @@
             composer.addPass(renderPass);
         
             const bloomParams = {
-                exposure: 1.0,
-                bloomStrength: 1.0,
+                exposure: 0.5, // Reduced exposure for softer blending
+                bloomStrength: 0.8, // Soft bloom effect for comet glow
                 bloomThreshold: 0.2,
                 bloomRadius: 0.4
             };
@@ -982,6 +934,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
