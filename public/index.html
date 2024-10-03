@@ -693,8 +693,6 @@
             import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
-            import { DepthOfFieldEffect } from '/js/postprocessing/DepthOfFieldEffect.js';
-            import { SMAAPass } from '/js/postprocessing/SMAAPass.js';
         
             const maxComets = 10;
             const cometPool = [];
@@ -708,7 +706,7 @@
             renderer.toneMappingExposure = 1.2;
         
             const scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(0x000010, 2000, 10000); // Atmospheric fog to enhance depth
+            scene.fog = new THREE.Fog(0x000010, 3000, 10000); // Added fog for depth effect
         
             const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000);
             camera.position.set(0, 0, 3500);
@@ -723,20 +721,12 @@
             });
         
             // Ambient and Directional Lighting
-            const ambientLight = new THREE.AmbientLight(0x404040, 1.0);
+            const ambientLight = new THREE.AmbientLight(0x404040, 1.2);
             scene.add(ambientLight);
         
             const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(50, 100, 100);
+            directionalLight.position.set(500, 1000, 1000);
             scene.add(directionalLight);
-        
-            // SpotLight for Depth Enhancement
-            const spotLight = new THREE.SpotLight(0xffffff, 1);
-            spotLight.position.set(-100, 100, 1500);
-            spotLight.angle = Math.PI / 6;
-            spotLight.penumbra = 0.5;
-            spotLight.castShadow = true;
-            scene.add(spotLight);
         
             // Starfield Background
             const starCount = 2000;
@@ -784,13 +774,12 @@
                     this.comet.layers.set(1);
                     scene.add(this.comet);
         
-                    // Comet Trail
-                    const trailGeometry = new THREE.BufferGeometry();
-                    this.trailPositions = new Float32Array(200 * 3); // 200 points in the trail
-                    trailGeometry.setAttribute('position', new THREE.BufferAttribute(this.trailPositions, 3));
-                    const trailMaterial = new THREE.LineBasicMaterial({ color: 0xffaa33, transparent: true, opacity: 0.6 });
-                    this.trail = new THREE.Line(trailGeometry, trailMaterial);
-                    this.trail.geometry.setDrawRange(0, 0);
+                    // Comet Trail using Particles
+                    this.trailGeometry = new THREE.BufferGeometry();
+                    this.trailPositions = new Float32Array(30 * 3); // Trail length
+                    this.trailGeometry.setAttribute('position', new THREE.BufferAttribute(this.trailPositions, 3));
+                    const trailMaterial = new THREE.PointsMaterial({ color: 0xffaa33, size: 4, transparent: true, opacity: 0.6 });
+                    this.trail = new THREE.Points(this.trailGeometry, trailMaterial);
                     scene.add(this.trail);
                 }
         
@@ -807,7 +796,7 @@
                     );
         
                     this.lifespan = 8;
-                    this.trailIndex = 0; // Reset the trail
+                    this.trailIndex = 0;
                 }
         
                 generateSpawnPosition() {
@@ -832,7 +821,6 @@
                     this.trailPositions.copyWithin(3, 0);
                     this.trailPositions.set([this.comet.position.x, this.comet.position.y, this.comet.position.z], 0);
                     this.trail.geometry.attributes.position.needsUpdate = true;
-                    this.trail.geometry.setDrawRange(0, Math.min(200, this.trailIndex++));
                 }
             }
         
@@ -851,9 +839,9 @@
         
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                1.0,
-                0.5,
-                0.2
+                1.2,  // Enhanced bloom strength for comets
+                0.6,  // Adjusted bloom radius for subtle glow
+                0.1   // Bloom threshold to limit effect
             );
             composer.addPass(bloomPass);
         
@@ -869,16 +857,18 @@
                 requestAnimationFrame(animate);
                 const delta = clock.getDelta();
         
-                camera.position.x = Math.sin(clock.elapsedTime * 0.1) * 2000;
+                // Dynamic camera movement to enhance depth
+                camera.position.x += Math.sin(clock.elapsedTime * 0.1) * 2;
                 camera.position.y += (mouseY - camera.position.y) * 0.02;
-                camera.lookAt(scene.position);
+                camera.lookAt(new THREE.Vector3(0, 0, 0));
         
                 cometPool.forEach(comet => comet.update(delta));
         
                 renderer.clear();
                 camera.layers.set(0);
                 renderer.render(scene, camera);
-                
+        
+                // Render bloom effect on comets
                 camera.layers.set(1);
                 composer.render();
             }
@@ -899,6 +889,7 @@
             initComets();
             animate();
         </script>
+
 
 
 
