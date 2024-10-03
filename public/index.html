@@ -954,7 +954,7 @@
                 }
     
                 // -------------------------------
-                // 9. Post-processing with Bloom and Glare Effect
+                // 9. Post-processing with Bloom Effect
                 // -------------------------------
                 if (typeof POSTPROCESSING === 'undefined') {
                     console.error('PostProcessing library is not loaded.');
@@ -974,29 +974,8 @@
                 });
     
                 const bloomPass = new POSTPROCESSING.EffectPass(camera, bloomEffect);
+                bloomPass.renderToScreen = true; // Ensure this is set to true
                 composer.addPass(bloomPass);
-    
-                // Add Glare Effect using PostProcessing's GlareEffect
-                let glarePass;
-                try {
-                    const glareEffect = new POSTPROCESSING.GlareEffect({
-                        blendFunction: POSTPROCESSING.BlendFunction.ADD,
-                        mixBlur: 1,
-                        mixStrength: 2,
-                        blendMode: THREE.AdditiveBlending,
-                        kernelSize: POSTPROCESSING.KernelSize.SMALL,
-                        luminanceThreshold: 0.8,
-                        luminanceSmoothing: 0.025
-                    });
-    
-                    glarePass = new POSTPROCESSING.EffectPass(camera, glareEffect);
-                    glarePass.renderToScreen = true;
-                    composer.addPass(glarePass);
-                } catch (error) {
-                    console.error('GlareEffect is not available:', error);
-                    // Fallback: Only render BloomEffect
-                    bloomPass.renderToScreen = true;
-                }
     
                 // -------------------------------
                 // 10. Start Animation after textures are loaded
