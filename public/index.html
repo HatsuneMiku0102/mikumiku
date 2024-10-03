@@ -770,6 +770,7 @@
         
                     this.comet = new THREE.Sprite(cometMaterial);
                     this.comet.scale.set(150, 150, 1);
+                    this.comet.layers.enable(1); // Comet assigned to layer 1 for bloom isolation
                     scene.add(this.comet);
         
                     this.initGlowEffect();
@@ -854,28 +855,50 @@
                 }
             }
         
-            const composer = new EffectComposer(renderer);
-            const renderPass = new RenderPass(scene, camera);
-            composer.addPass(renderPass);
+            // Separate composers for background and comets
+            const backgroundComposer = new EffectComposer(renderer);
+            const backgroundRenderPass = new RenderPass(scene, camera);
+            backgroundComposer.addPass(backgroundRenderPass);
         
-            // Bloom Pass for Comets (only)
-            const bloomParams = {
+            // Bloom Pass for Background (minimal bloom effect)
+            const backgroundBloomParams = {
                 exposure: 0.4,
-                bloomStrength: 1.2, // Bloom effect for comets
-                bloomThreshold: 0.1,
+                bloomStrength: 0.2, // Reduced bloom effect for background
+                bloomThreshold: 0.2,
                 bloomRadius: 0.3
             };
-            const bloomPass = new UnrealBloomPass(
+            const backgroundBloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                bloomParams.bloomStrength,
-                bloomParams.bloomRadius,
-                bloomParams.bloomThreshold
+                backgroundBloomParams.bloomStrength,
+                backgroundBloomParams.bloomRadius,
+                backgroundBloomParams.bloomThreshold
             );
-            composer.addPass(bloomPass);
+            backgroundComposer.addPass(backgroundBloomPass);
+        
+            // Composer for comets
+            const cometsComposer = new EffectComposer(renderer);
+            const cometsRenderPass = new RenderPass(scene, camera);
+            cometsRenderPass.clear = false;
+            cometsComposer.addPass(cometsRenderPass);
+        
+            // Bloom Pass for Comets (strong bloom effect)
+            const cometsBloomParams = {
+                exposure: 0.4,
+                bloomStrength: 1.2, // Strong bloom effect for comets
+                bloomThreshold: 0.1,
+                bloomRadius: 0.5
+            };
+            const cometsBloomPass = new UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                cometsBloomParams.bloomStrength,
+                cometsBloomParams.bloomRadius,
+                cometsBloomParams.bloomThreshold
+            );
+            cometsComposer.addPass(cometsBloomPass);
         
             const fxaaPass = new ShaderPass(FXAAShader);
             fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
-            composer.addPass(fxaaPass);
+            cometsComposer.addPass(fxaaPass);
         
             const clock = new THREE.Clock();
             let mouseX = 0;
@@ -894,7 +917,10 @@
                     if (comet.comet) comet.update(delta);
                 });
         
-                composer.render();
+                // Render background and comets separately
+                renderer.clear();
+                backgroundComposer.render();
+                cometsComposer.render();
             }
         
             document.addEventListener('mousemove', (event) => {
@@ -909,10 +935,12 @@
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
-                composer.setSize(window.innerWidth, window.innerHeight);
+                backgroundComposer.setSize(window.innerWidth, window.innerHeight);
+                cometsComposer.setSize(window.innerWidth, window.innerHeight);
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
