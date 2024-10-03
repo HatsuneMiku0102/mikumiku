@@ -706,7 +706,7 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 0.6;
+            renderer.toneMappingExposure = 0.5;
         
             const scene = new THREE.Scene();
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
@@ -805,7 +805,8 @@
                     const scale = Math.random() * 50 + 200;
                     this.sprite.scale.set(scale, scale, 1);
         
-                    this.flickerTriggered = false; // Reset flicker
+                    this.flickerTriggered = false;
+                    this.flickerTime = Math.random() * 5000 + 2000; // Set a random flicker time in the comet's lifetime
                 }
         
                 generateSpawnPosition() {
@@ -849,7 +850,8 @@
                     this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
                     this.pointLight.position.copy(this.sprite.position);
         
-                    if (!this.flickerTriggered && Math.random() < 0.001) {
+                    this.flickerTime -= delta * 1000; // Decrement flicker time
+                    if (!this.flickerTriggered && this.flickerTime <= 0) {
                         this.triggerFlicker();
                     }
         
@@ -865,7 +867,7 @@
                 triggerFlicker() {
                     this.flickerTriggered = true;
         
-                    const flickerDuration = 100; // Flicker duration in milliseconds
+                    const flickerDuration = 50; // Short flicker duration in milliseconds
                     this.pointLight.intensity = 5.0; // Increase intensity for a bright flash
                     setTimeout(() => {
                         this.pointLight.intensity = 0.5; // Revert to normal intensity
@@ -906,11 +908,12 @@
             const renderPass = new RenderPass(scene, camera);
             composer.addPass(renderPass);
         
+            // Reduce bloom strength for less overwhelming nebula effect
             const bloomParams = {
-                exposure: 1.2,
-                bloomStrength: 1.2,
+                exposure: 1.0,
+                bloomStrength: 0.5, // Reduced bloom strength to make it subtler
                 bloomThreshold: 0.1,
-                bloomRadius: 0.8
+                bloomRadius: 0.5
             };
             const bloomPass = new UnrealBloomPass(
                 new Vector2(window.innerWidth, window.innerHeight),
