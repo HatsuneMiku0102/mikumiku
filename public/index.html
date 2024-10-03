@@ -694,7 +694,6 @@
             import { Lensflare, LensflareElement } from '/js/Lensflare.js';
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
-            import { OrbitControls } from '/js/controls/OrbitControls.js';
         
             const maxComets = 5;
             const cometPool = [];
@@ -712,9 +711,6 @@
             const scene = new THREE.Scene();
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
             camera.position.set(0, 0, 1500);
-        
-            const controls = new OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
         
             const textureLoader = new THREE.TextureLoader();
             textureLoader.load('/textures/nebula.webp', (texture) => {
@@ -948,15 +944,26 @@
             composer.addPass(fxaaPass);
         
             const clock = new THREE.Clock();
+            let mouseX = 0;
+            let mouseY = 0;
         
             function animate() {
                 requestAnimationFrame(animate);
                 const delta = clock.getDelta();
         
-                controls.update();
+                // Update camera position based on mouse movement
+                camera.position.x += (mouseX - camera.position.x) * 0.02;
+                camera.position.y += (-mouseY - camera.position.y) * 0.02;
+                camera.lookAt(scene.position);
+        
                 cometPool.forEach(comet => comet.update(delta));
                 composer.render();
             }
+        
+            document.addEventListener('mousemove', (event) => {
+                mouseX = (event.clientX - window.innerWidth / 2) * 0.005;
+                mouseY = (event.clientY - window.innerHeight / 2) * 0.005;
+            });
         
             function startAnimation() {
                 animate();
@@ -973,6 +980,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
         
