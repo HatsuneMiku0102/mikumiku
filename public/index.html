@@ -844,9 +844,15 @@
         
                     reset() {
                         // Fixed spawn position: Top-Right Corner in the background
-                        this.sprite.position.set(1500, 1500, -2500 + Math.random() * -1000); // z between -2500 and -3500
+                        // Adjusted to be within visible area
+                        this.sprite.position.set(
+                            Math.random() * 800 + 400, // x between 400 and 1200
+                            Math.random() * 600 + 200, // y between 200 and 800
+                            -2500 + Math.random() * -1000 // z between -2500 and -3500
+                        );
         
-                        // Set velocity to move diagonally towards Bottom-Left, keeping z consistent or moving further away
+                        // Set velocity to move diagonally towards Bottom-Left
+                        // Reduced speed for slower movement
                         this.velocity = new THREE.Vector3(
                             -Math.random() * 1.5 - 0.5, // Move left (slower)
                             -Math.random() * 1.5 - 0.5, // Move down (slower)
@@ -938,8 +944,11 @@
                             
                             // Simulate head flicker by adjusting color intensity
                             // Slightly brighten the comet's color
-                            const baseColor = new THREE.Color(`hsl(${Math.random() * 360}, 100%, 90%)`);
-                            const brighterColor = baseColor.clone().multiplyScalar(1 + headFlicker);
+                            // Note: To avoid random color changes every frame, store the base color
+                            if (!this.baseColor) {
+                                this.baseColor = this.sprite.material.color.clone();
+                            }
+                            const brighterColor = this.baseColor.clone().multiplyScalar(1 + headFlicker);
                             this.sprite.material.color.copy(brighterColor);
                         }
         
@@ -978,8 +987,10 @@
                 function spawnComet() {
                     // Find comets at the spawn position to reset
                     const availableComet = cometPool.find(comet =>
-                        comet.sprite.position.x === 1500 &&
-                        comet.sprite.position.y === 1500 &&
+                        comet.sprite.position.x >= 1500 && 
+                        comet.sprite.position.x <= 1600 &&
+                        comet.sprite.position.y >= 1500 && 
+                        comet.sprite.position.y <= 1600 &&
                         comet.sprite.position.z <= -2500
                     );
                     if (availableComet) {
@@ -1039,6 +1050,7 @@
                 });
             });
         </script>
+
 
 
 
