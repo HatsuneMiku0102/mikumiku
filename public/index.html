@@ -783,7 +783,7 @@
             });
         
             // -------------------------------
-            // 7. Comet Class Definition with Animated Tail
+            // 7. Comet Class Definition with Error Handling for Material Access
             // -------------------------------
             class Comet {
                 constructor(texture, existingComets) {
@@ -809,6 +809,18 @@
                     this.sprite.scale.set(200, 200, 1); // Increased size for comet head
                     this.sprite.material.opacity = 0.8; // Consistent opacity to avoid flickering
                     scene.add(this.sprite);
+        
+                    // Lens Glare Effect
+                    this.glareMaterial = new THREE.SpriteMaterial({
+                        map: new THREE.CanvasTexture(createGlareTexture()),
+                        blending: THREE.AdditiveBlending,
+                        transparent: true,
+                        opacity: 0.0, // Start invisible, appear before fading out
+                    });
+        
+                    this.glareSprite = new THREE.Sprite(this.glareMaterial);
+                    this.glareSprite.scale.set(300, 300, 1);
+                    scene.add(this.glareSprite);
         
                     this.existingComets = existingComets;
         
@@ -924,8 +936,8 @@
                 }
         
                 update(delta) {
-                    if (!this.sprite) {
-                        console.error("Sprite is not available during update");
+                    if (!this.sprite || !this.sprite.material || !this.glareSprite) {
+                        // Make sure sprite, glare, and material exist before updating
                         return;
                     }
         
@@ -1107,6 +1119,7 @@
                 return canvas;
             }
         </script>
+
 
 
 
