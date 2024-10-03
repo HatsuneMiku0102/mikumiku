@@ -751,7 +751,7 @@
             function createStarField(texturePath, count, depth) {
                 const starGeometry = new THREE.BufferGeometry();
                 const starMaterial = new THREE.PointsMaterial({
-                    size: 50, // Reduce size for more distant and realistic stars
+                    size: 40, // Further reduce size for more subtle stars
                     map: textureLoader.load(texturePath),
                     sizeAttenuation: true,
                     transparent: true,
@@ -778,13 +778,13 @@
                 scene.traverse((object) => {
                     if (object.isPoints) {
                         const noiseValue = noiseGenerator.noise(elapsedTime * 0.05, object.position.x * 0.01, object.position.y * 0.01);
-                        object.material.size = 50 + noiseValue * 10; // Reduce twinkle size slightly
+                        object.material.size = 40 + noiseValue * 10; // Reduce twinkle size slightly
                         object.material.needsUpdate = true;
                     }
                 });
             }
         
-            // Add Comets Using comet1.png Texture with Flashing Streak Effect
+            // Add Comets Using comet1.png Texture with Intense Flashing Streak Effect
             const cometTexture = textureLoader.load('/textures/comet1.png');
             const cometMaterial = new THREE.SpriteMaterial({
                 map: cometTexture,
@@ -811,8 +811,8 @@
                     Math.random() * 1000 - 500 // Varying depth for better blending
                 );
                 comet.velocity = new THREE.Vector3(
-                    -600 + Math.random() * -300,
-                    -500 + Math.random() * -200,
+                    -1000 + Math.random() * -400, // Increase speed for a more dynamic effect
+                    -800 + Math.random() * -300,
                     0
                 );
             }
@@ -820,7 +820,7 @@
             function updateComets(delta) {
                 comets.forEach((comet) => {
                     comet.position.add(comet.velocity.clone().multiplyScalar(delta));
-                    comet.material.opacity = 0.8 + Math.sin(clock.getElapsedTime() * 10) * 0.2; // Bright flashing effect
+                    comet.material.opacity = 0.7 + Math.sin(clock.getElapsedTime() * 20) * 0.3; // Increase flashing frequency and intensity
                     if (comet.position.x < -window.innerWidth / 2 || comet.position.y < -window.innerHeight / 2) {
                         resetComet(comet);
                     }
@@ -830,7 +830,7 @@
             // Add Faintly Glowing and Shimmering Cosmic Dust with Reflection Effect
             const cloudGeometry = new THREE.BufferGeometry();
             const cloudMaterial = new THREE.PointsMaterial({
-                size: 20, // Smaller size for subtle space dust
+                size: 15, // Reduce size further for subtle space dust
                 map: textureLoader.load('/textures/particle_clouds.png'),
                 color: 0xffffff,
                 sizeAttenuation: true,
@@ -902,9 +902,9 @@
         
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                0.7,  // Enhanced bloom strength for comet glow
-                0.5,  // Bloom radius for a smooth effect
-                0.85  // Bloom threshold to highlight comet and bright stars
+                0.5,  // Bloom for background glow and comet effect
+                0.3,  // Bloom radius for a more subtle spread
+                0.8   // Bloom threshold to highlight comet and bright stars
             );
             composer.addPass(bloomPass);
         
