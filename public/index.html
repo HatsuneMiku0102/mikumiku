@@ -715,8 +715,12 @@
             scene.background = new THREE.Color(0x202020);
         });
         
-        const ambientLight = new THREE.AmbientLight(0x404040, 1.0);
+        const ambientLight = new THREE.AmbientLight(0x404040, 1.5); // Increase intensity for more overall lighting
         scene.add(ambientLight);
+        
+        // Add a subtle hemisphere light to add ambient illumination from above and below
+        const hemisphereLight = new THREE.HemisphereLight(0xddddff, 0x555555, 0.3);
+        scene.add(hemisphereLight);
         
         const pointLight = new THREE.PointLight(0xffffff, 0.6, 3000);
         pointLight.position.set(1000, 500, 1000);
@@ -725,44 +729,6 @@
         const directionalLight = new THREE.DirectionalLight(0xffeedd, 0.8);
         directionalLight.position.set(500, 1000, 1500);
         scene.add(directionalLight);
-        
-        const cometTexture = textureLoader.load('/textures/comet1.png');
-        const cometCount = 5;
-        const comets = [];
-        
-        const naturalColors = [
-            new THREE.Color(0xffffff),
-            new THREE.Color(0xffd700),
-            new THREE.Color(0xffa500)
-        ];
-        
-        for (let i = 0; i < cometCount; i++) {
-            const cometMaterial = new THREE.SpriteMaterial({
-                map: cometTexture,
-                blending: THREE.AdditiveBlending,
-                transparent: true,
-                depthWrite: false,
-            });
-        
-            const comet = new THREE.Sprite(cometMaterial);
-            comet.scale.set(150 + Math.random() * 50, 150 + Math.random() * 50, 1);
-            comet.color = naturalColors[Math.floor(Math.random() * naturalColors.length)];
-            comet.material.color = comet.color;
-        
-            comet.light = new THREE.PointLight(comet.color, 2.0, 800, 2);
-            comet.light.visible = true;
-        
-            const lensflare = new Lensflare();
-            lensflare.addElement(new LensflareElement(textureLoader.load('/textures/starburst.png'), 100, 0.0, comet.light.color));
-            comet.lensflare = lensflare;
-        
-            comet.add(comet.light);
-            comet.add(lensflare);
-        
-            resetComet(comet);
-            comets.push(comet);
-            scene.add(comet);
-        }
         
         function updateComets(delta) {
             comets.forEach((comet) => {
@@ -776,7 +742,6 @@
         
                 // Position the lens flare at the comet head
                 if (comet.lensflare && comet.lensflare.elements && comet.lensflare.elements.length > 0) {
-                    // Ensure flare is at the comet's position plus a small offset in the velocity direction
                     const flareOffset = comet.velocity.clone().normalize().multiplyScalar(comet.scale.y * 0.5);
                     comet.lensflare.position.copy(comet.position).add(flareOffset);
                 }
@@ -790,12 +755,12 @@
                     comet.light.visible = true;
                 } else if (comet.lifespan > 3.0) {
                     // Normal flight phase, apply flickering effect
-                    comet.light.intensity = 2.0 + Math.sin(clock.getElapsedTime() * 50) * 0.5;
+                    comet.light.intensity = 1.5 + Math.sin(clock.getElapsedTime() * 50) * 0.3; // Reduced overall intensity
                 } else if (!comet.burningOut) {
                     comet.burningOut = true;
                     comet.material.color.set(0xffffff);
                     comet.light.color.set(0xffffff);
-                    comet.light.intensity = 20.0;
+                    comet.light.intensity = 15.0; // Reduced burning out intensity
                     comet.light.visible = true;
                     comet.scale.set(200, 200, 1);
         
@@ -835,15 +800,14 @@
             comet.lifespan = 15.0 + Math.random() * 5.0;
             comet.burningOut = false;
         
-            // Set initial light intensity to a static value
-            comet.light.intensity = 2.0;
+            // Set initial light intensity to a lower value
+            comet.light.intensity = 1.5;
             comet.light.visible = true;
         
             comet.material.opacity = 0.0;
             comet.scale.set(150 + Math.random() * 50, 150 + Math.random() * 50, 1);
             comet.rotation.z = Math.atan2(comet.velocity.y, comet.velocity.x);
         }
-
 
 
         
