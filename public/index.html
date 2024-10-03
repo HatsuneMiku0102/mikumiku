@@ -773,21 +773,19 @@
         
             // Add Twinkling Effect Using Perlin Noise
             const noiseGenerator = new ImprovedNoise();
-            const clock = new THREE.Clock();
             function updateStarTwinkle() {
                 const elapsedTime = clock.getElapsedTime();
                 scene.traverse((object) => {
                     if (object.isPoints) {
-                        // Update size using Perlin noise for a subtle twinkle effect
                         const noiseValue = noiseGenerator.noise(elapsedTime * 0.05, object.position.x * 0.01, object.position.y * 0.01);
-                        object.material.size = 100 + noiseValue * 15; // Fluctuate size slightly
+                        object.material.size = 100 + noiseValue * 15; // Fluctuate size slightly for twinkle
                         object.material.needsUpdate = true;
                     }
                 });
             }
         
-            // Add Comets Using comet2.png Texture
-            const cometTexture = textureLoader.load('/textures/comet2.png');
+            // Add Comets Using comet1.png Texture
+            const cometTexture = textureLoader.load('/textures/comet1.png');
             const cometMaterial = new THREE.SpriteMaterial({
                 map: cometTexture,
                 blending: THREE.AdditiveBlending,
@@ -800,7 +798,7 @@
             const comets = [];
             for (let i = 0; i < cometCount; i++) {
                 const comet = new THREE.Sprite(cometMaterial);
-                comet.scale.set(150, 150, 1); // Smaller size for a more subtle appearance
+                comet.scale.set(120, 120, 1); // Smaller size for a subtle appearance
                 resetComet(comet);
                 comets.push(comet);
                 scene.add(comet);
@@ -828,20 +826,20 @@
                 });
             }
         
-            // Add Faintly Glowing Cosmic Dust
+            // Add Faintly Glowing and Shimmering Cosmic Dust
             const cloudGeometry = new THREE.BufferGeometry();
             const cloudMaterial = new THREE.PointsMaterial({
-                size: 200,
+                size: 50, // Smaller size for a subtle space dust appearance
                 map: textureLoader.load('/textures/cloud_particle.png'),
-                color: 0xffaaaa,
+                color: 0xffffff,
                 sizeAttenuation: true,
                 transparent: true,
-                opacity: 0.05,
+                opacity: 0.1,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false,
             });
         
-            const cloudCount = 1000;
+            const cloudCount = 2000;
             const cloudPositions = new Float32Array(cloudCount * 3);
             for (let i = 0; i < cloudCount; i++) {
                 cloudPositions[i * 3] = (Math.random() - 0.5) * 8000;
@@ -852,7 +850,19 @@
             const cloudParticles = new THREE.Points(cloudGeometry, cloudMaterial);
             scene.add(cloudParticles);
         
+            function updateCosmicDustShimmer() {
+                const elapsedTime = clock.getElapsedTime();
+                const positions = cloudGeometry.attributes.position.array;
+        
+                for (let i = 0; i < cloudCount * 3; i += 3) {
+                    const noiseValue = noiseGenerator.noise(elapsedTime * 0.1, positions[i] * 0.01, positions[i + 1] * 0.01);
+                    cloudMaterial.opacity = 0.08 + noiseValue * 0.02; // Fluctuate opacity for shimmer
+                    cloudMaterial.needsUpdate = true;
+                }
+            }
+        
             // Animate the Scene
+            const clock = new THREE.Clock();
             function animate() {
                 requestAnimationFrame(animate);
         
@@ -875,6 +885,9 @@
                 // Update comet positions
                 updateComets(delta);
         
+                // Update cosmic dust shimmer
+                updateCosmicDustShimmer();
+        
                 // Render the scene with post-processing
                 composer.render();
             }
@@ -886,9 +899,9 @@
         
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                0.4,  // Bloom strength for comet glow
-                0.5,  // Bloom radius
-                0.7   // Bloom threshold to capture comet highlights
+                0.6,  // Enhanced bloom strength for comet glow
+                0.4,  // Reduced bloom radius for a sharper effect
+                0.85  // Bloom threshold to highlight comet and bright stars
             );
             composer.addPass(bloomPass);
         
@@ -907,6 +920,7 @@
         
             animate();
         </script>
+
 
 
 
