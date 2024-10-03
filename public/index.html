@@ -695,7 +695,7 @@
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
             import { ImprovedNoise } from '/js/ImprovedNoise.js';
         
-            const maxComets = 10;
+            const maxComets = 15;
             const cometPool = [];
         
             const canvas = document.getElementById('techCanvas');
@@ -765,12 +765,12 @@
                         map: texture,
                         blending: THREE.AdditiveBlending,
                         transparent: true,
-                        opacity: 0.7,  // Set to a lower opacity to blend better with background
+                        opacity: 0.6,  // Set to a lower opacity to blend better with background
                         depthWrite: false,
                     });
         
                     this.comet = new THREE.Sprite(cometMaterial);
-                    this.comet.scale.set(300, 300, 1);
+                    this.comet.scale.set(200 + Math.random() * 200, 200 + Math.random() * 200, 1); // Varying comet sizes
                     this.comet.layers.set(1);
                     scene.add(this.comet);
         
@@ -789,21 +789,22 @@
                         this.light.position.set(position.x, position.y, 0);
                     }
         
-                    // Diagonal movement from top-right to bottom-left with some randomness
+                    // Random velocity to give each comet a unique speed and direction
+                    const speedFactor = 200 + Math.random() * 400; // Base speed factor for comet
                     this.baseVelocity = new THREE.Vector3(
-                        -600 + Math.random() * -200,  // Horizontal component with randomness
-                        -300 + Math.random() * -200,  // Vertical component with randomness
+                        -speedFactor,                  // Horizontal speed (leftward)
+                        -speedFactor * (0.5 + Math.random()),  // Vertical speed (downward, with randomness)
                         0                             // No Z-axis movement
                     );
         
                     this.noiseOffset = Math.random() * 100; // Randomize noise seed for each comet
-                    this.lifespan = 20;
+                    this.lifespan = 15 + Math.random() * 5; // Random lifespan for variety
                 }
         
                 generateSpawnPosition() {
-                    // Randomize spawn position along the entire top area of the screen
-                    const spawnX = Math.random() * window.innerWidth - window.innerWidth / 2;  // Full width of the screen
-                    const spawnY = window.innerHeight / 2 + 400 + Math.random() * 200;  // Random height near the top
+                    // Randomize spawn position across the top of the screen
+                    const spawnX = (Math.random() - 0.5) * window.innerWidth; // Anywhere along the width of the screen
+                    const spawnY = window.innerHeight / 2 + 400 + Math.random() * 200; // Near the top of the screen
                     const spawnZ = 0; // Fixed Z-axis for no depth effect
         
                     return new THREE.Vector3(spawnX, spawnY, spawnZ);
@@ -813,8 +814,8 @@
                     if (!this.comet) return;
         
                     const time = performance.now() * 0.001;
-                    const noiseX = this.noiseGenerator.noise(time + this.noiseOffset, 0, 0) * 50;
-                    const noiseY = this.noiseGenerator.noise(0, time + this.noiseOffset, 0) * 50;
+                    const noiseX = this.noiseGenerator.noise(time + this.noiseOffset, 0, 0) * 30; // Slight noise to avoid straight movement
+                    const noiseY = this.noiseGenerator.noise(0, time + this.noiseOffset, 0) * 30;
         
                     // Apply base velocity and noise component for more natural movement
                     this.comet.position.add(this.baseVelocity.clone().multiplyScalar(delta));
@@ -839,7 +840,7 @@
                 for (let i = 0; i < maxComets; i++) {
                     setTimeout(() => {
                         new Comet();
-                    }, Math.random() * 3000); // Randomized comet initialization for variety
+                    }, Math.random() * 5000); // More randomized comet initialization for variety
                 }
             }
         
@@ -850,7 +851,7 @@
         
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                0.4,  // Reduced bloom strength for a very subtle glow
+                0.2,  // Reduced bloom strength for a subtle glow
                 0.3,  // Bloom radius
                 0.1   // Bloom threshold
             );
@@ -900,6 +901,7 @@
             initComets();
             animate();
         </script>
+
 
 
 
