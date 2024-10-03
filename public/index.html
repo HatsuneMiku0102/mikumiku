@@ -772,15 +772,15 @@
             }
         
             function resetComet(comet) {
-                // Set the initial position towards the top-left to keep comets entering diagonally
+                // Set the initial position on the left side of the screen to move across diagonally
                 comet.position.set(
-                    Math.random() * window.innerWidth - window.innerWidth / 2, // X-axis random across screen width
-                    window.innerHeight / 2 + Math.random() * window.innerHeight, // Y-axis from top of the screen
+                    -window.innerWidth / 2 - Math.random() * 500, // Start off-screen on the left
+                    (Math.random() - 0.5) * window.innerHeight * 1.5, // Random y position across the screen height
                     0
                 );
                 comet.velocity = new THREE.Vector3(
-                    -400 - Math.random() * 300, // Faster and consistent diagonal speed on the x-axis
-                    -400 - Math.random() * 300, // Faster and consistent diagonal speed on the y-axis
+                    500 + Math.random() * 300, // Positive x-axis to move across the screen from left to right
+                    -100 - Math.random() * 200, // Slight downward movement on the y-axis for a diagonal trajectory
                     0
                 );
                 comet.lifespan = 15.0 + Math.random() * 5.0; // Extended lifespan to between 15 and 20 seconds
@@ -801,14 +801,15 @@
         
                     comet.lifespan -= delta;
         
+                    // Flickering effect for comet light
+                    comet.light.intensity = 2.0 + Math.sin(clock.getElapsedTime() * 50) * 0.5; // Quick flickering effect
+        
                     if (comet.lifespan > 10.0) {
                         // Fade in effect at the beginning of the lifespan
                         comet.material.opacity = Math.min(1.0, comet.material.opacity + delta * 0.2);
-                        comet.light.intensity = Math.min(2.0, comet.light.intensity + delta * 0.2);
                         comet.light.visible = true;
                     } else if (comet.lifespan > 3.0) {
-                        // Normal flight, with moderate intensity variation
-                        comet.light.intensity = 2.0 + Math.sin(clock.getElapsedTime() * 15) * 0.2;
+                        // Normal flight with flickering effect already implemented
                     } else if (!comet.burningOut) {
                         // Enter the bright burnout stage
                         comet.burningOut = true;
@@ -831,8 +832,8 @@
                         }
                     }
         
-                    // Reset comet if it goes off-screen on both axes
-                    if (comet.position.x < -window.innerWidth || comet.position.y < -window.innerHeight) {
+                    // Reset comet if it goes off-screen on the right side
+                    if (comet.position.x > window.innerWidth || comet.position.y < -window.innerHeight / 2) {
                         resetComet(comet);
                     }
                 });
@@ -875,6 +876,7 @@
         
             animate();
         </script>
+
 
 
 
