@@ -701,7 +701,7 @@
             // -------------------------------
             // 2. Define Constants and Variables
             // -------------------------------
-            const maxComets = 15;
+            const maxComets = 7; // Reduced comet count by half
             const cometPool = [];
             const minDistance = 600; // Maintain separation between comets
             const maxAttempts = 30;
@@ -715,7 +715,7 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 0.5; // Further reduced exposure for overall brightness control
+            renderer.toneMappingExposure = 0.5; // Reduced exposure for overall brightness control
         
             // -------------------------------
             // 4. Scene and Camera Setup
@@ -800,6 +800,13 @@
         
                     this.existingComets = existingComets;
                     this.reset();
+        
+                    // Determine if this comet will flicker
+                    this.canFlicker = Math.random() < 0.7; // 70% chance for flickering
+                    if (this.canFlicker) {
+                        this.flickerFrequency = Math.random() * 10 + 10; // High frequency for rapid blinking
+                        this.flickerPhase = Math.random() * Math.PI * 2;
+                    }
                 }
         
                 reset() {
@@ -868,6 +875,12 @@
         
                 update(delta) {
                     this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
+        
+                    // Flickering effect for selected comets
+                    if (this.canFlicker) {
+                        const flicker = 0.5 + 0.5 * Math.sin(this.flickerFrequency * Date.now() * 0.001 + this.flickerPhase);
+                        this.sprite.material.opacity = THREE.MathUtils.clamp(flicker, 0.3, 1.0);
+                    }
         
                     // Maintain scale
                     this.sprite.scale.set(this.sprite.scale.x, this.sprite.scale.y, 1);
