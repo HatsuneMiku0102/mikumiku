@@ -786,7 +786,7 @@
                     const material = new THREE.SpriteMaterial({
                         map: texture,
                         transparent: true,
-                        blending: THREE.NormalBlending, // Removed glowing effect
+                        blending: THREE.NormalBlending,
                         depthWrite: false,
                         color: 0xffffff
                     });
@@ -796,18 +796,6 @@
         
                     this.existingComets = existingComets;
                     this.reset();
-        
-                    // Flickering properties
-                    this.canFlicker = Math.random() < 0.5;
-                    if (this.canFlicker) {
-                        this.flickerFrequency = Math.random() * 2 + 1;
-                        this.flickerPhase = Math.random() * Math.PI * 2;
-                        this.flickerIntensity = THREE.MathUtils.clamp(
-                            Math.random() * 0.3 + 0.7,
-                            0.5,
-                            1.0
-                        );
-                    }
                 }
         
                 reset() {
@@ -830,10 +818,10 @@
                         position.z
                     );
         
-                    // Set initial velocity (faster velocity)
+                    // Set a significantly higher velocity for faster movement
                     this.velocity = new THREE.Vector3(
-                        -50 + Math.random() * -20,
-                        -50 + Math.random() * -20,
+                        -200 + Math.random() * -50,
+                        -200 + Math.random() * -50,
                         0
                     );
         
@@ -876,12 +864,6 @@
         
                 update(delta) {
                     this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
-        
-                    // Handle flickering opacity
-                    if (this.canFlicker) {
-                        const flicker = this.flickerIntensity * (0.5 + 0.5 * Math.sin(this.flickerFrequency * Date.now() * 0.005 + this.flickerPhase));
-                        this.sprite.material.opacity = THREE.MathUtils.clamp(flicker, 0.5, 1.0);
-                    }
         
                     // Maintain scale
                     this.sprite.scale.set(this.sprite.scale.x, this.sprite.scale.y, 1);
@@ -926,7 +908,6 @@
             // -------------------------------
             // 9. Post-processing with EffectComposer
             // -------------------------------
-            // Initialize EffectComposer without bloom for a more natural look
             const composer = new EffectComposer(renderer);
             const renderPass = new RenderPass(scene, camera);
             composer.addPass(renderPass);
@@ -973,6 +954,7 @@
                 composer.setSize(window.innerWidth, window.innerHeight);
             });
         </script>
+
 
 
 
