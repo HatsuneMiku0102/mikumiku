@@ -693,6 +693,9 @@
             import * as THREE from '/js/three.module.min.js';
             import { EffectComposer } from '/js/postprocessing/EffectComposer.js';
             import { RenderPass } from '/js/postprocessing/RenderPass.js';
+            import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
+            import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
+            import { FXAAShader } from '/js/shaders/FXAAShader.js';
         
             // -------------------------------
             // 2. Define Constants and Variables
@@ -711,7 +714,7 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 0.8;
+            renderer.toneMappingExposure = 1.0;
         
             // -------------------------------
             // 4. Scene and Camera Setup
@@ -786,7 +789,7 @@
                     const material = new THREE.SpriteMaterial({
                         map: texture,
                         transparent: true,
-                        blending: THREE.NormalBlending,
+                        blending: THREE.AdditiveBlending,
                         depthWrite: false,
                         color: 0xffffff
                     });
@@ -820,8 +823,8 @@
         
                     // Set a significantly higher velocity for faster movement
                     this.velocity = new THREE.Vector3(
-                        -200 + Math.random() * -50,
-                        -200 + Math.random() * -50,
+                        -300 + Math.random() * -50,
+                        -300 + Math.random() * -50,
                         0
                     );
         
@@ -906,11 +909,31 @@
             }
         
             // -------------------------------
-            // 9. Post-processing with EffectComposer
+            // 9. Post-processing with EffectComposer and UnrealBloomPass
             // -------------------------------
             const composer = new EffectComposer(renderer);
             const renderPass = new RenderPass(scene, camera);
             composer.addPass(renderPass);
+        
+            // Add Bloom Effect for Realism
+            const bloomParams = {
+                exposure: 1,
+                bloomStrength: 1.8,
+                bloomThreshold: 0.1,
+                bloomRadius: 0.5
+            };
+            const bloomPass = new UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                bloomParams.bloomStrength,
+                bloomParams.bloomRadius,
+                bloomParams.bloomThreshold
+            );
+            composer.addPass(bloomPass);
+        
+            // Add FXAA Anti-aliasing
+            const fxaaPass = new ShaderPass(FXAAShader);
+            fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
+            composer.addPass(fxaaPass);
         
             // -------------------------------
             // 10. Animation Loop
@@ -952,8 +975,11 @@
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 renderer.setPixelRatio(window.devicePixelRatio);
                 composer.setSize(window.innerWidth, window.innerHeight);
+        
+                fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
