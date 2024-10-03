@@ -781,7 +781,7 @@
                 depthWrite: false,
             });
         
-            const cometCount = 5;
+            const cometCount = 3; // Reduced number of comets for more subtlety
             const comets = [];
             for (let i = 0; i < cometCount; i++) {
                 const comet = new THREE.Sprite(cometMaterial);
@@ -820,24 +820,15 @@
                     comet.lifespan -= delta;
         
                     if (comet.lifespan > 3.0) {
-                        // Normal flight - random flickering flashes
-                        if (Math.random() < 0.02) {
-                            // Occasionally flash at full brightness
-                            comet.light.intensity = 5.0 + Math.random() * 5.0;
-                            comet.light.visible = true;
-                            comet.material.opacity = 1.0;
-                            comet.scale.set(100, 100, 1);
-                        } else {
-                            // Subtle flickering
-                            comet.light.intensity = 1.0 + Math.sin(clock.getElapsedTime() * 15) * 1.0;
-                            comet.light.visible = false;
-                        }
+                        // Normal flight - moderate flickering flashes
+                        comet.light.intensity = 1.0 + Math.sin(clock.getElapsedTime() * 15) * 0.5;
+                        comet.light.visible = true;
                     } else if (!comet.burningOut) {
                         // Enter the final bright burnout stage
                         comet.burningOut = true;
                         comet.material.color.set(0xffffff); // Turn comet white for burnout
                         comet.light.color.set(0xffffff); // Change light to white for bright glare
-                        comet.light.intensity = 20.0; // High intensity for dramatic burnout
+                        comet.light.intensity = 15.0; // High intensity for dramatic burnout
                         comet.light.visible = true; // Make the light visible
                         comet.scale.set(150, 150, 1); // Increase size for emphasis
                     } else {
