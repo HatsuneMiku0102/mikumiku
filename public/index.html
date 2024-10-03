@@ -772,7 +772,7 @@
                 scene.add(starField);
             }
         
-            // Add Comets Using comet1.png Texture with Flashing Glare Effects
+            // Add Comets Using comet1.png Texture with Enhanced Glow Effects
             const cometTexture = textureLoader.load('/textures/comet1.png');
             const cometMaterial = new THREE.SpriteMaterial({
                 map: cometTexture,
@@ -828,9 +828,12 @@
                         comet.burningOut = true;
                         comet.material.color.set(0xffffff); // Turn comet white for burnout
                         comet.light.color.set(0xffffff); // Change light to white for bright glare
-                        comet.light.intensity = 15.0; // High intensity for dramatic burnout
+                        comet.light.intensity = 20.0; // High intensity for dramatic burnout
                         comet.light.visible = true; // Make the light visible
                         comet.scale.set(150, 150, 1); // Increase size for emphasis
+        
+                        // Add a bright flash using bloom
+                        composer.addPass(bloomPass);
                     } else {
                         // Fade out smoothly
                         comet.material.opacity = Math.max(0, comet.material.opacity - delta * 0.5);
@@ -864,13 +867,24 @@
                 updateComets(delta);
         
                 // Render the scene
-                renderer.render(scene, camera);
+                composer.render();
             }
         
-            // Post-Processing Effects for the background
+            // Post-Processing Effects for the background and comets
             const renderScene = new RenderPass(scene, camera);
             const composer = new EffectComposer(renderer);
             composer.addPass(renderScene);
+        
+            // Bloom Pass specifically for the comets
+            const bloomPass = new UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                2.0,  // Enhanced bloom strength for comet glare
+                0.4,  // Bloom radius
+                0.1   // Bloom threshold to highlight comet and bright stars
+            );
+        
+            // Add bloom pass to the composer but only activate during comet burnout
+            composer.addPass(bloomPass);
         
             // Handle window resizing
             window.addEventListener('resize', () => {
@@ -882,6 +896,7 @@
         
             animate();
         </script>
+
 
 
 
