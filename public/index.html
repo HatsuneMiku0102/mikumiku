@@ -703,14 +703,14 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 0.2;
+            renderer.toneMappingExposure = 0.4;  // Reduced exposure to make the scene darker
         
             const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
-            camera.position.set(0, 0, 1500);
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000); // Adjusted FOV to zoom out
+            camera.position.set(0, 0, 3000); // Moved the camera farther back to zoom out
         
             const textureLoader = new THREE.TextureLoader();
-            textureLoader.load('/textures/pillar.webp', (texture) => {
+            textureLoader.load('/textures/nebula.webp', (texture) => {
                 texture.colorSpace = THREE.SRGBColorSpace;
                 scene.background = texture;
             }, undefined, (err) => {
@@ -726,7 +726,7 @@
             directionalLight.position.set(5, 10, 7.5);
             scene.add(directionalLight);
         
-            // Starfield Background (assigned to layer 0)
+            // Starfield Background
             const starCount = 2000;
             const starsGeometry = new THREE.BufferGeometry();
             const starsMaterial = new THREE.PointsMaterial({ color: 0xaaaaaa, size: 2, sizeAttenuation: true });
@@ -742,7 +742,7 @@
             starField.layers.set(0); // Background layer
             scene.add(starField);
         
-            // Comet Class (assigned to layer 1 for bloom isolation)
+            // Comet Textures
             const cometTextures = [
                 '/textures/comet1.png',
                 '/textures/comet2.png'
@@ -865,8 +865,8 @@
         
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                1.5,  // Bloom strength for comets
-                0.4,  // Bloom radius
+                0.8,  // Reduced bloom strength for a more subtle effect
+                0.3,  // Reduced bloom radius
                 0.1   // Bloom threshold
             );
             bloomComposer.addPass(bloomPass);
