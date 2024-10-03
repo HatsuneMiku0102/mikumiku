@@ -783,7 +783,7 @@
             });
         
             // -------------------------------
-            // 7. Comet Class Definition with Enhanced Stability
+            // 7. Comet Class Definition with Animated Tail
             // -------------------------------
             class Comet {
                 constructor(texture, existingComets) {
@@ -820,7 +820,7 @@
                 }
         
                 initTail() {
-                    // Ultra-Realistic Volumetric Tail using Particles
+                    // Ultra-Realistic Volumetric Tail using Animated Particles
                     this.tailParticles = 700;
                     this.tailGeometry = new THREE.BufferGeometry();
                     this.tailPositions = new Float32Array(this.tailParticles * 3);
@@ -932,11 +932,15 @@
                     this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
                     this.pointLight.position.copy(this.sprite.position);
         
-                    // Update tail particles for a gaseous effect
+                    // Update tail particles to create a dynamic, animated effect
                     for (let i = 0; i < this.tailParticles; i++) {
                         this.tailPositions[i * 3] += this.tailVelocities[i * 3] * delta * 0.5;
                         this.tailPositions[i * 3 + 1] += this.tailVelocities[i * 3 + 1] * delta * 0.5;
                         this.tailPositions[i * 3 + 2] += this.tailVelocities[i * 3 + 2] * delta * 0.5;
+        
+                        // Add random oscillation to simulate turbulence in the tail
+                        this.tailPositions[i * 3] += Math.sin(Date.now() * 0.001 + i) * 0.5;
+                        this.tailPositions[i * 3 + 1] += Math.cos(Date.now() * 0.001 + i) * 0.5;
         
                         // Fade the particles out over time for a smoother blend
                         const fadeFactor = Math.max(0.1, 1.0 - i / this.tailParticles);
@@ -946,12 +950,24 @@
                     this.tailGeometry.attributes.position.needsUpdate = true;
                     this.tailGeometry.attributes.size.needsUpdate = true;
         
+                    // Lens Glare Effect before fading out
+                    if (
+                        this.sprite.position.x < -4000 ||
+                        this.sprite.position.y < -4000 ||
+                        this.sprite.position.z < -4000
+                    ) {
+                        this.glareSprite.position.copy(this.sprite.position);
+                        this.glareSprite.material.opacity = 1.0;
+                    } else {
+                        this.glareSprite.material.opacity = 0.0;
+                    }
+        
                     // Reset comet if it moves out of bounds
                     const bounds = 5000;
                     if (
                         this.sprite.position.x < -bounds ||
                         this.sprite.position.y < -bounds ||
-                        this.sprite.position.z < -5000
+                        this.sprite.position.z < -bounds
                     ) {
                         this.reset();
                     }
@@ -1068,7 +1084,30 @@
         
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
+        
+            // -------------------------------
+            // 12. Create Glare Texture for Lens Effect
+            // -------------------------------
+            function createGlareTexture() {
+                const size = 128;
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const context = canvas.getContext('2d');
+        
+                const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+                gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+                gradient.addColorStop(0.2, 'rgba(255, 255, 255, 0.8)');
+                gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.2)');
+                gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
+                context.fillStyle = gradient;
+                context.fillRect(0, 0, size, size);
+        
+                return canvas;
+            }
         </script>
+
 
 
 
