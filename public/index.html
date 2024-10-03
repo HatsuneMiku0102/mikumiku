@@ -733,7 +733,6 @@
         
                     const cometMaterial = new THREE.SpriteMaterial({
                         map: texture,
-                        color: this.getCometColor(),
                         blending: THREE.AdditiveBlending,
                         transparent: true,
                         opacity: 0.8,
@@ -741,7 +740,7 @@
                     });
         
                     this.comet = new THREE.Sprite(cometMaterial);
-                    this.comet.scale.set(80, 80, 1);  // Smaller size for better visuals
+                    this.comet.scale.set(150, 150, 1);  // Smaller size for realistic comet appearance
                     scene.add(this.comet);
         
                     this.existingComets = existingComets;
@@ -764,13 +763,18 @@
                 }
         
                 initLightAndLensflare() {
-                    this.pointLight = new THREE.PointLight(0xffffff, 1.0, 1000);
+                    const color = this.getCometColor();
+                    this.pointLight = new THREE.PointLight(color, 1.0, 1000); // Use comet color for point light
                     scene.add(this.pointLight);
         
+                    // Lensflare for starburst effect
                     const textureFlare = textureLoader.load('/textures/lensflare0.png');
-                    const lensflare = new Lensflare();
-                    lensflare.addElement(new LensflareElement(textureFlare, 100, 0, new THREE.Color(0xffffff)));
-                    this.pointLight.add(lensflare);
+                    this.lensflare = new Lensflare();
+                    this.lensflare.addElement(new LensflareElement(textureFlare, 150, 0, new THREE.Color(0xffffff)));
+                    this.pointLight.add(this.lensflare);
+        
+                    // Initially, lensflare opacity is set to 0 to avoid early visibility
+                    this.lensflare.elements[0].opacity = 0;
                 }
         
                 reset() {
@@ -801,6 +805,8 @@
                     this.flickerTriggered = false;
                     this.shouldFlicker = true;
                     this.flickerTime = Math.random() * 5 + 2;
+                    this.starburstTime = Math.random() * 4 + 6; // Random time to trigger starburst
+                    this.starburstTriggered = false;
                     this.lifespan = Math.random() * 8 + 10; // Randomized lifespan for each comet
                 }
         
@@ -845,10 +851,19 @@
                         this.comet.material.opacity = THREE.MathUtils.lerp(this.comet.material.opacity, 0, 0.02);
                     }
         
-                    if (this.shouldFlicker && !this.flickerTriggered && this.lifespan < 5) {
-                        this.triggerFlicker();
-                        this.flickerTriggered = true;
-                        this.shouldFlicker = false;
+                    // Flicker the comet briefly
+                    if (this.shouldFlicker && !this.flickerTriggered) {
+                        this.flickerTime -= delta;
+                        if (this.flickerTime <= 0) {
+                            this.triggerFlicker();
+                            this.flickerTriggered = true;
+                        }
+                    }
+        
+                    // Trigger starburst effect at random point in lifespan
+                    if (!this.starburstTriggered && this.lifespan < this.starburstTime) {
+                        this.triggerStarburst();
+                        this.starburstTriggered = true;
                     }
         
                     if (this.lifespan <= 0) {
@@ -857,12 +872,22 @@
                 }
         
                 triggerFlicker() {
-                    const flickerDuration = 100; 
+                    const flickerDuration = 100;
                     this.pointLight.intensity = 5.0;
         
                     setTimeout(() => {
                         this.pointLight.intensity = 1.0;
                     }, flickerDuration);
+                }
+        
+                triggerStarburst() {
+                    console.log("Starburst triggered for comet");
+        
+                    this.lensflare.elements[0].opacity = 1.0; // Make lensflare visible
+        
+                    setTimeout(() => {
+                        this.lensflare.elements[0].opacity = 0; // Hide lensflare after short duration
+                    }, 200); // Starburst duration of 200ms
                 }
             }
         
@@ -879,7 +904,7 @@
         
             const bloomParams = {
                 exposure: 0.8,
-                bloomStrength: 0.7, // Reduced bloom for a more subtle effect
+                bloomStrength: 0.5, // Reduced bloom for a more subtle effect
                 bloomThreshold: 0.2,
                 bloomRadius: 0.4
             };
@@ -903,7 +928,7 @@
                 requestAnimationFrame(animate);
                 const delta = clock.getDelta();
         
-                camera.position.x += (mouseX - camera.position.x) * 0.02; // Smoother camera follow
+                camera.position.x += (mouseX - camera.position.x) * 0.02;
                 camera.position.y += (-mouseY - camera.position.y) * 0.02;
                 camera.lookAt(scene.position);
         
