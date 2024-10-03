@@ -805,9 +805,11 @@
                 const angle = Math.atan2(comet.velocity.y, comet.velocity.x);
                 comet.rotation.z = angle;
         
-                // Position the lens flare precisely at the comet head
+                // Position the lens flare at the comet head
                 if (comet.lensflare && comet.lensflare.elements && comet.lensflare.elements.length > 0) {
-                    comet.lensflare.position.copy(comet.position);
+                    // Calculate offset in the direction of velocity to position the flare at the head
+                    const flareOffset = comet.velocity.clone().normalize().multiplyScalar(comet.scale.y * 0.6);
+                    comet.lensflare.position.copy(comet.position.clone().add(flareOffset));
                 }
         
                 // Update lifespan
@@ -847,6 +849,7 @@
                 }
             });
         }
+
         
         const clock = new THREE.Clock();
         
