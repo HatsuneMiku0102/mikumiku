@@ -822,11 +822,21 @@
                         // Trigger bright burnout effect just before fading out
                         comet.burningOut = true;
                         comet.light.color.set(0xffffff); // Change to white light for burnout
-                        comet.light.intensity = 5.0; // Increase brightness for burnout flash
+                        comet.light.intensity = 7.0; // Increase brightness for burnout flash
                         comet.scale.set(120, 120, 1); // Make comet slightly larger during burnout
+        
+                        // Apply extra bloom to simulate glare effect
+                        bloomPass.strength = 1.5; // Temporarily increase bloom strength to simulate glare
+                        bloomPass.threshold = 0.5; // Lower threshold to make the burnout flash more pronounced
+        
+                        // Reset bloom effect after burnout
+                        setTimeout(() => {
+                            bloomPass.strength = 0.5; // Restore default bloom strength
+                            bloomPass.threshold = 0.8; // Restore default bloom threshold
+                        }, 200); // The glare effect lasts for 200 milliseconds
                     } else {
                         // Rapid flicker to simulate burning out
-                        comet.light.intensity = 5.0 + Math.sin(clock.getElapsedTime() * 50) * 3.0; // Rapid flickering burnout
+                        comet.light.intensity = 7.0 + Math.sin(clock.getElapsedTime() * 50) * 3.0; // Rapid flickering burnout
                     }
         
                     if (comet.position.x < -window.innerWidth / 2 || comet.position.y < -window.innerHeight / 2 || comet.lifespan <= 0) {
