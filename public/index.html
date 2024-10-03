@@ -760,7 +760,7 @@
             });
         
             // -------------------------------
-            // 6. Comet Class Definition with Enhanced Realism and Fade-out Glow
+            // 6. Comet Class Definition with Enhanced Movement and Visual Noise
             // -------------------------------
             class Comet {
                 constructor(texture, existingComets) {
@@ -797,7 +797,7 @@
                 }
         
                 initTail() {
-                    // Ultra-Realistic Volumetric Tail using Animated Particles
+                    // Ultra-Realistic Volumetric Tail using Animated Particles with Noise
                     this.tailParticles = 700;
                     this.tailGeometry = new THREE.BufferGeometry();
                     this.tailPositions = new Float32Array(this.tailParticles * 3);
@@ -810,11 +810,11 @@
                         this.tailPositions[i * 3 + 2] = this.sprite.position.z;
         
                         // Assign random velocity to simulate turbulence and spread
-                        this.tailVelocities[i * 3] = (Math.random() - 0.5) * 10;
-                        this.tailVelocities[i * 3 + 1] = (Math.random() - 0.5) * 10;
+                        this.tailVelocities[i * 3] = (Math.random() - 0.5) * 20;
+                        this.tailVelocities[i * 3 + 1] = (Math.random() - 0.5) * 20;
                         this.tailVelocities[i * 3 + 2] = Math.random() * -50;
         
-                        this.tailSizes[i] = Math.random() * 3 + 3; // Different sizes for particles
+                        this.tailSizes[i] = Math.random() * 4 + 2; // Different sizes for particles
                     }
         
                     this.tailGeometry.setAttribute('position', new THREE.BufferAttribute(this.tailPositions, 3));
@@ -864,7 +864,7 @@
                     this.velocity = new THREE.Vector3(
                         -500 + Math.random() * -150,
                         -500 + Math.random() * -150,
-                        0
+                        Math.random() * 100 - 50 // Random z movement for more natural orbital path
                     );
         
                     const scale = Math.random() * 50 + 200; // Larger size for more dynamic visuals
@@ -906,18 +906,32 @@
                         return;
                     }
         
+                    // Update velocity for more realistic orbital movement
+                    this.velocity.x += Math.sin(Date.now() * 0.0001) * 10 * delta;
+                    this.velocity.y += Math.cos(Date.now() * 0.0001) * 10 * delta;
+        
                     this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
                     this.pointLight.position.copy(this.sprite.position);
         
-                    // Update tail particles to create a dynamic, animated effect
+                    // Subtle rotation to simulate movement through space
+                    this.sprite.rotation += delta * 0.5;
+        
+                    // Update tail particles to create a dynamic, animated effect with visual noise
                     for (let i = 0; i < this.tailParticles; i++) {
                         this.tailPositions[i * 3] += this.tailVelocities[i * 3] * delta * 0.5;
                         this.tailPositions[i * 3 + 1] += this.tailVelocities[i * 3 + 1] * delta * 0.5;
                         this.tailPositions[i * 3 + 2] += this.tailVelocities[i * 3 + 2] * delta * 0.5;
         
+                        // Add random oscillation to simulate turbulence in the tail
+                        this.tailPositions[i * 3] += Math.sin(Date.now() * 0.001 + i) * 0.5;
+                        this.tailPositions[i * 3 + 1] += Math.cos(Date.now() * 0.001 + i) * 0.5;
+        
                         // Fade the particles out over time for a smoother blend
                         const fadeFactor = Math.max(0.1, 1.0 - i / this.tailParticles);
                         this.tail.geometry.attributes.size.array[i] = this.tailSizes[i] * fadeFactor;
+        
+                        // Add subtle flickering to particles to simulate gas breaking apart
+                        this.tail.geometry.attributes.size.array[i] *= (0.9 + 0.1 * Math.sin(Date.now() * 0.005 + i));
                     }
         
                     this.tailGeometry.attributes.position.needsUpdate = true;
@@ -1061,18 +1075,6 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
