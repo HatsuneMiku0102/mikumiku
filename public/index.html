@@ -730,31 +730,40 @@
             const cometCount = 5;
             const comets = [];
         
+            // Array of natural comet colors: white, orangey, yellow
+            const naturalColors = [
+                new THREE.Color(0xffffff), // white
+                new THREE.Color(0xffd700), // gold/yellow
+                new THREE.Color(0xffa500)  // orange
+            ];
+        
             for (let i = 0; i < cometCount; i++) {
-                const comet = new THREE.Sprite(new THREE.SpriteMaterial({
+                const cometMaterial = new THREE.SpriteMaterial({
                     map: cometTexture,
                     blending: THREE.AdditiveBlending,
                     transparent: true,
                     depthWrite: false,
-                }));
+                });
+        
+                const comet = new THREE.Sprite(cometMaterial);
         
                 // Increased the size of the comets
                 comet.scale.set(150 + Math.random() * 50, 150 + Math.random() * 50, 1);
-                comet.color = new THREE.Color(Math.random(), Math.random(), Math.random());
+                comet.color = naturalColors[Math.floor(Math.random() * naturalColors.length)]; // Assign natural color
                 comet.material.color = comet.color;
         
                 // Set light intensity to 2.0
                 comet.light = new THREE.PointLight(comet.color, 2.0, 800, 2);
                 comet.light.visible = false;
         
-                // Add comet light to the scene
-                scene.add(comet.light);
-        
-                // Add lens flare to the comet light and attach it to the comet
+                // Add lens flare to the comet light and attach it to the comet directly
                 const lensflare = new Lensflare();
-                lensflare.addElement(new LensflareElement(textureLoader.load('/textures/starburst.png'), 80, 0.0, comet.light.color)); // Adjusted lens flare size to fit better
+                lensflare.addElement(new LensflareElement(textureLoader.load('/textures/starburst.png'), 80, 0.0, comet.light.color));
                 comet.lensflare = lensflare;
-                comet.light.add(lensflare);
+        
+                // Attach the light and lensflare to the comet
+                comet.add(comet.light);
+                comet.add(lensflare);
         
                 // Add comet itself to the scene
                 resetComet(comet);
@@ -787,13 +796,6 @@
                     comet.position.add(comet.velocity.clone().multiplyScalar(delta));
                     comet.light.position.copy(comet.position);
         
-                    // Adjust lens flare position slightly in front of the comet to make it look like it's at the head
-                    comet.lensflare.position.set(
-                        comet.position.x + comet.velocity.x * 0.01,
-                        comet.position.y + comet.velocity.y * 0.01,
-                        comet.position.z
-                    );
-        
                     comet.lifespan -= delta;
         
                     if (comet.lifespan > 10.0) {
@@ -814,7 +816,7 @@
                         comet.scale.set(200, 200, 1); // Increase the size during burnout
                         comet.lensflare.visible = true;
         
-                        // Adjust flare size and ensure it stays on the comet head
+                        // Adjust flare size to maintain its position at the head
                         comet.lensflare.elements[0].size = 100;
                         composer.addPass(bloomPass);
                     } else {
@@ -870,6 +872,7 @@
         
             animate();
         </script>
+
 
 
 
