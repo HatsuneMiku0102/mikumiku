@@ -694,7 +694,7 @@
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
         
-            const maxComets = 15;
+            const maxComets = 10;
             const cometPool = [];
         
             const canvas = document.getElementById('techCanvas');
@@ -703,12 +703,12 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 1.1;
+            renderer.toneMappingExposure = 0.9;
         
             const scene = new THREE.Scene();
         
             const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000);
-            camera.position.set(0, 0, 3500);
+            camera.position.set(0, 0, 3000);
         
             const textureLoader = new THREE.TextureLoader();
             textureLoader.load('/textures/pillar.webp', (texture) => {
@@ -719,30 +719,16 @@
                 scene.background = new THREE.Color(0x000000);
             });
         
-            // Ambient and Directional Lighting
-            const ambientLight = new THREE.AmbientLight(0x404040, 1.0);
+            // Ambient Lighting for the Scene
+            const ambientLight = new THREE.AmbientLight(0x404040, 1.2);
             scene.add(ambientLight);
         
+            // Directional Lighting
             const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
             directionalLight.position.set(500, 1000, 1000);
             scene.add(directionalLight);
         
-            // Starfield Background
-            const starCount = 2000;
-            const starsGeometry = new THREE.BufferGeometry();
-            const starsMaterial = new THREE.PointsMaterial({ color: 0xaaaaaa, size: 2, sizeAttenuation: true });
-        
-            const starPositions = new Float32Array(starCount * 3);
-            for (let i = 0; i < starCount; i++) {
-                starPositions[i * 3] = (Math.random() - 0.5) * 10000;
-                starPositions[i * 3 + 1] = (Math.random() - 0.5) * 10000;
-                starPositions[i * 3 + 2] = (Math.random() - 0.5) * 10000;
-            }
-            starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-            const starField = new THREE.Points(starsGeometry, starsMaterial);
-            scene.add(starField);
-        
-            // Comet Textures
+            // Comet Texture
             const cometTextures = [
                 '/textures/comet1.png',
                 '/textures/comet2.png'
@@ -751,72 +737,88 @@
             class Comet {
                 constructor() {
                     this.cometTexturePath = cometTextures[Math.floor(Math.random() * cometTextures.length)];
-        
                     textureLoader.load(this.cometTexturePath, (texture) => {
-                        this.initCometWithTexture(texture);
-                        this.reset();
+                        this.initComet(texture);
                         cometPool.push(this);
                     });
                 }
         
-                initCometWithTexture(texture) {
+                initComet(texture) {
                     const cometMaterial = new THREE.SpriteMaterial({
                         map: texture,
                         blending: THREE.AdditiveBlending,
                         transparent: true,
-                        opacity: 1.0,  // Full opacity, no fade effect
+                        opacity: 0.8,
                         depthWrite: false,
                     });
         
                     this.comet = new THREE.Sprite(cometMaterial);
-                    this.comet.scale.set(200 + Math.random() * 100, 200 + Math.random() * 100, 1); // Fixed random size at start
-                    this.comet.layers.set(1);
+                    this.comet.scale.set(150 + Math.random() * 50, 150 + Math.random() * 50, 1); // Random but balanced size
                     scene.add(this.comet);
         
-                    // Add comet light for subtle glow
-                    this.light = new THREE.PointLight(0xffaa33, 0.6, 500);  // Reduced intensity for subtle blending
-                    this.light.position.set(this.comet.position.x, this.comet.position.y, 0);
-                    scene.add(this.light);
+                    // Comet Tail using Particles
+                    const particleCount = 100;
+                    const tailGeometry = new THREE.BufferGeometry();
+                    const positions = new Float32Array(particleCount * 3);
+                    const tailMaterial = new THREE.PointsMaterial({
+                        color: 0xffaa33,
+                        size: 6,
+                        transparent: true,
+                        opacity: 0.5,
+                        blending: THREE.AdditiveBlending,
+                    });
+        
+                    this.tailParticles = new THREE.Points(tailGeometry, tailMaterial);
+                    this.tailPositions = positions;
+                    tailGeometry.setAttribute('position', new THREE.BufferAttribute(this.tailPositions, 3));
+                    scene.add(this.tailParticles);
+        
+                    // Velocity
+                    const speed = 500 + Math.random() * 200;
+                    this.velocity = new THREE.Vector3(-speed, -speed * 0.7, 0);
+        
+                    this.reset();
                 }
         
                 reset() {
-                    const position = this.generateSpawnPosition();
-                    this.comet.position.set(position.x, position.y, 0);
-                    this.light.position.set(position.x, position.y, 0);
+                    // Set comet to a new random spawn position at the top-right side of the screen
+                    const spawnX = window.innerWidth / 2 + 800;
+                    const spawnY = window.innerHeight / 2 + 500 + Math.random() * 400;
+                    const spawnZ = -500; // Ensuring comets are not too close or far
         
-                    // Set a constant diagonal velocity from top-right to bottom-left
-                    const speedFactor = 400; // Fixed speed factor for consistent movement
-                    this.velocity = new THREE.Vector3(
-                        -speedFactor,                 // Horizontal speed (leftward)
-                        -speedFactor * 0.6,           // Vertical speed (downward)
-                        0                             // No Z-axis movement
-                    );
+                    this.comet.position.set(spawnX, spawnY, spawnZ);
         
-                    this.lifespan = 15; // Lifespan to determine when to reset the comet
-                }
+                    // Initialize particle tail behind comet
+                    for (let i = 0; i < this.tailPositions.length; i += 3) {
+                        this.tailPositions[i] = spawnX;
+                        this.tailPositions[i + 1] = spawnY;
+                        this.tailPositions[i + 2] = spawnZ;
+                    }
+                    this.tailParticles.geometry.attributes.position.needsUpdate = true;
         
-                generateSpawnPosition() {
-                    // Randomize spawn position across the top of the screen
-                    const spawnX = window.innerWidth / 2 + 800; // Starting from the far-right side of the screen
-                    const spawnY = (Math.random() - 0.5) * window.innerHeight; // Random height along the Y-axis
-                    const spawnZ = 0; // Fixed Z-axis for no depth effect
-        
-                    return new THREE.Vector3(spawnX, spawnY, spawnZ);
+                    this.lifespan = 15; // Lifespan for reset
                 }
         
                 update(delta) {
                     if (!this.comet) return;
         
-                    // Apply constant velocity to move in a straight diagonal path
+                    // Update comet position
                     this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
-                    this.light.position.copy(this.comet.position);
         
-                    // Maintain constant size and opacity
-                    this.comet.material.opacity = 1.0;
+                    // Update tail particles to follow the comet
+                    for (let i = this.tailPositions.length - 3; i > 0; i -= 3) {
+                        this.tailPositions[i] = this.tailPositions[i - 3];
+                        this.tailPositions[i + 1] = this.tailPositions[i - 2];
+                        this.tailPositions[i + 2] = this.tailPositions[i - 1];
+                    }
+                    this.tailPositions[0] = this.comet.position.x;
+                    this.tailPositions[1] = this.comet.position.y;
+                    this.tailPositions[2] = this.comet.position.z;
+                    this.tailParticles.geometry.attributes.position.needsUpdate = true;
         
+                    // Lifespan logic
                     this.lifespan -= delta;
-        
-                    if (this.lifespan < 0) {
+                    if (this.lifespan < 0 || this.comet.position.y < -window.innerHeight / 2 - 500) {
                         this.reset();
                     }
                 }
@@ -826,7 +828,7 @@
                 for (let i = 0; i < maxComets; i++) {
                     setTimeout(() => {
                         new Comet();
-                    }, Math.random() * 3000); // More randomized comet initialization for variety
+                    }, Math.random() * 3000); // Randomized comet initialization for variety
                 }
             }
         
@@ -837,7 +839,7 @@
         
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                0.2,  // Reduced bloom strength for a subtle glow
+                0.1,  // Very subtle bloom strength for a gentle glow
                 0.3,  // Bloom radius
                 0.1   // Bloom threshold
             );
