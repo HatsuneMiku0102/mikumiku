@@ -769,7 +769,7 @@
         
                 initLight() {
                     const color = 0x88ccee;
-                    this.pointLight = new THREE.PointLight(color, 1.5, 1000);
+                    this.pointLight = new THREE.PointLight(color, 2.0, 1000);
                     scene.add(this.pointLight);
                 }
         
@@ -783,13 +783,34 @@
         
                     this.comet.position.set(width / 2, height / 2, -2000);
                     
-                    // Move towards bottom-left
-                    this.velocity.set(-200, -200, Math.random() * 100 - 50);
+                    // Move towards bottom-left with increased speed
+                    this.velocity.set(-600, -600, Math.random() * 100 - 50);
                 }
         
                 update(delta) {
                     this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
                     this.pointLight.position.copy(this.comet.position);
+        
+                    // Trigger starburst effect briefly when comet enters scene
+                    if (!this.starburstTriggered && this.comet.position.z < -1500) {
+                        this.triggerStarburst();
+                        this.starburstTriggered = true;
+                    }
+        
+                    // Reset when comet leaves the screen
+                    if (this.comet.position.y < -5000 || this.comet.position.x < -5000) {
+                        this.reset();
+                        this.starburstTriggered = false;
+                    }
+                }
+        
+                triggerStarburst() {
+                    const originalIntensity = this.pointLight.intensity;
+                    this.pointLight.intensity = 5.0;
+        
+                    setTimeout(() => {
+                        this.pointLight.intensity = originalIntensity;
+                    }, 100); // Starburst effect lasts for 100 ms
                 }
             }
         
@@ -804,9 +825,9 @@
             composer.addPass(renderPass);
         
             const bloomParams = {
-                exposure: 1.0,
-                bloomStrength: 1.0,
-                bloomThreshold: 0.2,
+                exposure: 0.9, // Reduced exposure for less overpowering bloom
+                bloomStrength: 0.8, // Reduced bloom strength for the background
+                bloomThreshold: 0.3,
                 bloomRadius: 0.4,
             };
             const bloomPass = new UnrealBloomPass(
@@ -845,6 +866,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
