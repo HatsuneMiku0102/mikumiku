@@ -765,7 +765,7 @@
                         map: texture,
                         blending: THREE.AdditiveBlending,
                         transparent: true,
-                        opacity: 1.0,
+                        opacity: 0.7,  // Set to a lower opacity to blend better with background
                         depthWrite: false,
                     });
         
@@ -775,7 +775,7 @@
                     scene.add(this.comet);
         
                     // Add comet light for flickering effect
-                    this.light = new THREE.PointLight(0xffaa33, 2.0, 1000);
+                    this.light = new THREE.PointLight(0xffaa33, 0.8, 500);  // Reduced intensity for subtle blending
                     this.light.position.set(this.comet.position.x, this.comet.position.y, 0);
                     scene.add(this.light);
         
@@ -789,10 +789,10 @@
                         this.light.position.set(position.x, position.y, 0);
                     }
         
-                    // Diagonal movement from top-right to bottom-left with noise component
+                    // Diagonal movement from top-right to bottom-left with some randomness
                     this.baseVelocity = new THREE.Vector3(
-                        -800 + Math.random() * -200,  // Horizontal component with some randomness
-                        -400 + Math.random() * -200,  // Vertical component with some randomness
+                        -600 + Math.random() * -200,  // Horizontal component with randomness
+                        -300 + Math.random() * -200,  // Vertical component with randomness
                         0                             // No Z-axis movement
                     );
         
@@ -801,9 +801,9 @@
                 }
         
                 generateSpawnPosition() {
-                    // Randomize spawn position in the top-right area
-                    const spawnX = window.innerWidth / 2 + 800 + Math.random() * 500;  // More randomness for spawning position
-                    const spawnY = window.innerHeight / 2 + 800 + Math.random() * 400; // More randomness above the visible area
+                    // Randomize spawn position along the entire top area of the screen
+                    const spawnX = Math.random() * window.innerWidth - window.innerWidth / 2;  // Full width of the screen
+                    const spawnY = window.innerHeight / 2 + 400 + Math.random() * 200;  // Random height near the top
                     const spawnZ = 0; // Fixed Z-axis for no depth effect
         
                     return new THREE.Vector3(spawnX, spawnY, spawnZ);
@@ -825,7 +825,7 @@
                     this.light.position.copy(this.comet.position);
         
                     // Flickering effect for comet light
-                    this.light.intensity = 2.0 + Math.sin(time * 10) * 0.5;
+                    this.light.intensity = 0.8 + Math.sin(time * 10) * 0.3;
         
                     this.lifespan -= delta;
         
@@ -850,9 +850,9 @@
         
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                0.4,  // Reduced bloom strength for a subtle glow
-                0.3,  // Reduced bloom radius
-                0.1   // Bloom threshold to limit effect to bright areas
+                0.2,  // Reduced bloom strength for a very subtle glow
+                0.3,  // Bloom radius
+                0.1   // Bloom threshold
             );
             composer.addPass(bloomPass);
         
@@ -900,6 +900,7 @@
             initComets();
             animate();
         </script>
+
 
 
 
