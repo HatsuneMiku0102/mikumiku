@@ -751,7 +751,7 @@
             function createStarField(texturePath, count, depth) {
                 const starGeometry = new THREE.BufferGeometry();
                 const starMaterial = new THREE.PointsMaterial({
-                    size: 40, // Further reduce size for more subtle stars
+                    size: 30, // Further reduce size for more subtle stars
                     map: textureLoader.load(texturePath),
                     sizeAttenuation: true,
                     transparent: true,
@@ -778,13 +778,13 @@
                 scene.traverse((object) => {
                     if (object.isPoints) {
                         const noiseValue = noiseGenerator.noise(elapsedTime * 0.05, object.position.x * 0.01, object.position.y * 0.01);
-                        object.material.size = 40 + noiseValue * 10; // Reduce twinkle size slightly
+                        object.material.size = 30 + noiseValue * 8; // Reduce twinkle size slightly
                         object.material.needsUpdate = true;
                     }
                 });
             }
         
-            // Add Comets Using comet1.png Texture with Intense Flashing Streak Effect
+            // Add Comets Using comet1.png Texture with Rapid Burnout Effect
             const cometTexture = textureLoader.load('/textures/comet1.png');
             const cometMaterial = new THREE.SpriteMaterial({
                 map: cometTexture,
@@ -798,7 +798,7 @@
             const comets = [];
             for (let i = 0; i < cometCount; i++) {
                 const comet = new THREE.Sprite(cometMaterial);
-                comet.scale.set(100, 100, 1); // Smaller comets for a more subtle effect
+                comet.scale.set(80, 80, 1); // Smaller comets for a more subtle effect
                 resetComet(comet);
                 comets.push(comet);
                 scene.add(comet);
@@ -806,43 +806,52 @@
         
             function resetComet(comet) {
                 comet.position.set(
-                    (Math.random() - 0.5) * 5000 + 2000,
+                    window.innerWidth / 2 + Math.random() * 1000,
                     window.innerHeight / 2 + Math.random() * 1000,
-                    Math.random() * 1000 - 500 // Varying depth for better blending
+                    0 // Keep comets in a flat plane for simplicity
                 );
                 comet.velocity = new THREE.Vector3(
-                    -1000 + Math.random() * -400, // Increase speed for a more dynamic effect
-                    -800 + Math.random() * -300,
+                    -600, // Fixed speed on x-axis to keep a diagonal path
+                    -600, // Fixed speed on y-axis to move straight down diagonally
                     0
                 );
+                comet.lifespan = 3.0; // Comet will last around 3 seconds
             }
         
             function updateComets(delta) {
                 comets.forEach((comet) => {
                     comet.position.add(comet.velocity.clone().multiplyScalar(delta));
-                    comet.material.opacity = 0.7 + Math.sin(clock.getElapsedTime() * 20) * 0.3; // Increase flashing frequency and intensity
-                    if (comet.position.x < -window.innerWidth / 2 || comet.position.y < -window.innerHeight / 2) {
+                    comet.lifespan -= delta;
+        
+                    // Burnout effect: increase brightness initially, then fade out
+                    if (comet.lifespan > 1.5) {
+                        comet.material.opacity = Math.min(1.0, comet.material.opacity + delta * 2); // Rapidly increase opacity
+                        comet.scale.set(80 + comet.lifespan * 40, 80 + comet.lifespan * 40, 1); // Grow during burnout
+                    } else {
+                        comet.material.opacity = Math.max(0, comet.material.opacity - delta); // Gradual fade-out
+                        comet.scale.set(80, 80, 1); // Reset scale
+                    }
+        
+                    if (comet.position.x < -window.innerWidth / 2 || comet.position.y < -window.innerHeight / 2 || comet.lifespan <= 0) {
                         resetComet(comet);
                     }
                 });
             }
         
-            // Add Faintly Glowing and Shimmering Cosmic Dust with Reflection Effect
+            // Add Enhanced Cosmic Dust with More Dynamic Effects
             const cloudGeometry = new THREE.BufferGeometry();
             const cloudMaterial = new THREE.PointsMaterial({
-                size: 15, // Reduce size further for subtle space dust
+                size: 10, // Further reduced size for subtle space dust
                 map: textureLoader.load('/textures/particle_clouds.png'),
                 color: 0xffffff,
                 sizeAttenuation: true,
                 transparent: true,
-                opacity: 0.15,
+                opacity: 0.1,
                 blending: THREE.AdditiveBlending,
-                specular: 0xffffff, // Added specular for light reflection
-                shininess: 100,
                 depthWrite: false,
             });
         
-            const cloudCount = 3000;
+            const cloudCount = 4000;
             const cloudPositions = new Float32Array(cloudCount * 3);
             for (let i = 0; i < cloudCount; i++) {
                 cloudPositions[i * 3] = (Math.random() - 0.5) * 8000;
@@ -859,7 +868,8 @@
         
                 for (let i = 0; i < cloudCount * 3; i += 3) {
                     const noiseValue = noiseGenerator.noise(elapsedTime * 0.1, positions[i] * 0.01, positions[i + 1] * 0.01);
-                    cloudMaterial.opacity = 0.1 + noiseValue * 0.05; // Fluctuate opacity for shimmer
+                    cloudMaterial.opacity = 0.08 + noiseValue * 0.03; // Fluctuate opacity for shimmer
+                    cloudMaterial.color.setHSL(0.6 + noiseValue * 0.2, 0.8, 0.6); // Add subtle color variation
                     cloudMaterial.needsUpdate = true;
                 }
             }
@@ -885,7 +895,7 @@
                 // Update stars for twinkling effect
                 updateStarTwinkle();
         
-                // Update comet positions and flashing effect
+                // Update comet positions and burnout effect
                 updateComets(delta);
         
                 // Update cosmic dust shimmer
@@ -923,6 +933,7 @@
         
             animate();
         </script>
+
 
 
 
