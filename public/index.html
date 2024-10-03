@@ -767,31 +767,18 @@
                     this.velocity = new THREE.Vector3();
         
                     this.initLight();
-                    this.initTrail();
                     this.initGlow();
+        
+                    // Random starburst time during comet's life
+                    this.starburstTime = Math.random() * 4 + 6; // Between 6 and 10 seconds
+                    this.starburstTriggered = false;
+                    this.lifespan = Math.random() * 8 + 10; // Comet lifespan between 10 and 18 seconds
                 }
         
                 initLight() {
                     const color = 0x88ccee;
                     this.pointLight = new THREE.PointLight(color, 2.0 + Math.random() * 1.5, 1000); // Random intensity for uniqueness
                     scene.add(this.pointLight);
-                }
-        
-                initTrail() {
-                    const trailMaterial = new THREE.PointsMaterial({
-                        color: 0x88ccee,
-                        size: Math.random() * 3 + 1.5,
-                        transparent: true,
-                        opacity: 0.6,
-                        depthWrite: false,
-                    });
-        
-                    this.trailGeometry = new THREE.BufferGeometry();
-                    this.trailPositions = new Float32Array(50 * 3); // Trail with 50 points
-                    this.trailGeometry.setAttribute('position', new THREE.BufferAttribute(this.trailPositions, 3));
-        
-                    this.trail = new THREE.Points(this.trailGeometry, trailMaterial);
-                    scene.add(this.trail);
                 }
         
                 initGlow() {
@@ -809,14 +796,15 @@
                 }
         
                 reset() {
-                    // Start position at the top-right area of the screen
+                    // Start position at the top-right area of the screen (random within defined region)
                     const aspect = window.innerWidth / window.innerHeight;
                     const fov = THREE.MathUtils.degToRad(camera.fov);
                     const distance = Math.abs(camera.position.z - (-2500));
                     const height = 2 * Math.tan(fov / 2) * distance;
                     const width = height * aspect;
         
-                    this.comet.position.set(width / 2 + 500, height / 3, -2000);
+                    // Comet spawns randomly in the top-right area
+                    this.comet.position.set(width / 2 + Math.random() * 500, height / 4 + Math.random() * 500, -2000);
         
                     // Move towards a random position between the bottom and middle left
                     const speedMultiplier = Math.random() * 1.5 + 1.5; // Random speed between 1.5x and 3x
@@ -825,6 +813,13 @@
                         -200 * speedMultiplier,
                         Math.random() * 100 - 50
                     );
+        
+                    // Reset the starburst and lifespan
+                    this.flickerTriggered = false;
+                    this.shouldFlicker = true;
+                    this.starburstTime = Math.random() * 4 + 6; // Starburst will happen at a random time
+                    this.starburstTriggered = false;
+                    this.lifespan = Math.random() * 8 + 10;
                 }
         
                 update(delta) {
@@ -832,27 +827,23 @@
                     this.pointLight.position.copy(this.comet.position);
                     this.glow.position.copy(this.comet.position);
         
-                    // Update the trail position
-                    for (let i = this.trailPositions.length - 3; i > 0; i -= 3) {
-                        this.trailPositions[i] = this.trailPositions[i - 3];
-                        this.trailPositions[i + 1] = this.trailPositions[i - 2];
-                        this.trailPositions[i + 2] = this.trailPositions[i - 1];
-                    }
-                    this.trailPositions[0] = this.comet.position.x;
-                    this.trailPositions[1] = this.comet.position.y;
-                    this.trailPositions[2] = this.comet.position.z;
-                    this.trail.geometry.attributes.position.needsUpdate = true;
+                    // Decrease lifespan as the comet moves
+                    this.lifespan -= delta;
         
-                    // Trigger enhanced starburst effect briefly when comet enters the scene
-                    if (!this.starburstTriggered && this.comet.position.z < -1500) {
+                    // Trigger starburst at a random point during the comet's life
+                    if (!this.starburstTriggered && this.lifespan < this.starburstTime) {
                         this.triggerStarburst();
                         this.starburstTriggered = true;
                     }
         
-                    // Reset when comet leaves the screen
-                    if (this.comet.position.y < -5000 || this.comet.position.x < -5000) {
+                    // Fade out the comet as it nears the end of its lifespan
+                    if (this.lifespan < 3) {
+                        this.comet.material.opacity = THREE.MathUtils.lerp(this.comet.material.opacity, 0, 0.02);
+                    }
+        
+                    // Reset when comet leaves the screen or its lifespan ends
+                    if (this.lifespan <= 0) {
                         this.reset();
-                        this.starburstTriggered = false;
                     }
                 }
         
@@ -925,6 +916,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
