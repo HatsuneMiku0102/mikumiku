@@ -693,7 +693,8 @@
             import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
-        
+            import { ImprovedNoise } from '/js/ImprovedNoise.js'; // Import for Perlin noise
+            
             const canvas = document.getElementById('techCanvas');
             const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -730,8 +731,7 @@
             directionalLight.position.set(500, 1000, 1500);
             scene.add(directionalLight);
         
-            // Create Starfield Using Uploaded Textures
-            const starCount = 5000;
+            // Create Parallax Star Layers
             const starTextures = [
                 '/textures/stars 001.png',
                 '/textures/stars 002.png',
@@ -740,12 +740,15 @@
                 '/textures/stars 005.png',
                 '/textures/stars 006.png'
             ];
+            const starLayers = [2000, 4000, 6000]; // Different depths for parallax
         
-            for (let i = 0; i < starTextures.length; i++) {
-                createStarField(starTextures[i], starCount / starTextures.length);
+            for (let depth of starLayers) {
+                for (let i = 0; i < starTextures.length; i++) {
+                    createStarField(starTextures[i], 1000, depth);
+                }
             }
         
-            function createStarField(texturePath, count) {
+            function createStarField(texturePath, count, depth) {
                 const starGeometry = new THREE.BufferGeometry();
                 const starMaterial = new THREE.PointsMaterial({
                     size: 150, // Adjusted to ensure visibility
@@ -760,7 +763,7 @@
                 for (let i = 0; i < count; i++) {
                     starPositions[i * 3] = (Math.random() - 0.5) * 10000;
                     starPositions[i * 3 + 1] = (Math.random() - 0.5) * 10000;
-                    starPositions[i * 3 + 2] = (Math.random() - 0.5) * 10000;
+                    starPositions[i * 3 + 2] = depth + (Math.random() - 0.5) * 500; // Different Z positions for parallax effect
                 }
         
                 starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
@@ -768,11 +771,68 @@
                 scene.add(starField);
             }
         
-            // Softly Rotating Camera for Immersion
+            // Add Twinkling Effect Using Perlin Noise
+            const noiseGenerator = new ImprovedNoise();
             const clock = new THREE.Clock();
+            function updateStarTwinkle() {
+                const elapsedTime = clock.getElapsedTime();
+                scene.traverse((object) => {
+                    if (object.isPoints) {
+                        // Update size using Perlin noise for a subtle twinkle effect
+                        const noiseValue = noiseGenerator.noise(elapsedTime * 0.05, object.position.x * 0.01, object.position.y * 0.01);
+                        object.material.size = 150 + noiseValue * 20; // Fluctuate size slightly
+                        object.material.needsUpdate = true;
+                    }
+                });
+            }
+        
+            // Add Comets Using comet2.png Texture
+            const cometTexture = textureLoader.load('/textures/comet2.png');
+            const cometMaterial = new THREE.SpriteMaterial({
+                map: cometTexture,
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                opacity: 1.0,
+                depthWrite: false,
+            });
+        
+            const cometCount = 5;
+            const comets = [];
+            for (let i = 0; i < cometCount; i++) {
+                const comet = new THREE.Sprite(cometMaterial);
+                comet.scale.set(300, 300, 1);
+                resetComet(comet);
+                comets.push(comet);
+                scene.add(comet);
+            }
+        
+            function resetComet(comet) {
+                comet.position.set(
+                    (Math.random() - 0.5) * 5000 + 2000,
+                    window.innerHeight / 2 + Math.random() * 1000,
+                    0
+                );
+                comet.velocity = new THREE.Vector3(
+                    -1000 + Math.random() * -200,
+                    -800 + Math.random() * -200,
+                    0
+                );
+            }
+        
+            function updateComets(delta) {
+                comets.forEach((comet) => {
+                    comet.position.add(comet.velocity.clone().multiplyScalar(delta));
+                    if (comet.position.x < -window.innerWidth / 2 || comet.position.y < -window.innerHeight / 2) {
+                        resetComet(comet);
+                    }
+                });
+            }
+        
+            // Animate the Scene
             function animate() {
                 requestAnimationFrame(animate);
         
+                const delta = clock.getDelta();
                 const elapsedTime = clock.getElapsedTime();
         
                 // Camera movement to simulate drifting in space
@@ -783,6 +843,12 @@
                 // Point Light movement to add a sense of life
                 pointLight.position.x = Math.sin(elapsedTime * 0.2) * 1500;
                 pointLight.position.y = Math.cos(elapsedTime * 0.2) * 1000;
+        
+                // Update stars for twinkling effect
+                updateStarTwinkle();
+        
+                // Update comet positions
+                updateComets(delta);
         
                 // Render the scene with post-processing
                 composer.render();
@@ -795,9 +861,9 @@
         
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                0.4,  // Adjusted bloom strength for a balanced effect
-                0.6,  // Bloom radius
-                0.8   // Bloom threshold to capture highlights
+                0.6,  // Bloom strength for comet glow
+                0.7,  // Bloom radius
+                0.9   // Bloom threshold to capture comet highlights
             );
             composer.addPass(bloomPass);
         
@@ -816,6 +882,7 @@
         
             animate();
         </script>
+
 
 
 
