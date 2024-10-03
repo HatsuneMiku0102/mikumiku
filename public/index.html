@@ -815,7 +815,8 @@
                     -600, // Fixed speed on y-axis to move straight down diagonally
                     0
                 );
-                comet.lifespan = 3.0; // Comet will last around 3 seconds
+                comet.lifespan = 2.5; // Comet will last around 2.5 seconds
+                comet.brightnessFactor = 1.5; // Start with a bright flash
             }
         
             function updateComets(delta) {
@@ -823,13 +824,16 @@
                     comet.position.add(comet.velocity.clone().multiplyScalar(delta));
                     comet.lifespan -= delta;
         
-                    // Burnout effect: increase brightness initially, then fade out
-                    if (comet.lifespan > 1.5) {
-                        comet.material.opacity = Math.min(1.0, comet.material.opacity + delta * 2); // Rapidly increase opacity
-                        comet.scale.set(80 + comet.lifespan * 40, 80 + comet.lifespan * 40, 1); // Grow during burnout
+                    // Burnout effect: rapidly increase brightness initially, then fade out
+                    if (comet.lifespan > 1.0) {
+                        comet.material.opacity = Math.min(1.0, comet.material.opacity + delta * comet.brightnessFactor);
+                        comet.scale.set(100, 100, 1); // Keep size larger during bright phase
+                    } else if (comet.lifespan > 0.5) {
+                        comet.material.opacity = 1.0 - ((1.0 - comet.lifespan) * 2); // Gradual fade-out
+                        comet.scale.set(80, 80, 1); // Reduce to original size as it fades
                     } else {
-                        comet.material.opacity = Math.max(0, comet.material.opacity - delta); // Gradual fade-out
-                        comet.scale.set(80, 80, 1); // Reset scale
+                        comet.material.opacity = Math.max(0, comet.material.opacity - delta * 2); // Faster fading out at the end
+                        comet.scale.set(50, 50, 1); // Reduce size to simulate burnout
                     }
         
                     if (comet.position.x < -window.innerWidth / 2 || comet.position.y < -window.innerHeight / 2 || comet.lifespan <= 0) {
