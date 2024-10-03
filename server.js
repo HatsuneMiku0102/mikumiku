@@ -252,12 +252,13 @@ app.use(
             defaultSrc: ["'self'"],
             scriptSrc: [
                 "'self'",
-                "'unsafe-inline'", // Consider replacing with nonces or hashes for better security
+                "'unsafe-inline'", // Note: Consider removing 'unsafe-inline' for better security and replacing it with nonces or hashes
                 "https://fonts.googleapis.com",
                 "https://cdnjs.cloudflare.com",
                 "https://www.youtube.com",
                 "https://unpkg.com",
-                "https://cdn.jsdelivr.net"
+                "https://cdn.jsdelivr.net",
+                "https://cdn.skypack.dev" // Add Skypack to the scriptSrc directive
             ],
             styleSrc: [
                 "'self'",
