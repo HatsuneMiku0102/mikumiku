@@ -693,17 +693,14 @@
             import * as THREE from '/js/three.module.min.js';
             import { EffectComposer } from '/js/postprocessing/EffectComposer.js';
             import { RenderPass } from '/js/postprocessing/RenderPass.js';
-            import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
-            import { LuminosityHighPassShader } from '/js/postprocessing/LuminosityHighPassShader.js';
-            import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
         
             // -------------------------------
             // 2. Define Constants and Variables
             // -------------------------------
             const maxComets = 15;
             const cometPool = [];
-            const minDistance = 600; // Increased minimum distance between comets for separation
-            const maxAttempts = 30; // Allow more attempts to find a non-overlapping position
+            const minDistance = 600; // Maintain separation between comets
+            const maxAttempts = 30;
         
             // -------------------------------
             // 3. Renderer Setup
@@ -789,25 +786,24 @@
                     const material = new THREE.SpriteMaterial({
                         map: texture,
                         transparent: true,
-                        blending: THREE.AdditiveBlending,
+                        blending: THREE.NormalBlending, // Removed glowing effect
                         depthWrite: false,
                         color: 0xffffff
                     });
         
                     this.sprite = new THREE.Sprite(material);
-                    this.sprite.scale.set(300, 300, 1);
                     scene.add(this.sprite);
         
                     this.existingComets = existingComets;
                     this.reset();
         
                     // Flickering properties
-                    this.canFlicker = Math.random() < 0.7;
+                    this.canFlicker = Math.random() < 0.5;
                     if (this.canFlicker) {
                         this.flickerFrequency = Math.random() * 2 + 1;
                         this.flickerPhase = Math.random() * Math.PI * 2;
                         this.flickerIntensity = THREE.MathUtils.clamp(
-                            Math.random() * 0.5 + 0.5,
+                            Math.random() * 0.3 + 0.7,
                             0.5,
                             1.0
                         );
@@ -834,18 +830,18 @@
                         position.z
                     );
         
-                    // Set initial velocity (randomized for more realism)
+                    // Set initial velocity (faster velocity)
                     this.velocity = new THREE.Vector3(
-                        -20 + Math.random() * -10,
-                        -20 + Math.random() * -10,
+                        -50 + Math.random() * -20,
+                        -50 + Math.random() * -20,
                         0
                     );
         
                     // Randomize scale to add visual variety
-                    const scale = Math.random() * 100 + 200;
+                    const scale = Math.random() * 50 + 150;
                     this.sprite.scale.set(scale, scale, 1);
         
-                    this.sprite.material.opacity = 0.7;
+                    this.sprite.material.opacity = Math.random() * 0.4 + 0.6; // Vary opacity for realism
                     this.baseColor = this.sprite.material.color.clone();
                 }
         
@@ -928,25 +924,12 @@
             }
         
             // -------------------------------
-            // 9. Post-processing with EffectComposer and UnrealBloomPass
+            // 9. Post-processing with EffectComposer
             // -------------------------------
+            // Initialize EffectComposer without bloom for a more natural look
             const composer = new EffectComposer(renderer);
             const renderPass = new RenderPass(scene, camera);
             composer.addPass(renderPass);
-            const bloomParams = {
-                exposure: 1,
-                bloomStrength: 1.5,
-                bloomThreshold: 0,
-                bloomRadius: 0
-            };
-            const bloomPass = new UnrealBloomPass(
-                new THREE.Vector2(window.innerWidth, window.innerHeight),
-                bloomParams.bloomStrength,
-                bloomParams.bloomRadius,
-                bloomParams.bloomThreshold
-            );
-            composer.addPass(bloomPass);
-            bloomPass.renderToScreen = true;
         
             // -------------------------------
             // 10. Animation Loop
@@ -990,6 +973,7 @@
                 composer.setSize(window.innerWidth, window.innerHeight);
             });
         </script>
+
 
 
     </body>
