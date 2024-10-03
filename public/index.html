@@ -708,7 +708,7 @@
             camera.position.set(0, 0, 1500);
         
             const textureLoader = new THREE.TextureLoader();
-            textureLoader.load('/textures/pillar.webp', (texture) => {
+            textureLoader.load('/textures/space_background.webp', (texture) => {
                 texture.colorSpace = THREE.SRGBColorSpace;
                 scene.background = texture;
             }, undefined, (err) => {
@@ -730,53 +730,43 @@
             directionalLight.position.set(500, 1000, 1500);
             scene.add(directionalLight);
         
-            // Create Starfield with Improved Realism
-            const starCount = 7000;
-            const starGeometry = new THREE.BufferGeometry();
-            const starMaterial = new THREE.PointsMaterial({
-                size: 10,
-                map: textureLoader.load('/textures/star_particle.png'), // Use a circle texture for the stars
-                sizeAttenuation: true,
-                transparent: true,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false,
-            });
+            // Create Starfield Using Uploaded Textures
+            const starCount = 5000;
+            const starTextures = [
+                '/textures/stars 001.png',
+                '/textures/stars 002.png',
+                '/textures/stars 003.png',
+                '/textures/stars 004.png',
+                '/textures/stars 005.png',
+                '/textures/stars 006.png'
+            ];
         
-            const starPositions = new Float32Array(starCount * 3);
-            for (let i = 0; i < starCount; i++) {
-                starPositions[i * 3] = (Math.random() - 0.5) * 10000;
-                starPositions[i * 3 + 1] = (Math.random() - 0.5) * 10000;
-                starPositions[i * 3 + 2] = (Math.random() - 0.5) * 10000;
+            for (let i = 0; i < starTextures.length; i++) {
+                createStarField(starTextures[i], starCount / starTextures.length);
             }
         
-            starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-            const starField = new THREE.Points(starGeometry, starMaterial);
-            scene.add(starField);
+            function createStarField(texturePath, count) {
+                const starGeometry = new THREE.BufferGeometry();
+                const starMaterial = new THREE.PointsMaterial({
+                    size: 150, // Adjusted to ensure visibility
+                    map: textureLoader.load(texturePath), // Use one of the provided star textures
+                    sizeAttenuation: true,
+                    transparent: true,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false,
+                });
         
-            // Nebula Cloud Effect using Improved Particles
-            const cloudCount = 1500;
-            const cloudGeometry = new THREE.BufferGeometry();
-            const cloudMaterial = new THREE.PointsMaterial({
-                size: 100,
-                map: textureLoader.load('/textures/cloud_particle.png'), // Use a texture to make clouds more realistic
-                color: 0xffaaaa,
-                sizeAttenuation: true,
-                transparent: true,
-                opacity: 0.15,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false,
-            });
+                const starPositions = new Float32Array(count * 3);
+                for (let i = 0; i < count; i++) {
+                    starPositions[i * 3] = (Math.random() - 0.5) * 10000;
+                    starPositions[i * 3 + 1] = (Math.random() - 0.5) * 10000;
+                    starPositions[i * 3 + 2] = (Math.random() - 0.5) * 10000;
+                }
         
-            const cloudPositions = new Float32Array(cloudCount * 3);
-            for (let i = 0; i < cloudCount; i++) {
-                cloudPositions[i * 3] = (Math.random() - 0.5) * 6000;
-                cloudPositions[i * 3 + 1] = (Math.random() - 0.5) * 4000;
-                cloudPositions[i * 3 + 2] = (Math.random() - 0.5) * 6000;
+                starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+                const starField = new THREE.Points(starGeometry, starMaterial);
+                scene.add(starField);
             }
-        
-            cloudGeometry.setAttribute('position', new THREE.BufferAttribute(cloudPositions, 3));
-            const cloudParticles = new THREE.Points(cloudGeometry, cloudMaterial);
-            scene.add(cloudParticles);
         
             // Softly Rotating Camera for Immersion
             const clock = new THREE.Clock();
@@ -826,6 +816,7 @@
         
             animate();
         </script>
+
 
 
 
