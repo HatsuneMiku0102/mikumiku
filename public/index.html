@@ -773,9 +773,9 @@
                     this.pointLight = new THREE.PointLight(0xffe680, 0.5, 1500);
                     scene.add(this.pointLight);
         
-                    // Adding a subtle halo effect
-                    this.halo = new THREE.PointLight(0xffaa33, 0.1, 2500);
-                    scene.add(this.halo);
+                    // Adding a halo effect light, with lower intensity initially
+                    this.haloLight = new THREE.PointLight(0xffaa33, 0.0, 3000); // Intensity set to zero initially
+                    scene.add(this.haloLight);
                 }
         
                 reset() {
@@ -799,7 +799,7 @@
         
                     this.sprite.position.set(position.x, position.y, position.z);
                     this.pointLight.position.set(position.x, position.y, position.z);
-                    this.halo.position.set(position.x, position.y, position.z);
+                    this.haloLight.position.set(position.x, position.y, position.z);
         
                     this.velocity = new THREE.Vector3(
                         -500 + Math.random() * -150,
@@ -859,7 +859,7 @@
         
                     this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
                     this.pointLight.position.copy(this.sprite.position);
-                    this.halo.position.copy(this.sprite.position);
+                    this.haloLight.position.copy(this.sprite.position);
         
                     if (this.shouldFlicker && !this.flickerTriggered) {
                         this.triggerFlicker();
@@ -876,13 +876,16 @@
                 }
         
                 triggerFlicker() {
-                    const flickerDuration = 50; // Short flicker duration in milliseconds
-                    this.pointLight.intensity = 5.0; // Increase intensity for a bright flash
-                    this.halo.intensity = 1.0; // Increase halo effect for a bright glow
+                    console.log("Flicker triggered for comet"); // Debug message to ensure flicker is called
+        
+                    // Increase light and halo intensity for a bright, noticeable effect
+                    const flickerDuration = 200; // Duration in milliseconds
+                    this.pointLight.intensity = 10.0; // Very bright intensity for a quick flash
+                    this.haloLight.intensity = 5.0; // Increase halo to create a noticeable glow
         
                     setTimeout(() => {
                         this.pointLight.intensity = 0.5; // Revert to normal intensity
-                        this.halo.intensity = 0.1; // Revert halo to its original intensity
+                        this.haloLight.intensity = 0.0; // Revert halo to no glow
                     }, flickerDuration);
                 }
             }
@@ -965,6 +968,7 @@
         
             function initCometsAfterLoad() {
                 if (texturesLoaded === cometTexturePaths.length) {
+                    clearInterval(textureCheckInterval);
                     initComets();
                     startAnimation();
                 }
@@ -987,6 +991,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
