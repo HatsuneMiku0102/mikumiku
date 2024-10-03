@@ -695,13 +695,16 @@
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
             import { Lensflare, LensflareElement } from '/js/Lensflare.js';
         
+
             const canvas = document.getElementById('techCanvas');
             const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 1.3;
+        
+            // Lowering the tone mapping exposure to reduce overall brightness
+            renderer.toneMappingExposure = 0.8;
         
             const scene = new THREE.Scene();
         
@@ -717,14 +720,17 @@
                 scene.background = new THREE.Color(0x202020);
             });
         
-            const ambientLight = new THREE.AmbientLight(0x505050, 1.5);
+            // Reduced ambient light intensity to reduce overall brightness
+            const ambientLight = new THREE.AmbientLight(0x404040, 1.0);
             scene.add(ambientLight);
         
-            const pointLight = new THREE.PointLight(0xffffff, 1.0, 3000);
+            // Reduced point light intensity
+            const pointLight = new THREE.PointLight(0xffffff, 0.6, 3000);
             pointLight.position.set(1000, 500, 1000);
             scene.add(pointLight);
         
-            const directionalLight = new THREE.DirectionalLight(0xffeedd, 1.0);
+            // Directional light with reduced intensity
+            const directionalLight = new THREE.DirectionalLight(0xffeedd, 0.8);
             directionalLight.position.set(500, 1000, 1500);
             scene.add(directionalLight);
         
@@ -787,7 +793,6 @@
                 scene.add(comet);
                 scene.add(comet.light);
         
-                // Adding a Lens Flare for the comets
                 const lensflare = new Lensflare();
                 lensflare.addElement(new LensflareElement(textureLoader.load('/textures/lensflare.png'), 150, 0.0, comet.light.color));
                 comet.lensflare = lensflare;
@@ -825,11 +830,8 @@
                         comet.light.intensity = 20.0;
                         comet.light.visible = true;
                         comet.scale.set(150, 150, 1);
-        
-                        // Create a starburst effect using lensflare
                         comet.lensflare.visible = true;
         
-                        // Bloom Pass for the burnout effect
                         composer.addPass(bloomPass);
                     } else {
                         comet.material.opacity = Math.max(0, comet.material.opacity - delta * 0.5);
@@ -868,9 +870,9 @@
         
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                1.0,  // Reduced bloom strength
+                0.5,  // Reduced bloom strength
                 0.4,  // Bloom radius
-                0.8   // Bloom threshold
+                0.85  // Increased threshold to reduce overall bloom effect
             );
             composer.addPass(bloomPass);
         
@@ -883,6 +885,7 @@
         
             animate();
         </script>
+
 
 
 
