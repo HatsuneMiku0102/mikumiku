@@ -703,7 +703,7 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 0.7;
+            renderer.toneMappingExposure = 0.6;
         
             const scene = new THREE.Scene();
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
@@ -783,8 +783,13 @@
         
                     this.comet.position.set(width / 2, height / 2, -2000);
                     
-                    // Move towards bottom-left with increased speed
-                    this.velocity.set(-600, -600, Math.random() * 100 - 50);
+                    // Move towards a random position between the bottom and middle left
+                    const speedMultiplier = Math.random() * 2 + 1; // Random speed between 1x and 3x
+                    this.velocity.set(
+                        -600 * speedMultiplier,
+                        -400 * speedMultiplier,
+                        Math.random() * 100 - 50
+                    );
                 }
         
                 update(delta) {
@@ -816,7 +821,9 @@
         
             function initComets() {
                 for (let i = 0; i < maxComets; i++) {
-                    new Comet();
+                    setTimeout(() => {
+                        new Comet();
+                    }, i * 1500); // Stagger the comet initialization by 1.5 seconds
                 }
             }
         
@@ -825,8 +832,8 @@
             composer.addPass(renderPass);
         
             const bloomParams = {
-                exposure: 0.9, // Reduced exposure for less overpowering bloom
-                bloomStrength: 0.8, // Reduced bloom strength for the background
+                exposure: 0.5, // Reduced exposure further to reduce background brightness
+                bloomStrength: 0.6, // Reduced bloom strength for the background
                 bloomThreshold: 0.3,
                 bloomRadius: 0.4,
             };
@@ -866,6 +873,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
