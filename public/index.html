@@ -693,6 +693,7 @@
             import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
+            import { ImprovedNoise } from '/js/math/ImprovedNoise.js'; // Assuming you have a Perlin Noise implementation like ImprovedNoise.
         
             const maxComets = 10;
             const cometPool = [];
@@ -706,7 +707,6 @@
             renderer.toneMappingExposure = 1.1;
         
             const scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(0x000010, 3000, 15000);
         
             const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000);
             camera.position.set(0, 0, 3500);
@@ -778,6 +778,8 @@
                     this.light = new THREE.PointLight(0xffaa33, 2.0, 1000);
                     this.light.position.set(this.comet.position.x, this.comet.position.y, 0);
                     scene.add(this.light);
+        
+                    this.perlin = new ImprovedNoise(); // Perlin noise generator
                 }
         
                 reset() {
@@ -787,14 +789,15 @@
                         this.light.position.set(position.x, position.y, 0);
                     }
         
-                    // Diagonal movement from top-right to bottom-left
-                    this.velocity = new THREE.Vector3(
+                    // Diagonal movement from top-right to bottom-left with noise component
+                    this.baseVelocity = new THREE.Vector3(
                         -800,  // Horizontal component to the left
                         -400,  // Vertical component down
                         0      // No Z-axis movement
                     );
         
-                    this.lifespan = 20; // Lifespan for comet
+                    this.noiseOffset = Math.random() * 100; // Randomize noise seed for each comet
+                    this.lifespan = 20;
                 }
         
                 generateSpawnPosition() {
@@ -809,12 +812,29 @@
                 update(delta) {
                     if (!this.comet) return;
         
-                    // Move comet along a straight diagonal path
-                    this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
-                    this.light.position.copy(this.comet.position); // Update light position to follow the comet
+                    // Calculate noise factor for natural, weaving movement
+                    const time = performance.now() * 0.001;
+                    const noiseX = this.perlin.noise(time + this.noiseOffset, 0, 0) * 100;
+                    const noiseY = this.perlin.noise(0, time + this.noiseOffset, 0) * 50;
+        
+                    // Apply base velocity and noise component
+                    this.comet.position.add(this.baseVelocity.clone().multiplyScalar(delta));
+                    this.comet.position.x += noiseX * delta;
+                    this.comet.position.y += noiseY * delta;
+        
+                    // Update light position to follow the comet
+                    this.light.position.copy(this.comet.position);
         
                     // Flickering effect for comet light
-                    this.light.intensity = 2.0 + Math.sin(delta * 20) * 0.5;
+                    this.light.intensity = 2.0 + Math.sin(time * 10) * 0.5;
+        
+                    // Color shift based on speed
+                    const speed = Math.abs(this.baseVelocity.x) + Math.abs(this.baseVelocity.y);
+                    if (speed > 800) {
+                        this.comet.material.color.set(0x00aaff); // Shift to blue for high speed
+                    } else {
+                        this.comet.material.color.set(0xffaa33); // Default color
+                    }
         
                     this.lifespan -= delta;
         
@@ -839,8 +859,8 @@
         
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                1.0,  // Enhanced bloom strength for a vivid comet glow
-                0.6,  // Bloom radius for an intense glow
+                0.6,  // Reduced bloom strength for a subtle glow
+                0.3,  // Reduced bloom radius
                 0.1   // Bloom threshold to limit effect to bright areas
             );
             composer.addPass(bloomPass);
@@ -889,6 +909,7 @@
             initComets();
             animate();
         </script>
+
 
 
 
