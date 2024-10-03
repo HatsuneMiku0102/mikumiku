@@ -993,35 +993,18 @@
                 // -------------------------------
                 // 9. Post-processing with Bloom and Glare Effect
                 // -------------------------------
-                const composer = new POSTPROCESSING.EffectComposer(renderer);
-                const renderPass = new POSTPROCESSING.RenderPass(scene, camera);
+                const composer = new THREE.EffectComposer(renderer);
+                const renderPass = new THREE.RenderPass(scene, camera);
                 composer.addPass(renderPass);
     
-                // Add Bloom Effect using Postprocessing's BloomEffect
-                const bloomEffect = new POSTPROCESSING.BloomEffect({
-                    luminanceThreshold: 0.8,
-                    luminanceSmoothing: 0.025,
-                    intensity: 1.5,
-                    resolutionScale: 1.0
-                });
-    
-                const bloomPass = new POSTPROCESSING.EffectPass(camera, bloomEffect);
+                // Add Bloom Effect using UnrealBloomPass
+                const bloomPass = new THREE.UnrealBloomPass(
+                    new THREE.Vector2(window.innerWidth, window.innerHeight),
+                    1.5, // Bloom strength
+                    1.0, // Bloom radius
+                    0.6  // Bloom threshold
+                );
                 composer.addPass(bloomPass);
-    
-                // Add Glare Effect using Postprocessing's GlareEffect
-                const glareEffect = new POSTPROCESSING.GlareEffect({
-                    blendFunction: POSTPROCESSING.BlendFunction.ADD,
-                    mixBlur: 1,
-                    mixStrength: 2,
-                    blendMode: THREE.AdditiveBlending,
-                    kernelSize: POSTPROCESSING.KernelSize.SMALL,
-                    luminanceThreshold: 0.8,
-                    luminanceSmoothing: 0.025
-                });
-    
-                const glarePass = new POSTPROCESSING.EffectPass(camera, glareEffect);
-                glarePass.renderToScreen = true;
-                composer.addPass(glarePass);
     
                 // -------------------------------
                 // 10. Start Animation after textures are loaded
@@ -1055,9 +1038,7 @@
                     renderer.setSize(window.innerWidth, window.innerHeight);
                     composer.setSize(window.innerWidth, window.innerHeight);
                 });
-            });
-        </script>
-
+            </script>
 
 
 
