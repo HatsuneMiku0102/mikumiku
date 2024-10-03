@@ -715,7 +715,7 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 0.4; // Further reduced exposure to minimize background nebula glow
+            renderer.toneMappingExposure = 0.4;
         
             // -------------------------------
             // 4. Scene and Camera Setup
@@ -822,17 +822,16 @@
                     this.tail = new THREE.Points(this.tailGeometry, tailMaterial);
                     scene.add(this.tail);
         
+                    // Point Light for Flickering Effect
+                    this.pointLight = new THREE.PointLight(0xffe680, 0.5, 1500);
+                    scene.add(this.pointLight);
+        
                     // Burst Effect Settings
                     this.canBurst = true;
                     this.burstTime = Date.now() + Math.random() * 5000 + 2000; // Random burst interval between 2-7 seconds
                     this.burstDuration = 1000; // Burst lasts for 1 second
                     this.inBurst = false; // Track if currently in burst
                     this.burstFrequency = Math.random() * 20 + 30; // Very rapid flickering for explosive effect
-        
-                    // Point Light for Flickering Effect
-                    this.pointLight = new THREE.PointLight(0xffe680, 0.5, 1500);
-                    this.pointLight.position.set(this.sprite.position.x, this.sprite.position.y, this.sprite.position.z);
-                    scene.add(this.pointLight);
                 }
         
                 reset() {
@@ -850,7 +849,7 @@
                     }
         
                     this.sprite.position.set(position.x, position.y, position.z);
-                    this.pointLight.position.copy(position);
+                    this.pointLight.position.set(position.x, position.y, position.z);
         
                     // Increased speed for a more dynamic effect
                     this.velocity = new THREE.Vector3(
