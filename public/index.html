@@ -696,8 +696,7 @@
         
             const maxComets = 5;
             const cometPool = [];
-            const gravity = new THREE.Vector3(0, -10, 0); // Gravity vector pulling downwards
-        
+            
             const canvas = document.getElementById('techCanvas');
             const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -726,22 +725,31 @@
             directionalLight.position.set(5, 10, 7.5);
             scene.add(directionalLight);
         
-            // Particle system to simulate the comet's core and tail using shaders
+            // Starfield background
+            const starCount = 1000;
+            const starsGeometry = new THREE.BufferGeometry();
+            const starsMaterial = new THREE.PointsMaterial({ color: 0x888888 });
+        
+            const starPositions = new Float32Array(starCount * 3);
+            for (let i = 0; i < starCount; i++) {
+                starPositions[i * 3] = (Math.random() - 0.5) * 10000;
+                starPositions[i * 3 + 1] = (Math.random() - 0.5) * 10000;
+                starPositions[i * 3 + 2] = (Math.random() - 0.5) * 10000;
+            }
+            starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+            const starField = new THREE.Points(starsGeometry, starsMaterial);
+            scene.add(starField);
+        
             class Comet {
                 constructor() {
-                    this.cometTexturePath = Math.random() < 0.5 ? '/textures/comet1.png' : '/textures/comet2.png';
-        
-                    textureLoader.load(this.cometTexturePath, (texture) => {
-                        texture.colorSpace = THREE.SRGBColorSpace;
-                        this.initCometWithTexture(texture);
-                        this.reset();
-                        cometPool.push(this);
-                    });
+                    this.initComet();
+                    this.reset();
+                    cometPool.push(this);
                 }
         
-                initCometWithTexture(texture) {
+                initComet() {
                     const cometMaterial = new THREE.SpriteMaterial({
-                        map: texture,
+                        color: 0x88ccee,
                         blending: THREE.AdditiveBlending,
                         transparent: true,
                         opacity: 1.0, // Ensure full opacity for visibility
@@ -749,55 +757,43 @@
                     });
         
                     this.comet = new THREE.Sprite(cometMaterial);
-                    const scale = Math.random() * 120 + 150; // Larger scale to make them more visually impactful
+                    const scale = Math.random() * 120 + 150; // Random scale for variability
                     this.comet.scale.set(scale, scale, 1);
                     scene.add(this.comet);
         
                     this.velocity = new THREE.Vector3();
         
-                    this.initLight();
                     this.initTail();
-                    this.initStarburst();
-        
-                    // Random starburst time during comet's life
-                    this.starburstTime = Math.random() * 4 + 6; // Between 6 and 10 seconds
-                    this.starburstTriggered = false;
-                    this.lifespan = Math.random() * 10 + 12; // Longer comet lifespan between 12 and 22 seconds
-                }
-        
-                initLight() {
-                    const color = 0xffcc99; // A brighter, warmer tone for comet lighting
-                    this.pointLight = new THREE.PointLight(color, 4.0, 1500); // Intense lighting for the comet
-                    scene.add(this.pointLight);
+                    this.initAirBurst();
                 }
         
                 initTail() {
-                    const tailTexture = textureLoader.load('/textures/comet_tail.png'); // New comet tail texture
-                    this.tailMaterial = new THREE.SpriteMaterial({
-                        map: tailTexture,
-                        color: 0xffffff,
-                        blending: THREE.AdditiveBlending,
+                    const tailGeometry = new THREE.BufferGeometry();
+                    const tailPositions = new Float32Array(300 * 3); // 300 particles in the tail
+        
+                    for (let i = 0; i < tailPositions.length; i++) {
+                        tailPositions[i] = 0; // Initially set all positions to the comet's core
+                    }
+        
+                    tailGeometry.setAttribute('position', new THREE.BufferAttribute(tailPositions, 3));
+                    const tailMaterial = new THREE.PointsMaterial({
+                        color: 0x88ccee,
+                        size: 4,
                         transparent: true,
-                        opacity: 0.8,
+                        opacity: 0.6,
+                        depthWrite: false,
+                        blending: THREE.AdditiveBlending,
                     });
         
-                    this.tail = new THREE.Sprite(this.tailMaterial);
-                    this.tail.scale.set(300, 600, 1); // Create a large, trailing comet tail
+                    this.tail = new THREE.Points(tailGeometry, tailMaterial);
+                    this.tailPositions = tailPositions;
                     scene.add(this.tail);
                 }
         
-                initStarburst() {
-                    const glowMaterial = new THREE.SpriteMaterial({
-                        map: textureLoader.load('/textures/lensflare0.png'),
-                        color: 0xffeeaa, // Slightly warmer glow for starburst
-                        blending: THREE.AdditiveBlending,
-                        transparent: true,
-                        opacity: 0.4,
-                    });
-        
-                    this.starburst = new THREE.Sprite(glowMaterial);
-                    this.starburst.scale.set(400, 400, 1); // Larger starburst effect
-                    scene.add(this.starburst);
+                initAirBurst() {
+                    this.airBurstTime = Math.random() * 4 + 6; // Between 6 and 10 seconds
+                    this.airBurstTriggered = false;
+                    this.lifespan = Math.random() * 10 + 12; // Comet lifespan between 12 and 22 seconds
                 }
         
                 reset() {
@@ -807,46 +803,43 @@
                     const height = 2 * Math.tan(fov / 2) * distance;
                     const width = height * aspect;
         
+                    // Comet spawns randomly in the top-right area, high on the screen
                     this.comet.position.set(width / 2 + Math.random() * 500, height / 2 + Math.random() * 500, -2000);
         
-                    // Move towards a random position between the bottom and middle left
+                    // Perfectly straight trajectory towards bottom left
                     const speedMultiplier = Math.random() * 1.5 + 1.5; // Random speed between 1.5x and 3x
                     this.velocity.set(
-                        -400 * speedMultiplier,
+                        -300 * speedMultiplier,
                         -200 * speedMultiplier,
-                        Math.random() * 100 - 50
+                        100 * speedMultiplier // Slight z-velocity for the "flying away" effect
                     );
         
-                    // Reset the starburst and lifespan
-                    this.starburstTime = Math.random() * 4 + 6; // Starburst will happen at a random time
-                    this.starburstTriggered = false;
+                    // Reset the air burst and lifespan
+                    this.airBurstTime = Math.random() * 4 + 6; // Air burst will happen at a random time
+                    this.airBurstTriggered = false;
                     this.lifespan = Math.random() * 10 + 12;
         
-                    this.tailMaterial.opacity = 1.0; // Ensure comet tail opacity is reset
+                    // Reset opacity
+                    this.comet.material.opacity = 1.0;
                 }
         
                 update(delta) {
-                    // Apply gravity effect to velocity
-                    this.velocity.add(gravity.clone().multiplyScalar(delta * 0.1)); // Slight gravity pull downwards
-        
-                    // Update position based on velocity
+                    // Update position based on velocity for a straight path
                     this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
-                    this.pointLight.position.copy(this.comet.position);
-                    this.tail.position.set(this.comet.position.x, this.comet.position.y - 300, this.comet.position.z); // Ensure tail follows comet
+                    this.updateTail();
         
                     // Decrease lifespan as the comet moves
                     this.lifespan -= delta;
         
-                    // Trigger starburst at a random point during the comet's life
-                    if (!this.starburstTriggered && this.lifespan < this.starburstTime) {
-                        this.triggerStarburst();
-                        this.starburstTriggered = true;
+                    // Trigger air burst at a random point during the comet's life
+                    if (!this.airBurstTriggered && this.lifespan < this.airBurstTime) {
+                        this.triggerAirBurst();
+                        this.airBurstTriggered = true;
                     }
         
                     // Fade out the comet as it nears the end of its lifespan
                     if (this.lifespan < 3) {
                         this.comet.material.opacity = THREE.MathUtils.lerp(this.comet.material.opacity, 0, 0.02);
-                        this.tailMaterial.opacity = THREE.MathUtils.lerp(this.tailMaterial.opacity, 0, 0.02); // Fade tail as well
                     }
         
                     // Reset when comet leaves the screen or its lifespan ends
@@ -855,25 +848,31 @@
                     }
                 }
         
-                triggerStarburst() {
-                    const originalIntensity = this.pointLight.intensity;
-                    this.pointLight.intensity = 8.0;
+                updateTail() {
+                    // Update the tail to follow the comet's movement
+                    for (let i = this.tailPositions.length - 3; i > 0; i -= 3) {
+                        this.tailPositions[i] = this.tailPositions[i - 3];
+                        this.tailPositions[i + 1] = this.tailPositions[i - 2];
+                        this.tailPositions[i + 2] = this.tailPositions[i - 1];
+                    }
         
-                    // Flicker effect for more realism
-                    setTimeout(() => {
-                        this.pointLight.intensity = 4.0;
-                    }, 100); // Initial bright flicker
+                    this.tailPositions[0] = this.comet.position.x;
+                    this.tailPositions[1] = this.comet.position.y;
+                    this.tailPositions[2] = this.comet.position.z;
         
-                    setTimeout(() => {
-                        this.pointLight.intensity = originalIntensity;
-                    }, 200); // Set back to original after flicker effect
+                    this.tail.geometry.attributes.position.needsUpdate = true;
+                }
         
-                    // Activate starburst effect
-                    this.starburst.position.copy(this.comet.position);
-                    this.starburst.visible = true;
+                triggerAirBurst() {
+                    const originalIntensity = this.comet.material.opacity;
+        
+                    // Flash effect to simulate an air burst
+                    this.comet.material.opacity = 2.0;
+        
+                    // Fade back to original over time
                     setTimeout(() => {
-                        this.starburst.visible = false;
-                    }, 300); // Brief, intense starburst effect
+                        this.comet.material.opacity = originalIntensity;
+                    }, 100); // Quick flash duration
                 }
             }
         
