@@ -170,14 +170,12 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
 
-        <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/postprocessing/RenderPass.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/postprocessing/ShaderPass.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/shaders/CopyShader.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
-        <script src="https://unpkg.com/postprocessing@6.23.3/build/postprocessing.min.js"></script>
-    
+
 
         <!-- Import Haru AI script -->
         <script src="haru.js"></script>
@@ -700,11 +698,11 @@
                 // -------------------------------
                 // 1. Define Constants and Variables
                 // -------------------------------
-                const maxComets = 15; // Increased number of comets for better distribution
+                const maxComets = 15; // Number of comets
                 const cometPool = [];
-                const minDistance = 300; // Reduced minimum distance between comets for easier spawning
-                const maxAttempts = 20; // Increased maxAttempts to find non-overlapping positions
-    
+                const minDistance = 300; // Minimum distance between comets
+                const maxAttempts = 20; // Max attempts to find non-overlapping positions
+        
                 // -------------------------------
                 // 2. Renderer Setup
                 // -------------------------------
@@ -714,10 +712,10 @@
                 renderer.setPixelRatio(window.devicePixelRatio);
                 renderer.toneMapping = THREE.ACESFilmicToneMapping;
                 renderer.outputEncoding = THREE.sRGBEncoding;
-    
-                // Adjust the exposure to prevent excessive brightness
+        
+                // Adjust exposure to prevent excessive brightness
                 renderer.toneMappingExposure = 0.8;
-    
+        
                 // -------------------------------
                 // 3. Scene and Camera Setup
                 // -------------------------------
@@ -726,10 +724,10 @@
                     75,
                     window.innerWidth / window.innerHeight,
                     0.1,
-                    10000 // Increased far plane to accommodate distant comets
+                    10000 // Far plane increased for distant comets
                 );
                 camera.position.z = 500;
-    
+        
                 // Static Background - Nebula
                 const textureLoader = new THREE.TextureLoader();
                 textureLoader.load('/textures/nebula.webp', (texture) => {
@@ -737,18 +735,18 @@
                 }, undefined, (err) => {
                     console.error('Error loading nebula texture:', err);
                 });
-    
+        
                 // -------------------------------
                 // 4. Stars Geometry for Depth Effect
                 // -------------------------------
                 const starGeometry = new THREE.BufferGeometry();
-                const starCount = 5000; // Increased number of stars for denser background
+                const starCount = 5000; // Increased number for denser stars
                 const starVertices = new Float32Array(starCount * 3);
                 for (let i = 0; i < starCount * 3; i++) {
                     starVertices[i] = (Math.random() - 0.5) * 10000; // Spread stars over a larger area
                 }
                 starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
-    
+        
                 const starMaterial = new THREE.PointsMaterial({
                     size: 1.5,
                     color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, 90%)`),
@@ -757,17 +755,17 @@
                     blending: THREE.AdditiveBlending,
                     depthWrite: false,
                 });
-    
+        
                 const stars = new THREE.Points(starGeometry, starMaterial);
                 scene.add(stars);
-    
+        
                 // -------------------------------
                 // 5. Load Comet Textures
                 // -------------------------------
                 const cometTextures = [];
                 const cometTexturePaths = ['/textures/comet1.png', '/textures/comet2.png'];
                 let texturesLoaded = 0;
-    
+        
                 cometTexturePaths.forEach((path) => {
                     textureLoader.load(path, (texture) => {
                         texture.encoding = THREE.sRGBEncoding;
@@ -780,36 +778,34 @@
                         console.error(`Error loading comet texture ${path}:`, err);
                     });
                 });
-    
+        
                 // -------------------------------
                 // 6. Comet Class Definition
                 // -------------------------------
                 class Comet {
                     constructor(texture, existingComets) {
-                        // Create Sprite Material with a default color
+                        // Create Sprite Material
                         const material = new THREE.SpriteMaterial({
                             map: texture,
                             transparent: true,
                             blending: THREE.AdditiveBlending,
                             depthWrite: false,
-                            color: 0xffffff // Ensure color is set to white
+                            color: 0xffffff // White color
                         });
-    
-                        // Create Sprite and enforce fixed scale
+        
+                        // Create Sprite
                         this.sprite = new THREE.Sprite(material);
-                        this.sprite.scale.set(300, 300, 1); // Increased scale for larger comets
+                        this.sprite.scale.set(300, 300, 1); // Fixed scale
                         scene.add(this.sprite);
-    
-                        // Reference to existing comets for spawn collision avoidance
+        
+                        // Reference to existing comets for collision avoidance
                         this.existingComets = existingComets;
-    
-                        // Initialize Comet Properties
+        
+                        // Initialize properties
                         this.reset();
-    
-                        // Determine if this comet will flicker (50% chance)
+        
+                        // Flicker properties
                         this.canFlicker = Math.random() < 0.5;
-    
-                        // Initialize Flicker Parameters
                         if (this.canFlicker) {
                             this.flickerFrequency = Math.random() * 2 + 1; // 1 to 3 Hz
                             this.flickerPhase = Math.random() * Math.PI * 2; // Random phase
@@ -819,8 +815,8 @@
                                 1.0
                             ); // 0.5 to 1.0
                         }
-    
-                        // Determine if this comet will have a head flicker (30% chance)
+        
+                        // Head flicker properties
                         this.canHeadFlicker = Math.random() < 0.3;
                         if (this.canHeadFlicker) {
                             this.headFlickerFrequency = Math.random() * 2 + 1; // 1 to 3 Hz
@@ -831,70 +827,52 @@
                                 1.0
                             ); // 0.5 to 1.0
                         }
-    
-                        // No Flashing Effect: All flash-related properties and logic have been removed
                     }
-    
+        
                     reset() {
-                        // Attempt to find a spawn position that doesn't overlap existing comets
                         let attempts = 0;
                         let position;
-    
+        
                         do {
                             position = this.generateSpawnPosition();
                             attempts++;
-                            // Check minimum distance from existing comets
                         } while (this.isOverlapping(position) && attempts < maxAttempts);
-    
+        
                         if (attempts === maxAttempts) {
                             console.warn('Could not find non-overlapping spawn position after max attempts.');
-                            // Assign position anyway to prevent infinite loop
                             position = this.generateSpawnPosition(true); // Allow overlap
                         }
-    
-                        this.sprite.position.set(
-                            position.x,
-                            position.y,
-                            position.z
-                        );
-    
-                        // Set fixed velocity to move diagonally down-left
-                        this.velocity = new THREE.Vector3(
-                            -20, // Increased x speed for faster movement
-                            -20, // Increased y speed for faster movement
-                            0     // z speed: maintain depth
-                        );
-    
-                        // Restore default opacity
+        
+                        this.sprite.position.set(position.x, position.y, position.z);
+        
+                        // Set velocity
+                        this.velocity = new THREE.Vector3(-20, -20, 0); // Increased speed
+        
+                        // Restore opacity
                         this.sprite.material.opacity = 0.7;
-    
-                        // Store base color for head flicker
+        
+                        // Store base color
                         this.baseColor = this.sprite.material.color.clone();
                     }
-    
+        
                     generateSpawnPosition(allowOverlap = false) {
-                        // Calculate the spawn area based on camera's view
                         const aspect = window.innerWidth / window.innerHeight;
                         const fov = THREE.MathUtils.degToRad(camera.fov);
                         const distance = Math.abs(camera.position.z - (-2500)); // Adjust as needed
                         const height = 2 * Math.tan(fov / 2) * distance;
                         const width = height * aspect;
-    
+        
                         // Spawn just outside the visible area
-                        const spawnOffsetX = 300; // Distance outside the screen horizontally
-                        const spawnOffsetY = 300; // Distance outside the screen vertically
-                        const spawnZ = -2500 + Math.random() * -1000; // z between -2500 and -3500
-    
+                        const spawnOffsetX = 300;
+                        const spawnOffsetY = 300;
+                        const spawnZ = -2500 + Math.random() * -1000; // Between -2500 and -3500
+        
                         const x = width / 2 + spawnOffsetX;
                         const y = height / 2 + spawnOffsetY;
-    
-                        return new THREE.Vector3(
-                            x,
-                            y,
-                            spawnZ
-                        );
+        
+                        return new THREE.Vector3(x, y, spawnZ);
                     }
-    
+        
                     isOverlapping(newPosition) {
                         if (this.existingComets.length === 0) return false;
                         for (let comet of this.existingComets) {
@@ -906,31 +884,31 @@
                         }
                         return false;
                     }
-    
+        
                     update(delta) {
                         // Move comet
                         this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
-    
+        
                         // Handle Flickering Effect
                         if (this.canFlicker) {
                             const flicker = this.flickerIntensity * (0.5 + 0.5 * Math.sin(this.flickerFrequency * Date.now() * 0.005 + this.flickerPhase));
                             this.sprite.material.opacity = THREE.MathUtils.clamp(flicker, 0.5, 1.0);
                         }
-    
+        
                         // Handle Head Flicker Effect
                         if (this.canHeadFlicker && this.baseColor) {
                             const headFlicker = this.headFlickerIntensity * (0.5 + 0.5 * Math.sin(this.headFlickerFrequency * Date.now() * 0.005 + this.headFlickerPhase));
                             
-                            // Simulate head flicker by adjusting color intensity
+                            // Adjust color intensity for head flicker
                             const brighterColor = this.baseColor.clone().multiplyScalar(1 + headFlicker);
                             this.sprite.material.color.copy(brighterColor);
                         }
-    
-                        // Ensure comets remain at fixed scale
-                        this.sprite.scale.set(300, 300, 1); // Fixed scale
-    
-                        // Reset comet if it moves out of bounds (bottom-left corner)
-                        const bounds = 5000; // Adjust based on scene size
+        
+                        // Ensure fixed scale
+                        this.sprite.scale.set(300, 300, 1);
+        
+                        // Reset if out of bounds
+                        const bounds = 5000;
                         if (
                             this.sprite.position.x < -bounds ||
                             this.sprite.position.y < -bounds ||
@@ -940,24 +918,23 @@
                         }
                     }
                 }
-    
+        
                 // -------------------------------
                 // 7. Initialize Comets
                 // -------------------------------
                 function initComets() {
-                    // Create comets and add to the pool
+                    // Create comets and add to pool
                     for (let i = 0; i < maxComets; i++) {
                         const texture = cometTextures[Math.floor(Math.random() * cometTextures.length)];
                         const comet = new Comet(texture, cometPool);
                         cometPool.push(comet);
                     }
-    
-                    // Spawn comets at regular intervals
-                    setInterval(spawnComet, 1000); // Increased spawn rate for better spread
+        
+                    // Spawn comets at intervals
+                    setInterval(spawnComet, 1000);
                 }
-    
+        
                 function spawnComet() {
-                    // Iterate through comets and reset those that are out of bounds
                     cometPool.forEach(comet => {
                         if (
                             comet.sprite.position.x < -5000 ||
@@ -968,46 +945,45 @@
                         }
                     });
                 }
-    
+        
                 // -------------------------------
                 // 8. Animation Loop
                 // -------------------------------
                 const clock = new THREE.Clock();
-    
+        
                 function animate() {
                     requestAnimationFrame(animate);
-    
+        
                     const delta = clock.getDelta();
-    
+        
                     // Twinkling stars effect
                     starMaterial.opacity = 0.7 + Math.sin(Date.now() * 0.001) * 0.1;
-    
-                    // Update all comets
+        
+                    // Update comets
                     cometPool.forEach(comet => comet.update(delta));
-    
-                    // Render the scene with post-processing
+        
+                    // Render scene with postprocessing
                     composer.render();
                 }
-    
+        
                 // -------------------------------
                 // 9. Post-processing with Bloom and Glare Effect
                 // -------------------------------
                 const composer = new POSTPROCESSING.EffectComposer(renderer);
                 const renderPass = new POSTPROCESSING.RenderPass(scene, camera);
                 composer.addPass(renderPass);
-    
-                // Add Bloom Effect using Postprocessing's BloomEffect
+        
+                // Add Bloom Effect
                 const bloomEffect = new POSTPROCESSING.BloomEffect({
                     luminanceThreshold: 0.8,
                     luminanceSmoothing: 0.025,
                     intensity: 1.5,
                     resolutionScale: 1.0
                 });
-    
                 const bloomPass = new POSTPROCESSING.EffectPass(camera, bloomEffect);
                 composer.addPass(bloomPass);
-    
-                // Add Glare Effect using Postprocessing's GlareEffect
+        
+                // Add Glare Effect
                 const glareEffect = new POSTPROCESSING.GlareEffect({
                     blendFunction: POSTPROCESSING.BlendFunction.ADD,
                     mixBlur: 1,
@@ -1017,31 +993,24 @@
                     luminanceThreshold: 0.8,
                     luminanceSmoothing: 0.025
                 });
-    
                 const glarePass = new POSTPROCESSING.EffectPass(camera, glareEffect);
                 glarePass.renderToScreen = true;
                 composer.addPass(glarePass);
-    
+        
                 // -------------------------------
-                // 10. Verify GlareEffect Availability
-                // -------------------------------
-                console.log('GlareEffect:', POSTPROCESSING.GlareEffect);
-    
-                // -------------------------------
-                // 11. Start Animation after textures are loaded
+                // 10. Start Animation after textures are loaded
                 // -------------------------------
                 function startAnimation() {
                     animate();
                 }
-    
-                // Initiate animation after all textures are loaded
+        
                 function initCometsAfterLoad() {
                     if (texturesLoaded === cometTexturePaths.length) {
                         initComets();
                         startAnimation();
                     }
                 }
-    
+        
                 // Check if textures are loaded
                 const textureCheckInterval = setInterval(() => {
                     if (texturesLoaded === cometTexturePaths.length) {
@@ -1049,9 +1018,9 @@
                         initCometsAfterLoad();
                     }
                 }, 100);
-    
+        
                 // -------------------------------
-                // 12. Handle Window Resize
+                // 11. Handle Window Resize
                 // -------------------------------
                 window.addEventListener('resize', () => {
                     camera.aspect = window.innerWidth / window.innerHeight;
@@ -1059,8 +1028,8 @@
                     renderer.setSize(window.innerWidth, window.innerHeight);
                     composer.setSize(window.innerWidth, window.innerHeight);
                 });
-            });
-        </script>
+            </script>
+
 
 
     </body>
