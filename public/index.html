@@ -703,12 +703,12 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 0.9;
+            renderer.toneMappingExposure = 1.1;
         
             const scene = new THREE.Scene();
         
             const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000);
-            camera.position.set(0, 0, 3000);
+            camera.position.set(0, 0, 1500);  // Moved the camera closer to ensure the comets are within view
         
             const textureLoader = new THREE.TextureLoader();
             textureLoader.load('/textures/pillar.webp', (texture) => {
@@ -720,7 +720,7 @@
             });
         
             // Ambient Lighting for the Scene
-            const ambientLight = new THREE.AmbientLight(0x404040, 1.2);
+            const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
             scene.add(ambientLight);
         
             // Directional Lighting
@@ -748,23 +748,23 @@
                         map: texture,
                         blending: THREE.AdditiveBlending,
                         transparent: true,
-                        opacity: 0.8,
+                        opacity: 1.0,
                         depthWrite: false,
                     });
         
                     this.comet = new THREE.Sprite(cometMaterial);
-                    this.comet.scale.set(150 + Math.random() * 50, 150 + Math.random() * 50, 1); // Random but balanced size
+                    this.comet.scale.set(400, 400, 1);  // Increased the size of the comet
                     scene.add(this.comet);
         
                     // Comet Tail using Particles
-                    const particleCount = 100;
+                    const particleCount = 200;
                     const tailGeometry = new THREE.BufferGeometry();
                     const positions = new Float32Array(particleCount * 3);
                     const tailMaterial = new THREE.PointsMaterial({
                         color: 0xffaa33,
-                        size: 6,
+                        size: 10,
                         transparent: true,
-                        opacity: 0.5,
+                        opacity: 0.7,
                         blending: THREE.AdditiveBlending,
                     });
         
@@ -774,8 +774,8 @@
                     scene.add(this.tailParticles);
         
                     // Velocity
-                    const speed = 500 + Math.random() * 200;
-                    this.velocity = new THREE.Vector3(-speed, -speed * 0.7, 0);
+                    const speed = 800;
+                    this.velocity = new THREE.Vector3(-speed, -speed * 0.5, 0);
         
                     this.reset();
                 }
@@ -783,8 +783,8 @@
                 reset() {
                     // Set comet to a new random spawn position at the top-right side of the screen
                     const spawnX = window.innerWidth / 2 + 800;
-                    const spawnY = window.innerHeight / 2 + 500 + Math.random() * 400;
-                    const spawnZ = -500; // Ensuring comets are not too close or far
+                    const spawnY = window.innerHeight / 2 + 600 + Math.random() * 300;
+                    const spawnZ = 0;  // Set to 0 to ensure it's visible in front of the camera
         
                     this.comet.position.set(spawnX, spawnY, spawnZ);
         
@@ -839,7 +839,7 @@
         
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                0.1,  // Very subtle bloom strength for a gentle glow
+                0.2,  // Subtle bloom strength for a gentle glow
                 0.3,  // Bloom radius
                 0.1   // Bloom threshold
             );
@@ -889,6 +889,7 @@
             initComets();
             animate();
         </script>
+
 
 
 
