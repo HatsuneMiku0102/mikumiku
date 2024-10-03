@@ -692,10 +692,9 @@
             import { RenderPass } from '/js/postprocessing/RenderPass.js';
             import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
-            import { FXAAShader } from '/js/shaders/FXAAShader.js';
             import { Vector2 } from '/js/three.module.min.js';
         
-            const maxComets = 5; // Increase the number of comets to 5 for more visibility.
+            const maxComets = 5; // Increased number of comets to 5 for more visibility.
             const cometPool = [];
             const minDistance = 1000;
             const maxAttempts = 30;
@@ -811,6 +810,8 @@
                     this.sprite.scale.set(scale, scale, 1);
         
                     this.flickerTriggered = false;
+                    this.flickerTime = Math.random() * 5 + 2; // Flicker will happen after 2 to 7 seconds of comet's movement
+        
                     if (flickerLimit < 5) {
                         this.shouldFlicker = true; // Only allow flicker if under the global limit
                         flickerLimit++;
@@ -861,9 +862,15 @@
                     this.pointLight.position.copy(this.sprite.position);
                     this.haloLight.position.copy(this.sprite.position);
         
+                    // Decrease the flickerTime countdown by delta time
                     if (this.shouldFlicker && !this.flickerTriggered) {
-                        this.triggerFlicker();
-                        this.flickerTriggered = true; // Ensure flicker happens only once
+                        this.flickerTime -= delta;
+        
+                        // Trigger flicker when the timer reaches zero
+                        if (this.flickerTime <= 0 && this.isVisibleInView()) {
+                            this.triggerFlicker();
+                            this.flickerTriggered = true; // Ensure flicker happens only once per life span
+                        }
                     }
         
                     if (
@@ -873,6 +880,13 @@
                     ) {
                         this.reset();
                     }
+                }
+        
+                isVisibleInView() {
+                    // Check if the comet is within the visible bounds of the scene
+                    const x = this.sprite.position.x;
+                    const y = this.sprite.position.y;
+                    return x > -window.innerWidth && x < window.innerWidth && y > -window.innerHeight && y < window.innerHeight;
                 }
         
                 triggerFlicker() {
