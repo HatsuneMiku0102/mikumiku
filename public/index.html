@@ -715,7 +715,7 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 0.8; // Reduced exposure for background bloom effect
+            renderer.toneMappingExposure = 0.5; // Further reduced exposure for overall brightness control
         
             // -------------------------------
             // 4. Scene and Camera Setup
@@ -824,8 +824,8 @@
         
                     // Increased speed for a more dynamic effect
                     this.velocity = new THREE.Vector3(
-                        -400 + Math.random() * -100,
-                        -400 + Math.random() * -100,
+                        -500 + Math.random() * -150,
+                        -500 + Math.random() * -150,
                         0
                     );
         
@@ -916,12 +916,12 @@
             const renderPass = new RenderPass(scene, camera);
             composer.addPass(renderPass);
         
-            // Add Bloom Effect for Realism with Reduced Influence on Background
+            // Add Bloom Effect with Reduced Influence on Background
             const bloomParams = {
                 exposure: 1.0,
-                bloomStrength: 1.2, // Reduced to minimize bloom on the background
-                bloomThreshold: 0.1,
-                bloomRadius: 0.3
+                bloomStrength: 0.8, // Reduced bloom strength for a less intense effect
+                bloomThreshold: 0.3,
+                bloomRadius: 0.2 // Reduced radius to minimize the bloom spread
             };
             const bloomPass = new UnrealBloomPass(
                 new Vector2(window.innerWidth, window.innerHeight),
@@ -980,6 +980,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
