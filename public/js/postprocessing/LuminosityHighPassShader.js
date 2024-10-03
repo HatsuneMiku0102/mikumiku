@@ -1,6 +1,4 @@
-import {
-	Color
-} from '../three.module.min.js';
+import { Color } from '../three.module.min.js';
 
 /**
  * Luminosity
@@ -44,6 +42,10 @@ const LuminosityHighPassShader = {
 		uniform float smoothWidth;
 
 		varying vec2 vUv;
+
+		float luminance(vec3 color) {
+			return dot(color, vec3(0.299, 0.587, 0.114));
+		}
 
 		void main() {
 
