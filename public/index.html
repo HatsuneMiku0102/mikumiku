@@ -780,7 +780,7 @@
                 depthWrite: false,
             });
         
-            const cometCount = 5; // Increased number of comets for more variety
+            const cometCount = 5;
             const comets = [];
             for (let i = 0; i < cometCount; i++) {
                 const comet = new THREE.Sprite(cometMaterial);
@@ -823,15 +823,22 @@
                         // Trigger bright burnout effect just before fading out
                         comet.burningOut = true;
                         comet.light.color.set(0xffffff); // Change to white light for burnout
-                        comet.light.intensity = 7.0; // Increase brightness for burnout flash
+                        comet.light.intensity = 10.0; // Increase brightness for burnout flash
                         comet.scale.set(120, 120, 1); // Make comet slightly larger during burnout
+        
+                        // Temporarily boost bloom effect on this comet
+                        bloomPass.strength = 3.0; // Temporarily increase bloom strength for glare
+                        bloomPass.threshold = 0.2; // Lower threshold to emphasize bright burnout
                     } else {
                         // Rapid flicker to simulate burning out
-                        comet.light.intensity = 7.0 + Math.sin(clock.getElapsedTime() * 50) * 3.0; // Rapid flickering burnout
+                        comet.light.intensity = 10.0 + Math.sin(clock.getElapsedTime() * 50) * 3.0; // Rapid flickering burnout
                     }
         
                     if (comet.position.x < -window.innerWidth / 2 || comet.position.y < -window.innerHeight / 2 || comet.lifespan <= 0) {
+                        // Reset comet and reset bloom parameters
                         resetComet(comet);
+                        bloomPass.strength = 1.5; // Restore default bloom strength
+                        bloomPass.threshold = 0.4; // Restore default bloom threshold
                     }
                 });
             }
