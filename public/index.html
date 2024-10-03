@@ -769,11 +769,12 @@
                     });
         
                     this.comet = new THREE.Sprite(cometMaterial);
-                    this.comet.scale.set(200 + Math.random() * 100, 200 + Math.random() * 100, 1); // Varying comet sizes
+                    this.scale = 200 + Math.random() * 100;
+                    this.comet.scale.set(this.scale, this.scale, 1); // Fixed scale with some random variation
                     this.comet.layers.set(1);
                     scene.add(this.comet);
         
-                    // Add comet light for flickering effect
+                    // Add comet light for subtle glow
                     this.light = new THREE.PointLight(0xffaa33, 0.6, 500);  // Reduced intensity for subtle blending
                     this.light.position.set(this.comet.position.x, this.comet.position.y, 0);
                     scene.add(this.light);
@@ -781,20 +782,18 @@
         
                 reset() {
                     const position = this.generateSpawnPosition();
-                    if (this.comet) {
-                        this.comet.position.set(position.x, position.y, 0);
-                        this.light.position.set(position.x, position.y, 0);
-                    }
+                    this.comet.position.set(position.x, position.y, 0);
+                    this.light.position.set(position.x, position.y, 0);
         
                     // Straight diagonal movement from top-right to bottom-left
-                    const speedFactor = 300 + Math.random() * 200; // Base speed factor for comet
+                    const speedFactor = 500 + Math.random() * 200; // Base speed factor for comet
                     this.velocity = new THREE.Vector3(
-                        -speedFactor,                  // Horizontal speed (leftward)
-                        -speedFactor * 0.6,            // Vertical speed (downward)
-                        0                              // No Z-axis movement
+                        -speedFactor,                 // Horizontal speed (leftward)
+                        -speedFactor * 0.6,           // Vertical speed (downward)
+                        0                             // No Z-axis movement
                     );
         
-                    this.lifespan = 15; // Lifespan to determine when to reset the comet
+                    this.lifespan = 10; // Lifespan to determine when to reset the comet
                 }
         
                 generateSpawnPosition() {
@@ -812,6 +811,10 @@
                     // Apply velocity to move in a straight diagonal path
                     this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
                     this.light.position.copy(this.comet.position);
+        
+                    // Ensure the comet maintains its scale and opacity
+                    this.comet.scale.set(this.scale, this.scale, 1);
+                    this.comet.material.opacity = 1.0;
         
                     this.lifespan -= delta;
         
@@ -886,6 +889,7 @@
             initComets();
             animate();
         </script>
+
 
 
 
