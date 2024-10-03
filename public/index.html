@@ -752,7 +752,7 @@
         
                 // Add lens flare to the comet light and attach it to the comet
                 const lensflare = new Lensflare();
-                lensflare.addElement(new LensflareElement(textureLoader.load('/textures/starburst.png'), 100, 0.0, comet.light.color)); // Increased lens flare size
+                lensflare.addElement(new LensflareElement(textureLoader.load('/textures/starburst.png'), 80, 0.0, comet.light.color)); // Adjusted lens flare size to fit better
                 comet.lensflare = lensflare;
                 comet.light.add(lensflare);
         
@@ -763,18 +763,18 @@
             }
         
             function resetComet(comet) {
-                // Random initial position across a larger portion of the screen
+                // Set the initial position towards the top-left to keep comets entering diagonally
                 comet.position.set(
-                    (Math.random() - 0.5) * window.innerWidth * 2,
-                    (Math.random() - 0.5) * window.innerHeight * 2,
+                    Math.random() * window.innerWidth - window.innerWidth / 2, // X-axis random across screen width
+                    window.innerHeight / 2 + Math.random() * window.innerHeight, // Y-axis from top of the screen
                     0
                 );
                 comet.velocity = new THREE.Vector3(
-                    -300 - Math.random() * 500,
-                    -300 - Math.random() * 500,
+                    -200 - Math.random() * 200, // Consistent diagonal speed on the x-axis
+                    -200 - Math.random() * 200, // Consistent diagonal speed on the y-axis
                     0
                 );
-                comet.lifespan = 12.0 + Math.random() * 4.0; // Extended lifespan to between 12 and 16 seconds
+                comet.lifespan = 15.0 + Math.random() * 5.0; // Extended lifespan to between 15 and 20 seconds
                 comet.burningOut = false;
                 comet.light.intensity = 2.0; // Set comet light intensity to 2.0
                 comet.light.visible = false;
@@ -786,6 +786,13 @@
                 comets.forEach((comet) => {
                     comet.position.add(comet.velocity.clone().multiplyScalar(delta));
                     comet.light.position.copy(comet.position);
+        
+                    // Adjust lens flare position slightly in front of the comet to make it look like it's at the head
+                    comet.lensflare.position.set(
+                        comet.position.x + comet.velocity.x * 0.01,
+                        comet.position.y + comet.velocity.y * 0.01,
+                        comet.position.z
+                    );
         
                     comet.lifespan -= delta;
         
@@ -863,6 +870,7 @@
         
             animate();
         </script>
+
 
 
 
