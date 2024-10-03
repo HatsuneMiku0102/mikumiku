@@ -769,6 +769,7 @@
             const cometTexturePaths = ['/textures/comet1.png', '/textures/comet2.png'];
             let texturesLoaded = 0;
         
+            // Load all textures and only proceed to initialize comets once all textures are loaded
             cometTexturePaths.forEach((path) => {
                 textureLoader.load(path, (texture) => {
                     texture.colorSpace = THREE.SRGBColorSpace;
@@ -787,6 +788,11 @@
             // -------------------------------
             class Comet {
                 constructor(texture, existingComets) {
+                    if (!texture) {
+                        console.error("Texture not loaded yet");
+                        return;
+                    }
+        
                     const material = new THREE.SpriteMaterial({
                         map: texture,
                         transparent: true,
@@ -848,6 +854,11 @@
                         position = this.generateSpawnPosition(true);
                     }
         
+                    if (!this.sprite) {
+                        console.error("Sprite not defined during reset");
+                        return;
+                    }
+        
                     this.sprite.position.set(position.x, position.y, position.z);
                     this.pointLight.position.set(position.x, position.y, position.z);
         
@@ -900,6 +911,11 @@
         
                 update(delta) {
                     // Update comet position
+                    if (!this.sprite) {
+                        console.error("Sprite is not available during update");
+                        return;
+                    }
+        
                     this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
                     this.pointLight.position.copy(this.sprite.position);
         
@@ -957,10 +973,17 @@
             // 8. Initialize Comets
             // -------------------------------
             function initComets() {
+                if (texturesLoaded !== cometTexturePaths.length) {
+                    console.error("Textures not fully loaded yet");
+                    return;
+                }
+        
                 for (let i = 0; i < maxComets; i++) {
                     const texture = cometTextures[Math.floor(Math.random() * cometTextures.length)];
                     const comet = new Comet(texture, cometPool);
-                    cometPool.push(comet);
+                    if (comet.sprite) {
+                        cometPool.push(comet);
+                    }
                 }
         
                 setInterval(spawnComet, 1000);
@@ -1049,6 +1072,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
