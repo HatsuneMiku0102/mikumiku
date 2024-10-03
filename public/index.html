@@ -703,10 +703,10 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 1.2;
+            renderer.toneMappingExposure = 1.1;
         
             const scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(0x000010, 3000, 10000); // Added fog for depth effect
+            scene.fog = new THREE.Fog(0x000010, 3000, 15000); // Extended fog range for more depth
         
             const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000);
             camera.position.set(0, 0, 3500);
@@ -721,7 +721,7 @@
             });
         
             // Ambient and Directional Lighting
-            const ambientLight = new THREE.AmbientLight(0x404040, 1.2);
+            const ambientLight = new THREE.AmbientLight(0x404040, 1.0);
             scene.add(ambientLight);
         
             const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -790,19 +790,19 @@
                     }
         
                     this.velocity = new THREE.Vector3(
-                        -500 + Math.random() * -300,
-                        -400 + Math.random() * -200,
+                        -200 + Math.random() * -100,  // Slower horizontal velocity
+                        -500 + Math.random() * -300,  // Faster downward velocity to emphasize falling effect
                         0
                     );
         
-                    this.lifespan = 8;
+                    this.lifespan = 20; // Extended lifespan for a longer comet journey
                     this.trailIndex = 0;
                 }
         
                 generateSpawnPosition() {
-                    const spawnX = Math.random() * 500 + 200;
-                    const spawnY = Math.random() * 500 + 200;
-                    const spawnZ = -2500 + Math.random() * -1000;
+                    const spawnX = (Math.random() - 0.5) * window.innerWidth * 1.5; // Random X across the top of the screen
+                    const spawnY = window.innerHeight / 2 + 300; // Always spawn above the visible area
+                    const spawnZ = -2000 + Math.random() * -1000; // Some depth variation
         
                     return new THREE.Vector3(spawnX, spawnY, spawnZ);
                 }
@@ -828,7 +828,7 @@
                 for (let i = 0; i < maxComets; i++) {
                     setTimeout(() => {
                         new Comet();
-                    }, i * 1000);
+                    }, i * 1500); // Stagger comet initialization for variety
                 }
             }
         
@@ -839,9 +839,9 @@
         
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                1.2,  // Enhanced bloom strength for comets
-                0.6,  // Adjusted bloom radius for subtle glow
-                0.1   // Bloom threshold to limit effect
+                0.5,  // Reduced bloom strength
+                0.3,  // Reduced bloom radius for subtle effect
+                0.1   // Bloom threshold to limit effect to bright areas
             );
             composer.addPass(bloomPass);
         
@@ -858,7 +858,7 @@
                 const delta = clock.getDelta();
         
                 // Dynamic camera movement to enhance depth
-                camera.position.x += Math.sin(clock.elapsedTime * 0.1) * 2;
+                camera.position.x += Math.sin(clock.elapsedTime * 0.05) * 5;
                 camera.position.y += (mouseY - camera.position.y) * 0.02;
                 camera.lookAt(new THREE.Vector3(0, 0, 0));
         
