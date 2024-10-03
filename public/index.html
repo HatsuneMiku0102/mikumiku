@@ -769,60 +769,35 @@
                     });
         
                     this.comet = new THREE.Sprite(cometMaterial);
-                    this.comet.scale.set(300, 300, 1); // Adjusted scale to make comets consistently visible
+                    this.comet.scale.set(400, 400, 1); // Increased scale to make comets larger
                     this.comet.layers.set(1); // Assign comet to layer 1 for bloom
                     scene.add(this.comet);
-        
-                    // Create a comet trail (using BufferGeometry and Line)
-                    this.trailMaterial = new THREE.LineBasicMaterial({
-                        color: 0x88ccee,
-                        transparent: true,
-                        opacity: 0.6,
-                        blending: THREE.AdditiveBlending
-                    });
-        
-                    const trailGeometry = new THREE.BufferGeometry();
-                    trailGeometry.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, -1], 3));
-                    this.trail = new THREE.Line(trailGeometry, this.trailMaterial);
-                    scene.add(this.trail);
                 }
         
                 reset() {
                     const position = this.generateSpawnPosition();
                     if (this.comet) {
                         this.comet.position.set(position.x, position.y, position.z);
-                        this.trail.position.copy(position);
                     }
         
-                    // Adjust velocity and size based on Z-position to simulate depth
-                    const distanceFactor = 1 - (position.z / -5000); // Distance factor (closer = bigger and faster)
                     this.velocity = new THREE.Vector3(
-                        -500 * distanceFactor,
-                        -500 * distanceFactor,
+                        -500 + Math.random() * -200,
+                        -500 + Math.random() * -200,
                         0
                     );
         
                     this.lifespan = 9; // Lifespan of around 9 seconds
+                    this.glowTriggered = false; // Reset glow state
                     this.comet.material.opacity = 1.0; // Reset opacity to ensure visibility
-                    this.comet.scale.set(300 * distanceFactor, 300 * distanceFactor, 1); // Adjust size based on distance
                 }
         
                 generateSpawnPosition() {
-                    const aspect = window.innerWidth / window.innerHeight;
-                    const fov = THREE.MathUtils.degToRad(camera.fov);
-                    const distance = Math.abs(camera.position.z - 5000); // Adjusted to keep comets within visible bounds
-                    const height = 2 * Math.tan(fov / 2) * distance;
-                    const width = height * aspect;
-        
-                    // Define the spawn area further up the screen, but ensure it is within view
-                    const spawnOffsetX = width / 3; // Ensures comets start from a diagonal right area
-                    const spawnOffsetY = height / 2; // Comets will spawn towards the upper part of the screen
+                    // Define the spawn area with random positions within -200 to 200
+                    const spawnX = Math.random() * 400 - 200; // Randomize within -200 to 200
+                    const spawnY = Math.random() * 400 - 200; // Randomize within -200 to 200
                     const spawnZ = -3000 + Math.random() * -2000; // Adjusted Z to simulate depth
         
-                    const x = spawnOffsetX + Math.random() * 500; // Randomize slightly within bounds
-                    const y = spawnOffsetY + Math.random() * 500;
-        
-                    return new THREE.Vector3(x, y, spawnZ);
+                    return new THREE.Vector3(spawnX, spawnY, spawnZ);
                 }
         
                 update(delta) {
@@ -830,19 +805,30 @@
         
                     // Update comet position
                     this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
-                    this.trail.position.copy(this.comet.position);
         
-                    // Create streak effect by extending trail
-                    const trailPositions = this.trail.geometry.attributes.position.array;
-                    trailPositions[3] = this.comet.position.x - this.velocity.x * 0.1;
-                    trailPositions[4] = this.comet.position.y - this.velocity.y * 0.1;
-                    trailPositions[5] = this.comet.position.z;
-                    this.trail.geometry.attributes.position.needsUpdate = true;
+                    // Popping effect: Increase brightness for a moment
+                    if (!this.glowTriggered && this.lifespan < 2) {
+                        this.triggerGlow();
+                        this.glowTriggered = true;
+                    }
         
                     this.lifespan -= delta;
                     if (this.lifespan < 0) {
                         this.reset(); // Ensure comet always resets
                     }
+                }
+        
+                triggerGlow() {
+                    if (!this.comet) return;
+        
+                    // Make comet material glow by increasing emissive intensity
+                    this.comet.material.emissive = new THREE.Color(0xffffff); // Set to bright white
+                    this.comet.material.emissiveIntensity = 3.0; // Intense glow effect
+        
+                    // Reset emissive after glow duration
+                    setTimeout(() => {
+                        this.comet.material.emissiveIntensity = 0; // Reset to default
+                    }, 500); // Popping effect duration
                 }
             }
         
@@ -916,6 +902,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
