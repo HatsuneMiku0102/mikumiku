@@ -695,7 +695,7 @@
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
             import { Vector2 } from '/js/three.module.min.js';
         
-            const maxComets = 3;
+            const maxComets = 5; // Increase the number of comets to 5 for more visibility.
             const cometPool = [];
             const minDistance = 1000;
             const maxAttempts = 30;
@@ -738,6 +738,8 @@
                 });
             });
         
+            let flickerLimit = 0; // Counter for total comet flickers
+        
             class Comet {
                 constructor(texture, existingComets) {
                     if (!texture) {
@@ -764,8 +766,6 @@
                     this.existingComets = existingComets;
         
                     this.initLight();
-                    this.flickerCount = 0;
-        
                     this.reset();
                 }
         
@@ -773,9 +773,9 @@
                     this.pointLight = new THREE.PointLight(0xffe680, 0.5, 1500);
                     scene.add(this.pointLight);
         
-                    // Adding a subtle glow for extra visual effect
-                    this.glow = new THREE.PointLight(0xffe680, 0.2, 2000);
-                    scene.add(this.glow);
+                    // Adding a subtle halo effect
+                    this.halo = new THREE.PointLight(0xffaa33, 0.1, 2500);
+                    scene.add(this.halo);
                 }
         
                 reset() {
@@ -799,7 +799,7 @@
         
                     this.sprite.position.set(position.x, position.y, position.z);
                     this.pointLight.position.set(position.x, position.y, position.z);
-                    this.glow.position.set(position.x, position.y, position.z);
+                    this.halo.position.set(position.x, position.y, position.z);
         
                     this.velocity = new THREE.Vector3(
                         -500 + Math.random() * -150,
@@ -811,8 +811,12 @@
                     this.sprite.scale.set(scale, scale, 1);
         
                     this.flickerTriggered = false;
-                    this.flickerCount = 0; // Reset flicker count
-                    this.nextFlickerTime = 500; // Flicker every 500 milliseconds
+                    if (flickerLimit < 5) {
+                        this.shouldFlicker = true; // Only allow flicker if under the global limit
+                        flickerLimit++;
+                    } else {
+                        this.shouldFlicker = false;
+                    }
                 }
         
                 generateSpawnPosition() {
@@ -855,12 +859,11 @@
         
                     this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
                     this.pointLight.position.copy(this.sprite.position);
-                    this.glow.position.copy(this.sprite.position);
+                    this.halo.position.copy(this.sprite.position);
         
-                    this.nextFlickerTime -= delta * 1000; // Decrement time until next flicker
-                    if (this.nextFlickerTime <= 0) {
+                    if (this.shouldFlicker && !this.flickerTriggered) {
                         this.triggerFlicker();
-                        this.nextFlickerTime = 500; // Reset flicker interval
+                        this.flickerTriggered = true; // Ensure flicker happens only once
                     }
         
                     if (
@@ -873,19 +876,13 @@
                 }
         
                 triggerFlicker() {
-                    this.flickerCount++;
-                    if (this.flickerCount > 10) return; // Limit the number of flashes per comet
-        
                     const flickerDuration = 50; // Short flicker duration in milliseconds
                     this.pointLight.intensity = 5.0; // Increase intensity for a bright flash
+                    this.halo.intensity = 1.0; // Increase halo effect for a bright glow
+        
                     setTimeout(() => {
                         this.pointLight.intensity = 0.5; // Revert to normal intensity
-                    }, flickerDuration);
-        
-                    // Increase the glow intensity slightly during a flicker for added effect
-                    this.glow.intensity = 1.0;
-                    setTimeout(() => {
-                        this.glow.intensity = 0.2;
+                        this.halo.intensity = 0.1; // Revert halo to its original intensity
                     }, flickerDuration);
                 }
             }
@@ -923,12 +920,12 @@
             const renderPass = new RenderPass(scene, camera);
             composer.addPass(renderPass);
         
-            // Further reduced bloom to avoid overwhelming the background
+            // Bloom effect as before
             const bloomParams = {
                 exposure: 1.0,
-                bloomStrength: 0.4, // Reduced bloom strength to enhance clarity of the scene
+                bloomStrength: 0.9,
                 bloomThreshold: 0.1,
-                bloomRadius: 0.5
+                bloomRadius: 0.6
             };
             const bloomPass = new UnrealBloomPass(
                 new Vector2(window.innerWidth, window.innerHeight),
@@ -990,6 +987,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
