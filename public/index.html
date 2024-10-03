@@ -726,13 +726,7 @@
             directionalLight.position.set(5, 10, 7.5);
             scene.add(directionalLight);
         
-            // Comet Textures
-            const cometTextures = [
-                '/textures/comet1.png',
-                '/textures/comet2.png'
-            ];
-        
-            // Starfield Background
+            // Starfield Background (assigned to layer 0)
             const starCount = 2000;
             const starsGeometry = new THREE.BufferGeometry();
             const starsMaterial = new THREE.PointsMaterial({ color: 0xaaaaaa, size: 2, sizeAttenuation: true });
@@ -745,8 +739,10 @@
             }
             starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
             const starField = new THREE.Points(starsGeometry, starsMaterial);
+            starField.layers.set(0); // Background layer
             scene.add(starField);
         
+            // Comet Class (assigned to layer 1 for bloom isolation)
             class Comet {
                 constructor(existingComets) {
                     this.existingComets = existingComets;
@@ -770,7 +766,7 @@
         
                     this.comet = new THREE.Sprite(cometMaterial);
                     this.comet.scale.set(150, 150, 1);
-                    this.comet.layers.enable(1); // Comet assigned to layer 1 for bloom isolation
+                    this.comet.layers.set(1); // Assign comet to layer 1
                     scene.add(this.comet);
         
                     this.initGlowEffect();
@@ -855,50 +851,24 @@
                 }
             }
         
-            // Separate composers for background and comets
-            const backgroundComposer = new EffectComposer(renderer);
-            const backgroundRenderPass = new RenderPass(scene, camera);
-            backgroundComposer.addPass(backgroundRenderPass);
+            // Render setup
+            const renderScene = new RenderPass(scene, camera);
+            
+            // Bloom Composer - for comets only
+            const bloomComposer = new EffectComposer(renderer);
+            bloomComposer.addPass(renderScene);
         
-            // Bloom Pass for Background (minimal bloom effect)
-            const backgroundBloomParams = {
-                exposure: 0.4,
-                bloomStrength: 0.2, // Reduced bloom effect for background
-                bloomThreshold: 0.2,
-                bloomRadius: 0.3
-            };
-            const backgroundBloomPass = new UnrealBloomPass(
+            const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                backgroundBloomParams.bloomStrength,
-                backgroundBloomParams.bloomRadius,
-                backgroundBloomParams.bloomThreshold
+                1.5,  // Bloom strength for comets
+                0.4,  // Bloom radius
+                0.1   // Bloom threshold
             );
-            backgroundComposer.addPass(backgroundBloomPass);
-        
-            // Composer for comets
-            const cometsComposer = new EffectComposer(renderer);
-            const cometsRenderPass = new RenderPass(scene, camera);
-            cometsRenderPass.clear = false;
-            cometsComposer.addPass(cometsRenderPass);
-        
-            // Bloom Pass for Comets (strong bloom effect)
-            const cometsBloomParams = {
-                exposure: 0.4,
-                bloomStrength: 1.2, // Strong bloom effect for comets
-                bloomThreshold: 0.1,
-                bloomRadius: 0.5
-            };
-            const cometsBloomPass = new UnrealBloomPass(
-                new THREE.Vector2(window.innerWidth, window.innerHeight),
-                cometsBloomParams.bloomStrength,
-                cometsBloomParams.bloomRadius,
-                cometsBloomParams.bloomThreshold
-            );
-            cometsComposer.addPass(cometsBloomPass);
+            bloomComposer.addPass(bloomPass);
         
             const fxaaPass = new ShaderPass(FXAAShader);
             fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
-            cometsComposer.addPass(fxaaPass);
+            bloomComposer.addPass(fxaaPass);
         
             const clock = new THREE.Clock();
             let mouseX = 0;
@@ -917,10 +887,14 @@
                     if (comet.comet) comet.update(delta);
                 });
         
-                // Render background and comets separately
+                // Render background layer without bloom
                 renderer.clear();
-                backgroundComposer.render();
-                cometsComposer.render();
+                camera.layers.set(0);
+                renderer.render(scene, camera);
+        
+                // Render comets layer with bloom
+                camera.layers.set(1);
+                bloomComposer.render();
             }
         
             document.addEventListener('mousemove', (event) => {
@@ -935,8 +909,7 @@
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
-                backgroundComposer.setSize(window.innerWidth, window.innerHeight);
-                cometsComposer.setSize(window.innerWidth, window.innerHeight);
+                bloomComposer.setSize(window.innerWidth, window.innerHeight);
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
