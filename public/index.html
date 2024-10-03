@@ -701,9 +701,9 @@
             // -------------------------------
             // 2. Define Constants and Variables
             // -------------------------------
-            const maxComets = 5;
+            const maxComets = 3; // Reduce comet count to emphasize individual comet dynamics
             const cometPool = [];
-            const minDistance = 600;
+            const minDistance = 1000;
             const maxAttempts = 30;
         
             // -------------------------------
@@ -715,7 +715,7 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 0.5;
+            renderer.toneMappingExposure = 0.8;
         
             // -------------------------------
             // 4. Scene and Camera Setup
@@ -727,7 +727,7 @@
                 0.1,
                 10000
             );
-            camera.position.z = 800;
+            camera.position.z = 1000;
         
             // Static Background - Nebula
             const textureLoader = new THREE.TextureLoader();
@@ -751,7 +751,7 @@
             starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
         
             const starMaterial = new THREE.PointsMaterial({
-                size: 1.5,
+                size: 2,
                 color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, 90%)`),
                 transparent: true,
                 opacity: 0.7,
@@ -783,7 +783,7 @@
             });
         
             // -------------------------------
-            // 7. Comet Class Definition with Realistic Tail, Split Tail, and Fragmentation
+            // 7. Comet Class Definition with Enhanced Size, Dynamic Scaling, and Ultra-Realistic Tail
             // -------------------------------
             class Comet {
                 constructor(texture, existingComets) {
@@ -796,27 +796,30 @@
                     const compositionTypes = ['carbon-rich', 'iron-rich'];
                     this.composition = compositionTypes[Math.floor(Math.random() * compositionTypes.length)];
         
-                    // Comet Head
+                    // Comet Head (Enlarged Size)
                     const material = new THREE.SpriteMaterial({
                         map: texture,
                         transparent: true,
                         blending: THREE.AdditiveBlending,
                         depthWrite: false,
-                        color: this.composition === 'carbon-rich' ? 0x88ccee : 0xffe680, // Blue for carbon, yellow for iron
+                        color: this.composition === 'carbon-rich' ? 0x88ccee : 0xffe680,
                     });
         
                     this.sprite = new THREE.Sprite(material);
+                    this.sprite.scale.set(150, 150, 1); // Increased size for the comet head
                     scene.add(this.sprite);
         
                     this.existingComets = existingComets;
         
-                    // Initialize particle tails, debris, and light
-                    this.initTails();
-                    this.initDebris();
+                    // Initialize volumetric tail, light, and dynamic pulsation
+                    this.initTail();
                     this.initLight();
         
-                    // Call reset after all elements are initialized
                     this.reset();
+        
+                    // Settings for comet head pulsation
+                    this.pulsationSpeed = Math.random() * 0.1 + 0.05;
+                    this.pulsationSize = 1.2;
         
                     // Burst Effect Settings
                     this.canBurst = true;
@@ -826,76 +829,45 @@
                     this.burstFrequency = Math.random() * 20 + 30;
                 }
         
-                initTails() {
-                    // Split Tail Effect - Dust Tail and Ion Tail
-                    this.initTail('dust'); // Yellowish tail
-                    this.initTail('ion');  // Bluish tail
-                }
+                initTail() {
+                    // Volumetric Particle-Based Tail
+                    this.tailParticles = 500;
+                    this.tailGeometry = new THREE.BufferGeometry();
+                    this.tailPositions = new Float32Array(this.tailParticles * 3);
+                    this.tailVelocities = new Float32Array(this.tailParticles * 3);
+                    this.tailSizes = new Float32Array(this.tailParticles);
         
-                initTail(type) {
-                    const color = type === 'dust' ? new THREE.Color(0xffe680) : new THREE.Color(0x88ccee);
-                    const tailParticles = type === 'dust' ? 200 : 150; // Ion tail is typically more focused
+                    for (let i = 0; i < this.tailParticles; i++) {
+                        this.tailPositions[i * 3] = this.sprite.position.x;
+                        this.tailPositions[i * 3 + 1] = this.sprite.position.y;
+                        this.tailPositions[i * 3 + 2] = this.sprite.position.z;
         
-                    this[`${type}TailParticles`] = tailParticles;
-                    this[`${type}TailGeometry`] = new THREE.BufferGeometry();
-                    this[`${type}TailPositions`] = new Float32Array(tailParticles * 3);
-                    this[`${type}TailColors`] = new Float32Array(tailParticles * 3);
+                        // Assign random velocity to simulate turbulence
+                        this.tailVelocities[i * 3] = (Math.random() - 0.5) * 50;
+                        this.tailVelocities[i * 3 + 1] = (Math.random() - 0.5) * 50;
+                        this.tailVelocities[i * 3 + 2] = Math.random() * -100;
         
-                    for (let i = 0; i < tailParticles; i++) {
-                        this[`${type}TailPositions`][i * 3] = this.sprite.position.x;
-                        this[`${type}TailPositions`][i * 3 + 1] = this.sprite.position.y;
-                        this[`${type}TailPositions`][i * 3 + 2] = this.sprite.position.z;
-        
-                        this[`${type}TailColors`][i * 3] = color.r;
-                        this[`${type}TailColors`][i * 3 + 1] = color.g;
-                        this[`${type}TailColors`][i * 3 + 2] = color.b;
+                        this.tailSizes[i] = Math.random() * 5 + 5; // Different sizes for particles
                     }
         
-                    this[`${type}TailGeometry`].setAttribute('position', new THREE.BufferAttribute(this[`${type}TailPositions`], 3));
-                    this[`${type}TailGeometry`].setAttribute('color', new THREE.BufferAttribute(this[`${type}TailColors`], 3));
+                    this.tailGeometry.setAttribute('position', new THREE.BufferAttribute(this.tailPositions, 3));
+                    this.tailGeometry.setAttribute('size', new THREE.BufferAttribute(this.tailSizes, 1));
         
                     const tailMaterial = new THREE.PointsMaterial({
-                        size: type === 'dust' ? 4 : 2,
-                        vertexColors: true,
+                        size: 10,
+                        color: new THREE.Color(0x88ccee),
                         blending: THREE.AdditiveBlending,
                         transparent: true,
-                        opacity: 0.6,
+                        opacity: 0.5,
                         depthWrite: false,
                     });
         
-                    this[`${type}Tail`] = new THREE.Points(this[`${type}TailGeometry`], tailMaterial);
-                    scene.add(this[`${type}Tail`]);
-                }
-        
-                initDebris() {
-                    // Debris particles trailing behind the comet
-                    this.debrisParticles = 50;
-                    this.debrisGeometry = new THREE.BufferGeometry();
-                    this.debrisPositions = new Float32Array(this.debrisParticles * 3);
-        
-                    for (let i = 0; i < this.debrisParticles; i++) {
-                        this.debrisPositions[i * 3] = this.sprite.position.x;
-                        this.debrisPositions[i * 3 + 1] = this.sprite.position.y;
-                        this.debrisPositions[i * 3 + 2] = this.sprite.position.z;
-                    }
-        
-                    this.debrisGeometry.setAttribute('position', new THREE.BufferAttribute(this.debrisPositions, 3));
-        
-                    const debrisMaterial = new THREE.PointsMaterial({
-                        size: 2,
-                        color: 0xaaaaaa,
-                        blending: THREE.AdditiveBlending,
-                        transparent: true,
-                        opacity: 0.7,
-                        depthWrite: false,
-                    });
-        
-                    this.debris = new THREE.Points(this.debrisGeometry, debrisMaterial);
-                    scene.add(this.debris);
+                    this.tail = new THREE.Points(this.tailGeometry, tailMaterial);
+                    scene.add(this.tail);
                 }
         
                 initLight() {
-                    this.pointLight = new THREE.PointLight(0xffe680, 1.0, 1000);
+                    this.pointLight = new THREE.PointLight(0xffe680, 1.5, 2000);
                     scene.add(this.pointLight);
                 }
         
@@ -922,12 +894,12 @@
                     this.pointLight.position.set(position.x, position.y, position.z);
         
                     this.velocity = new THREE.Vector3(
-                        -500 + Math.random() * -150,
-                        -500 + Math.random() * -150,
+                        -800 + Math.random() * -200,
+                        -800 + Math.random() * -200,
                         0
                     );
         
-                    const scale = Math.random() * 20 + 60;
+                    const scale = Math.random() * 50 + 150;
                     this.sprite.scale.set(scale, scale, 1);
                     this.sprite.material.opacity = Math.random() * 0.5 + 0.5;
                     this.baseColor = this.sprite.material.color.clone();
@@ -971,30 +943,23 @@
                     this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
                     this.pointLight.position.copy(this.sprite.position);
         
-                    // Update tails and debris positions
-                    ['dust', 'ion'].forEach(tailType => {
-                        for (let i = this[`${tailType}TailPositions`].length - 3; i > 0; i -= 3) {
-                            this[`${tailType}TailPositions`][i] = this[`${tailType}TailPositions`][i - 3];
-                            this[`${tailType}TailPositions`][i + 1] = this[`${tailType}TailPositions`][i - 2];
-                            this[`${tailType}TailPositions`][i + 2] = this[`${tailType}TailPositions`][i - 1];
-                        }
-                        this[`${tailType}TailPositions`][0] = this.sprite.position.x;
-                        this[`${tailType}TailPositions`][1] = this.sprite.position.y;
-                        this[`${tailType}TailPositions`][2] = this.sprite.position.z;
+                    // Pulsating effect for comet head
+                    const scaleFactor = Math.sin(Date.now() * this.pulsationSpeed) * this.pulsationSize + 1;
+                    this.sprite.scale.set(150 * scaleFactor, 150 * scaleFactor, 1);
         
-                        this[`${tailType}TailGeometry`].attributes.position.needsUpdate = true;
-                    });
+                    // Update tail particles to simulate a gaseous effect
+                    for (let i = 0; i < this.tailParticles; i++) {
+                        this.tailPositions[i * 3] += this.tailVelocities[i * 3] * delta * 0.5;
+                        this.tailPositions[i * 3 + 1] += this.tailVelocities[i * 3 + 1] * delta * 0.5;
+                        this.tailPositions[i * 3 + 2] += this.tailVelocities[i * 3 + 2] * delta * 0.5;
         
-                    // Update debris
-                    for (let i = this.debrisPositions.length - 3; i > 0; i -= 3) {
-                        this.debrisPositions[i] = this.debrisPositions[i - 3];
-                        this.debrisPositions[i + 1] = this.debrisPositions[i - 2];
-                        this.debrisPositions[i + 2] = this.debrisPositions[i - 1];
+                        // Fade the particles out over time for a dissipating effect
+                        const fadeFactor = Math.max(0.1, 1.0 - i / this.tailParticles);
+                        this.tail.geometry.attributes.size.array[i] = this.tailSizes[i] * fadeFactor;
                     }
-                    this.debrisPositions[0] = this.sprite.position.x;
-                    this.debrisPositions[1] = this.sprite.position.y;
-                    this.debrisPositions[2] = this.sprite.position.z;
-                    this.debrisGeometry.attributes.position.needsUpdate = true;
+        
+                    this.tailGeometry.attributes.position.needsUpdate = true;
+                    this.tailGeometry.attributes.size.needsUpdate = true;
         
                     // Burst Effect - Explosive Rapid Flickering
                     if (this.canBurst && Date.now() > this.burstTime) {
@@ -1009,12 +974,12 @@
                             const flickerOpacity = 1.5 + flicker * 0.5;
                             this.sprite.material.opacity = THREE.MathUtils.clamp(flickerOpacity, 1.0, 2.5);
                             this.sprite.material.color.set(0xffe680);
-                            this.pointLight.intensity = 3.0 + flicker * 1.5;
+                            this.pointLight.intensity = 4.0 + flicker * 2.0;
                         } else {
                             this.inBurst = false;
                             this.sprite.material.opacity = Math.random() * 0.5 + 0.5;
                             this.sprite.material.color.copy(this.baseColor);
-                            this.pointLight.intensity = 1.0;
+                            this.pointLight.intensity = 1.5;
                         }
                     }
         
