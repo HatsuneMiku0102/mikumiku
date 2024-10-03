@@ -687,14 +687,17 @@
         </script>
 
         <script type="module">
-            import * as THREE from '/js/three.module.min.js';
+            import * as THREE from '/js/three.module.js';
             import { EffectComposer } from '/js/postprocessing/EffectComposer.js';
             import { RenderPass } from '/js/postprocessing/RenderPass.js';
             import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
+            import { BokehPass } from '/js/postprocessing/BokehPass.js';
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
-            import { BokehPass } from '/js/postprocessing/BokehPass.js';
-            import { Lensflare, LensflareElement } from '/js/Lensflare.js';
+        
+            const maxComets = 5;
+            const cometPool = [];
+            const minDistance = 1000;
         
             const canvas = document.getElementById('techCanvas');
             const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -717,7 +720,6 @@
                 scene.background = new THREE.Color(0x000000);
             });
         
-            // Ambient and Directional Lighting
             const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
             scene.add(ambientLight);
         
@@ -725,13 +727,6 @@
             directionalLight.position.set(5, 10, 7.5);
             scene.add(directionalLight);
         
-            // Lens Flare for Sun or Bright Light Source
-            const lensflare = new Lensflare();
-            const textureFlare = textureLoader.load('/textures/lensflare0.png');
-            lensflare.addElement(new LensflareElement(textureFlare, 700, 0, directionalLight.color));
-            directionalLight.add(lensflare);
-        
-            // Starfield Background
             const starCount = 1000;
             const starsGeometry = new THREE.BufferGeometry();
             const starsMaterial = new THREE.PointsMaterial({ color: 0x888888 });
@@ -746,18 +741,83 @@
             const starField = new THREE.Points(starsGeometry, starsMaterial);
             scene.add(starField);
         
-            // Add Fog for Depth
-            scene.fog = new THREE.FogExp2(0x000000, 0.00005);
+            class Comet {
+                constructor() {
+                    this.cometTexturePath = Math.random() < 0.5 ? '/textures/comet1.png' : '/textures/comet2.png';
+        
+                    textureLoader.load(this.cometTexturePath, (texture) => {
+                        this.initCometWithTexture(texture);
+                        this.reset();
+                        cometPool.push(this);
+                    });
+                }
+        
+                initCometWithTexture(texture) {
+                    const cometMaterial = new THREE.SpriteMaterial({
+                        map: texture,
+                        blending: THREE.AdditiveBlending,
+                        transparent: true,
+                        opacity: 0.9,
+                        depthWrite: false,
+                    });
+        
+                    this.comet = new THREE.Sprite(cometMaterial);
+                    this.comet.scale.set(150, 150, 1);
+                    scene.add(this.comet);
+        
+                    this.velocity = new THREE.Vector3();
+                    this.initLight();
+                }
+        
+                initLight() {
+                    const color = 0x88ccee;
+                    this.pointLight = new THREE.PointLight(color, 1.5, 1000);
+                    scene.add(this.pointLight);
+                }
+        
+                reset() {
+                    this.comet.position.set(
+                        (Math.random() - 0.5) * 10000,
+                        (Math.random() - 0.5) * 10000,
+                        -Math.random() * 1000 - 2000
+                    );
+        
+                    this.velocity.set(
+                        (Math.random() - 0.5) * 200,
+                        (Math.random() - 0.5) * 200,
+                        Math.random() * 100
+                    );
+                }
+        
+                update(delta) {
+                    this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
+                    this.pointLight.position.copy(this.comet.position);
+                }
+            }
+        
+            function initComets() {
+                for (let i = 0; i < maxComets; i++) {
+                    new Comet();
+                }
+            }
         
             const composer = new EffectComposer(renderer);
             const renderPass = new RenderPass(scene, camera);
             composer.addPass(renderPass);
         
+            const bokehParams = {
+                focus: 1.0,
+                aperture: 0.01, // Reduced blur
+                maxblur: 0.5, // Reduced max blur
+            };
+            const bokehPass = new BokehPass(scene, camera, bokehParams);
+            composer.addPass(bokehPass);
+        
             const bloomParams = {
                 exposure: 1.0,
                 bloomStrength: 1.0,
                 bloomThreshold: 0.2,
-                bloomRadius: 0.4
+                bloomRadius: 0.4,
             };
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
@@ -767,44 +827,25 @@
             );
             composer.addPass(bloomPass);
         
-            // Depth of Field Effect
-            const bokehPass = new BokehPass(scene, camera, {
-                focus: 1000.0,
-                aperture: 5 * 0.00001,
-                maxblur: 0.01,
-            });
-            composer.addPass(bokehPass);
-        
             const fxaaPass = new ShaderPass(FXAAShader);
             fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             composer.addPass(fxaaPass);
         
             const clock = new THREE.Clock();
-            let mouseX = 0;
-            let mouseY = 0;
         
             function animate() {
                 requestAnimationFrame(animate);
                 const delta = clock.getDelta();
         
-                // Update camera position based on mouse movement
-                camera.position.x += (mouseX - camera.position.x) * 0.02;
-                camera.position.y += (-mouseY - camera.position.y) * 0.02;
-                camera.lookAt(scene.position);
+                cometPool.forEach(comet => {
+                    if (comet.comet) comet.update(delta);
+                });
         
                 composer.render();
             }
         
-            document.addEventListener('mousemove', (event) => {
-                mouseX = (event.clientX - window.innerWidth / 2) * 0.005;
-                mouseY = (event.clientY - window.innerHeight / 2) * 0.005;
-            });
-        
-            function startAnimation() {
-                animate();
-            }
-        
-            startAnimation();
+            initComets();
+            animate();
         
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
