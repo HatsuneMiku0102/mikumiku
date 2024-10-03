@@ -704,7 +704,7 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 0.5;
+            renderer.toneMappingExposure = 0.6;
         
             const scene = new THREE.Scene();
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
@@ -719,27 +719,14 @@
                 scene.background = new THREE.Color(0x000000);
             });
         
-            const ambientLight = new THREE.AmbientLight(0x404040, 0.7);
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
             scene.add(ambientLight);
         
             const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
             directionalLight.position.set(5, 10, 7.5);
             scene.add(directionalLight);
         
-            const starCount = 1000;
-            const starsGeometry = new THREE.BufferGeometry();
-            const starsMaterial = new THREE.PointsMaterial({ color: 0x888888 });
-        
-            const starPositions = new Float32Array(starCount * 3);
-            for (let i = 0; i < starCount; i++) {
-                starPositions[i * 3] = (Math.random() - 0.5) * 10000;
-                starPositions[i * 3 + 1] = (Math.random() - 0.5) * 10000;
-                starPositions[i * 3 + 2] = (Math.random() - 0.5) * 10000;
-            }
-            starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-            const starField = new THREE.Points(starsGeometry, starsMaterial);
-            scene.add(starField);
-        
+            // Particle system to simulate the comet's core and tail using shaders
             class Comet {
                 constructor() {
                     this.cometTexturePath = Math.random() < 0.5 ? '/textures/comet1.png' : '/textures/comet2.png';
@@ -757,55 +744,69 @@
                         map: texture,
                         blending: THREE.AdditiveBlending,
                         transparent: true,
-                        opacity: Math.random() * 0.3 + 0.7, // Increase opacity for better visibility
+                        opacity: 1.0, // Ensure full opacity for visibility
                         depthWrite: false,
                     });
         
                     this.comet = new THREE.Sprite(cometMaterial);
-                    const scale = Math.random() * 100 + 200; // Increased scale for better visibility
+                    const scale = Math.random() * 120 + 150; // Larger scale to make them more visually impactful
                     this.comet.scale.set(scale, scale, 1);
                     scene.add(this.comet);
         
                     this.velocity = new THREE.Vector3();
         
                     this.initLight();
-                    this.initGlow();
+                    this.initTail();
+                    this.initStarburst();
         
                     // Random starburst time during comet's life
                     this.starburstTime = Math.random() * 4 + 6; // Between 6 and 10 seconds
                     this.starburstTriggered = false;
-                    this.lifespan = Math.random() * 8 + 10; // Comet lifespan between 10 and 18 seconds
+                    this.lifespan = Math.random() * 10 + 12; // Longer comet lifespan between 12 and 22 seconds
                 }
         
                 initLight() {
-                    const color = 0x88ccee;
-                    this.pointLight = new THREE.PointLight(color, 3.0 + Math.random() * 1.5, 1000); // Increased intensity for more impact
+                    const color = 0xffcc99; // A brighter, warmer tone for comet lighting
+                    this.pointLight = new THREE.PointLight(color, 4.0, 1500); // Intense lighting for the comet
                     scene.add(this.pointLight);
                 }
         
-                initGlow() {
-                    const glowMaterial = new THREE.SpriteMaterial({
-                        map: textureLoader.load('/textures/lensflare0.png'),
-                        color: 0x88ccee,
+                initTail() {
+                    const tailTexture = textureLoader.load('/textures/comet_tail.png'); // New comet tail texture
+                    this.tailMaterial = new THREE.SpriteMaterial({
+                        map: tailTexture,
+                        color: 0xffffff,
                         blending: THREE.AdditiveBlending,
                         transparent: true,
-                        opacity: 0.4, // Increase opacity for better glow effect
+                        opacity: 0.8,
                     });
         
-                    this.glow = new THREE.Sprite(glowMaterial);
-                    this.glow.scale.set(350, 350, 1); // Slightly larger for a more prominent halo
-                    scene.add(this.glow);
+                    this.tail = new THREE.Sprite(this.tailMaterial);
+                    this.tail.scale.set(300, 600, 1); // Create a large, trailing comet tail
+                    scene.add(this.tail);
+                }
+        
+                initStarburst() {
+                    const glowMaterial = new THREE.SpriteMaterial({
+                        map: textureLoader.load('/textures/lensflare0.png'),
+                        color: 0xffeeaa, // Slightly warmer glow for starburst
+                        blending: THREE.AdditiveBlending,
+                        transparent: true,
+                        opacity: 0.4,
+                    });
+        
+                    this.starburst = new THREE.Sprite(glowMaterial);
+                    this.starburst.scale.set(400, 400, 1); // Larger starburst effect
+                    scene.add(this.starburst);
                 }
         
                 reset() {
-                    // Start position at the top-right area of the screen (higher and still within visible area)
                     const aspect = window.innerWidth / window.innerHeight;
                     const fov = THREE.MathUtils.degToRad(camera.fov);
                     const distance = Math.abs(camera.position.z - (-2500));
                     const height = 2 * Math.tan(fov / 2) * distance;
                     const width = height * aspect;
         
-                    // Comet spawns randomly in the higher part of the top-right area
                     this.comet.position.set(width / 2 + Math.random() * 500, height / 2 + Math.random() * 500, -2000);
         
                     // Move towards a random position between the bottom and middle left
@@ -819,17 +820,19 @@
                     // Reset the starburst and lifespan
                     this.starburstTime = Math.random() * 4 + 6; // Starburst will happen at a random time
                     this.starburstTriggered = false;
-                    this.lifespan = Math.random() * 8 + 10;
+                    this.lifespan = Math.random() * 10 + 12;
+        
+                    this.tailMaterial.opacity = 1.0; // Ensure comet tail opacity is reset
                 }
         
                 update(delta) {
                     // Apply gravity effect to velocity
-                    this.velocity.add(gravity.clone().multiplyScalar(delta * 0.05)); // Slight gravity pull downwards
+                    this.velocity.add(gravity.clone().multiplyScalar(delta * 0.1)); // Slight gravity pull downwards
         
                     // Update position based on velocity
                     this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
                     this.pointLight.position.copy(this.comet.position);
-                    this.glow.position.copy(this.comet.position);
+                    this.tail.position.set(this.comet.position.x, this.comet.position.y - 300, this.comet.position.z); // Ensure tail follows comet
         
                     // Decrease lifespan as the comet moves
                     this.lifespan -= delta;
@@ -843,6 +846,7 @@
                     // Fade out the comet as it nears the end of its lifespan
                     if (this.lifespan < 3) {
                         this.comet.material.opacity = THREE.MathUtils.lerp(this.comet.material.opacity, 0, 0.02);
+                        this.tailMaterial.opacity = THREE.MathUtils.lerp(this.tailMaterial.opacity, 0, 0.02); // Fade tail as well
                     }
         
                     // Reset when comet leaves the screen or its lifespan ends
@@ -863,6 +867,13 @@
                     setTimeout(() => {
                         this.pointLight.intensity = originalIntensity;
                     }, 200); // Set back to original after flicker effect
+        
+                    // Activate starburst effect
+                    this.starburst.position.copy(this.comet.position);
+                    this.starburst.visible = true;
+                    setTimeout(() => {
+                        this.starburst.visible = false;
+                    }, 300); // Brief, intense starburst effect
                 }
             }
         
@@ -879,9 +890,9 @@
             composer.addPass(renderPass);
         
             const bloomParams = {
-                exposure: 0.3, // Further reduced exposure for a less intense background
-                bloomStrength: 0.5, // Soft bloom effect
-                bloomThreshold: 0.3,
+                exposure: 0.4, // Balanced exposure for comet glow visibility
+                bloomStrength: 0.8, // Enhance bloom effect for comet brightness
+                bloomThreshold: 0.2,
                 bloomRadius: 0.4,
             };
             const bloomPass = new UnrealBloomPass(
