@@ -693,6 +693,8 @@
             import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
+            import { BokehPass } from '/js/postprocessing/BokehPass.js';
+            import { Lensflare, LensflareElement } from '/js/objects/Lensflare.js';
         
             const canvas = document.getElementById('techCanvas');
             const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -723,6 +725,12 @@
             directionalLight.position.set(5, 10, 7.5);
             scene.add(directionalLight);
         
+            // Lens Flare for Sun or Bright Light Source
+            const lensflare = new Lensflare();
+            const textureFlare = textureLoader.load('/textures/lensflare0.png');
+            lensflare.addElement(new LensflareElement(textureFlare, 700, 0, directionalLight.color));
+            directionalLight.add(lensflare);
+        
             // Starfield Background
             const starCount = 1000;
             const starsGeometry = new THREE.BufferGeometry();
@@ -737,6 +745,9 @@
             starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
             const starField = new THREE.Points(starsGeometry, starsMaterial);
             scene.add(starField);
+        
+            // Add Fog for Depth
+            scene.fog = new THREE.FogExp2(0x000000, 0.00005);
         
             const composer = new EffectComposer(renderer);
             const renderPass = new RenderPass(scene, camera);
@@ -755,6 +766,14 @@
                 bloomParams.bloomThreshold
             );
             composer.addPass(bloomPass);
+        
+            // Depth of Field Effect
+            const bokehPass = new BokehPass(scene, camera, {
+                focus: 1000.0,
+                aperture: 5 * 0.00001,
+                maxblur: 0.01,
+            });
+            composer.addPass(bokehPass);
         
             const fxaaPass = new ShaderPass(FXAAShader);
             fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
@@ -795,6 +814,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
