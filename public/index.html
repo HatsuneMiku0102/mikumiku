@@ -760,7 +760,6 @@
                 }
         
                 initCometWithTexture(texture) {
-                    // Create comet material with additional glow effect
                     const cometMaterial = new THREE.SpriteMaterial({
                         map: texture,
                         blending: THREE.AdditiveBlending,
@@ -770,67 +769,41 @@
                     });
         
                     this.comet = new THREE.Sprite(cometMaterial);
-                    this.comet.scale.set(150, 150, 1);
+                    this.comet.scale.set(300, 300, 1); // Adjusted scale to make comets consistently visible
                     this.comet.layers.set(1); // Assign comet to layer 1 for bloom
                     scene.add(this.comet);
-        
-                    // Create comet trail
-                    this.trailMaterial = new THREE.LineBasicMaterial({
-                        color: 0x88ccee,
-                        transparent: true,
-                        opacity: 0.6,
-                        blending: THREE.AdditiveBlending
-                    });
-        
-                    const trailGeometry = new THREE.BufferGeometry();
-                    trailGeometry.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, -1], 3));
-                    this.trail = new THREE.Line(trailGeometry, this.trailMaterial);
-                    scene.add(this.trail);
-        
-                    this.initGlowEffect();
-                }
-        
-                initGlowEffect() {
-                    this.glowTime = Math.random() * 5 + 3; // Random time to glow between 3 and 8 seconds
-                    this.glowTriggered = false;
-                    this.glowDuration = 2; // Glow duration for vibrant effect
                 }
         
                 reset() {
                     const position = this.generateSpawnPosition();
                     if (this.comet) {
                         this.comet.position.set(position.x, position.y, position.z);
-                        this.trail.position.copy(position);
                     }
         
-                    // Adjust velocity and size based on Z-position to simulate depth
-                    const distanceFactor = 1 - (position.z / -5000); // Distance factor (closer = bigger and faster)
                     this.velocity = new THREE.Vector3(
-                        -800 * distanceFactor + Math.random() * -300,
-                        -700 * distanceFactor + Math.random() * -300,
-                        Math.random() * 100 - 50
+                        -500 + Math.random() * -200,
+                        -500 + Math.random() * -200,
+                        0
                     );
-                    this.comet.scale.set(150 * distanceFactor, 150 * distanceFactor, 1); // Scale based on distance
         
                     this.lifespan = 9; // Lifespan of around 9 seconds
-                    this.glowTriggered = false;
                     this.comet.material.opacity = 1.0; // Reset opacity to ensure visibility
                 }
         
                 generateSpawnPosition() {
                     const aspect = window.innerWidth / window.innerHeight;
                     const fov = THREE.MathUtils.degToRad(camera.fov);
-                    const distance = Math.abs(camera.position.z - (-5000));
+                    const distance = Math.abs(camera.position.z - 2000); // Adjusted to keep comets within visible bounds
                     const height = 2 * Math.tan(fov / 2) * distance;
                     const width = height * aspect;
         
-                    const spawnOffsetX = 300;
-                    const spawnOffsetY = 300;
-                    const spawnZ = -5000 + Math.random() * -2000; // Randomize Z to simulate depth
+                    // Define the spawn area at the top-right area of the screen, but within visible bounds
+                    const spawnOffsetX = width / 2 - 200; // Ensure comets start from within bounds horizontally
+                    const spawnOffsetY = height / 2 - 200; // Ensure comets start from within bounds vertically
+                    const spawnZ = -1000 + Math.random() * 500; // Adjust Z to keep comets visible
         
-                    // Comets should spawn in the top middle or right side of the screen
-                    const x = (Math.random() * width / 2) + spawnOffsetX;
-                    const y = height / 2 + Math.random() * 500;
+                    const x = spawnOffsetX + Math.random() * 300; // Randomize slightly within bounds
+                    const y = spawnOffsetY + Math.random() * 300;
         
                     return new THREE.Vector3(x, y, spawnZ);
                 }
@@ -838,39 +811,12 @@
                 update(delta) {
                     if (!this.comet) return;
         
-                    // Update comet position
                     this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
-                    this.trail.position.copy(this.comet.position);
-        
-                    // Create streak effect by extending trail
-                    const trailPositions = this.trail.geometry.attributes.position.array;
-                    trailPositions[3] = this.comet.position.x - this.velocity.x * 0.05;
-                    trailPositions[4] = this.comet.position.y - this.velocity.y * 0.05;
-                    trailPositions[5] = this.comet.position.z - this.velocity.z * 0.05;
-                    this.trail.geometry.attributes.position.needsUpdate = true;
         
                     this.lifespan -= delta;
                     if (this.lifespan < 0) {
                         this.reset(); // Ensure comet always resets
                     }
-        
-                    if (!this.glowTriggered && this.lifespan < this.glowTime) {
-                        this.triggerGlow();
-                        this.glowTriggered = true;
-                    }
-                }
-        
-                triggerGlow() {
-                    if (!this.comet) return;
-        
-                    // Make comet material glow by increasing bloom strength
-                    this.comet.material.emissive = new THREE.Color(0xffffff); // Set to bright white
-                    this.comet.material.emissiveIntensity = 2.0; // Intense glow effect
-        
-                    // Reset emissive after glow duration
-                    setTimeout(() => {
-                        this.comet.material.emissiveIntensity = 0; // Reset to default
-                    }, this.glowDuration * 1000);
                 }
             }
         
@@ -944,6 +890,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
