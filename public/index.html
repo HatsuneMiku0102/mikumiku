@@ -769,7 +769,7 @@
                 });
         
                 // -------------------------------
-                // Post-processing with Bloom for Strong Glare Effect
+                // Post-processing with Bloom and Glare for Strong Glare Effect
                 // -------------------------------
                 const composer = new THREE.EffectComposer(renderer);
                 const renderPass = new THREE.RenderPass(scene, camera);
@@ -784,10 +784,27 @@
                 composer.addPass(bloomPass);
         
                 // -------------------------------
+                // Glare Shader Pass (Lens Glare)
+                // -------------------------------
+                // Simple Glare implementation using horizontal and vertical blur
+                const horizontalBlur = new THREE.ShaderPass(THREE.HorizontalBlurShader);
+                horizontalBlur.uniforms['h'].value = 0.002;
+                composer.addPass(horizontalBlur);
+        
+                const verticalBlur = new THREE.ShaderPass(THREE.VerticalBlurShader);
+                verticalBlur.uniforms['v'].value = 0.002;
+                composer.addPass(verticalBlur);
+        
+                // Copy Shader Pass to render to screen
+                const copyPass = new THREE.ShaderPass(THREE.CopyShader);
+                copyPass.renderToScreen = true;
+                composer.addPass(copyPass);
+        
+                // -------------------------------
                 // Comet Class Definition
                 // -------------------------------
                 class Comet {
-                    constructor(texture) {
+                    constructor(texture, existingComets) {
                         // Create Sprite Material
                         const material = new THREE.SpriteMaterial({
                             map: texture,
@@ -800,6 +817,9 @@
                         this.sprite = new THREE.Sprite(material);
                         this.sprite.scale.set(300, 300, 1); // Increased scale for larger comets
                         scene.add(this.sprite);
+        
+                        // Reference to existing comets for spawn collision avoidance
+                        this.existingComets = existingComets;
         
                         // Initialize Comet Properties
                         this.reset();
@@ -818,17 +838,6 @@
                             ); // 0.5 to 1.0
                         }
         
-                        // Determine if this comet will have a shimmering flash (30% chance)
-                        this.canFlash = Math.random() < 0.3;
-        
-                        if (this.canFlash) {
-                            this.flashTriggered = false;
-                            this.flashTime = Math.random() * 5 + 2; // Flash between 2 and 7 seconds
-                            this.elapsedTime = 0;
-                            this.isFlashing = false;
-                            this.flashDuration = 0.5; // Flash lasts 0.5 seconds
-                        }
-        
                         // Determine if this comet will have a head flicker (30% chance)
                         this.canHeadFlicker = Math.random() < 0.3;
                         if (this.canHeadFlicker) {
@@ -843,66 +852,33 @@
                     }
         
                     reset() {
-                        // Fixed spawn position: Top-Right Corner just outside the visible area
-                        // Adjusted to be within visible area based on camera's FOV and aspect ratio
-                        const spawnOffsetX = 200; // Distance outside the screen horizontally
-                        const spawnOffsetY = 200; // Distance outside the screen vertically
-                        const spawnZ = -2500 + Math.random() * -1000; // z between -2500 and -3500
+                        // Attempt to find a spawn position that doesn't overlap existing comets
+                        let attempts = 0;
+                        const maxAttempts = 10;
+                        let position;
         
-                        // Calculate the top-right corner in world coordinates
-                        const aspect = window.innerWidth / window.innerHeight;
-                        const fov = THREE.MathUtils.degToRad(camera.fov);
-                        const height = 2 * Math.tan(fov / 2) * Math.abs(camera.position.z - spawnZ);
-                        const width = height * aspect;
+                        do {
+                            position = this.generateSpawnPosition();
+                            attempts++;
+                            // Check minimum distance from existing comets
+                        } while (this.isOverlapping(position) && attempts < maxAttempts);
         
-                        const x = width / 2 + spawnOffsetX;
-                        const y = height / 2 + spawnOffsetY;
+                        if (attempts === maxAttempts) {
+                            console.warn('Could not find non-overlapping spawn position after max attempts.');
+                        }
         
                         this.sprite.position.set(
-                            x,
-                            y,
-                            spawnZ
+                            position.x,
+                            position.y,
+                            position.z
                         );
         
                         // Set fixed velocity to move diagonally down-left
                         this.velocity = new THREE.Vector3(
-                            -10, // x speed: move left
-                            -10, // y speed: move down
+                            -10, // x speed: move left rapidly
+                            -10, // y speed: move down rapidly
                             0    // z speed: maintain depth
                         );
-        
-                        // Randomly select a texture
-                        const textureIndex = Math.floor(Math.random() * cometTextures.length);
-                        this.sprite.material.map = cometTextures[textureIndex];
-        
-                        // Reset flicker parameters
-                        if (this.canFlicker) {
-                            this.flickerPhase = Math.random() * Math.PI * 2;
-                            this.flickerFrequency = Math.random() * 2 + 1; // 1 to 3 Hz
-                            this.flickerIntensity = THREE.MathUtils.clamp(
-                                Math.random() * 0.5 + 0.5,
-                                0.5,
-                                1.0
-                            ); // 0.5 to 1.0
-                        }
-        
-                        // Reset flashing parameters
-                        if (this.canFlash) {
-                            this.flashTriggered = false;
-                            this.elapsedTime = 0;
-                            this.isFlashing = false;
-                        }
-        
-                        // Reset head flicker parameters
-                        if (this.canHeadFlicker) {
-                            this.headFlickerPhase = Math.random() * Math.PI * 2;
-                            this.headFlickerFrequency = Math.random() * 2 + 1; // 1 to 3 Hz
-                            this.headFlickerIntensity = THREE.MathUtils.clamp(
-                                Math.random() * 0.5 + 0.5,
-                                0.5,
-                                1.0
-                            ); // 0.5 to 1.0
-                        }
         
                         // Restore default opacity
                         this.sprite.material.opacity = 0.7;
@@ -911,41 +887,44 @@
                         this.baseColor = this.sprite.material.color.clone();
                     }
         
+                    generateSpawnPosition() {
+                        // Calculate the top-right corner in world coordinates based on camera
+                        const aspect = window.innerWidth / window.innerHeight;
+                        const fov = THREE.MathUtils.degToRad(camera.fov);
+                        const distance = Math.abs(camera.position.z - (-2500)); // Spawn z between -2500 and -3500
+                        const height = 2 * Math.tan(fov / 2) * distance;
+                        const width = height * aspect;
+        
+                        // Spawn just outside the visible area
+                        const spawnOffsetX = 300; // Distance outside the screen horizontally
+                        const spawnOffsetY = 300; // Distance outside the screen vertically
+                        const spawnZ = -2500 + Math.random() * -1000; // z between -2500 and -3500
+        
+                        const x = width / 2 + spawnOffsetX;
+                        const y = height / 2 + spawnOffsetY;
+        
+                        return new THREE.Vector3(
+                            x,
+                            y,
+                            spawnZ
+                        );
+                    }
+        
+                    isOverlapping(newPosition) {
+                        const minDistance = 400; // Minimum distance between comets
+                        for (let comet of this.existingComets) {
+                            if (comet === this) continue; // Skip self
+                            const distance = comet.sprite.position.distanceTo(newPosition);
+                            if (distance < minDistance) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+        
                     update(delta) {
                         // Move comet
                         this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
-        
-                        // Handle Shimmering Flash
-                        if (this.canFlash) {
-                            this.elapsedTime += delta;
-                            if (!this.flashTriggered && this.elapsedTime >= this.flashTime) {
-                                this.isFlashing = true;
-                                this.flashTriggered = true;
-                            }
-        
-                            if (this.isFlashing) {
-                                const flashProgress = (this.elapsedTime - this.flashTime) / this.flashDuration;
-        
-                                if (flashProgress <= 1) {
-                                    // Smoothly increase opacity to simulate flash
-                                    this.sprite.material.opacity = THREE.MathUtils.lerp(
-                                        0.7,
-                                        1.8,
-                                        flashProgress
-                                    );
-                                } else if (flashProgress <= 2) {
-                                    // Fade back to normal opacity
-                                    this.sprite.material.opacity = THREE.MathUtils.lerp(
-                                        1.8,
-                                        0.7,
-                                        flashProgress - 1
-                                    );
-                                    this.isFlashing = false;
-                                } else {
-                                    this.isFlashing = false;
-                                }
-                            }
-                        }
         
                         // Handle Flickering Effect
                         if (this.canFlicker) {
@@ -958,7 +937,6 @@
                             const headFlicker = this.headFlickerIntensity * (0.5 + 0.5 * Math.sin(this.headFlickerFrequency * Date.now() * 0.005 + this.headFlickerPhase));
                             
                             // Simulate head flicker by adjusting color intensity
-                            // Slightly brighten the comet's color
                             const brighterColor = this.baseColor.clone().multiplyScalar(1 + headFlicker);
                             this.sprite.material.color.copy(brighterColor);
                         }
@@ -988,7 +966,7 @@
                     // Create comets and add to the pool
                     for (let i = 0; i < maxComets; i++) {
                         const texture = cometTextures[Math.floor(Math.random() * cometTextures.length)];
-                        const comet = new Comet(texture);
+                        const comet = new Comet(texture, cometPool);
                         cometPool.push(comet);
                     }
         
@@ -997,17 +975,16 @@
                 }
         
                 function spawnComet() {
-                    // Find comets at the spawn position to reset
-                    const availableComet = cometPool.find(comet =>
-                        comet.sprite.position.x >= 1000 && 
-                        comet.sprite.position.x <= 1300 &&
-                        comet.sprite.position.y >= 800 && 
-                        comet.sprite.position.y <= 1200 &&
-                        comet.sprite.position.z <= -2500
-                    );
-                    if (availableComet) {
-                        availableComet.reset();
-                    }
+                    // Find comets that are out of bounds to reset
+                    cometPool.forEach(comet => {
+                        if (
+                            comet.sprite.position.x < -2000 ||
+                            comet.sprite.position.y < -2000 ||
+                            comet.sprite.position.z < -4000
+                        ) {
+                            comet.reset();
+                        }
+                    });
                 }
         
                 // -------------------------------
@@ -1024,7 +1001,7 @@
                     starMaterial.opacity = 0.7 + Math.sin(Date.now() * 0.001) * 0.1;
         
                     // Update all comets
-                    cometPool.forEach(comet => comet.update(delta * 60)); // Adjust multiplier as needed
+                    cometPool.forEach(comet => comet.update(delta));
         
                     // Render the scene with post-processing
                     composer.render();
