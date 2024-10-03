@@ -717,7 +717,7 @@
             });
         
             // Ambient Lighting
-            const ambientLight = new THREE.AmbientLight(0x404040, 1.2);
+            const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
             scene.add(ambientLight);
         
             // Point Light to Create Dynamic Shadows
@@ -730,26 +730,61 @@
             directionalLight.position.set(500, 1000, 1500);
             scene.add(directionalLight);
         
-            // Starfield Particles for Depth
+            // Create Starfield with Circles
             const starCount = 5000;
+            const starColors = [0xffffff, 0xffddaa, 0xaaccff, 0xffaaaa]; // White, warm yellow, light blue, red
+        
             const starsGeometry = new THREE.BufferGeometry();
             const starMaterial = new THREE.PointsMaterial({
-                color: 0xffffff,
-                size: 5,
+                size: 10,
+                sizeAttenuation: true,
                 transparent: true,
-                opacity: 0.8,
                 blending: THREE.AdditiveBlending,
             });
         
             const starPositions = new Float32Array(starCount * 3);
+            const starColorArray = new Float32Array(starCount * 3);
+            const colors = new THREE.Color();
+        
             for (let i = 0; i < starCount; i++) {
                 starPositions[i * 3] = (Math.random() - 0.5) * 10000;
                 starPositions[i * 3 + 1] = (Math.random() - 0.5) * 10000;
                 starPositions[i * 3 + 2] = (Math.random() - 0.5) * 10000;
+        
+                colors.setHex(starColors[Math.floor(Math.random() * starColors.length)]);
+                starColorArray[i * 3] = colors.r;
+                starColorArray[i * 3 + 1] = colors.g;
+                starColorArray[i * 3 + 2] = colors.b;
             }
+        
             starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+            starsGeometry.setAttribute('color', new THREE.BufferAttribute(starColorArray, 3));
+            starMaterial.vertexColors = true;
+        
             const starField = new THREE.Points(starsGeometry, starMaterial);
             scene.add(starField);
+        
+            // Nebula Cloud Effect using Particles
+            const cloudCount = 1000;
+            const cloudGeometry = new THREE.BufferGeometry();
+            const cloudPositions = new Float32Array(cloudCount * 3);
+            const cloudMaterial = new THREE.PointsMaterial({
+                color: 0xaaaaaa,
+                size: 80,
+                transparent: true,
+                opacity: 0.1,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+            });
+        
+            for (let i = 0; i < cloudCount; i++) {
+                cloudPositions[i * 3] = (Math.random() - 0.5) * 6000;
+                cloudPositions[i * 3 + 1] = (Math.random() - 0.5) * 4000;
+                cloudPositions[i * 3 + 2] = (Math.random() - 0.5) * 6000;
+            }
+            cloudGeometry.setAttribute('position', new THREE.BufferAttribute(cloudPositions, 3));
+            const cloudParticles = new THREE.Points(cloudGeometry, cloudMaterial);
+            scene.add(cloudParticles);
         
             // Slowly rotating and drifting camera to create immersion
             let clock = new THREE.Clock();
@@ -799,7 +834,6 @@
         
             animate();
         </script>
-
 
 
 
