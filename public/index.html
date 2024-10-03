@@ -715,7 +715,7 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 0.4;
+            renderer.toneMappingExposure = 0.5;
         
             // -------------------------------
             // 4. Scene and Camera Setup
@@ -783,7 +783,7 @@
             });
         
             // -------------------------------
-            // 7. Comet Class Definition with Improved Initialization Guarding
+            // 7. Comet Class Definition with Realistic Tail and Head
             // -------------------------------
             class Comet {
                 constructor(texture, existingComets) {
@@ -792,6 +792,7 @@
                         return;
                     }
         
+                    // Comet Head
                     const material = new THREE.SpriteMaterial({
                         map: texture,
                         transparent: true,
@@ -805,7 +806,7 @@
         
                     this.existingComets = existingComets;
         
-                    // Initialize light and tail
+                    // Initialize particle tail and light
                     this.initTail();
                     this.initLight();
         
@@ -822,20 +823,31 @@
         
                 initTail() {
                     // Set up the particle tail using BufferGeometry
-                    this.tailParticles = 200;
+                    this.tailParticles = 300;
                     this.tailGeometry = new THREE.BufferGeometry();
                     this.tailPositions = new Float32Array(this.tailParticles * 3);
-                    for (let i = 0; i < this.tailParticles * 3; i++) {
-                        this.tailPositions[i] = 0;
+                    this.tailColors = new Float32Array(this.tailParticles * 3);
+        
+                    for (let i = 0; i < this.tailParticles; i++) {
+                        const color = new THREE.Color().setHSL(0.6, 1.0, 0.5); // Tail color starts blueish
+                        this.tailColors[i * 3] = color.r;
+                        this.tailColors[i * 3 + 1] = color.g;
+                        this.tailColors[i * 3 + 2] = color.b;
+        
+                        this.tailPositions[i * 3] = this.sprite.position.x;
+                        this.tailPositions[i * 3 + 1] = this.sprite.position.y;
+                        this.tailPositions[i * 3 + 2] = this.sprite.position.z;
                     }
+        
                     this.tailGeometry.setAttribute('position', new THREE.BufferAttribute(this.tailPositions, 3));
+                    this.tailGeometry.setAttribute('color', new THREE.BufferAttribute(this.tailColors, 3));
         
                     const tailMaterial = new THREE.PointsMaterial({
-                        color: 0xffe0b3,
-                        size: 2,
+                        size: 3,
+                        vertexColors: true,
                         blending: THREE.AdditiveBlending,
                         transparent: true,
-                        opacity: 0.5,
+                        opacity: 0.8,
                         depthWrite: false,
                     });
         
@@ -844,8 +856,8 @@
                 }
         
                 initLight() {
-                    // Point Light for Flickering Effect
-                    this.pointLight = new THREE.PointLight(0xffe680, 0.5, 1500);
+                    // Point Light for Flickering Effect at the head of the comet
+                    this.pointLight = new THREE.PointLight(0xffe680, 1.0, 1000);
                     scene.add(this.pointLight);
                 }
         
@@ -868,7 +880,6 @@
                         position = this.generateSpawnPosition(true);
                     }
         
-                    // Set position of sprite and light
                     this.sprite.position.set(position.x, position.y, position.z);
                     this.pointLight.position.set(position.x, position.y, position.z);
         
@@ -880,11 +891,11 @@
                     );
         
                     // Randomize comet size
-                    const scale = Math.random() * 15 + 45;
+                    const scale = Math.random() * 20 + 60;
                     this.sprite.scale.set(scale, scale, 1);
         
                     // Set initial sprite opacity and color
-                    this.sprite.material.opacity = Math.random() * 0.4 + 0.6;
+                    this.sprite.material.opacity = Math.random() * 0.5 + 0.5;
                     this.baseColor = this.sprite.material.color.clone();
                 }
         
@@ -937,7 +948,17 @@
                     this.tailPositions[1] = this.sprite.position.y;
                     this.tailPositions[2] = this.sprite.position.z;
         
+                    // Gradually change tail colors to simulate fading
+                    for (let i = 0; i < this.tailParticles; i++) {
+                        const fadeFactor = 1.0 - i / this.tailParticles;
+                        const color = new THREE.Color(0x00aaff).multiplyScalar(fadeFactor);
+                        this.tailColors[i * 3] = color.r;
+                        this.tailColors[i * 3 + 1] = color.g;
+                        this.tailColors[i * 3 + 2] = color.b;
+                    }
+        
                     this.tailGeometry.attributes.position.needsUpdate = true;
+                    this.tailGeometry.attributes.color.needsUpdate = true;
         
                     // Burst Effect - Explosive Rapid Flickering
                     if (this.canBurst && Date.now() > this.burstTime) {
@@ -952,12 +973,12 @@
                             const flickerOpacity = 1.5 + flicker * 0.5;
                             this.sprite.material.opacity = THREE.MathUtils.clamp(flickerOpacity, 1.0, 2.5);
                             this.sprite.material.color.set(0xffe680);
-                            this.pointLight.intensity = 2.0 + flicker * 1.0;
+                            this.pointLight.intensity = 3.0 + flicker * 1.5;
                         } else {
                             this.inBurst = false;
-                            this.sprite.material.opacity = Math.random() * 0.4 + 0.6;
+                            this.sprite.material.opacity = Math.random() * 0.5 + 0.5;
                             this.sprite.material.color.copy(this.baseColor);
-                            this.pointLight.intensity = 0.5;
+                            this.pointLight.intensity = 1.0;
                         }
                     }
         
@@ -1014,9 +1035,9 @@
         
             const bloomParams = {
                 exposure: 1.0,
-                bloomStrength: 0.6,
+                bloomStrength: 0.8,
                 bloomThreshold: 0.3,
-                bloomRadius: 0.1
+                bloomRadius: 0.2
             };
             const bloomPass = new UnrealBloomPass(
                 new Vector2(window.innerWidth, window.innerHeight),
@@ -1074,6 +1095,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
