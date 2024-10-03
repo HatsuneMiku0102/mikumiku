@@ -735,6 +735,8 @@
                 const textureLoader = new THREE.TextureLoader();
                 textureLoader.load('/textures/nebula.webp', (texture) => {
                     scene.background = texture;
+                }, undefined, (err) => {
+                    console.error('Error loading nebula texture:', err);
                 });
     
                 // -------------------------------
@@ -775,41 +777,13 @@
                         if (texturesLoaded === cometTexturePaths.length) {
                             initComets();
                         }
+                    }, undefined, (err) => {
+                        console.error(`Error loading comet texture ${path}:`, err);
                     });
                 });
     
                 // -------------------------------
-                // 6. Post-processing with Bloom and Glare Effect
-                // -------------------------------
-                const composer = new POSTPROCESSING.EffectComposer(renderer);
-                const renderPass = new POSTPROCESSING.RenderPass(scene, camera);
-                composer.addPass(renderPass);
-    
-                const bloomPass = new POSTPROCESSING.UnrealBloomPass(
-                    new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    1.5, // Bloom strength
-                    1.0, // Bloom radius
-                    0.6  // Bloom threshold
-                );
-                composer.addPass(bloomPass);
-    
-                // Add Glare Effect using Postprocessing's GlareEffect
-                const glareEffect = new POSTPROCESSING.GlareEffect({
-                    blendFunction: POSTPROCESSING.BlendFunction.ADD,
-                    mixBlur: 1,
-                    mixStrength: 2,
-                    blendMode: THREE.AdditiveBlending,
-                    kernelSize: POSTPROCESSING.KernelSize.SMALL,
-                    luminanceThreshold: 0.8,
-                    luminanceSmoothing: 0.025
-                });
-    
-                const glarePass = new POSTPROCESSING.EffectPass(camera, glareEffect);
-                glarePass.renderToScreen = true;
-                composer.addPass(glarePass);
-    
-                // -------------------------------
-                // 7. Comet Class Definition
+                // 6. Comet Class Definition
                 // -------------------------------
                 class Comet {
                     constructor(texture, existingComets) {
@@ -859,7 +833,7 @@
                             ); // 0.5 to 1.0
                         }
     
-                        // Remove Flashing Effect: All flash-related properties and logic are removed
+                        // No Flashing Effect: All flash-related properties and logic have been removed
                     }
     
                     reset() {
@@ -969,7 +943,7 @@
                 }
     
                 // -------------------------------
-                // 8. Initialize Comets
+                // 7. Initialize Comets
                 // -------------------------------
                 function initComets() {
                     // Create comets and add to the pool
@@ -997,7 +971,7 @@
                 }
     
                 // -------------------------------
-                // 9. Animation Loop
+                // 8. Animation Loop
                 // -------------------------------
                 const clock = new THREE.Clock();
     
@@ -1016,7 +990,42 @@
                     composer.render();
                 }
     
-                // Start the animation loop after textures are loaded
+                // -------------------------------
+                // 9. Post-processing with Bloom and Glare Effect
+                // -------------------------------
+                const composer = new POSTPROCESSING.EffectComposer(renderer);
+                const renderPass = new POSTPROCESSING.RenderPass(scene, camera);
+                composer.addPass(renderPass);
+    
+                // Add Bloom Effect using Postprocessing's BloomEffect
+                const bloomEffect = new POSTPROCESSING.BloomEffect({
+                    luminanceThreshold: 0.8,
+                    luminanceSmoothing: 0.025,
+                    intensity: 1.5,
+                    resolutionScale: 1.0
+                });
+    
+                const bloomPass = new POSTPROCESSING.EffectPass(camera, bloomEffect);
+                composer.addPass(bloomPass);
+    
+                // Add Glare Effect using Postprocessing's GlareEffect
+                const glareEffect = new POSTPROCESSING.GlareEffect({
+                    blendFunction: POSTPROCESSING.BlendFunction.ADD,
+                    mixBlur: 1,
+                    mixStrength: 2,
+                    blendMode: THREE.AdditiveBlending,
+                    kernelSize: POSTPROCESSING.KernelSize.SMALL,
+                    luminanceThreshold: 0.8,
+                    luminanceSmoothing: 0.025
+                });
+    
+                const glarePass = new POSTPROCESSING.EffectPass(camera, glareEffect);
+                glarePass.renderToScreen = true;
+                composer.addPass(glarePass);
+    
+                // -------------------------------
+                // 10. Start Animation after textures are loaded
+                // -------------------------------
                 function startAnimation() {
                     animate();
                 }
@@ -1038,7 +1047,7 @@
                 }, 100);
     
                 // -------------------------------
-                // 10. Handle Window Resize
+                // 11. Handle Window Resize
                 // -------------------------------
                 window.addEventListener('resize', () => {
                     camera.aspect = window.innerWidth / window.innerHeight;
@@ -1047,7 +1056,7 @@
                     composer.setSize(window.innerWidth, window.innerHeight);
                 });
             });
-            </script>
+        </script>
 
 
 
