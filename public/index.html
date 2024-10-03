@@ -717,7 +717,7 @@
                     75,
                     window.innerWidth / window.innerHeight,
                     0.1,
-                    3000
+                    5000 // Increased far plane to accommodate distant comets
                 );
                 camera.position.z = 300;
         
@@ -734,7 +734,7 @@
                 const starCount = 3000;
                 const starVertices = new Float32Array(starCount * 3);
                 for (let i = 0; i < starCount * 3; i++) {
-                    starVertices[i] = (Math.random() - 0.5) * 3000;
+                    starVertices[i] = (Math.random() - 0.5) * 5000; // Increased spread for depth
                 }
                 starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
         
@@ -779,7 +779,7 @@
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
                     1.5, // Increased strength for stronger glow
                     1.0, // Increased radius for broader glow
-                    0.6  // threshold remains the same
+                    0.6  // Threshold remains the same
                 );
                 composer.addPass(bloomPass);
         
@@ -843,14 +843,14 @@
                     }
         
                     reset() {
-                        // Fixed spawn position: Top-Right Corner
-                        this.sprite.position.set(800, 500, (Math.random() - 0.5) * 3000);
+                        // Fixed spawn position: Top-Right Corner in the background
+                        this.sprite.position.set(1500, 1500, -2500 + Math.random() * -1000); // z between -2500 and -3500
         
-                        // Set velocity to move diagonally towards Bottom-Left
+                        // Set velocity to move diagonally towards Bottom-Left, keeping z consistent or moving further away
                         this.velocity = new THREE.Vector3(
-                            -Math.random() * 3 - 2, // Move left
-                            -Math.random() * 3 - 2, // Move down
-                            Math.random() * -3        // Move forward
+                            -Math.random() * 1.5 - 0.5, // Move left (slower)
+                            -Math.random() * 1.5 - 0.5, // Move down (slower)
+                            Math.random() * -0.5 - 0.2  // Move forward slowly or keep z fixed
                         );
         
                         // Randomly select a texture
@@ -906,7 +906,7 @@
                                 const flashProgress = (this.elapsedTime - this.flashTime) / this.flashDuration;
         
                                 if (flashProgress <= 1) {
-                                    // Increase opacity to simulate flash
+                                    // Smoothly increase opacity to simulate flash
                                     this.sprite.material.opacity = THREE.MathUtils.lerp(
                                         0.7,
                                         1.8,
@@ -937,7 +937,7 @@
                             const headFlicker = this.headFlickerIntensity * (0.5 + 0.5 * Math.sin(this.headFlickerFrequency * Date.now() * 0.005 + this.headFlickerPhase));
                             
                             // Simulate head flicker by adjusting color intensity
-                            // Assuming the head is the front part, we can slightly brighten the comet's color
+                            // Slightly brighten the comet's color
                             const baseColor = new THREE.Color(`hsl(${Math.random() * 360}, 100%, 90%)`);
                             const brighterColor = baseColor.clone().multiplyScalar(1 + headFlicker);
                             this.sprite.material.color.copy(brighterColor);
@@ -947,7 +947,11 @@
                         this.sprite.scale.set(20, 20, 1);
         
                         // Reset comet if it moves out of bounds
-                        if (this.sprite.position.x < -1000 || this.sprite.position.y < -1000) {
+                        if (
+                            this.sprite.position.x < -2000 ||
+                            this.sprite.position.y < -2000 ||
+                            this.sprite.position.z < -4000
+                        ) {
                             this.reset();
                         }
                     }
@@ -968,14 +972,15 @@
                     }
         
                     // Spawn comets at regular intervals
-                    setInterval(spawnComet, 2000);
+                    setInterval(spawnComet, 3000); // Increased interval to reduce spawn rate
                 }
         
                 function spawnComet() {
                     // Find comets at the spawn position to reset
                     const availableComet = cometPool.find(comet =>
-                        comet.sprite.position.x === 800 &&
-                        comet.sprite.position.y === 500
+                        comet.sprite.position.x === 1500 &&
+                        comet.sprite.position.y === 1500 &&
+                        comet.sprite.position.z <= -2500
                     );
                     if (availableComet) {
                         availableComet.reset();
