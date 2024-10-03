@@ -734,10 +734,10 @@
                     // Load the comet texture from the comet1.png and comet2.png
                     textureLoader.load(cometTexturePath, (texture) => {
                         this.initCometWithTexture(texture);
+                        this.reset(); // Only reset after texture and light are initialized
                     });
         
                     this.existingComets = existingComets;
-                    this.reset();
                 }
         
                 initCometWithTexture(texture) {
@@ -776,7 +776,9 @@
                     scene.add(this.pointLight);
         
                     // Lensflare for starburst effect
-                    const textureFlare = textureLoader.load('/textures/lensflare0.png', (texture) => {
+                    textureLoader.load('/textures/lensflare0.png', (texture) => {
+                        if (!this.pointLight) return;
+        
                         this.lensflare = new Lensflare();
                         const lensflareElement = new LensflareElement(texture, 150, 0, new THREE.Color(0xffffff));
                         this.lensflare.addElement(lensflareElement);
@@ -884,6 +886,8 @@
                 }
         
                 triggerFlicker() {
+                    if (!this.pointLight) return;
+        
                     const flickerDuration = 100;
                     this.pointLight.intensity = 5.0;
         
@@ -893,16 +897,15 @@
                 }
         
                 triggerStarburst() {
+                    if (!this.lensflare || !this.lensflare.elements || this.lensflare.elements.length === 0) return;
+        
                     console.log("Starburst triggered for comet");
+                    const lensflareElement = this.lensflare.elements[0];
+                    lensflareElement.opacity = 1.0;
         
-                    if (this.lensflare && this.lensflare.elements && this.lensflare.elements.length > 0) {
-                        const lensflareElement = this.lensflare.elements[0];
-                        lensflareElement.opacity = 1.0;
-        
-                        setTimeout(() => {
-                            lensflareElement.opacity = 0;
-                        }, 200); // Starburst duration of 200ms
-                    }
+                    setTimeout(() => {
+                        lensflareElement.opacity = 0;
+                    }, 200); // Starburst duration of 200ms
                 }
             }
         
@@ -973,6 +976,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
         
 
 
