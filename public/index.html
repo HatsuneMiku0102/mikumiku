@@ -791,18 +791,22 @@
                         this.comet.position.set(position.x, position.y, position.z);
                     }
         
+                    // Fast diagonal movement with initial downward acceleration for gravity effect
                     this.velocity = new THREE.Vector3(
-                        -200 + Math.random() * -150,  // Diagonal velocity with both X and Y components
-                        -200 + Math.random() * -150,  // Diagonal movement downwards and to the left
+                        -800 + Math.random() * -100,  // Strong diagonal component to the left
+                        -300 + Math.random() * -200,  // Downward component for initial gravity
                         0
                     );
         
-                    this.lifespan = 20; // Extended lifespan for a longer comet journey
+                    this.gravity = new THREE.Vector3(0, -5, 0); // Simulated gravity pulling the comet down
+                    this.curveFactor = Math.random() * 0.02 + 0.01; // Randomize curve factor for varied trajectories
+        
+                    this.lifespan = 15; // Adjusted lifespan for smoother transitions
                     this.trailIndex = 0;
                 }
         
                 generateSpawnPosition() {
-                    const spawnX = (Math.random() - 0.5) * window.innerWidth * 1.5; // Random X across the top area
+                    const spawnX = window.innerWidth / 2 + 500; // Spawn to the far right of the screen
                     const spawnY = window.innerHeight / 2 + 300; // Spawn above the visible area
                     const spawnZ = -2000 + Math.random() * -1000; // Some depth variation
         
@@ -812,11 +816,13 @@
                 update(delta) {
                     if (!this.comet) return;
         
-                    // Update position with velocity
+                    // Update velocity with gravity to create a curving effect
+                    this.velocity.add(this.gravity.clone().multiplyScalar(delta));
+                    this.velocity.x -= this.curveFactor; // Apply a slight curve to the left
                     this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
         
                     // Update opacity towards the end of lifespan for fade-out effect
-                    const lifeRatio = this.lifespan / 20;
+                    const lifeRatio = this.lifespan / 15;
                     this.comet.material.opacity = Math.max(lifeRatio, 0);
         
                     this.lifespan -= delta;
@@ -836,7 +842,7 @@
                 for (let i = 0; i < maxComets; i++) {
                     setTimeout(() => {
                         new Comet();
-                    }, i * 1500); // Stagger comet initialization for variety
+                    }, i * 1200); // Stagger comet initialization for variety
                 }
             }
         
