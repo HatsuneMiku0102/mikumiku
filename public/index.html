@@ -783,6 +783,7 @@
         
             const cometCount = 5;
             const comets = [];
+            const particleSystems = []; // To store particle systems for burnout effects
             for (let i = 0; i < cometCount; i++) {
                 const comet = new THREE.Sprite(cometMaterial);
                 comet.scale.set(80, 80, 1); // Initial size of the comets
@@ -791,6 +792,32 @@
                 comets.push(comet);
                 scene.add(comet);
                 scene.add(comet.light); // Add the light to the scene
+            }
+        
+            function createBurnoutParticles(position) {
+                const particleGeometry = new THREE.BufferGeometry();
+                const particleMaterial = new THREE.PointsMaterial({
+                    size: 10,
+                    color: 0xffffff,
+                    transparent: true,
+                    blending: THREE.AdditiveBlending,
+                    opacity: 0.9,
+                });
+        
+                const particleCount = 50;
+                const positions = new Float32Array(particleCount * 3);
+                for (let i = 0; i < particleCount; i++) {
+                    positions[i * 3] = position.x + (Math.random() - 0.5) * 100;
+                    positions[i * 3 + 1] = position.y + (Math.random() - 0.5) * 100;
+                    positions[i * 3 + 2] = position.z + (Math.random() - 0.5) * 100;
+                }
+        
+                particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+                particleSystem.lifespan = 0.5; // Last for 0.5 seconds
+                particleSystem.remainingTime = 0.5;
+                scene.add(particleSystem);
+                particleSystems.push(particleSystem);
             }
         
             function resetComet(comet) {
@@ -825,19 +852,33 @@
                         comet.burningOut = true;
                         comet.material.color.set(0xffffff); // Turn comet white for burnout
                         comet.light.color.set(0xffffff); // Change light to white
-                        comet.light.intensity = 10.0; // Increase brightness significantly for burnout flash
+                        comet.light.intensity = 15.0; // Increase brightness for burnout flash
                         comet.scale.set(150, 150, 1); // Increase size to emphasize burnout
                         comet.material.opacity = 1.0; // Maintain full opacity during burnout
+        
+                        // Create burnout particles
+                        createBurnoutParticles(comet.position);
                     } else {
-                        // Rapid flicker to simulate burnout
-                        comet.light.intensity = 10.0 + Math.sin(clock.getElapsedTime() * 50) * 3.0; // Intense flickering effect
-                        comet.material.opacity = Math.max(0, comet.material.opacity - delta * 0.5); // Gradually reduce opacity after burnout
+                        // Gradually reduce opacity after burnout
+                        comet.material.opacity = Math.max(0, comet.material.opacity - delta * 0.5);
                     }
         
                     if (comet.position.x < -window.innerWidth / 2 || comet.position.y < -window.innerHeight / 2 || comet.lifespan <= 0) {
                         resetComet(comet);
                     }
                 });
+            }
+        
+            function updateParticles(delta) {
+                for (let i = particleSystems.length - 1; i >= 0; i--) {
+                    const particleSystem = particleSystems[i];
+                    particleSystem.remainingTime -= delta;
+        
+                    if (particleSystem.remainingTime <= 0) {
+                        scene.remove(particleSystem);
+                        particleSystems.splice(i, 1);
+                    }
+                }
             }
         
             // Animate the Scene
@@ -856,6 +897,9 @@
         
                 // Update comet positions and burnout effect
                 updateComets(delta);
+        
+                // Update particle effects
+                updateParticles(delta);
         
                 // Render the scene
                 renderer.render(scene, camera);
@@ -876,7 +920,6 @@
         
             animate();
         </script>
-
 
 
 
