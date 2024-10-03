@@ -695,7 +695,7 @@
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
             import { Vector2 } from '/js/three.module.min.js';
         
-            const maxComets = 5; // Increased number of comets to 5 for more visibility.
+            const maxComets = 5;
             const cometPool = [];
             const minDistance = 1000;
             const maxAttempts = 30;
@@ -745,7 +745,7 @@
                         return;
                     }
         
-                    const compositionTypes = ['carbon-rich', 'iron-rich'];
+                    const compositionTypes = ['carbon-rich', 'iron-rich', 'icy'];
                     this.composition = compositionTypes[Math.floor(Math.random() * compositionTypes.length)];
         
                     const material = new THREE.SpriteMaterial({
@@ -753,27 +753,60 @@
                         transparent: true,
                         blending: THREE.AdditiveBlending,
                         depthWrite: false,
-                        color: this.composition === 'carbon-rich' ? 0x88ccee : 0xffe680,
+                        color: this.getCometColor()
                     });
         
                     this.sprite = new THREE.Sprite(material);
-                    this.sprite.scale.set(200, 200, 1);
+                    this.sprite.scale.set(this.getRandomSize(), this.getRandomSize(), 1);
                     this.sprite.material.opacity = 0.8;
                     scene.add(this.sprite);
         
                     this.existingComets = existingComets;
         
                     this.initLight();
+                    this.initTrail();
                     this.reset();
                 }
         
+                getCometColor() {
+                    switch (this.composition) {
+                        case 'carbon-rich':
+                            return 0x88ccee; // Cyanish blue
+                        case 'iron-rich':
+                            return 0xffe680; // Warm yellow
+                        case 'icy':
+                            return 0x99ffff; // Light icy blue
+                        default:
+                            return 0xffffff; // Default white
+                    }
+                }
+        
+                getRandomSize() {
+                    return Math.random() * 50 + 100; // Random size between 100 and 150
+                }
+        
                 initLight() {
-                    this.pointLight = new THREE.PointLight(0xffe680, 0.5, 1500);
+                    const color = this.getCometColor();
+                    this.pointLight = new THREE.PointLight(color, Math.random() * 1.5 + 0.5, 1500);
                     scene.add(this.pointLight);
         
-                    // Adding a halo effect light, with lower intensity initially
-                    this.haloLight = new THREE.PointLight(0xffaa33, 0.0, 3000); // Intensity set to zero initially
+                    this.haloLight = new THREE.PointLight(color, 0.0, 3000);
                     scene.add(this.haloLight);
+                }
+        
+                initTrail() {
+                    const trailGeometry = new THREE.CylinderGeometry(1, 10, 300, 8, 1, true);
+                    const trailMaterial = new THREE.MeshBasicMaterial({
+                        color: this.getCometColor(),
+                        transparent: true,
+                        opacity: 0.3,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false,
+                    });
+        
+                    this.trail = new THREE.Mesh(trailGeometry, trailMaterial);
+                    this.trail.rotation.x = Math.PI / 2; // Rotate to align with movement direction
+                    scene.add(this.trail);
                 }
         
                 reset() {
@@ -798,6 +831,7 @@
                     this.sprite.position.set(position.x, position.y, position.z);
                     this.pointLight.position.set(position.x, position.y, position.z);
                     this.haloLight.position.set(position.x, position.y, position.z);
+                    this.trail.position.set(position.x, position.y, position.z);
         
                     this.velocity = new THREE.Vector3(
                         -500 + Math.random() * -150,
@@ -805,13 +839,13 @@
                         Math.random() * 100 - 50
                     );
         
-                    const scale = Math.random() * 50 + 200;
+                    const scale = this.getRandomSize();
                     this.sprite.scale.set(scale, scale, 1);
+                    this.trail.scale.set(scale / 10, 1, scale / 10); // Adjust trail size accordingly
         
-                    // Reset flicker properties for each new comet life
                     this.flickerTriggered = false;
-                    this.shouldFlicker = true; // Allow this comet to flicker once
-                    this.flickerTime = Math.random() * 5 + 2; // Flicker will happen after 2 to 7 seconds of comet's movement
+                    this.shouldFlicker = true; 
+                    this.flickerTime = Math.random() * 5 + 2;
                 }
         
                 generateSpawnPosition() {
@@ -856,6 +890,10 @@
                     this.pointLight.position.copy(this.sprite.position);
                     this.haloLight.position.copy(this.sprite.position);
         
+                    // Update trail position and orientation
+                    this.trail.position.copy(this.sprite.position);
+                    this.trail.lookAt(this.sprite.position.clone().add(this.velocity.clone().negate()));
+        
                     // Decrease the flickerTime countdown by delta time
                     if (this.shouldFlicker && !this.flickerTriggered) {
                         this.flickerTime -= delta;
@@ -863,8 +901,8 @@
                         // Trigger flicker when the timer reaches zero
                         if (this.flickerTime <= 0 && this.isVisibleInView()) {
                             this.triggerFlicker();
-                            this.flickerTriggered = true; // Ensure flicker happens only once per life span
-                            this.shouldFlicker = false; // Prevent further flickering for this comet's life
+                            this.flickerTriggered = true; 
+                            this.shouldFlicker = false;
                         }
                     }
         
@@ -878,23 +916,22 @@
                 }
         
                 isVisibleInView() {
-                    // Check if the comet is within the visible bounds of the scene
                     const x = this.sprite.position.x;
                     const y = this.sprite.position.y;
                     return x > -window.innerWidth && x < window.innerWidth && y > -window.innerHeight && y < window.innerHeight;
                 }
         
                 triggerFlicker() {
-                    console.log("Flicker triggered for comet"); // Debug message to ensure flicker is called
+                    console.log("Flicker triggered for comet");
         
-                    // Increase light and halo intensity for a bright, noticeable effect
-                    const flickerDuration = 200; // Duration in milliseconds
-                    this.pointLight.intensity = 10.0; // Very bright intensity for a quick flash
-                    this.haloLight.intensity = 5.0; // Increase halo to create a noticeable glow
+                    // Randomized flicker intensity and halo
+                    const flickerDuration = Math.random() * 100 + 100; 
+                    this.pointLight.intensity = Math.random() * 5 + 5; 
+                    this.haloLight.intensity = Math.random() * 3 + 2; 
         
                     setTimeout(() => {
-                        this.pointLight.intensity = 0.5; // Revert to normal intensity
-                        this.haloLight.intensity = 0.0; // Revert halo to no glow
+                        this.pointLight.intensity = 0.5; 
+                        this.haloLight.intensity = 0.0; 
                     }, flickerDuration);
                 }
             }
@@ -932,7 +969,6 @@
             const renderPass = new RenderPass(scene, camera);
             composer.addPass(renderPass);
         
-            // Bloom effect as before
             const bloomParams = {
                 exposure: 1.0,
                 bloomStrength: 0.9,
@@ -1000,6 +1036,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
