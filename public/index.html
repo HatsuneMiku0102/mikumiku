@@ -758,7 +758,7 @@
                     textureLoader.load(this.cometTexturePath, (texture) => {
                         this.initCometWithTexture(texture);
                         this.reset();
-                        cometPool.push(this);  // Add to comet pool only after complete initialization
+                        cometPool.push(this); // Add to comet pool only after complete initialization
                     });
                 }
         
@@ -775,7 +775,7 @@
                     this.comet.scale.set(150, 150, 1);
                     scene.add(this.comet);
         
-                    this.initLightAndLensflare();
+                    this.initLight();
                 }
         
                 getCometColor() {
@@ -783,11 +783,16 @@
                     return colors[Math.floor(Math.random() * colors.length)];
                 }
         
-                initLightAndLensflare() {
+                initLight() {
                     const color = this.getCometColor();
                     this.pointLight = new THREE.PointLight(color, 1.5, 1000);
                     scene.add(this.pointLight);
         
+                    // Load lens flare after light has been added
+                    this.initLensflare();
+                }
+        
+                initLensflare() {
                     textureLoader.load('/textures/lensflare0.png', (texture) => {
                         if (!this.pointLight) return;
         
@@ -796,7 +801,11 @@
                         this.lensflare.addElement(lensflareElement);
                         this.pointLight.add(this.lensflare);
         
-                        this.lensflare.elements[0].opacity = 0;
+                        if (this.lensflare.elements[0]) {
+                            this.lensflare.elements[0].opacity = 0; // Set initial opacity to 0
+                        }
+                    }, undefined, (err) => {
+                        console.error('Error loading lens flare texture:', err);
                     });
                 }
         
@@ -911,11 +920,13 @@
                     if (!this.lensflare || !this.lensflare.elements || this.lensflare.elements.length === 0) return;
         
                     const lensflareElement = this.lensflare.elements[0];
-                    lensflareElement.opacity = 1.0;
+                    if (lensflareElement) {
+                        lensflareElement.opacity = 1.0;
         
-                    setTimeout(() => {
-                        lensflareElement.opacity = 0;
-                    }, 200);
+                        setTimeout(() => {
+                            lensflareElement.opacity = 0;
+                        }, 200);
+                    }
                 }
             }
         
@@ -987,6 +998,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
