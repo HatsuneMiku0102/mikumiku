@@ -691,14 +691,12 @@
             import { EffectComposer } from '/js/postprocessing/EffectComposer.js';
             import { RenderPass } from '/js/postprocessing/RenderPass.js';
             import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
-            import { BokehPass } from '/js/postprocessing/BokehPass.js';
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
         
             const maxComets = 5;
             const cometPool = [];
-            const minDistance = 1000;
-        
+            
             const canvas = document.getElementById('techCanvas');
             const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -776,17 +774,17 @@
                 }
         
                 reset() {
-                    this.comet.position.set(
-                        (Math.random() - 0.5) * 10000,
-                        (Math.random() - 0.5) * 10000,
-                        -Math.random() * 1000 - 2000
-                    );
+                    // Start position at the top-right of the visible screen
+                    const aspect = window.innerWidth / window.innerHeight;
+                    const fov = THREE.MathUtils.degToRad(camera.fov);
+                    const distance = Math.abs(camera.position.z - (-2500));
+                    const height = 2 * Math.tan(fov / 2) * distance;
+                    const width = height * aspect;
         
-                    this.velocity.set(
-                        (Math.random() - 0.5) * 200,
-                        (Math.random() - 0.5) * 200,
-                        Math.random() * 100
-                    );
+                    this.comet.position.set(width / 2, height / 2, -2000);
+                    
+                    // Move towards bottom-left
+                    this.velocity.set(-200, -200, Math.random() * 100 - 50);
                 }
         
                 update(delta) {
@@ -804,14 +802,6 @@
             const composer = new EffectComposer(renderer);
             const renderPass = new RenderPass(scene, camera);
             composer.addPass(renderPass);
-        
-            const bokehParams = {
-                focus: 1.0,
-                aperture: 0.01, // Reduced blur
-                maxblur: 0.5, // Reduced max blur
-            };
-            const bokehPass = new BokehPass(scene, camera, bokehParams);
-            composer.addPass(bokehPass);
         
             const bloomParams = {
                 exposure: 1.0,
