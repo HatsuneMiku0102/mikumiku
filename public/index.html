@@ -693,7 +693,6 @@
             import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
-            import { ImprovedNoise } from '/js/ImprovedNoise.js';
         
             const maxComets = 15;
             const cometPool = [];
@@ -765,21 +764,19 @@
                         map: texture,
                         blending: THREE.AdditiveBlending,
                         transparent: true,
-                        opacity: 0.6,  // Set to a lower opacity to blend better with background
+                        opacity: 1.0,  // Full opacity, no fade effect
                         depthWrite: false,
                     });
         
                     this.comet = new THREE.Sprite(cometMaterial);
-                    this.comet.scale.set(200 + Math.random() * 200, 200 + Math.random() * 200, 1); // Varying comet sizes
+                    this.comet.scale.set(200 + Math.random() * 100, 200 + Math.random() * 100, 1); // Varying comet sizes
                     this.comet.layers.set(1);
                     scene.add(this.comet);
         
                     // Add comet light for flickering effect
-                    this.light = new THREE.PointLight(0xffaa33, 0.8, 500);  // Reduced intensity for subtle blending
+                    this.light = new THREE.PointLight(0xffaa33, 0.6, 500);  // Reduced intensity for subtle blending
                     this.light.position.set(this.comet.position.x, this.comet.position.y, 0);
                     scene.add(this.light);
-        
-                    this.noiseGenerator = new ImprovedNoise();
                 }
         
                 reset() {
@@ -789,22 +786,21 @@
                         this.light.position.set(position.x, position.y, 0);
                     }
         
-                    // Random velocity to give each comet a unique speed and direction
-                    const speedFactor = 200 + Math.random() * 400; // Base speed factor for comet
-                    this.baseVelocity = new THREE.Vector3(
+                    // Straight diagonal movement from top-right to bottom-left
+                    const speedFactor = 300 + Math.random() * 200; // Base speed factor for comet
+                    this.velocity = new THREE.Vector3(
                         -speedFactor,                  // Horizontal speed (leftward)
-                        -speedFactor * (0.5 + Math.random()),  // Vertical speed (downward, with randomness)
-                        0                             // No Z-axis movement
+                        -speedFactor * 0.6,            // Vertical speed (downward)
+                        0                              // No Z-axis movement
                     );
         
-                    this.noiseOffset = Math.random() * 100; // Randomize noise seed for each comet
-                    this.lifespan = 15 + Math.random() * 5; // Random lifespan for variety
+                    this.lifespan = 15; // Lifespan to determine when to reset the comet
                 }
         
                 generateSpawnPosition() {
                     // Randomize spawn position across the top of the screen
                     const spawnX = (Math.random() - 0.5) * window.innerWidth; // Anywhere along the width of the screen
-                    const spawnY = window.innerHeight / 2 + 400 + Math.random() * 200; // Near the top of the screen
+                    const spawnY = window.innerHeight / 2 + 400; // Top of the screen
                     const spawnZ = 0; // Fixed Z-axis for no depth effect
         
                     return new THREE.Vector3(spawnX, spawnY, spawnZ);
@@ -813,20 +809,9 @@
                 update(delta) {
                     if (!this.comet) return;
         
-                    const time = performance.now() * 0.001;
-                    const noiseX = this.noiseGenerator.noise(time + this.noiseOffset, 0, 0) * 30; // Slight noise to avoid straight movement
-                    const noiseY = this.noiseGenerator.noise(0, time + this.noiseOffset, 0) * 30;
-        
-                    // Apply base velocity and noise component for more natural movement
-                    this.comet.position.add(this.baseVelocity.clone().multiplyScalar(delta));
-                    this.comet.position.x += noiseX * delta;
-                    this.comet.position.y += noiseY * delta;
-        
-                    // Update light position to follow the comet
+                    // Apply velocity to move in a straight diagonal path
+                    this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
                     this.light.position.copy(this.comet.position);
-        
-                    // Flickering effect for comet light
-                    this.light.intensity = 0.8 + Math.sin(time * 10) * 0.3;
         
                     this.lifespan -= delta;
         
