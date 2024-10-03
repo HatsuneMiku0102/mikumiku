@@ -696,12 +696,12 @@
             import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
-            import { Vector2 } from '/js/three.module.min.js'; // Corrected import for Vector2 from three.js
+            import { Vector2 } from '/js/three.module.min.js';
         
             // -------------------------------
             // 2. Define Constants and Variables
             // -------------------------------
-            const maxComets = 7; // Reduced comet count by half
+            const maxComets = 5; // Reduce comet count for improved visual clarity
             const cometPool = [];
             const minDistance = 600; // Maintain separation between comets
             const maxAttempts = 30;
@@ -727,7 +727,7 @@
                 0.1,
                 10000
             );
-            camera.position.z = 500;
+            camera.position.z = 800;
         
             // Static Background - Nebula
             const textureLoader = new THREE.TextureLoader();
@@ -783,7 +783,7 @@
             });
         
             // -------------------------------
-            // 7. Comet Class Definition with Explosive Flicker Effect
+            // 7. Comet Class Definition with Explosive Flickering and Particle Tail
             // -------------------------------
             class Comet {
                 constructor(texture, existingComets) {
@@ -801,12 +801,38 @@
                     this.existingComets = existingComets;
                     this.reset();
         
-                    // Determine if this comet will have an explosive flicker burst effect
+                    // Set up the particle tail using BufferGeometry
+                    this.tailParticles = 200;
+                    this.tailGeometry = new THREE.BufferGeometry();
+                    this.tailPositions = new Float32Array(this.tailParticles * 3);
+                    for (let i = 0; i < this.tailParticles * 3; i++) {
+                        this.tailPositions[i] = this.sprite.position.x;
+                    }
+                    this.tailGeometry.setAttribute('position', new THREE.BufferAttribute(this.tailPositions, 3));
+        
+                    const tailMaterial = new THREE.PointsMaterial({
+                        color: 0xffe0b3,
+                        size: 2,
+                        blending: THREE.AdditiveBlending,
+                        transparent: true,
+                        opacity: 0.5,
+                        depthWrite: false,
+                    });
+        
+                    this.tail = new THREE.Points(this.tailGeometry, tailMaterial);
+                    scene.add(this.tail);
+        
+                    // Burst Effect Settings
                     this.canBurst = true;
                     this.burstTime = Date.now() + Math.random() * 5000 + 2000; // Random burst interval between 2-7 seconds
                     this.burstDuration = 1000; // Burst lasts for 1 second
                     this.inBurst = false; // Track if currently in burst
                     this.burstFrequency = Math.random() * 20 + 30; // Very rapid flickering for explosive effect
+        
+                    // Point Light for Flickering Effect
+                    this.pointLight = new THREE.PointLight(0xffe680, 0.5, 1500);
+                    this.pointLight.position.set(this.sprite.position.x, this.sprite.position.y, this.sprite.position.z);
+                    scene.add(this.pointLight);
                 }
         
                 reset() {
@@ -823,11 +849,8 @@
                         position = this.generateSpawnPosition(true);
                     }
         
-                    this.sprite.position.set(
-                        position.x,
-                        position.y,
-                        position.z
-                    );
+                    this.sprite.position.set(position.x, position.y, position.z);
+                    this.pointLight.position.copy(position);
         
                     // Increased speed for a more dynamic effect
                     this.velocity = new THREE.Vector3(
@@ -877,7 +900,21 @@
                 }
         
                 update(delta) {
+                    // Update comet position
                     this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
+                    this.pointLight.position.copy(this.sprite.position);
+        
+                    // Update tail positions for a smooth trailing effect
+                    for (let i = this.tailPositions.length - 3; i > 0; i -= 3) {
+                        this.tailPositions[i] = this.tailPositions[i - 3];
+                        this.tailPositions[i + 1] = this.tailPositions[i - 2];
+                        this.tailPositions[i + 2] = this.tailPositions[i - 1];
+                    }
+                    this.tailPositions[0] = this.sprite.position.x;
+                    this.tailPositions[1] = this.sprite.position.y;
+                    this.tailPositions[2] = this.sprite.position.z;
+        
+                    this.tailGeometry.attributes.position.needsUpdate = true;
         
                     // Burst Effect - Explosive Rapid Flickering
                     if (this.canBurst && Date.now() > this.burstTime) {
@@ -893,10 +930,12 @@
                             const flickerOpacity = 1.5 + flicker * 0.5; // Increase intensity for explosive effect
                             this.sprite.material.opacity = THREE.MathUtils.clamp(flickerOpacity, 1.0, 2.5);
                             this.sprite.material.color.set(0xffe680); // Warmer, explosive-like color
+                            this.pointLight.intensity = 2.0 + flicker * 1.0; // Increase light intensity during burst
                         } else {
                             this.inBurst = false;
                             this.sprite.material.opacity = Math.random() * 0.4 + 0.6; // Reset opacity after burst
                             this.sprite.material.color.copy(this.baseColor); // Reset color
+                            this.pointLight.intensity = 0.5; // Reset light intensity
                         }
                     }
         
@@ -999,7 +1038,7 @@
             }, 100);
         
             // -------------------------------
-            // 12. Handle Window Resize
+            // 11. Handle Window Resize
             // -------------------------------
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
