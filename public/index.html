@@ -696,7 +696,7 @@
             import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
-            import { Vector2 } from '/js/three.module.min.js';
+            import { Vector2 } from '/js/three.module.min.js'; // Corrected import for Vector2 from three.js
         
             // -------------------------------
             // 2. Define Constants and Variables
@@ -715,7 +715,7 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 1.0;
+            renderer.toneMappingExposure = 0.8; // Reduced exposure for background bloom effect
         
             // -------------------------------
             // 4. Scene and Camera Setup
@@ -822,10 +822,10 @@
                         position.z
                     );
         
-                    // Set a significantly higher velocity for faster movement
+                    // Increased speed for a more dynamic effect
                     this.velocity = new THREE.Vector3(
-                        -300 + Math.random() * -50,
-                        -300 + Math.random() * -50,
+                        -400 + Math.random() * -100,
+                        -400 + Math.random() * -100,
                         0
                     );
         
@@ -916,12 +916,12 @@
             const renderPass = new RenderPass(scene, camera);
             composer.addPass(renderPass);
         
-            // Add Bloom Effect for Realism
+            // Add Bloom Effect for Realism with Reduced Influence on Background
             const bloomParams = {
-                exposure: 1,
-                bloomStrength: 1.5, // Reduced to ensure the sample bias falls within acceptable range
+                exposure: 1.0,
+                bloomStrength: 1.2, // Reduced to minimize bloom on the background
                 bloomThreshold: 0.1,
-                bloomRadius: 0.4
+                bloomRadius: 0.3
             };
             const bloomPass = new UnrealBloomPass(
                 new Vector2(window.innerWidth, window.innerHeight),
@@ -980,6 +980,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
