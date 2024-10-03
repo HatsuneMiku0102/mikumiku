@@ -744,6 +744,7 @@
                     this.cometTexturePath = Math.random() < 0.5 ? '/textures/comet1.png' : '/textures/comet2.png';
         
                     textureLoader.load(this.cometTexturePath, (texture) => {
+                        texture.colorSpace = THREE.SRGBColorSpace; // Ensure correct color space
                         this.initCometWithTexture(texture);
                         this.reset();
                         cometPool.push(this);
@@ -796,15 +797,15 @@
                 }
         
                 reset() {
-                    // Start position at the top-right area of the screen (random within defined region)
+                    // Start position at the top-right area of the screen (higher and still within visible area)
                     const aspect = window.innerWidth / window.innerHeight;
                     const fov = THREE.MathUtils.degToRad(camera.fov);
                     const distance = Math.abs(camera.position.z - (-2500));
                     const height = 2 * Math.tan(fov / 2) * distance;
                     const width = height * aspect;
         
-                    // Comet spawns randomly in the top-right area
-                    this.comet.position.set(width / 2 + Math.random() * 500, height / 4 + Math.random() * 500, -2000);
+                    // Comet spawns randomly in the higher part of the top-right area
+                    this.comet.position.set(width / 2 + Math.random() * 500, height / 2 + Math.random() * 500, -2000);
         
                     // Move towards a random position between the bottom and middle left
                     const speedMultiplier = Math.random() * 1.5 + 1.5; // Random speed between 1.5x and 3x
@@ -815,8 +816,6 @@
                     );
         
                     // Reset the starburst and lifespan
-                    this.flickerTriggered = false;
-                    this.shouldFlicker = true;
                     this.starburstTime = Math.random() * 4 + 6; // Starburst will happen at a random time
                     this.starburstTriggered = false;
                     this.lifespan = Math.random() * 8 + 10;
@@ -916,7 +915,6 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
-
 
 
 
