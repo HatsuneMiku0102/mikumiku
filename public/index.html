@@ -747,7 +747,7 @@
         
                 const comet = new THREE.Sprite(cometMaterial);
         
-                // Increased the size of the comets
+                // Set comet size
                 comet.scale.set(150 + Math.random() * 50, 150 + Math.random() * 50, 1);
                 comet.color = naturalColors[Math.floor(Math.random() * naturalColors.length)]; // Assign natural color
                 comet.material.color = comet.color;
@@ -779,8 +779,8 @@
                     0
                 );
                 comet.velocity = new THREE.Vector3(
-                    -200 - Math.random() * 200, // Consistent diagonal speed on the x-axis
-                    -200 - Math.random() * 200, // Consistent diagonal speed on the y-axis
+                    -400 - Math.random() * 300, // Faster and consistent diagonal speed on the x-axis
+                    -400 - Math.random() * 300, // Faster and consistent diagonal speed on the y-axis
                     0
                 );
                 comet.lifespan = 15.0 + Math.random() * 5.0; // Extended lifespan to between 15 and 20 seconds
@@ -788,13 +788,16 @@
                 comet.light.intensity = 2.0; // Set comet light intensity to 2.0
                 comet.light.visible = false;
                 comet.material.opacity = 0.0; // Start with an invisible comet for fade-in
-                comet.scale.set(150 + Math.random() * 50, 150 + Math.random() * 50, 1); // Increased comet size
+                comet.scale.set(150 + Math.random() * 50, 150 + Math.random() * 50, 1); // Set comet size
             }
         
             function updateComets(delta) {
                 comets.forEach((comet) => {
                     comet.position.add(comet.velocity.clone().multiplyScalar(delta));
                     comet.light.position.copy(comet.position);
+        
+                    // Adjust lens flare position to explicitly stay at the head of the comet
+                    comet.lensflare.position.set(0, comet.scale.y * 0.5, 0); // Move the lens flare to the top of the comet sprite
         
                     comet.lifespan -= delta;
         
@@ -872,6 +875,7 @@
         
             animate();
         </script>
+
 
 
 
