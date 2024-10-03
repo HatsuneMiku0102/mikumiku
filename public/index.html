@@ -693,185 +693,235 @@
             import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
-        
-            const maxComets = 10;
+            
+            const maxComets = 15;
             const cometPool = [];
             const minDistance = 1000;
-        
+            
             const canvas = document.getElementById('techCanvas');
             const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 0.6;
-        
+            renderer.toneMappingExposure = 0.8;
+            
             const scene = new THREE.Scene();
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
             camera.position.set(0, 0, 1500);
-        
+            
             const textureLoader = new THREE.TextureLoader();
             textureLoader.load('/textures/nebula.webp', (texture) => {
                 texture.colorSpace = THREE.SRGBColorSpace;
                 scene.background = texture;
             }, undefined, (err) => {
                 console.error('Error loading nebula texture:', err);
-                scene.background = new THREE.Color(0x000000);
+                scene.background = new THREE.Color(0x000011);
             });
-        
-            // Ambient and Directional Lighting
-            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            
+            // Enhanced Lighting
+            const ambientLight = new THREE.AmbientLight(0x202040, 0.5);
             scene.add(ambientLight);
-        
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
             directionalLight.position.set(5, 10, 7.5);
             scene.add(directionalLight);
-        
-            // Comet Textures
+            
+            // Improved Comet Textures
             const cometTextures = [
-                '/textures/comet1.png',
-                '/textures/comet2.png'
+                '/textures/comet_enhanced1.png',
+                '/textures/comet_enhanced2.png',
+                '/textures/comet_enhanced3.png'
             ];
-        
+            
             // Enhanced Starfield Background
-            const starCount = 2000;
+            const starCount = 3000;
             const starsGeometry = new THREE.BufferGeometry();
-            const starsMaterial = new THREE.PointsMaterial({ color: 0xaaaaaa, size: 2, sizeAttenuation: true });
-        
+            const starsMaterial = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 2,
+                sizeAttenuation: true,
+                transparent: true,
+                blending: THREE.AdditiveBlending
+            });
+            
             const starPositions = new Float32Array(starCount * 3);
+            const starColors = new Float32Array(starCount * 3);
             for (let i = 0; i < starCount; i++) {
                 starPositions[i * 3] = (Math.random() - 0.5) * 10000;
                 starPositions[i * 3 + 1] = (Math.random() - 0.5) * 10000;
                 starPositions[i * 3 + 2] = (Math.random() - 0.5) * 10000;
+                
+                const starColor = new THREE.Color().setHSL(Math.random(), 0.5, 0.7);
+                starColors[i * 3] = starColor.r;
+                starColors[i * 3 + 1] = starColor.g;
+                starColors[i * 3 + 2] = starColor.b;
             }
             starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+            starsGeometry.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+            starsMaterial.vertexColors = true;
             const starField = new THREE.Points(starsGeometry, starsMaterial);
             scene.add(starField);
-        
+            
             class Comet {
                 constructor(existingComets) {
                     this.existingComets = existingComets;
                     this.cometTexturePath = cometTextures[Math.floor(Math.random() * cometTextures.length)];
-        
+            
                     textureLoader.load(this.cometTexturePath, (texture) => {
                         this.initCometWithTexture(texture);
                         this.reset();
-                        cometPool.push(this); // Add to comet pool only after complete initialization
+                        cometPool.push(this);
                     });
                 }
-        
+            
                 initCometWithTexture(texture) {
                     const cometMaterial = new THREE.SpriteMaterial({
                         map: texture,
                         blending: THREE.AdditiveBlending,
                         transparent: true,
-                        opacity: 0.9,
+                        opacity: 0.8,
                         depthWrite: false,
                     });
-        
+            
                     this.comet = new THREE.Sprite(cometMaterial);
-                    this.comet.scale.set(150, 150, 1);
+                    this.comet.scale.set(200, 200, 1);
                     scene.add(this.comet);
-        
+            
+                    this.initTrail();
                     this.initGlowEffect();
                 }
-        
-                initGlowEffect() {
-                    this.glowTime = Math.random() * 6 + 5; // Random time to glow between 5 and 11 seconds
-                    this.glowTriggered = false;
-                    this.glowDuration = 3; // Glow duration for vibrant effect
+            
+                initTrail() {
+                    const trailGeometry = new THREE.BufferGeometry();
+                    const trailMaterial = new THREE.PointsMaterial({
+                        color: 0xffffff,
+                        size: 4,
+                        sizeAttenuation: true,
+                        transparent: true,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false,
+                    });
+            
+                    this.trailPositions = new Float32Array(100 * 3);
+                    trailGeometry.setAttribute('position', new THREE.BufferAttribute(this.trailPositions, 3));
+            
+                    this.trail = new THREE.Points(trailGeometry, trailMaterial);
+                    scene.add(this.trail);
                 }
-        
+            
+                initGlowEffect() {
+                    this.glowTime = Math.random() * 8 + 7;
+                    this.glowTriggered = false;
+                    this.glowDuration = 4;
+                }
+            
                 reset() {
                     const position = this.generateSpawnPosition();
                     if (this.comet) {
                         this.comet.position.set(position.x, position.y, position.z);
                     }
-        
+            
                     this.velocity = new THREE.Vector3(
-                        -800 + Math.random() * -300,
-                        -700 + Math.random() * -300,
-                        Math.random() * 100 - 50
+                        -1000 + Math.random() * -400,
+                        -800 + Math.random() * -400,
+                        Math.random() * 150 - 75
                     );
-        
-                    this.lifespan = Math.random() * 15 + 15; // Increased lifespan
+            
+                    this.lifespan = Math.random() * 20 + 20;
                     this.glowTriggered = false;
+                    
+                    // Reset trail
+                    for (let i = 0; i < 100; i++) {
+                        this.trailPositions[i * 3] = position.x;
+                        this.trailPositions[i * 3 + 1] = position.y;
+                        this.trailPositions[i * 3 + 2] = position.z;
+                    }
+                    this.trail.geometry.attributes.position.needsUpdate = true;
                 }
-        
+            
                 generateSpawnPosition() {
                     const aspect = window.innerWidth / window.innerHeight;
                     const fov = THREE.MathUtils.degToRad(camera.fov);
                     const distance = Math.abs(camera.position.z - (-2500));
                     const height = 2 * Math.tan(fov / 2) * distance;
                     const width = height * aspect;
-        
-                    const spawnOffsetX = 300;
-                    const spawnOffsetY = 300;
-                    const spawnZ = -2500 + Math.random() * -1000;
-        
-                    // Comets should spawn in the top middle or right side of the screen
+            
+                    const spawnOffsetX = 400;
+                    const spawnOffsetY = 400;
+                    const spawnZ = -2500 + Math.random() * -1500;
+            
                     const x = (Math.random() * width / 2) + spawnOffsetX;
-                    const y = height / 2 + Math.random() * 500;
-        
+                    const y = height / 2 + Math.random() * 700;
+            
                     return new THREE.Vector3(x, y, spawnZ);
                 }
-        
+            
                 update(delta) {
                     if (!this.comet) return;
-        
+            
                     this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
-        
-                    this.lifespan -= delta;
-                    if (this.lifespan < 3) {
-                        this.comet.material.opacity = THREE.MathUtils.lerp(this.comet.material.opacity, 0, 0.02);
+            
+                    // Update trail
+                    for (let i = this.trailPositions.length / 3 - 1; i > 0; i--) {
+                        this.trailPositions[i * 3] = this.trailPositions[(i - 1) * 3];
+                        this.trailPositions[i * 3 + 1] = this.trailPositions[(i - 1) * 3 + 1];
+                        this.trailPositions[i * 3 + 2] = this.trailPositions[(i - 1) * 3 + 2];
                     }
-        
+                    this.trailPositions[0] = this.comet.position.x;
+                    this.trailPositions[1] = this.comet.position.y;
+                    this.trailPositions[2] = this.comet.position.z;
+                    this.trail.geometry.attributes.position.needsUpdate = true;
+            
+                    this.lifespan -= delta;
+                    if (this.lifespan < 4) {
+                        this.comet.material.opacity = THREE.MathUtils.lerp(this.comet.material.opacity, 0, 0.02);
+                        this.trail.material.opacity = THREE.MathUtils.lerp(this.trail.material.opacity, 0, 0.02);
+                    }
+            
                     if (!this.glowTriggered && this.lifespan < this.glowTime) {
                         this.triggerGlow();
                         this.glowTriggered = true;
                     }
-        
+            
                     if (this.lifespan <= 0) {
-                        this.reset(); // Infinite respawn
+                        this.reset();
                     }
                 }
-        
+            
                 triggerGlow() {
                     if (!this.comet) return;
-        
-                    // Save original color and scale for restoration
+            
                     const originalColor = this.comet.material.color.clone();
                     const originalScale = this.comet.scale.clone();
-        
-                    // Vibrant glow effect - change color to a bright shade and increase size
-                    this.comet.material.color.set(0xffffff);
-                    this.comet.scale.set(originalScale.x * 1.5, originalScale.y * 1.5, originalScale.z * 1.5);
-        
-                    // Restore original color and scale after glow duration
+            
+                    this.comet.material.color.set(0xffff80);
+                    this.comet.scale.set(originalScale.x * 2, originalScale.y * 2, originalScale.z * 2);
+            
                     setTimeout(() => {
                         this.comet.material.color.copy(originalColor);
                         this.comet.scale.copy(originalScale);
                     }, this.glowDuration * 1000);
                 }
             }
-        
+            
             function initComets() {
                 for (let i = 0; i < maxComets; i++) {
                     setTimeout(() => {
                         new Comet(cometPool);
-                    }, i * 800); // Reduced stagger time for faster comet spawning
+                    }, i * 600);
                 }
             }
-        
+            
             const composer = new EffectComposer(renderer);
             const renderPass = new RenderPass(scene, camera);
             composer.addPass(renderPass);
-        
+            
             const bloomParams = {
-                exposure: 0.4, // Balanced exposure for comet glow visibility
-                bloomStrength: 0.4, // Reduced bloom effect on the nebula
+                exposure: 0.5,
+                bloomStrength: 0.6,
                 bloomThreshold: 0.1,
-                bloomRadius: 0.3
+                bloomRadius: 0.4
             };
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
@@ -880,39 +930,47 @@
                 bloomParams.bloomThreshold
             );
             composer.addPass(bloomPass);
-        
+            
             const fxaaPass = new ShaderPass(FXAAShader);
             fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             composer.addPass(fxaaPass);
-        
+            
             const clock = new THREE.Clock();
             let mouseX = 0;
             let mouseY = 0;
-        
+            
             function animate() {
                 requestAnimationFrame(animate);
                 const delta = clock.getDelta();
-        
-                // Update camera position based on mouse movement
-                camera.position.x += (mouseX - camera.position.x) * 0.02;
-                camera.position.y += (-mouseY - camera.position.y) * 0.02;
+            
+                camera.position.x += (mouseX - camera.position.x) * 0.03;
+                camera.position.y += (-mouseY - camera.position.y) * 0.03;
                 camera.lookAt(scene.position);
-        
+            
                 cometPool.forEach(comet => {
                     if (comet.comet) comet.update(delta);
                 });
-        
+            
+                // Animate stars
+                const positions = starField.geometry.attributes.position.array;
+                for (let i = 0; i < positions.length; i += 3) {
+                    positions[i] += (Math.random() - 0.5) * 0.3;
+                    positions[i + 1] += (Math.random() - 0.5) * 0.3;
+                    positions[i + 2] += (Math.random() - 0.5) * 0.3;
+                }
+                starField.geometry.attributes.position.needsUpdate = true;
+            
                 composer.render();
             }
-        
+            
             document.addEventListener('mousemove', (event) => {
-                mouseX = (event.clientX - window.innerWidth / 2) * 0.005;
-                mouseY = (event.clientY - window.innerHeight / 2) * 0.005;
+                mouseX = (event.clientX - window.innerWidth / 2) * 0.01;
+                mouseY = (event.clientY - window.innerHeight / 2) * 0.01;
             });
-        
+            
             initComets();
             animate();
-        
+            
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
