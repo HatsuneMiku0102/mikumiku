@@ -764,7 +764,7 @@
                 });
         
                 // -------------------------------
-                // Post-processing with Bloom for a Subtle Glowing Effect
+                // Post-processing with Bloom for a Strong Glare Effect
                 // (Removed Glare and Motion Blur)
                 // -------------------------------
                 const composer = new THREE.EffectComposer(renderer);
@@ -773,9 +773,9 @@
         
                 const bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    1.2, // strength
-                    0.8, // radius
-                    0.6  // threshold
+                    1.5, // Increased strength for stronger glow
+                    1.0, // Increased radius for broader glow
+                    0.6  // threshold remains the same
                 );
                 composer.addPass(bloomPass);
         
@@ -794,6 +794,7 @@
                             depthWrite: false,
                         });
                         this.sprite = new THREE.Sprite(material);
+                        this.sprite.scale.set(20, 20, 1); // Fixed scale
                         this.reset();
                         scene.add(this.sprite);
         
@@ -832,7 +833,6 @@
                         // Randomly select a texture
                         const textureIndex = Math.floor(Math.random() * cometTextures.length);
                         this.sprite.material.map = cometTextures[textureIndex];
-                        this.sprite.scale.set(20, 20, 1);
         
                         // Reset flicker parameters if necessary
                         if (this.canFlicker) {
@@ -869,10 +869,11 @@
         
                                 if (flashProgress <= 1) {
                                     // Smoothly increase opacity to simulate flash
-                                    this.sprite.material.opacity = THREE.MathUtils.lerp(0.7, 1.5, flashProgress);
+                                    this.sprite.material.opacity = THREE.MathUtils.lerp(0.7, 1.8, flashProgress);
+                                } else if (flashProgress <= 2) {
+                                    // Smoothly decrease opacity back to normal
+                                    this.sprite.material.opacity = THREE.MathUtils.lerp(1.8, 0.7, flashProgress - 1);
                                 } else {
-                                    // Fade back to normal opacity
-                                    this.sprite.material.opacity = THREE.MathUtils.lerp(1.5, 0.7, flashProgress - 1);
                                     this.isFlashing = false;
                                 }
                             }
@@ -960,6 +961,7 @@
                 });
             });
         </script>
+
 
 
 
