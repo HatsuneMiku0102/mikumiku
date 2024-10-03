@@ -693,9 +693,8 @@
             import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
-            import { ImprovedNoise } from '/js/ImprovedNoise.js';
+            import { Lensflare, LensflareElement } from '/js/objects/Lensflare.js';
         
-
             const canvas = document.getElementById('techCanvas');
             const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -718,21 +717,17 @@
                 scene.background = new THREE.Color(0x202020);
             });
         
-            // Ambient Lighting
             const ambientLight = new THREE.AmbientLight(0x505050, 1.5);
             scene.add(ambientLight);
         
-            // Point Light to Create Dynamic Shadows
             const pointLight = new THREE.PointLight(0xffffff, 1.0, 3000);
             pointLight.position.set(1000, 500, 1000);
             scene.add(pointLight);
         
-            // Slowly Moving Directional Light
             const directionalLight = new THREE.DirectionalLight(0xffeedd, 1.0);
             directionalLight.position.set(500, 1000, 1500);
             scene.add(directionalLight);
         
-            // Create Parallax Star Layers
             const starTextures = [
                 '/textures/stars 001.png',
                 '/textures/stars 002.png',
@@ -741,7 +736,7 @@
                 '/textures/stars 005.png',
                 '/textures/stars 006.png'
             ];
-            const starLayers = [2000, 4000, 6000]; // Different depths for parallax
+            const starLayers = [2000, 4000, 6000];
         
             for (let depth of starLayers) {
                 for (let i = 0; i < starTextures.length; i++) {
@@ -772,7 +767,6 @@
                 scene.add(starField);
             }
         
-            // Add Comets Using comet1.png Texture with Enhanced Glow Effects
             const cometTexture = textureLoader.load('/textures/comet1.png');
             const cometMaterial = new THREE.SpriteMaterial({
                 map: cometTexture,
@@ -781,17 +775,23 @@
                 depthWrite: false,
             });
         
-            const cometCount = 3; // Reduced number of comets for more subtlety
+            const cometCount = 3;
             const comets = [];
             for (let i = 0; i < cometCount; i++) {
                 const comet = new THREE.Sprite(cometMaterial);
-                comet.scale.set(80, 80, 1); // Initial size of the comets
-                comet.light = new THREE.PointLight(0xffaa33, 0.5, 1000, 2); // Light attached to the comet
-                comet.light.visible = false; // Initially off, becomes visible during flares
+                comet.scale.set(80, 80, 1);
+                comet.light = new THREE.PointLight(0xffaa33, 0.5, 1000, 2);
+                comet.light.visible = false;
                 resetComet(comet);
                 comets.push(comet);
                 scene.add(comet);
-                scene.add(comet.light); // Add the light to the scene
+                scene.add(comet.light);
+        
+                // Adding a Lens Flare for the comets
+                const lensflare = new Lensflare();
+                lensflare.addElement(new LensflareElement(textureLoader.load('/textures/lensflare.png'), 150, 0.0, comet.light.color));
+                comet.lensflare = lensflare;
+                comet.light.add(lensflare);
             }
         
             function resetComet(comet) {
@@ -800,17 +800,13 @@
                     window.innerHeight / 2 + Math.random() * 1000,
                     0
                 );
-                comet.velocity = new THREE.Vector3(
-                    -800, // Speed on x-axis to keep a diagonal path
-                    -800, // Speed on y-axis to move straight down diagonally
-                    0
-                );
-                comet.lifespan = 6.0 + Math.random() * 2.0; // Comet will last between 6 to 8 seconds
-                comet.burningOut = false; // Track whether burnout effect has started
-                comet.light.intensity = 0.5; // Initial light intensity
-                comet.light.visible = false; // Initially invisible
-                comet.material.opacity = 1.0; // Reset opacity
-                comet.scale.set(80, 80, 1); // Reset comet size
+                comet.velocity = new THREE.Vector3(-800, -800, 0);
+                comet.lifespan = 6.0 + Math.random() * 2.0;
+                comet.burningOut = false;
+                comet.light.intensity = 0.5;
+                comet.light.visible = false;
+                comet.material.opacity = 1.0;
+                comet.scale.set(80, 80, 1);
             }
         
             function updateComets(delta) {
@@ -820,22 +816,22 @@
                     comet.lifespan -= delta;
         
                     if (comet.lifespan > 3.0) {
-                        // Normal flight - moderate flickering flashes
                         comet.light.intensity = 1.0 + Math.sin(clock.getElapsedTime() * 15) * 0.5;
                         comet.light.visible = true;
                     } else if (!comet.burningOut) {
-                        // Enter the final bright burnout stage
                         comet.burningOut = true;
-                        comet.material.color.set(0xffffff); // Turn comet white for burnout
-                        comet.light.color.set(0xffffff); // Change light to white for bright glare
-                        comet.light.intensity = 20.0; // High intensity for dramatic burnout
-                        comet.light.visible = true; // Make the light visible
-                        comet.scale.set(150, 150, 1); // Increase size for emphasis
+                        comet.material.color.set(0xffffff);
+                        comet.light.color.set(0xffffff);
+                        comet.light.intensity = 20.0;
+                        comet.light.visible = true;
+                        comet.scale.set(150, 150, 1);
         
-                        // Add a bright flash using bloom
+                        // Create a starburst effect using lensflare
+                        comet.lensflare.visible = true;
+        
+                        // Bloom Pass for the burnout effect
                         composer.addPass(bloomPass);
                     } else {
-                        // Fade out smoothly
                         comet.material.opacity = Math.max(0, comet.material.opacity - delta * 0.5);
                         comet.light.intensity = Math.max(0, comet.light.intensity - delta * 5);
                         if (comet.material.opacity <= 0) {
@@ -849,7 +845,6 @@
                 });
             }
         
-            // Animate the Scene
             const clock = new THREE.Clock();
             function animate() {
                 requestAnimationFrame(animate);
@@ -857,36 +852,28 @@
                 const delta = clock.getDelta();
                 const elapsedTime = clock.getElapsedTime();
         
-                // Camera movement to simulate drifting in space with depth
                 camera.position.x = Math.sin(elapsedTime * 0.05) * 1000;
                 camera.position.y = Math.cos(elapsedTime * 0.03) * 500;
                 camera.position.z = 2000 + Math.sin(elapsedTime * 0.02) * 500;
                 camera.lookAt(new THREE.Vector3(0, 0, 0));
         
-                // Update comet positions and burnout effect
                 updateComets(delta);
         
-                // Render the scene
                 composer.render();
             }
         
-            // Post-Processing Effects for the background and comets
             const renderScene = new RenderPass(scene, camera);
             const composer = new EffectComposer(renderer);
             composer.addPass(renderScene);
         
-            // Bloom Pass specifically for the comets
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                2.0,  // Enhanced bloom strength for comet glare
+                1.0,  // Reduced bloom strength
                 0.4,  // Bloom radius
-                0.1   // Bloom threshold to highlight comet and bright stars
+                0.8   // Bloom threshold
             );
-        
-            // Add bloom pass to the composer but only activate during comet burnout
             composer.addPass(bloomPass);
         
-            // Handle window resizing
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
@@ -896,6 +883,7 @@
         
             animate();
         </script>
+
 
 
 
