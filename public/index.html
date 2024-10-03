@@ -691,6 +691,7 @@
             import { EffectComposer } from '/js/postprocessing/EffectComposer.js';
             import { RenderPass } from '/js/postprocessing/RenderPass.js';
             import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
+            import { Lensflare, LensflareElement } from '/js/objects/Lensflare.js';
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
             import { Vector2 } from '/js/three.module.min.js';
@@ -742,7 +743,7 @@
         
                     this.existingComets = existingComets;
         
-                    this.initLight();
+                    this.initLightAndLensflare();
                     this.initParticleTail();
                     this.reset();
                 }
@@ -760,11 +761,18 @@
                     }
                 }
         
-                initLight() {
+                initLightAndLensflare() {
                     const color = this.getCometColor();
-                    this.pointLight = new THREE.PointLight(color, Math.random() * 1.5 + 0.5, 1500);
+                    this.pointLight = new THREE.PointLight(0xffffff, 1.5, 1500); // Bright white for comet head
                     scene.add(this.pointLight);
         
+                    // Adding lens flare for the bright comet head effect
+                    const textureFlare = textureLoader.load('/textures/lensflare0.png');
+                    const lensflare = new Lensflare();
+                    lensflare.addElement(new LensflareElement(textureFlare, 700, 0, this.pointLight.color));
+                    this.pointLight.add(lensflare);
+        
+                    // Halo effect around the comet head
                     this.haloLight = new THREE.PointLight(color, 0.0, 3000);
                     scene.add(this.haloLight);
                 }
@@ -921,7 +929,7 @@
                     this.haloLight.intensity = Math.random() * 3 + 2; 
         
                     setTimeout(() => {
-                        this.pointLight.intensity = 0.5; 
+                        this.pointLight.intensity = 1.5; 
                         this.haloLight.intensity = 0.0; 
                     }, flickerDuration);
                 }
@@ -954,7 +962,7 @@
         
             const bloomParams = {
                 exposure: 1.0,
-                bloomStrength: 0.9,
+                bloomStrength: 1.2, // Increase bloom to enhance glow
                 bloomThreshold: 0.1,
                 bloomRadius: 0.6
             };
@@ -1007,6 +1015,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
