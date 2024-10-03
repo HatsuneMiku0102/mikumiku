@@ -691,19 +691,14 @@
             import { EffectComposer } from '/js/postprocessing/EffectComposer.js';
             import { RenderPass } from '/js/postprocessing/RenderPass.js';
             import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
-            import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
-            import { FXAAShader } from '/js/shaders/FXAAShader.js';
             import { Lensflare, LensflareElement } from '/js/Lensflare.js';
         
-
             const canvas = document.getElementById('techCanvas');
             const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-        
-            // Lowering the tone mapping exposure to reduce overall brightness
             renderer.toneMappingExposure = 0.8;
         
             const scene = new THREE.Scene();
@@ -720,74 +715,35 @@
                 scene.background = new THREE.Color(0x202020);
             });
         
-            // Reduced ambient light intensity to reduce overall brightness
             const ambientLight = new THREE.AmbientLight(0x404040, 1.0);
             scene.add(ambientLight);
         
-            // Reduced point light intensity
             const pointLight = new THREE.PointLight(0xffffff, 0.6, 3000);
             pointLight.position.set(1000, 500, 1000);
             scene.add(pointLight);
         
-            // Directional light with reduced intensity
             const directionalLight = new THREE.DirectionalLight(0xffeedd, 0.8);
             directionalLight.position.set(500, 1000, 1500);
             scene.add(directionalLight);
         
-            const starTextures = [
-                '/textures/stars 001.png',
-                '/textures/stars 002.png',
-                '/textures/stars 003.png',
-                '/textures/stars 004.png',
-                '/textures/stars 005.png',
-                '/textures/stars 006.png'
-            ];
-            const starLayers = [2000, 4000, 6000];
-        
-            for (let depth of starLayers) {
-                for (let i = 0; i < starTextures.length; i++) {
-                    createStarField(starTextures[i], 1000, depth);
-                }
-            }
-        
-            function createStarField(texturePath, count, depth) {
-                const starGeometry = new THREE.BufferGeometry();
-                const starMaterial = new THREE.PointsMaterial({
-                    size: 30,
-                    map: textureLoader.load(texturePath),
-                    sizeAttenuation: true,
-                    transparent: true,
-                    blending: THREE.AdditiveBlending,
-                    depthWrite: false,
-                });
-        
-                const starPositions = new Float32Array(count * 3);
-                for (let i = 0; i < count; i++) {
-                    starPositions[i * 3] = (Math.random() - 0.5) * 10000;
-                    starPositions[i * 3 + 1] = (Math.random() - 0.5) * 10000;
-                    starPositions[i * 3 + 2] = depth + (Math.random() - 0.5) * 500;
-                }
-        
-                starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-                const starField = new THREE.Points(starGeometry, starMaterial);
-                scene.add(starField);
-            }
-        
             const cometTexture = textureLoader.load('/textures/comet1.png');
-            const cometMaterial = new THREE.SpriteMaterial({
-                map: cometTexture,
-                blending: THREE.AdditiveBlending,
-                transparent: true,
-                depthWrite: false,
-            });
-        
             const cometCount = 3;
             const comets = [];
             for (let i = 0; i < cometCount; i++) {
-                const comet = new THREE.Sprite(cometMaterial);
-                comet.scale.set(80, 80, 1);
-                comet.light = new THREE.PointLight(0xffaa33, 0.5, 1000, 2);
+                const comet = new THREE.Sprite(new THREE.SpriteMaterial({
+                    map: cometTexture,
+                    blending: THREE.AdditiveBlending,
+                    transparent: true,
+                    depthWrite: false,
+                }));
+        
+                // Randomize the initial size, color, and light intensity
+                comet.scale.set(50 + Math.random() * 50, 50 + Math.random() * 50, 1);
+                comet.color = new THREE.Color(Math.random(), Math.random(), Math.random());
+                comet.material.color = comet.color;
+                comet.light = new THREE.PointLight(comet.color, 0.5 + Math.random() * 1.5, 1000, 2);
                 comet.light.visible = false;
+        
                 resetComet(comet);
                 comets.push(comet);
                 scene.add(comet);
@@ -800,18 +756,23 @@
             }
         
             function resetComet(comet) {
+                // Random initial position around the edges of the screen
                 comet.position.set(
-                    window.innerWidth / 2 + Math.random() * 1000,
-                    window.innerHeight / 2 + Math.random() * 1000,
+                    (Math.random() - 0.5) * window.innerWidth,
+                    (Math.random() - 0.5) * window.innerHeight,
                     0
                 );
-                comet.velocity = new THREE.Vector3(-800, -800, 0);
+                comet.velocity = new THREE.Vector3(
+                    -400 - Math.random() * 400, // Random speed on x-axis
+                    -400 - Math.random() * 400, // Random speed on y-axis
+                    0
+                );
                 comet.lifespan = 6.0 + Math.random() * 2.0;
                 comet.burningOut = false;
                 comet.light.intensity = 0.5;
                 comet.light.visible = false;
-                comet.material.opacity = 1.0;
-                comet.scale.set(80, 80, 1);
+                comet.material.opacity = 0.0; // Start with an invisible comet for fade-in
+                comet.scale.set(50 + Math.random() * 50, 50 + Math.random() * 50, 1); // Randomize size
             }
         
             function updateComets(delta) {
@@ -820,20 +781,29 @@
                     comet.light.position.copy(comet.position);
                     comet.lifespan -= delta;
         
-                    if (comet.lifespan > 3.0) {
-                        comet.light.intensity = 1.0 + Math.sin(clock.getElapsedTime() * 15) * 0.5;
+                    if (comet.lifespan > 5.0) {
+                        // Fade in effect at the beginning of the lifespan
+                        comet.material.opacity = Math.min(1.0, comet.material.opacity + delta * 0.5);
+                        comet.light.intensity = Math.min(1.0, comet.light.intensity + delta * 0.5);
                         comet.light.visible = true;
+                    } else if (comet.lifespan > 2.0) {
+                        // Normal flight, with moderate intensity variation
+                        comet.light.intensity = 1.0 + Math.sin(clock.getElapsedTime() * 15) * 0.2;
                     } else if (!comet.burningOut) {
+                        // Enter the bright burnout stage
                         comet.burningOut = true;
                         comet.material.color.set(0xffffff);
                         comet.light.color.set(0xffffff);
-                        comet.light.intensity = 20.0;
+                        comet.light.intensity = 15.0;
                         comet.light.visible = true;
                         comet.scale.set(150, 150, 1);
                         comet.lensflare.visible = true;
         
+                        // Attach lens flare to simulate a starburst effect
+                        comet.lensflare.size = 150;
                         composer.addPass(bloomPass);
                     } else {
+                        // Fade out smoothly
                         comet.material.opacity = Math.max(0, comet.material.opacity - delta * 0.5);
                         comet.light.intensity = Math.max(0, comet.light.intensity - delta * 5);
                         if (comet.material.opacity <= 0) {
@@ -841,6 +811,7 @@
                         }
                     }
         
+                    // Reset comet if it goes off-screen
                     if (comet.position.x < -window.innerWidth / 2 || comet.position.y < -window.innerHeight / 2) {
                         resetComet(comet);
                     }
@@ -860,7 +831,6 @@
                 camera.lookAt(new THREE.Vector3(0, 0, 0));
         
                 updateComets(delta);
-        
                 composer.render();
             }
         
@@ -885,6 +855,7 @@
         
             animate();
         </script>
+
 
 
 
