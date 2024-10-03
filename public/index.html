@@ -783,7 +783,7 @@
             });
         
             // -------------------------------
-            // 7. Comet Class Definition with Enhanced Blending and Realism
+            // 7. Comet Class Definition with Enhanced Stability
             // -------------------------------
             class Comet {
                 constructor(texture, existingComets) {
@@ -807,19 +807,16 @@
         
                     this.sprite = new THREE.Sprite(material);
                     this.sprite.scale.set(200, 200, 1); // Increased size for comet head
+                    this.sprite.material.opacity = 0.8; // Consistent opacity to avoid flickering
                     scene.add(this.sprite);
         
                     this.existingComets = existingComets;
         
-                    // Initialize volumetric tail, light, and dynamic properties
+                    // Initialize volumetric tail and light
                     this.initTail();
                     this.initLight();
         
                     this.reset();
-        
-                    // Smooth Scaling Effect for Comet Head
-                    this.pulsationSpeed = Math.random() * 0.05 + 0.02;
-                    this.pulsationSize = 1.1;
                 }
         
                 initTail() {
@@ -851,7 +848,7 @@
                         color: new THREE.Color(0x88ccee),
                         blending: THREE.AdditiveBlending,
                         transparent: true,
-                        opacity: 0.3, // Lower opacity for better blending with background
+                        opacity: 0.5, // Consistent opacity for smooth blending with background
                         depthWrite: false,
                     });
         
@@ -860,8 +857,8 @@
                 }
         
                 initLight() {
-                    // Adjusted Light for Blending with Background
-                    this.pointLight = new THREE.PointLight(0xffe680, 0.8, 1500);
+                    // Adjusted Light for Steady Glow
+                    this.pointLight = new THREE.PointLight(0xffe680, 0.5, 1500); // Lower intensity to avoid stark contrast
                     scene.add(this.pointLight);
                 }
         
@@ -895,8 +892,6 @@
         
                     const scale = Math.random() * 50 + 200; // Larger size for more dynamic visuals
                     this.sprite.scale.set(scale, scale, 1);
-                    this.sprite.material.opacity = Math.random() * 0.5 + 0.5;
-                    this.baseColor = this.sprite.material.color.clone();
                 }
         
                 generateSpawnPosition() {
@@ -936,10 +931,6 @@
         
                     this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
                     this.pointLight.position.copy(this.sprite.position);
-        
-                    // Smooth Scaling Effect for Comet Head
-                    const scaleFactor = Math.sin(Date.now() * this.pulsationSpeed) * this.pulsationSize + 1;
-                    this.sprite.scale.set(200 * scaleFactor, 200 * scaleFactor, 1);
         
                     // Update tail particles for a gaseous effect
                     for (let i = 0; i < this.tailParticles; i++) {
@@ -1038,7 +1029,6 @@
                 camera.position.y += (-mouseY - camera.position.y) * 0.05;
                 camera.lookAt(scene.position);
         
-                starMaterial.opacity = 0.7 + Math.sin(Date.now() * 0.001) * 0.1;
                 cometPool.forEach(comet => comet.update(delta));
                 composer.render();
             }
