@@ -706,7 +706,7 @@
             renderer.toneMappingExposure = 1.1;
         
             const scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(0x000010, 3000, 15000); // Extended fog range for more depth
+            scene.fog = new THREE.Fog(0x000010, 3000, 15000);
         
             const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000);
             camera.position.set(0, 0, 3500);
@@ -767,8 +767,6 @@
                         transparent: true,
                         opacity: 1.0,
                         depthWrite: false,
-                        emissive: new THREE.Color(0xffffff), // Add emissive color to make comets glow
-                        emissiveIntensity: 0.8 // Glow intensity
                     });
         
                     this.comet = new THREE.Sprite(cometMaterial);
@@ -778,7 +776,7 @@
         
                     // Comet Trail using Particles
                     this.trailGeometry = new THREE.BufferGeometry();
-                    this.trailPositions = new Float32Array(50 * 3); // Extended trail length
+                    this.trailPositions = new Float32Array(50 * 3); // Trail length
                     this.trailGeometry.setAttribute('position', new THREE.BufferAttribute(this.trailPositions, 3));
                     const trailMaterial = new THREE.PointsMaterial({ color: 0xffaa33, size: 4, transparent: true, opacity: 0.6 });
                     this.trail = new THREE.Points(this.trailGeometry, trailMaterial);
@@ -791,17 +789,14 @@
                         this.comet.position.set(position.x, position.y, position.z);
                     }
         
-                    // Fast diagonal movement with initial downward acceleration for gravity effect
+                    // Diagonal movement from top-right to bottom-left
                     this.velocity = new THREE.Vector3(
-                        -800 + Math.random() * -100,  // Strong diagonal component to the left
-                        -300 + Math.random() * -200,  // Downward component for initial gravity
+                        -800,  // Horizontal component
+                        -500,  // Vertical component
                         0
                     );
         
-                    this.gravity = new THREE.Vector3(0, -5, 0); // Simulated gravity pulling the comet down
-                    this.curveFactor = Math.random() * 0.02 + 0.01; // Randomize curve factor for varied trajectories
-        
-                    this.lifespan = 15; // Adjusted lifespan for smoother transitions
+                    this.lifespan = 15; // Adjusted lifespan for a consistent transition
                     this.trailIndex = 0;
                 }
         
@@ -816,14 +811,13 @@
                 update(delta) {
                     if (!this.comet) return;
         
-                    // Update velocity with gravity to create a curving effect
-                    this.velocity.add(this.gravity.clone().multiplyScalar(delta));
-                    this.velocity.x -= this.curveFactor; // Apply a slight curve to the left
+                    // Move comet along a straight diagonal path
                     this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
         
-                    // Update opacity towards the end of lifespan for fade-out effect
-                    const lifeRatio = this.lifespan / 15;
-                    this.comet.material.opacity = Math.max(lifeRatio, 0);
+                    // Fade-out effect towards the end of lifespan
+                    if (this.lifespan < 3) {
+                        this.comet.material.opacity = Math.max(this.lifespan / 3, 0);
+                    }
         
                     this.lifespan -= delta;
         
