@@ -740,30 +740,7 @@
             });
         
             // -------------------------------
-            // 5. Stars Geometry for Depth Effect
-            // -------------------------------
-            const starGeometry = new THREE.BufferGeometry();
-            const starCount = 5000;
-            const starVertices = new Float32Array(starCount * 3);
-            for (let i = 0; i < starCount * 3; i++) {
-                starVertices[i] = (Math.random() - 0.5) * 10000;
-            }
-            starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
-        
-            const starMaterial = new THREE.PointsMaterial({
-                size: 2,
-                color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, 90%)`),
-                transparent: true,
-                opacity: 0.7,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false,
-            });
-        
-            const stars = new THREE.Points(starGeometry, starMaterial);
-            scene.add(stars);
-        
-            // -------------------------------
-            // 6. Load Comet Textures
+            // 5. Load Comet Textures
             // -------------------------------
             const cometTextures = [];
             const cometTexturePaths = ['/textures/comet1.png', '/textures/comet2.png'];
@@ -783,7 +760,7 @@
             });
         
             // -------------------------------
-            // 7. Comet Class Definition with Error Handling for Material Access
+            // 6. Comet Class Definition with Enhanced Realism and Fade-out Glow
             // -------------------------------
             class Comet {
                 constructor(texture, existingComets) {
@@ -809,18 +786,6 @@
                     this.sprite.scale.set(200, 200, 1); // Increased size for comet head
                     this.sprite.material.opacity = 0.8; // Consistent opacity to avoid flickering
                     scene.add(this.sprite);
-        
-                    // Lens Glare Effect
-                    this.glareMaterial = new THREE.SpriteMaterial({
-                        map: new THREE.CanvasTexture(createGlareTexture()),
-                        blending: THREE.AdditiveBlending,
-                        transparent: true,
-                        opacity: 0.0, // Start invisible, appear before fading out
-                    });
-        
-                    this.glareSprite = new THREE.Sprite(this.glareMaterial);
-                    this.glareSprite.scale.set(300, 300, 1);
-                    scene.add(this.glareSprite);
         
                     this.existingComets = existingComets;
         
@@ -860,7 +825,7 @@
                         color: new THREE.Color(0x88ccee),
                         blending: THREE.AdditiveBlending,
                         transparent: true,
-                        opacity: 0.5, // Consistent opacity for smooth blending with background
+                        opacity: 0.3, // Reduced opacity for smooth blending with background
                         depthWrite: false,
                     });
         
@@ -936,8 +901,8 @@
                 }
         
                 update(delta) {
-                    if (!this.sprite || !this.sprite.material || !this.glareSprite) {
-                        // Make sure sprite, glare, and material exist before updating
+                    if (!this.sprite) {
+                        console.error("Sprite is not available during update");
                         return;
                     }
         
@@ -950,10 +915,6 @@
                         this.tailPositions[i * 3 + 1] += this.tailVelocities[i * 3 + 1] * delta * 0.5;
                         this.tailPositions[i * 3 + 2] += this.tailVelocities[i * 3 + 2] * delta * 0.5;
         
-                        // Add random oscillation to simulate turbulence in the tail
-                        this.tailPositions[i * 3] += Math.sin(Date.now() * 0.001 + i) * 0.5;
-                        this.tailPositions[i * 3 + 1] += Math.cos(Date.now() * 0.001 + i) * 0.5;
-        
                         // Fade the particles out over time for a smoother blend
                         const fadeFactor = Math.max(0.1, 1.0 - i / this.tailParticles);
                         this.tail.geometry.attributes.size.array[i] = this.tailSizes[i] * fadeFactor;
@@ -962,16 +923,19 @@
                     this.tailGeometry.attributes.position.needsUpdate = true;
                     this.tailGeometry.attributes.size.needsUpdate = true;
         
-                    // Lens Glare Effect before fading out
+                    // Fade-Out Glow Effect for Comet Head
                     if (
                         this.sprite.position.x < -4000 ||
                         this.sprite.position.y < -4000 ||
                         this.sprite.position.z < -4000
                     ) {
-                        this.glareSprite.position.copy(this.sprite.position);
-                        this.glareSprite.material.opacity = 1.0;
+                        // Apply bright glow effect before fading out
+                        this.sprite.material.opacity = Math.min(1.0, this.sprite.material.opacity + 0.02);
+                        this.pointLight.intensity = Math.min(2.0, this.pointLight.intensity + 0.05);
                     } else {
-                        this.glareSprite.material.opacity = 0.0;
+                        // Reset opacity and light intensity to default
+                        this.sprite.material.opacity = 0.8;
+                        this.pointLight.intensity = 0.5;
                     }
         
                     // Reset comet if it moves out of bounds
@@ -987,7 +951,7 @@
             }
         
             // -------------------------------
-            // 8. Initialize Comets
+            // 7. Initialize Comets
             // -------------------------------
             function initComets() {
                 if (texturesLoaded !== cometTexturePaths.length) {
@@ -1019,17 +983,17 @@
             }
         
             // -------------------------------
-            // 9. Post-processing with EffectComposer and UnrealBloomPass
+            // 8. Post-processing with EffectComposer and UnrealBloomPass
             // -------------------------------
             const composer = new EffectComposer(renderer);
             const renderPass = new RenderPass(scene, camera);
             composer.addPass(renderPass);
         
             const bloomParams = {
-                exposure: 1.0,
-                bloomStrength: 0.6, // Lower bloom strength for smoother integration
-                bloomThreshold: 0.2,
-                bloomRadius: 0.4 // Slightly wider bloom to blend into background
+                exposure: 1.2,
+                bloomStrength: 0.9, // Increased bloom strength for enhanced glow
+                bloomThreshold: 0.1,
+                bloomRadius: 0.6 // Wider bloom for more photorealistic effect
             };
             const bloomPass = new UnrealBloomPass(
                 new Vector2(window.innerWidth, window.innerHeight),
@@ -1044,7 +1008,7 @@
             composer.addPass(fxaaPass);
         
             // -------------------------------
-            // 10. Animation Loop and Mouse Interaction
+            // 9. Animation Loop and Mouse Interaction
             // -------------------------------
             const clock = new THREE.Clock();
             let mouseX = 0;
@@ -1085,7 +1049,7 @@
             }, 100);
         
             // -------------------------------
-            // 11. Handle Window Resize
+            // 10. Handle Window Resize
             // -------------------------------
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
@@ -1096,28 +1060,6 @@
         
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
-        
-            // -------------------------------
-            // 12. Create Glare Texture for Lens Effect
-            // -------------------------------
-            function createGlareTexture() {
-                const size = 128;
-                const canvas = document.createElement('canvas');
-                canvas.width = size;
-                canvas.height = size;
-                const context = canvas.getContext('2d');
-        
-                const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-                gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-                gradient.addColorStop(0.2, 'rgba(255, 255, 255, 0.8)');
-                gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.2)');
-                gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        
-                context.fillStyle = gradient;
-                context.fillRect(0, 0, size, size);
-        
-                return canvas;
-            }
         </script>
 
 
