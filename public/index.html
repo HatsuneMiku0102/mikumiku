@@ -687,9 +687,6 @@
         </script>
 
         <script type="module">
-            // -------------------------------
-            // 1. Import Three.js and Post-Processing Modules from CDN
-            // -------------------------------
             import * as THREE from '/js/three.module.min.js';
             import { EffectComposer } from '/js/postprocessing/EffectComposer.js';
             import { RenderPass } from '/js/postprocessing/RenderPass.js';
@@ -698,38 +695,23 @@
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
             import { Vector2 } from '/js/three.module.min.js';
         
-            // -------------------------------
-            // 2. Define Constants and Variables
-            // -------------------------------
             const maxComets = 3;
             const cometPool = [];
             const minDistance = 1000;
             const maxAttempts = 30;
         
-            // -------------------------------
-            // 3. Renderer Setup
-            // -------------------------------
             const canvas = document.getElementById('techCanvas');
             const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 0.5;
+            renderer.toneMappingExposure = 0.6;
         
-            // -------------------------------
-            // 4. Scene and Camera Setup
-            // -------------------------------
             const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(
-                75,
-                window.innerWidth / window.innerHeight,
-                0.1,
-                10000
-            );
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
             camera.position.z = 1200;
         
-            // Static Background - Nebula
             const textureLoader = new THREE.TextureLoader();
             textureLoader.load('/textures/nebula.webp', (texture) => {
                 texture.colorSpace = THREE.SRGBColorSpace;
@@ -739,9 +721,6 @@
                 scene.background = new THREE.Color(0x000000);
             });
         
-            // -------------------------------
-            // 5. Load Comet Textures
-            // -------------------------------
             const cometTextures = [];
             const cometTexturePaths = ['/textures/comet1.png', '/textures/comet2.png'];
             let texturesLoaded = 0;
@@ -759,9 +738,6 @@
                 });
             });
         
-            // -------------------------------
-            // 6. Comet Class Definition with Enhanced Movement
-            // -------------------------------
             class Comet {
                 constructor(texture, existingComets) {
                     if (!texture) {
@@ -769,11 +745,9 @@
                         return;
                     }
         
-                    // Randomly assign composition type
                     const compositionTypes = ['carbon-rich', 'iron-rich'];
                     this.composition = compositionTypes[Math.floor(Math.random() * compositionTypes.length)];
         
-                    // Comet Head (Enlarged Size)
                     const material = new THREE.SpriteMaterial({
                         map: texture,
                         transparent: true,
@@ -783,59 +757,20 @@
                     });
         
                     this.sprite = new THREE.Sprite(material);
-                    this.sprite.scale.set(200, 200, 1); // Increased size for comet head
-                    this.sprite.material.opacity = 0.8; // Consistent opacity to avoid flickering
+                    this.sprite.scale.set(200, 200, 1);
+                    this.sprite.material.opacity = 0.8;
                     scene.add(this.sprite);
         
                     this.existingComets = existingComets;
         
-                    // Initialize volumetric tail and light
-                    this.initTail();
                     this.initLight();
         
+                    this.flickerTriggered = false;
                     this.reset();
                 }
         
-                initTail() {
-                    // Ultra-Realistic Volumetric Tail using Animated Particles with Noise
-                    this.tailParticles = 700;
-                    this.tailGeometry = new THREE.BufferGeometry();
-                    this.tailPositions = new Float32Array(this.tailParticles * 3);
-                    this.tailVelocities = new Float32Array(this.tailParticles * 3);
-                    this.tailSizes = new Float32Array(this.tailParticles);
-        
-                    for (let i = 0; i < this.tailParticles; i++) {
-                        this.tailPositions[i * 3] = this.sprite.position.x;
-                        this.tailPositions[i * 3 + 1] = this.sprite.position.y;
-                        this.tailPositions[i * 3 + 2] = this.sprite.position.z;
-        
-                        // Assign random velocity to simulate turbulence and spread
-                        this.tailVelocities[i * 3] = (Math.random() - 0.5) * 20;
-                        this.tailVelocities[i * 3 + 1] = (Math.random() - 0.5) * 20;
-                        this.tailVelocities[i * 3 + 2] = Math.random() * -50;
-        
-                        this.tailSizes[i] = Math.random() * 4 + 2; // Different sizes for particles
-                    }
-        
-                    this.tailGeometry.setAttribute('position', new THREE.BufferAttribute(this.tailPositions, 3));
-                    this.tailGeometry.setAttribute('size', new THREE.BufferAttribute(this.tailSizes, 1));
-        
-                    const tailMaterial = new THREE.PointsMaterial({
-                        size: 5,
-                        color: new THREE.Color(0x88ccee),
-                        blending: THREE.AdditiveBlending,
-                        transparent: true,
-                        opacity: 0.3, // Reduced opacity for smooth blending with background
-                        depthWrite: false,
-                    });
-        
-                    this.tail = new THREE.Points(this.tailGeometry, tailMaterial);
-                    scene.add(this.tail);
-                }
-        
                 initLight() {
-                    // Adjusted Light for Steady Glow
-                    this.pointLight = new THREE.PointLight(0xffe680, 0.5, 1500); // Lower intensity to avoid stark contrast
+                    this.pointLight = new THREE.PointLight(0xffe680, 0.5, 1500);
                     scene.add(this.pointLight);
                 }
         
@@ -861,15 +796,16 @@
                     this.sprite.position.set(position.x, position.y, position.z);
                     this.pointLight.position.set(position.x, position.y, position.z);
         
-                    // Adjust velocity for more natural, curved movement
                     this.velocity = new THREE.Vector3(
                         -500 + Math.random() * -150,
                         -500 + Math.random() * -150,
-                        Math.random() * 100 - 50 // Random z movement for natural orbital path
+                        Math.random() * 100 - 50
                     );
         
-                    const scale = Math.random() * 50 + 200; // Larger size for more dynamic visuals
+                    const scale = Math.random() * 50 + 200;
                     this.sprite.scale.set(scale, scale, 1);
+        
+                    this.flickerTriggered = false; // Reset flicker
                 }
         
                 generateSpawnPosition() {
@@ -907,64 +843,36 @@
                         return;
                     }
         
-                    // Update velocity for more realistic orbital movement
                     this.velocity.x += Math.sin(Date.now() * 0.0001) * 10 * delta;
                     this.velocity.y += Math.cos(Date.now() * 0.0001) * 10 * delta;
         
                     this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
                     this.pointLight.position.copy(this.sprite.position);
         
-                    // Update tail particles to create a dynamic, animated effect with visual noise
-                    for (let i = 0; i < this.tailParticles; i++) {
-                        this.tailPositions[i * 3] += this.tailVelocities[i * 3] * delta * 0.5;
-                        this.tailPositions[i * 3 + 1] += this.tailVelocities[i * 3 + 1] * delta * 0.5;
-                        this.tailPositions[i * 3 + 2] += this.tailVelocities[i * 3 + 2] * delta * 0.5;
-        
-                        // Add random oscillation to simulate turbulence in the tail
-                        this.tailPositions[i * 3] += Math.sin(Date.now() * 0.001 + i) * 0.5;
-                        this.tailPositions[i * 3 + 1] += Math.cos(Date.now() * 0.001 + i) * 0.5;
-        
-                        // Fade the particles out over time for a smoother blend
-                        const fadeFactor = Math.max(0.1, 1.0 - i / this.tailParticles);
-                        this.tail.geometry.attributes.size.array[i] = this.tailSizes[i] * fadeFactor;
-        
-                        // Add subtle flickering to particles to simulate gas breaking apart
-                        this.tail.geometry.attributes.size.array[i] *= (0.9 + 0.1 * Math.sin(Date.now() * 0.005 + i));
+                    if (!this.flickerTriggered && Math.random() < 0.001) {
+                        this.triggerFlicker();
                     }
         
-                    this.tailGeometry.attributes.position.needsUpdate = true;
-                    this.tailGeometry.attributes.size.needsUpdate = true;
-        
-                    // Fade-Out Glow Effect for Comet Head
                     if (
-                        this.sprite.position.x < -4000 ||
-                        this.sprite.position.y < -4000 ||
-                        this.sprite.position.z < -4000
-                    ) {
-                        // Apply bright glow effect before fading out
-                        this.sprite.material.opacity = Math.min(1.0, this.sprite.material.opacity + 0.02);
-                        this.pointLight.intensity = Math.min(2.0, this.pointLight.intensity + 0.05);
-                    } else {
-                        // Reset opacity and light intensity to default
-                        this.sprite.material.opacity = 0.8;
-                        this.pointLight.intensity = 0.5;
-                    }
-        
-                    // Reset comet if it moves out of bounds
-                    const bounds = 5000;
-                    if (
-                        this.sprite.position.x < -bounds ||
-                        this.sprite.position.y < -bounds ||
-                        this.sprite.position.z < -bounds
+                        this.sprite.position.x < -5000 ||
+                        this.sprite.position.y < -5000 ||
+                        this.sprite.position.z < -5000
                     ) {
                         this.reset();
                     }
                 }
+        
+                triggerFlicker() {
+                    this.flickerTriggered = true;
+        
+                    const flickerDuration = 100; // Flicker duration in milliseconds
+                    this.pointLight.intensity = 5.0; // Increase intensity for a bright flash
+                    setTimeout(() => {
+                        this.pointLight.intensity = 0.5; // Revert to normal intensity
+                    }, flickerDuration);
+                }
             }
         
-            // -------------------------------
-            // 7. Initialize Comets
-            // -------------------------------
             function initComets() {
                 if (texturesLoaded !== cometTexturePaths.length) {
                     console.error("Textures not fully loaded yet");
@@ -994,18 +902,15 @@
                 });
             }
         
-            // -------------------------------
-            // 8. Post-processing with EffectComposer and UnrealBloomPass
-            // -------------------------------
             const composer = new EffectComposer(renderer);
             const renderPass = new RenderPass(scene, camera);
             composer.addPass(renderPass);
         
             const bloomParams = {
                 exposure: 1.2,
-                bloomStrength: 0.9, // Increased bloom strength for enhanced glow
+                bloomStrength: 1.2,
                 bloomThreshold: 0.1,
-                bloomRadius: 0.6 // Wider bloom for more photorealistic effect
+                bloomRadius: 0.8
             };
             const bloomPass = new UnrealBloomPass(
                 new Vector2(window.innerWidth, window.innerHeight),
@@ -1019,9 +924,6 @@
             fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             composer.addPass(fxaaPass);
         
-            // -------------------------------
-            // 9. Animation Loop and Mouse Interaction
-            // -------------------------------
             const clock = new THREE.Clock();
             let mouseX = 0;
             let mouseY = 0;
@@ -1060,9 +962,6 @@
                 }
             }, 100);
         
-            // -------------------------------
-            // 10. Handle Window Resize
-            // -------------------------------
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
@@ -1073,6 +972,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
