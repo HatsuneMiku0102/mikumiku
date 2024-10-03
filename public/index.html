@@ -741,7 +741,7 @@
                 comet.scale.set(50 + Math.random() * 50, 50 + Math.random() * 50, 1);
                 comet.color = new THREE.Color(Math.random(), Math.random(), Math.random());
                 comet.material.color = comet.color;
-                comet.light = new THREE.PointLight(comet.color, 0.5 + Math.random() * 1.5, 1000, 2);
+                comet.light = new THREE.PointLight(comet.color, 0.3 + Math.random() * 0.5, 800, 2); // Lower initial intensity for balance
                 comet.light.visible = false;
         
                 resetComet(comet);
@@ -749,14 +749,14 @@
                 scene.add(comet);
                 scene.add(comet.light);
         
+                // Adding a lens flare to the comet light
                 const lensflare = new Lensflare();
-                lensflare.addElement(new LensflareElement(textureLoader.load('/textures/starburst.png'), 150, 0.0, comet.light.color));
+                lensflare.addElement(new LensflareElement(textureLoader.load('/textures/starburst.png'), 50, 0.0, comet.light.color)); // Reduced lens flare size
                 comet.lensflare = lensflare;
                 comet.light.add(lensflare);
             }
         
             function resetComet(comet) {
-                // Random initial position across a larger portion of the screen
                 comet.position.set(
                     (Math.random() - 0.5) * window.innerWidth * 2, // Spread across twice the screen width for more variation
                     (Math.random() - 0.5) * window.innerHeight * 2, // Spread across twice the screen height
@@ -769,7 +769,7 @@
                 );
                 comet.lifespan = 12.0 + Math.random() * 4.0; // Extended lifespan to between 12 and 16 seconds
                 comet.burningOut = false;
-                comet.light.intensity = 0.5;
+                comet.light.intensity = 0.3 + Math.random() * 0.5; // Balanced initial light intensity
                 comet.light.visible = false;
                 comet.material.opacity = 0.0; // Start with an invisible comet for fade-in
                 comet.scale.set(50 + Math.random() * 50, 50 + Math.random() * 50, 1); // Randomize size again
@@ -779,6 +779,7 @@
                 comets.forEach((comet) => {
                     comet.position.add(comet.velocity.clone().multiplyScalar(delta));
                     comet.light.position.copy(comet.position);
+                    comet.lensflare.position.copy(comet.position); // Keep lens flare at the comet head
                     comet.lifespan -= delta;
         
                     if (comet.lifespan > 10.0) {
@@ -794,13 +795,13 @@
                         comet.burningOut = true;
                         comet.material.color.set(0xffffff);
                         comet.light.color.set(0xffffff);
-                        comet.light.intensity = 20.0;
+                        comet.light.intensity = 15.0;
                         comet.light.visible = true;
                         comet.scale.set(150, 150, 1);
                         comet.lensflare.visible = true;
         
-                        // Attach lens flare to simulate a starburst effect
-                        comet.lensflare.size = 150;
+                        // Adjust flare size and keep it properly positioned on comet head
+                        comet.lensflare.elements[0].size = 100;
                         composer.addPass(bloomPass);
                     } else {
                         // Fade out smoothly
@@ -855,6 +856,7 @@
         
             animate();
         </script>
+
 
 
 
