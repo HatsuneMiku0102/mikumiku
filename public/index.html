@@ -694,7 +694,7 @@
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
         
-            const maxComets = 10; // Increased number of comets
+            const maxComets = 10;
             const cometPool = [];
             const minDistance = 1000;
             const maxAttempts = 30;
@@ -721,10 +721,10 @@
             });
         
             // Ambient and Directional Lighting
-            const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6); // Increased intensity
             scene.add(ambientLight);
         
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
             directionalLight.position.set(5, 10, 7.5);
             scene.add(directionalLight);
         
@@ -734,10 +734,10 @@
                 '/textures/comet2.png'
             ];
         
-            // Starfield Background
-            const starCount = 1000;
+            // Enhanced Starfield Background
+            const starCount = 2000; // Increased number of stars for a richer background
             const starsGeometry = new THREE.BufferGeometry();
-            const starsMaterial = new THREE.PointsMaterial({ color: 0x888888 });
+            const starsMaterial = new THREE.PointsMaterial({ color: 0xaaaaaa, size: 2, sizeAttenuation: true });
         
             const starPositions = new Float32Array(starCount * 3);
             for (let i = 0; i < starCount; i++) {
@@ -774,13 +774,13 @@
                     this.comet.scale.set(150, 150, 1);
                     scene.add(this.comet);
         
-                    this.initShimmerEffect();
+                    this.initGlareEffect();
                 }
         
-                initShimmerEffect() {
-                    this.shimmerTime = Math.random() * 4 + 3; // Random time to shimmer between 3 and 7 seconds
-                    this.shimmerTriggered = false;
-                    this.shimmerDuration = 3.0; // Shimmer duration for fast flicker
+                initGlareEffect() {
+                    this.glareTime = Math.random() * 4 + 3; // Random time to glare between 3 and 7 seconds
+                    this.glareTriggered = false;
+                    this.glareDuration = 0.2; // Glare duration for fast flicker
                 }
         
                 reset() {
@@ -808,7 +808,7 @@
                     );
         
                     this.lifespan = Math.random() * 15 + 15; // Increased lifespan
-                    this.shimmerTriggered = false;
+                    this.glareTriggered = false;
                 }
         
                 generateSpawnPosition() {
@@ -856,9 +856,9 @@
                         this.comet.material.opacity = THREE.MathUtils.lerp(this.comet.material.opacity, 0, 0.02);
                     }
         
-                    if (!this.shimmerTriggered && this.lifespan < this.shimmerTime) {
-                        this.triggerShimmer();
-                        this.shimmerTriggered = true;
+                    if (!this.glareTriggered && this.lifespan < this.glareTime) {
+                        this.triggerGlare();
+                        this.glareTriggered = true;
                     }
         
                     if (this.lifespan <= 0) {
@@ -866,19 +866,21 @@
                     }
                 }
         
-                triggerShimmer() {
+                triggerGlare() {
                     if (!this.comet) return;
         
-                    // Save original opacity to restore later
+                    // Create a fast flickering effect for glare
                     const originalOpacity = this.comet.material.opacity;
         
-                    // Brighten comet for shimmer effect (fast flicker)
-                    this.comet.material.opacity = 3.0;
+                    let flickerInterval = setInterval(() => {
+                        this.comet.material.opacity = Math.random() * 1.5 + 1.0; // Random flicker intensity
+                    }, 50); // Flicker every 50 ms
         
-                    // Gradually fade back to original opacity
+                    // Stop flickering after glare duration
                     setTimeout(() => {
-                        this.comet.material.opacity = originalOpacity;
-                    }, this.shimmerDuration * 1000);
+                        clearInterval(flickerInterval);
+                        this.comet.material.opacity = originalOpacity; // Restore original opacity
+                    }, this.glareDuration * 1000);
                 }
             }
         
@@ -886,7 +888,7 @@
                 for (let i = 0; i < maxComets; i++) {
                     setTimeout(() => {
                         new Comet(cometPool);
-                    }, i * 1000); // Reduced stagger time for faster comet spawning
+                    }, i * 800); // Reduced stagger time for faster comet spawning
                 }
             }
         
@@ -895,10 +897,10 @@
             composer.addPass(renderPass);
         
             const bloomParams = {
-                exposure: 0.5, // Balanced exposure for comet glow visibility
-                bloomStrength: 0.8, // Soft bloom effect for comet glow
-                bloomThreshold: 0.2,
-                bloomRadius: 0.4
+                exposure: 0.4, // Balanced exposure for comet glow visibility
+                bloomStrength: 1.0, // Soft bloom effect for comet glow
+                bloomThreshold: 0.1,
+                bloomRadius: 0.5
             };
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
@@ -913,7 +915,6 @@
             composer.addPass(fxaaPass);
         
             const clock = new THREE.Clock();
-        
             let mouseX = 0;
             let mouseY = 0;
         
@@ -949,6 +950,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
