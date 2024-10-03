@@ -699,10 +699,10 @@
                 // -------------------------------
                 // 1. Define Constants and Variables
                 // -------------------------------
-                const maxComets = 10; // Reduced maxComets for better spawn handling
+                const maxComets = 20; // Increased number of comets for better distribution
                 const cometPool = [];
-                const minDistance = 400; // Adjusted minimum distance between comets
-                const maxAttempts = 20; // Increased maxAttempts to find non-overlapping positions
+                const minDistance = 300; // Adjusted minimum distance between comets
+                const maxAttempts = 30; // Increased maxAttempts to find non-overlapping positions
     
                 // -------------------------------
                 // 2. Renderer Setup
@@ -725,7 +725,7 @@
                     75,
                     window.innerWidth / window.innerHeight,
                     0.1,
-                    5000 // Far plane accommodates distant comets
+                    10000 // Increased far plane to accommodate larger spawn area
                 );
                 camera.position.z = 300;
     
@@ -733,16 +733,18 @@
                 const textureLoader = new THREE.TextureLoader();
                 textureLoader.load('/textures/nebula.webp', (texture) => {
                     scene.background = texture;
+                }, undefined, (err) => {
+                    console.error('Error loading nebula texture:', err);
                 });
     
                 // -------------------------------
                 // 4. Stars Geometry for Depth Effect
                 // -------------------------------
                 const starGeometry = new THREE.BufferGeometry();
-                const starCount = 3000;
+                const starCount = 5000; // Increased star count for denser background
                 const starVertices = new Float32Array(starCount * 3);
                 for (let i = 0; i < starCount * 3; i++) {
-                    starVertices[i] = (Math.random() - 0.5) * 5000; // Spread stars over a larger area
+                    starVertices[i] = (Math.random() - 0.5) * 10000; // Spread stars over a larger area
                 }
                 starGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
     
@@ -773,11 +775,13 @@
                         if (texturesLoaded === cometTexturePaths.length) {
                             initComets();
                         }
+                    }, undefined, (err) => {
+                        console.error(`Error loading comet texture (${path}):`, err);
                     });
                 });
     
                 // -------------------------------
-                // 6. Post-processing with Bloom and Lensflare for Strong Glare Effect
+                // 6. Post-processing with Bloom for Strong Glare Effect
                 // -------------------------------
                 const composer = new THREE.EffectComposer(renderer);
                 const renderPass = new THREE.RenderPass(scene, camera);
@@ -785,14 +789,19 @@
     
                 const bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    1.5, // Increased strength for stronger glow
-                    1.0, // Increased radius for broader glow
-                    0.6  // Threshold remains the same
+                    2.0, // Increased strength for stronger glow
+                    1.5, // Increased radius for broader glow
+                    0.4  // Lowered threshold for more bloom
                 );
                 composer.addPass(bloomPass);
     
                 // -------------------------------
-                // 7. Comet Class Definition
+                // 7. Lensflare Setup
+                // -------------------------------
+                // We'll add lensflare to each comet individually in the Comet class
+    
+                // -------------------------------
+                // 8. Comet Class Definition
                 // -------------------------------
                 class Comet {
                     constructor(texture, existingComets) {
@@ -871,42 +880,85 @@
     
                         // Set fixed velocity to move diagonally down-left
                         this.velocity = new THREE.Vector3(
-                            -10, // x speed: move left rapidly
-                            -10, // y speed: move down rapidly
+                            -15, // Increased speed for faster movement
+                            -15, // Increased speed for faster movement
                             0    // z speed: maintain depth
                         );
     
                         // Restore default opacity
                         this.sprite.material.opacity = 0.7;
-    
-                        // Store base color for head flicker
-                        this.baseColor = this.sprite.material.color.clone();
                     }
     
                     generateSpawnPosition(allowOverlap = false) {
-                        // Calculate the top-right corner in world coordinates based on camera
+                        // Calculate the spawn position dynamically around the camera
                         const aspect = window.innerWidth / window.innerHeight;
                         const fov = THREE.MathUtils.degToRad(camera.fov);
                         const distance = Math.abs(camera.position.z - (-2500)); // Spawn z between -2500 and -3500
                         const height = 2 * Math.tan(fov / 2) * distance;
                         const width = height * aspect;
     
-                        // Spawn just outside the visible area
-                        const spawnOffsetX = 300; // Distance outside the screen horizontally
-                        const spawnOffsetY = 300; // Distance outside the screen vertically
-                        const spawnZ = -2500 + Math.random() * -1000; // z between -2500 and -3500
+                        // Define possible spawn directions
+                        const directions = [
+                            'top-right',
+                            'top-left',
+                            'bottom-right',
+                            'bottom-left',
+                            'top',
+                            'bottom',
+                            'left',
+                            'right'
+                        ];
     
-                        const x = width / 2 + spawnOffsetX;
-                        const y = height / 2 + spawnOffsetY;
+                        // Randomly choose a direction
+                        const direction = directions[Math.floor(Math.random() * directions.length)];
     
-                        return new THREE.Vector3(
-                            x,
-                            y,
-                            spawnZ
-                        );
+                        let x, y;
+    
+                        switch(direction) {
+                            case 'top-right':
+                                x = width / 2 + 300;
+                                y = height / 2 + 300;
+                                break;
+                            case 'top-left':
+                                x = -width / 2 - 300;
+                                y = height / 2 + 300;
+                                break;
+                            case 'bottom-right':
+                                x = width / 2 + 300;
+                                y = -height / 2 - 300;
+                                break;
+                            case 'bottom-left':
+                                x = -width / 2 - 300;
+                                y = -height / 2 - 300;
+                                break;
+                            case 'top':
+                                x = (Math.random() - 0.5) * width;
+                                y = height / 2 + 300;
+                                break;
+                            case 'bottom':
+                                x = (Math.random() - 0.5) * width;
+                                y = -height / 2 - 300;
+                                break;
+                            case 'left':
+                                x = -width / 2 - 300;
+                                y = (Math.random() - 0.5) * height;
+                                break;
+                            case 'right':
+                                x = width / 2 + 300;
+                                y = (Math.random() - 0.5) * height;
+                                break;
+                            default:
+                                x = width / 2 + 300;
+                                y = height / 2 + 300;
+                        }
+    
+                        const z = -2500 + Math.random() * -1000; // z between -2500 and -3500
+    
+                        return new THREE.Vector3(x, y, z);
                     }
     
                     isOverlapping(newPosition) {
+                        if (!newPosition) return false;
                         for (let comet of this.existingComets) {
                             if (comet === this) continue; // Skip self
                             const distance = comet.sprite.position.distanceTo(newPosition);
@@ -950,8 +1002,8 @@
                         // Ensure comets remain at fixed scale
                         this.sprite.scale.set(300, 300, 1); // Fixed scale
     
-                        // Reset comet if it moves out of bounds (bottom-left corner)
-                        const bounds = 2000; // Adjust based on scene size
+                        // Reset comet if it moves out of bounds (extended bounds for larger spawn area)
+                        const bounds = 3000; // Adjust based on scene size
                         if (
                             this.sprite.position.x < -bounds ||
                             this.sprite.position.y < -bounds ||
@@ -963,7 +1015,7 @@
                 }
     
                 // -------------------------------
-                // 8. Initialize Comets
+                // 9. Initialize Comets
                 // -------------------------------
                 function initComets() {
                     // Create comets and add to the pool
@@ -974,15 +1026,15 @@
                     }
     
                     // Spawn comets at regular intervals
-                    setInterval(spawnComet, 1000); // Increased spawn rate for better spread
+                    setInterval(spawnComet, 800); // Increased spawn rate for better spread
                 }
     
                 function spawnComet() {
                     // Iterate through comets and reset those that are out of bounds
                     cometPool.forEach(comet => {
                         if (
-                            comet.sprite.position.x < -2000 ||
-                            comet.sprite.position.y < -2000 ||
+                            comet.sprite.position.x < -3000 ||
+                            comet.sprite.position.y < -3000 ||
                             comet.sprite.position.z < -4000
                         ) {
                             comet.reset();
@@ -991,7 +1043,7 @@
                 }
     
                 // -------------------------------
-                // 9. Animation Loop
+                // 10. Animation Loop
                 // -------------------------------
                 const clock = new THREE.Clock();
     
@@ -1032,7 +1084,7 @@
                 }, 100);
     
                 // -------------------------------
-                // 10. Handle Window Resize
+                // 11. Handle Window Resize
                 // -------------------------------
                 window.addEventListener('resize', () => {
                     camera.aspect = window.innerWidth / window.innerHeight;
