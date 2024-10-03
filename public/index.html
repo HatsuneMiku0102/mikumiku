@@ -696,14 +696,15 @@
         
             const maxComets = 5;
             const cometPool = [];
-            
+            const gravity = new THREE.Vector3(0, -10, 0); // Gravity vector pulling downwards
+        
             const canvas = document.getElementById('techCanvas');
             const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 0.4;
+            renderer.toneMappingExposure = 0.5;
         
             const scene = new THREE.Scene();
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
@@ -718,7 +719,7 @@
                 scene.background = new THREE.Color(0x000000);
             });
         
-            const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.7);
             scene.add(ambientLight);
         
             const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -744,7 +745,7 @@
                     this.cometTexturePath = Math.random() < 0.5 ? '/textures/comet1.png' : '/textures/comet2.png';
         
                     textureLoader.load(this.cometTexturePath, (texture) => {
-                        texture.colorSpace = THREE.SRGBColorSpace; // Ensure correct color space
+                        texture.colorSpace = THREE.SRGBColorSpace;
                         this.initCometWithTexture(texture);
                         this.reset();
                         cometPool.push(this);
@@ -756,12 +757,12 @@
                         map: texture,
                         blending: THREE.AdditiveBlending,
                         transparent: true,
-                        opacity: Math.random() * 0.5 + 0.5, // Random opacity for natural effect
+                        opacity: Math.random() * 0.3 + 0.7, // Increase opacity for better visibility
                         depthWrite: false,
                     });
         
                     this.comet = new THREE.Sprite(cometMaterial);
-                    const scale = Math.random() * 100 + 150; // Random scale for variability
+                    const scale = Math.random() * 100 + 200; // Increased scale for better visibility
                     this.comet.scale.set(scale, scale, 1);
                     scene.add(this.comet);
         
@@ -778,21 +779,21 @@
         
                 initLight() {
                     const color = 0x88ccee;
-                    this.pointLight = new THREE.PointLight(color, 2.0 + Math.random() * 1.5, 1000); // Random intensity for uniqueness
+                    this.pointLight = new THREE.PointLight(color, 3.0 + Math.random() * 1.5, 1000); // Increased intensity for more impact
                     scene.add(this.pointLight);
                 }
         
                 initGlow() {
                     const glowMaterial = new THREE.SpriteMaterial({
-                        map: textureLoader.load('/textures/lensflare0.png'), // Soft, glowing texture
+                        map: textureLoader.load('/textures/lensflare0.png'),
                         color: 0x88ccee,
                         blending: THREE.AdditiveBlending,
                         transparent: true,
-                        opacity: 0.2,
+                        opacity: 0.4, // Increase opacity for better glow effect
                     });
         
                     this.glow = new THREE.Sprite(glowMaterial);
-                    this.glow.scale.set(300, 300, 1); // Slightly larger for halo effect
+                    this.glow.scale.set(350, 350, 1); // Slightly larger for a more prominent halo
                     scene.add(this.glow);
                 }
         
@@ -822,6 +823,10 @@
                 }
         
                 update(delta) {
+                    // Apply gravity effect to velocity
+                    this.velocity.add(gravity.clone().multiplyScalar(delta * 0.05)); // Slight gravity pull downwards
+        
+                    // Update position based on velocity
                     this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
                     this.pointLight.position.copy(this.comet.position);
                     this.glow.position.copy(this.comet.position);
@@ -848,11 +853,11 @@
         
                 triggerStarburst() {
                     const originalIntensity = this.pointLight.intensity;
-                    this.pointLight.intensity = 6.0;
+                    this.pointLight.intensity = 8.0;
         
                     // Flicker effect for more realism
                     setTimeout(() => {
-                        this.pointLight.intensity = 3.0;
+                        this.pointLight.intensity = 4.0;
                     }, 100); // Initial bright flicker
         
                     setTimeout(() => {
@@ -915,6 +920,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
