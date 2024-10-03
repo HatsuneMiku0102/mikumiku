@@ -785,10 +785,8 @@
             const comets = [];
             for (let i = 0; i < cometCount; i++) {
                 const comet = new THREE.Sprite(cometMaterial);
-                comet.scale.set(80, 80, 1); // Smaller comets for a more subtle effect
-                comet.light = new THREE.PointLight(0xffaa33, 2, 500, 2); // Light for comet burnout
-                comet.layers.set(1); // Set comets to layer 1 for bloom effect
-                comet.light.layers.set(1); // Ensure light affects the comet's layer
+                comet.scale.set(80, 80, 1); // Initial size of the comets
+                comet.light = new THREE.PointLight(0xffaa33, 2, 500, 2); // Light attached to the comet
                 resetComet(comet);
                 comets.push(comet);
                 scene.add(comet);
@@ -808,6 +806,9 @@
                 );
                 comet.lifespan = 4.0 + Math.random() * 2.0; // Comet will last between 4 to 6 seconds
                 comet.burningOut = false; // Track whether burnout effect has started
+                comet.light.intensity = 1.5; // Reset light intensity
+                comet.material.opacity = 1.0; // Reset opacity
+                comet.scale.set(80, 80, 1); // Reset comet size
             }
         
             function updateComets(delta) {
@@ -818,17 +819,19 @@
         
                     if (comet.lifespan > 1.0) {
                         // Normal flight, flickering light effect
-                        comet.light.intensity = 1.5 + Math.sin(clock.getElapsedTime() * 15) * 1.0;
+                        comet.light.intensity = 2.0 + Math.sin(clock.getElapsedTime() * 10) * 0.5;
                     } else if (!comet.burningOut) {
-                        // Bright burnout effect
+                        // Trigger bright burnout effect just before fading out
                         comet.burningOut = true;
-                        comet.material.color.set(0xffffff); // Turn comet white
-                        comet.light.color.set(0xffffff); // Turn light white for burnout
-                        comet.light.intensity = 20.0; // Increase brightness for burnout flash
-                        comet.scale.set(150, 150, 1); // Increase size during burnout
+                        comet.material.color.set(0xffffff); // Turn comet white for burnout
+                        comet.light.color.set(0xffffff); // Change light to white
+                        comet.light.intensity = 10.0; // Increase brightness significantly for burnout flash
+                        comet.scale.set(150, 150, 1); // Increase size to emphasize burnout
+                        comet.material.opacity = 1.0; // Maintain full opacity during burnout
                     } else {
-                        // Rapid flicker to simulate burning out
-                        comet.light.intensity = 20.0 + Math.sin(clock.getElapsedTime() * 50) * 5.0;
+                        // Rapid flicker to simulate burnout
+                        comet.light.intensity = 10.0 + Math.sin(clock.getElapsedTime() * 50) * 3.0; // Intense flickering effect
+                        comet.material.opacity = Math.max(0, comet.material.opacity - delta * 0.5); // Gradually reduce opacity after burnout
                     }
         
                     if (comet.position.x < -window.innerWidth / 2 || comet.position.y < -window.innerHeight / 2 || comet.lifespan <= 0) {
@@ -855,30 +858,13 @@
                 updateComets(delta);
         
                 // Render the scene
-                renderer.autoClear = false;
-                camera.layers.set(0); // Render background and stars first
-                composer.render();
-        
-                camera.layers.set(1); // Render comets with bloom effect
-                bloomComposer.render();
+                renderer.render(scene, camera);
             }
         
-            // Post-Processing Effects for background and comets
+            // Post-Processing Effects for the background
             const renderScene = new RenderPass(scene, camera);
             const composer = new EffectComposer(renderer);
             composer.addPass(renderScene);
-        
-            // Bloom Pass for comets (layer 1 only)
-            const bloomPass = new UnrealBloomPass(
-                new THREE.Vector2(window.innerWidth, window.innerHeight),
-                1.8,  // Bloom strength for comet glare
-                0.4,  // Bloom radius
-                0.1   // Bloom threshold to capture bright parts of comets
-            );
-        
-            const bloomComposer = new EffectComposer(renderer);
-            bloomComposer.addPass(renderScene);
-            bloomComposer.addPass(bloomPass);
         
             // Handle window resizing
             window.addEventListener('resize', () => {
@@ -886,11 +872,11 @@
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 composer.setSize(window.innerWidth, window.innerHeight);
-                bloomComposer.setSize(window.innerWidth, window.innerHeight);
             });
         
             animate();
         </script>
+
 
 
 
