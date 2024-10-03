@@ -767,6 +767,8 @@
                         transparent: true,
                         opacity: 1.0,
                         depthWrite: false,
+                        emissive: new THREE.Color(0xffffff), // Add emissive color to make comets glow
+                        emissiveIntensity: 0.8 // Glow intensity
                     });
         
                     this.comet = new THREE.Sprite(cometMaterial);
@@ -776,7 +778,7 @@
         
                     // Comet Trail using Particles
                     this.trailGeometry = new THREE.BufferGeometry();
-                    this.trailPositions = new Float32Array(30 * 3); // Trail length
+                    this.trailPositions = new Float32Array(50 * 3); // Extended trail length
                     this.trailGeometry.setAttribute('position', new THREE.BufferAttribute(this.trailPositions, 3));
                     const trailMaterial = new THREE.PointsMaterial({ color: 0xffaa33, size: 4, transparent: true, opacity: 0.6 });
                     this.trail = new THREE.Points(this.trailGeometry, trailMaterial);
@@ -790,8 +792,8 @@
                     }
         
                     this.velocity = new THREE.Vector3(
-                        -200 + Math.random() * -100,  // Slower horizontal velocity
-                        -500 + Math.random() * -300,  // Faster downward velocity to emphasize falling effect
+                        -200 + Math.random() * -150,  // Diagonal velocity with both X and Y components
+                        -200 + Math.random() * -150,  // Diagonal movement downwards and to the left
                         0
                     );
         
@@ -800,8 +802,8 @@
                 }
         
                 generateSpawnPosition() {
-                    const spawnX = (Math.random() - 0.5) * window.innerWidth * 1.5; // Random X across the top of the screen
-                    const spawnY = window.innerHeight / 2 + 300; // Always spawn above the visible area
+                    const spawnX = (Math.random() - 0.5) * window.innerWidth * 1.5; // Random X across the top area
+                    const spawnY = window.innerHeight / 2 + 300; // Spawn above the visible area
                     const spawnZ = -2000 + Math.random() * -1000; // Some depth variation
         
                     return new THREE.Vector3(spawnX, spawnY, spawnZ);
@@ -810,7 +812,13 @@
                 update(delta) {
                     if (!this.comet) return;
         
+                    // Update position with velocity
                     this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
+        
+                    // Update opacity towards the end of lifespan for fade-out effect
+                    const lifeRatio = this.lifespan / 20;
+                    this.comet.material.opacity = Math.max(lifeRatio, 0);
+        
                     this.lifespan -= delta;
         
                     if (this.lifespan < 0) {
@@ -839,8 +847,8 @@
         
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                0.5,  // Reduced bloom strength
-                0.3,  // Reduced bloom radius for subtle effect
+                0.4,  // Reduced bloom strength for a subtle glow
+                0.3,  // Reduced bloom radius for more control
                 0.1   // Bloom threshold to limit effect to bright areas
             );
             composer.addPass(bloomPass);
@@ -889,6 +897,7 @@
             initComets();
             animate();
         </script>
+
 
 
 
