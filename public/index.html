@@ -764,14 +764,18 @@
                     this.existingComets = existingComets;
         
                     this.initLight();
+                    this.flickerCount = 0;
         
-                    this.flickerTriggered = false;
                     this.reset();
                 }
         
                 initLight() {
                     this.pointLight = new THREE.PointLight(0xffe680, 0.5, 1500);
                     scene.add(this.pointLight);
+        
+                    // Adding a subtle glow for extra visual effect
+                    this.glow = new THREE.PointLight(0xffe680, 0.2, 2000);
+                    scene.add(this.glow);
                 }
         
                 reset() {
@@ -795,6 +799,7 @@
         
                     this.sprite.position.set(position.x, position.y, position.z);
                     this.pointLight.position.set(position.x, position.y, position.z);
+                    this.glow.position.set(position.x, position.y, position.z);
         
                     this.velocity = new THREE.Vector3(
                         -500 + Math.random() * -150,
@@ -806,7 +811,8 @@
                     this.sprite.scale.set(scale, scale, 1);
         
                     this.flickerTriggered = false;
-                    this.flickerTime = Math.random() * 5000 + 2000; // Set a random flicker time in the comet's lifetime
+                    this.flickerCount = 0; // Reset flicker count
+                    this.nextFlickerTime = 500; // Flicker every 500 milliseconds
                 }
         
                 generateSpawnPosition() {
@@ -849,10 +855,12 @@
         
                     this.sprite.position.add(this.velocity.clone().multiplyScalar(delta));
                     this.pointLight.position.copy(this.sprite.position);
+                    this.glow.position.copy(this.sprite.position);
         
-                    this.flickerTime -= delta * 1000; // Decrement flicker time
-                    if (!this.flickerTriggered && this.flickerTime <= 0) {
+                    this.nextFlickerTime -= delta * 1000; // Decrement time until next flicker
+                    if (this.nextFlickerTime <= 0) {
                         this.triggerFlicker();
+                        this.nextFlickerTime = 500; // Reset flicker interval
                     }
         
                     if (
@@ -865,12 +873,19 @@
                 }
         
                 triggerFlicker() {
-                    this.flickerTriggered = true;
+                    this.flickerCount++;
+                    if (this.flickerCount > 10) return; // Limit the number of flashes per comet
         
                     const flickerDuration = 50; // Short flicker duration in milliseconds
                     this.pointLight.intensity = 5.0; // Increase intensity for a bright flash
                     setTimeout(() => {
                         this.pointLight.intensity = 0.5; // Revert to normal intensity
+                    }, flickerDuration);
+        
+                    // Increase the glow intensity slightly during a flicker for added effect
+                    this.glow.intensity = 1.0;
+                    setTimeout(() => {
+                        this.glow.intensity = 0.2;
                     }, flickerDuration);
                 }
             }
@@ -908,10 +923,10 @@
             const renderPass = new RenderPass(scene, camera);
             composer.addPass(renderPass);
         
-            // Reduce bloom strength for less overwhelming nebula effect
+            // Further reduced bloom to avoid overwhelming the background
             const bloomParams = {
                 exposure: 1.0,
-                bloomStrength: 0.5, // Reduced bloom strength to make it subtler
+                bloomStrength: 0.4, // Reduced bloom strength to enhance clarity of the scene
                 bloomThreshold: 0.1,
                 bloomRadius: 0.5
             };
@@ -975,6 +990,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
