@@ -721,18 +721,14 @@
                 scene.background = new THREE.Color(0x000000);
             });
         
-            const cometTextures = [
-                textureLoader.load('/textures/comet1.png'),
-                textureLoader.load('/textures/comet2.png')
-            ];
-        
             class Comet {
                 constructor(existingComets) {
                     this.composition = ['carbon-rich', 'iron-rich', 'icy'][Math.floor(Math.random() * 3)];
-                    const texture = cometTextures[Math.floor(Math.random() * cometTextures.length)];
-        
+                    
+                    // Create a default colored sprite
+                    const cometColor = this.getCometColor();
                     const cometMaterial = new THREE.SpriteMaterial({
-                        map: texture,
+                        color: cometColor,
                         blending: THREE.AdditiveBlending,
                         transparent: true,
                         opacity: 0.8,
@@ -745,8 +741,8 @@
         
                     this.existingComets = existingComets;
         
-                    // Initialize lights and other effects
-                    this.pointLight = new THREE.PointLight(this.getCometColor(), 1.0, 1000);
+                    // Initialize lights
+                    this.pointLight = new THREE.PointLight(cometColor, 1.0, 1000);
                     scene.add(this.pointLight);
         
                     this.initLensflare();
@@ -962,6 +958,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
