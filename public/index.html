@@ -697,6 +697,12 @@
         <script>
             document.addEventListener('DOMContentLoaded', () => {
                 // -------------------------------
+                // Define Constants and Variables
+                // -------------------------------
+                const maxComets = 20; // Define maxComets before use
+                const cometPool = [];
+            
+                // -------------------------------
                 // Renderer Setup
                 // -------------------------------
                 const canvas = document.getElementById('techCanvas');
@@ -769,7 +775,7 @@
                 });
         
                 // -------------------------------
-                // Post-processing with Bloom and Glare for Strong Glare Effect
+                // Post-processing with Bloom for Strong Glare Effect
                 // -------------------------------
                 const composer = new THREE.EffectComposer(renderer);
                 const renderPass = new THREE.RenderPass(scene, camera);
@@ -784,22 +790,10 @@
                 composer.addPass(bloomPass);
         
                 // -------------------------------
-                // Glare Shader Pass (Lens Glare)
+                // Lensflare Setup
                 // -------------------------------
-                // Simple Glare implementation using horizontal and vertical blur
-                const horizontalBlur = new THREE.ShaderPass(THREE.HorizontalBlurShader);
-                horizontalBlur.uniforms['h'].value = 0.002;
-                composer.addPass(horizontalBlur);
-        
-                const verticalBlur = new THREE.ShaderPass(THREE.VerticalBlurShader);
-                verticalBlur.uniforms['v'].value = 0.002;
-                composer.addPass(verticalBlur);
-        
-                // Copy Shader Pass to render to screen
-                const copyPass = new THREE.ShaderPass(THREE.CopyShader);
-                copyPass.renderToScreen = true;
-                composer.addPass(copyPass);
-        
+                // Note: Lensflare will be added to each comet individually
+            
                 // -------------------------------
                 // Comet Class Definition
                 // -------------------------------
@@ -849,6 +843,9 @@
                                 1.0
                             ); // 0.5 to 1.0
                         }
+            
+                        // Add lensflare to the comet
+                        this.addLensflare();
                     }
         
                     reset() {
@@ -882,9 +879,6 @@
         
                         // Restore default opacity
                         this.sprite.material.opacity = 0.7;
-        
-                        // Store base color for head flicker
-                        this.baseColor = this.sprite.material.color.clone();
                     }
         
                     generateSpawnPosition() {
@@ -920,6 +914,15 @@
                             }
                         }
                         return false;
+                    }
+        
+                    addLensflare() {
+                        const textureLoader = new THREE.TextureLoader();
+                        textureLoader.load('/textures/lensflare.png', (textureFlare) => {
+                            const lensflare = new THREE.Lensflare();
+                            lensflare.addElement(new THREE.LensflareElement(textureFlare, 700, 0.0, new THREE.Color(0xffffff)));
+                            this.sprite.add(lensflare);
+                        });
                     }
         
                     update(delta) {
@@ -959,9 +962,6 @@
                 // -------------------------------
                 // Initialize Comets
                 // -------------------------------
-                const cometPool = [];
-                const maxComets = 20; // Increased number of comets for better distribution
-        
                 function initComets() {
                     // Create comets and add to the pool
                     for (let i = 0; i < maxComets; i++) {
