@@ -738,8 +738,6 @@
                 });
             });
         
-            let flickerLimit = 0; // Counter for total comet flickers
-        
             class Comet {
                 constructor(texture, existingComets) {
                     if (!texture) {
@@ -810,15 +808,10 @@
                     const scale = Math.random() * 50 + 200;
                     this.sprite.scale.set(scale, scale, 1);
         
+                    // Reset flicker properties for each new comet life
                     this.flickerTriggered = false;
+                    this.shouldFlicker = true; // Allow this comet to flicker once
                     this.flickerTime = Math.random() * 5 + 2; // Flicker will happen after 2 to 7 seconds of comet's movement
-        
-                    if (flickerLimit < 5) {
-                        this.shouldFlicker = true; // Only allow flicker if under the global limit
-                        flickerLimit++;
-                    } else {
-                        this.shouldFlicker = false;
-                    }
                 }
         
                 generateSpawnPosition() {
@@ -871,6 +864,7 @@
                         if (this.flickerTime <= 0 && this.isVisibleInView()) {
                             this.triggerFlicker();
                             this.flickerTriggered = true; // Ensure flicker happens only once per life span
+                            this.shouldFlicker = false; // Prevent further flickering for this comet's life
                         }
                     }
         
@@ -1006,6 +1000,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
