@@ -726,12 +726,6 @@
             directionalLight.position.set(5, 10, 7.5);
             scene.add(directionalLight);
         
-            // Define comet textures array
-            const cometTextures = [
-                '/textures/comet1.png',
-                '/textures/comet2.png'
-            ];
-        
             // Starfield Background (assigned to layer 0)
             const starCount = 2000;
             const starsGeometry = new THREE.BufferGeometry();
@@ -749,6 +743,11 @@
             scene.add(starField);
         
             // Comet Class (assigned to layer 1 for bloom isolation)
+            const cometTextures = [
+                '/textures/comet1.png',
+                '/textures/comet2.png'
+            ];
+        
             class Comet {
                 constructor(existingComets) {
                     this.existingComets = existingComets;
@@ -766,7 +765,7 @@
                         map: texture,
                         blending: THREE.AdditiveBlending,
                         transparent: true,
-                        opacity: 1.0, // Ensure opacity is set to fully visible
+                        opacity: 1.0,
                         depthWrite: false,
                     });
         
@@ -859,8 +858,8 @@
         
             // Render setup
             const renderScene = new RenderPass(scene, camera);
-            
-            // Bloom Composer - for comets only
+        
+            // Bloom Composer - for comets only (using layer 1)
             const bloomComposer = new EffectComposer(renderer);
             bloomComposer.addPass(renderScene);
         
@@ -919,6 +918,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
