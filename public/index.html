@@ -726,17 +726,13 @@
             directionalLight.position.set(5, 10, 7.5);
             scene.add(directionalLight);
         
-            // Layers for Background and Comets
-            const backgroundLayer = 0;
-            const cometsLayer = 1;
-        
             // Comet Textures
             const cometTextures = [
                 '/textures/comet1.png',
                 '/textures/comet2.png'
             ];
         
-            // Starfield Background (on background layer)
+            // Starfield Background
             const starCount = 2000;
             const starsGeometry = new THREE.BufferGeometry();
             const starsMaterial = new THREE.PointsMaterial({ color: 0xaaaaaa, size: 2, sizeAttenuation: true });
@@ -749,7 +745,6 @@
             }
             starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
             const starField = new THREE.Points(starsGeometry, starsMaterial);
-            starField.layers.set(backgroundLayer); // Assign to background layer
             scene.add(starField);
         
             class Comet {
@@ -775,7 +770,6 @@
         
                     this.comet = new THREE.Sprite(cometMaterial);
                     this.comet.scale.set(150, 150, 1);
-                    this.comet.layers.set(cometsLayer); // Assign to comet layer
                     scene.add(this.comet);
         
                     this.initGlowEffect();
@@ -841,13 +835,13 @@
                 triggerGlow() {
                     if (!this.comet) return;
         
-                    // Vibrant glow effect just for the comets
-                    this.comet.material.emissive = new THREE.Color(0xffffff); // Set to a bright white emissive color
-                    this.comet.material.emissiveIntensity = 2.5; // Intense emissive brightness
+                    // Make comet material glow by setting emissive intensity
+                    this.comet.material.emissive = new THREE.Color(0xffffff); // Set to bright white
+                    this.comet.material.emissiveIntensity = 1.5; // Intense glow effect
         
-                    // Reset emissive color after the glow duration
+                    // Reset emissive after glow duration
                     setTimeout(() => {
-                        this.comet.material.emissiveIntensity = 0; // Reset emissive intensity to 0
+                        this.comet.material.emissiveIntensity = 0; // Reset to default
                     }, this.glowDuration * 1000);
                 }
             }
@@ -864,16 +858,10 @@
             const renderPass = new RenderPass(scene, camera);
             composer.addPass(renderPass);
         
-            // Background Render Pass (without bloom)
-            const backgroundRenderPass = new RenderPass(scene, camera);
-            backgroundRenderPass.clear = true;
-            backgroundRenderPass.layers.set(backgroundLayer); // Render only the background
-            composer.addPass(backgroundRenderPass);
-        
             // Bloom Pass for Comets (only)
             const bloomParams = {
                 exposure: 0.4,
-                bloomStrength: 0.8, // Strong bloom effect for comets
+                bloomStrength: 1.2, // Bloom effect for comets
                 bloomThreshold: 0.1,
                 bloomRadius: 0.3
             };
@@ -906,13 +894,6 @@
                     if (comet.comet) comet.update(delta);
                 });
         
-                // Render background and comets with bloom
-                renderer.autoClear = false;
-                renderer.clear();
-                camera.layers.set(backgroundLayer);
-                composer.render();
-        
-                camera.layers.set(cometsLayer);
                 composer.render();
             }
         
@@ -932,6 +913,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
