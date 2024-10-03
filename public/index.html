@@ -774,11 +774,16 @@
                     this.comet.layers.set(1);
                     scene.add(this.comet);
         
+                    // Add comet light
+                    this.light = new THREE.PointLight(0xffaa33, 1.5, 1000);
+                    this.light.position.set(this.comet.position.x, this.comet.position.y, 0);
+                    scene.add(this.light);
+        
                     // Comet Trail using Particles
                     this.trailGeometry = new THREE.BufferGeometry();
                     this.trailPositions = new Float32Array(50 * 3); // Trail length
                     this.trailGeometry.setAttribute('position', new THREE.BufferAttribute(this.trailPositions, 3));
-                    const trailMaterial = new THREE.PointsMaterial({ color: 0xffaa33, size: 4, transparent: true, opacity: 0.6 });
+                    const trailMaterial = new THREE.PointsMaterial({ color: 0xffaa33, size: 4, transparent: true, opacity: 0.8 });
                     this.trail = new THREE.Points(this.trailGeometry, trailMaterial);
                     scene.add(this.trail);
                 }
@@ -787,6 +792,7 @@
                     const position = this.generateSpawnPosition();
                     if (this.comet) {
                         this.comet.position.set(position.x, position.y, 0); // No Z-axis variation, Z set to 0
+                        this.light.position.set(position.x, position.y, 0);
                     }
         
                     // Diagonal movement from top-right to bottom-left
@@ -814,11 +820,10 @@
         
                     // Move comet along a straight diagonal path
                     this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
+                    this.light.position.copy(this.comet.position); // Update light position to follow the comet
         
-                    // Fade-out effect towards the end of lifespan
-                    if (this.lifespan < 3) {
-                        this.comet.material.opacity = Math.max(this.lifespan / 3, 0);
-                    }
+                    // Flickering effect for comet light
+                    this.light.intensity = 1.5 + Math.sin(delta * 10) * 0.5;
         
                     this.lifespan -= delta;
         
@@ -848,8 +853,8 @@
         
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                0.4,  // Reduced bloom strength for a subtle glow
-                0.3,  // Reduced bloom radius for more control
+                1.0,  // Increased bloom strength for a vivid comet glow
+                0.6,  // Increased bloom radius for an intense glow
                 0.1   // Bloom threshold to limit effect to bright areas
             );
             composer.addPass(bloomPass);
