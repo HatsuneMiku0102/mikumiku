@@ -691,14 +691,8 @@
             import { EffectComposer } from '/js/postprocessing/EffectComposer.js';
             import { RenderPass } from '/js/postprocessing/RenderPass.js';
             import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
-            import { Lensflare, LensflareElement } from '/js/Lensflare.js';
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
-        
-            const maxComets = 5;
-            const cometPool = [];
-            const minDistance = 1000;
-            const maxAttempts = 30;
         
             const canvas = document.getElementById('techCanvas');
             const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -729,12 +723,6 @@
             directionalLight.position.set(5, 10, 7.5);
             scene.add(directionalLight);
         
-            // Comet Textures
-            const cometTextures = [
-                '/textures/comet1.png',
-                '/textures/comet2.png'
-            ];
-        
             // Starfield Background
             const starCount = 1000;
             const starsGeometry = new THREE.BufferGeometry();
@@ -749,192 +737,6 @@
             starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
             const starField = new THREE.Points(starsGeometry, starsMaterial);
             scene.add(starField);
-        
-            class Comet {
-                constructor(existingComets) {
-                    this.existingComets = existingComets;
-                    this.cometTexturePath = cometTextures[Math.floor(Math.random() * cometTextures.length)];
-        
-                    textureLoader.load(this.cometTexturePath, (texture) => {
-                        this.initCometWithTexture(texture);
-                        this.reset();
-                        cometPool.push(this); // Add to comet pool only after complete initialization
-                    });
-                }
-        
-                initCometWithTexture(texture) {
-                    const cometMaterial = new THREE.SpriteMaterial({
-                        map: texture,
-                        blending: THREE.AdditiveBlending,
-                        transparent: true,
-                        opacity: 0.9,
-                        depthWrite: false,
-                    });
-        
-                    this.comet = new THREE.Sprite(cometMaterial);
-                    this.comet.scale.set(150, 150, 1);
-                    scene.add(this.comet);
-        
-                    this.initLight();
-                }
-        
-                getCometColor() {
-                    const colors = [0x88ccee, 0xffe680, 0x99ffff];
-                    return colors[Math.floor(Math.random() * colors.length)];
-                }
-        
-                initLight() {
-                    const color = this.getCometColor();
-                    this.pointLight = new THREE.PointLight(color, 1.5, 1000);
-                    scene.add(this.pointLight);
-        
-                    // Load lens flare after light has been added
-                    this.initLensflare();
-                }
-        
-                initLensflare() {
-                    textureLoader.load('/textures/lensflare0.png', (texture) => {
-                        if (!this.pointLight) return;
-        
-                        this.lensflare = new Lensflare();
-                        const lensflareElement = new LensflareElement(texture, 200, 0, new THREE.Color(0xffffff));
-                        this.lensflare.addElement(lensflareElement);
-                        this.pointLight.add(this.lensflare);
-        
-                        if (this.lensflare.elements[0]) {
-                            this.lensflare.elements[0].opacity = 0; // Set initial opacity to 0
-                        }
-                    }, undefined, (err) => {
-                        console.error('Error loading lens flare texture:', err);
-                    });
-                }
-        
-                reset() {
-                    let attempts = 0;
-                    let position;
-        
-                    do {
-                        position = this.generateSpawnPosition();
-                        attempts++;
-                    } while (this.isOverlapping(position) && attempts < maxAttempts);
-        
-                    if (attempts === maxAttempts) {
-                        console.warn('Could not find non-overlapping spawn position after max attempts.');
-                        position = this.generateSpawnPosition(true);
-                    }
-        
-                    if (this.comet && this.pointLight) {
-                        this.comet.position.set(position.x, position.y, position.z);
-                        this.pointLight.position.set(position.x, position.y, position.z);
-                    }
-        
-                    this.velocity = new THREE.Vector3(
-                        -500 + Math.random() * -150,
-                        -500 + Math.random() * -150,
-                        Math.random() * 100 - 50
-                    );
-        
-                    this.flickerTriggered = false;
-                    this.shouldFlicker = true;
-                    this.flickerTime = Math.random() * 5 + 2;
-                    this.starburstTime = Math.random() * 4 + 6;
-                    this.starburstTriggered = false;
-                    this.lifespan = Math.random() * 8 + 10;
-                }
-        
-                generateSpawnPosition() {
-                    const aspect = window.innerWidth / window.innerHeight;
-                    const fov = THREE.MathUtils.degToRad(camera.fov);
-                    const distance = Math.abs(camera.position.z - (-2500));
-                    const height = 2 * Math.tan(fov / 2) * distance;
-                    const width = height * aspect;
-        
-                    const spawnOffsetX = 300;
-                    const spawnOffsetY = 300;
-                    const spawnZ = -2500 + Math.random() * -1000;
-        
-                    const x = (Math.random() - 0.5) * width + spawnOffsetX;
-                    const y = (Math.random() - 0.5) * height + spawnOffsetY;
-        
-                    return new THREE.Vector3(x, y, spawnZ);
-                }
-        
-                isOverlapping(newPosition) {
-                    if (this.existingComets.length === 0) return false;
-                    for (let comet of this.existingComets) {
-                        if (comet === this) continue;
-                        if (comet.comet && comet.comet.position) {
-                            const distance = comet.comet.position.distanceTo(newPosition);
-                            if (distance < minDistance) {
-                                return true;
-                            }
-                        }
-                    }
-                    return false;
-                }
-        
-                update(delta) {
-                    if (!this.comet || !this.pointLight) return;
-        
-                    this.velocity.x += Math.sin(Date.now() * 0.0001) * 10 * delta;
-                    this.velocity.y += Math.cos(Date.now() * 0.0001) * 10 * delta;
-        
-                    this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
-                    this.pointLight.position.copy(this.comet.position);
-        
-                    this.lifespan -= delta;
-                    if (this.lifespan < 3) {
-                        this.comet.material.opacity = THREE.MathUtils.lerp(this.comet.material.opacity, 0, 0.02);
-                    }
-        
-                    if (this.shouldFlicker && !this.flickerTriggered) {
-                        this.flickerTime -= delta;
-                        if (this.flickerTime <= 0) {
-                            this.triggerFlicker();
-                            this.flickerTriggered = true;
-                        }
-                    }
-        
-                    if (!this.starburstTriggered && this.lifespan < this.starburstTime) {
-                        this.triggerStarburst();
-                        this.starburstTriggered = true;
-                    }
-        
-                    if (this.lifespan <= 0) {
-                        this.reset();
-                    }
-                }
-        
-                triggerFlicker() {
-                    if (!this.pointLight) return;
-        
-                    const flickerDuration = 100;
-                    this.pointLight.intensity = 5.0;
-        
-                    setTimeout(() => {
-                        this.pointLight.intensity = 1.5;
-                    }, flickerDuration);
-                }
-        
-                triggerStarburst() {
-                    if (!this.lensflare || !this.lensflare.elements || this.lensflare.elements.length === 0) return;
-        
-                    const lensflareElement = this.lensflare.elements[0];
-                    if (lensflareElement) {
-                        lensflareElement.opacity = 1.0;
-        
-                        setTimeout(() => {
-                            lensflareElement.opacity = 0;
-                        }, 200);
-                    }
-                }
-            }
-        
-            function initComets() {
-                for (let i = 0; i < maxComets; i++) {
-                    new Comet(cometPool);
-                }
-            }
         
             const composer = new EffectComposer(renderer);
             const renderPass = new RenderPass(scene, camera);
@@ -971,10 +773,6 @@
                 camera.position.y += (-mouseY - camera.position.y) * 0.02;
                 camera.lookAt(scene.position);
         
-                cometPool.forEach(comet => {
-                    if (comet.comet) comet.update(delta);
-                });
-        
                 composer.render();
             }
         
@@ -987,7 +785,6 @@
                 animate();
             }
         
-            initComets();
             startAnimation();
         
             window.addEventListener('resize', () => {
