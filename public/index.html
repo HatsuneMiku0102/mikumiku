@@ -772,7 +772,7 @@
                 scene.add(starField);
             }
         
-            // Add Comets Using comet1.png Texture with Lighting Effects
+            // Add Comets Using comet1.png Texture with Flashing Glare Effects
             const cometTexture = textureLoader.load('/textures/comet1.png');
             const cometMaterial = new THREE.SpriteMaterial({
                 map: cometTexture,
@@ -783,41 +783,15 @@
         
             const cometCount = 5;
             const comets = [];
-            const particleSystems = []; // To store particle systems for burnout effects
             for (let i = 0; i < cometCount; i++) {
                 const comet = new THREE.Sprite(cometMaterial);
                 comet.scale.set(80, 80, 1); // Initial size of the comets
-                comet.light = new THREE.PointLight(0xffaa33, 2, 500, 2); // Light attached to the comet
+                comet.light = new THREE.PointLight(0xffaa33, 0.5, 1000, 2); // Light attached to the comet
+                comet.light.visible = false; // Initially off, becomes visible during flares
                 resetComet(comet);
                 comets.push(comet);
                 scene.add(comet);
                 scene.add(comet.light); // Add the light to the scene
-            }
-        
-            function createBurnoutParticles(position) {
-                const particleGeometry = new THREE.BufferGeometry();
-                const particleMaterial = new THREE.PointsMaterial({
-                    size: 10,
-                    color: 0xffffff,
-                    transparent: true,
-                    blending: THREE.AdditiveBlending,
-                    opacity: 0.9,
-                });
-        
-                const particleCount = 50;
-                const positions = new Float32Array(particleCount * 3);
-                for (let i = 0; i < particleCount; i++) {
-                    positions[i * 3] = position.x + (Math.random() - 0.5) * 100;
-                    positions[i * 3 + 1] = position.y + (Math.random() - 0.5) * 100;
-                    positions[i * 3 + 2] = position.z + (Math.random() - 0.5) * 100;
-                }
-        
-                particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
-                particleSystem.lifespan = 0.5; // Last for 0.5 seconds
-                particleSystem.remainingTime = 0.5;
-                scene.add(particleSystem);
-                particleSystems.push(particleSystem);
             }
         
             function resetComet(comet) {
@@ -827,13 +801,14 @@
                     0
                 );
                 comet.velocity = new THREE.Vector3(
-                    -600, // Fixed speed on x-axis to keep a diagonal path
-                    -600, // Fixed speed on y-axis to move straight down diagonally
+                    -800, // Speed on x-axis to keep a diagonal path
+                    -800, // Speed on y-axis to move straight down diagonally
                     0
                 );
-                comet.lifespan = 4.0 + Math.random() * 2.0; // Comet will last between 4 to 6 seconds
+                comet.lifespan = 6.0 + Math.random() * 2.0; // Comet will last between 6 to 8 seconds
                 comet.burningOut = false; // Track whether burnout effect has started
-                comet.light.intensity = 1.5; // Reset light intensity
+                comet.light.intensity = 0.5; // Initial light intensity
+                comet.light.visible = false; // Initially invisible
                 comet.material.opacity = 1.0; // Reset opacity
                 comet.scale.set(80, 80, 1); // Reset comet size
             }
@@ -844,41 +819,40 @@
                     comet.light.position.copy(comet.position);
                     comet.lifespan -= delta;
         
-                    if (comet.lifespan > 1.0) {
-                        // Normal flight, flickering light effect
-                        comet.light.intensity = 2.0 + Math.sin(clock.getElapsedTime() * 10) * 0.5;
+                    if (comet.lifespan > 3.0) {
+                        // Normal flight - random flickering flashes
+                        if (Math.random() < 0.02) {
+                            // Occasionally flash at full brightness
+                            comet.light.intensity = 5.0 + Math.random() * 5.0;
+                            comet.light.visible = true;
+                            comet.material.opacity = 1.0;
+                            comet.scale.set(100, 100, 1);
+                        } else {
+                            // Subtle flickering
+                            comet.light.intensity = 1.0 + Math.sin(clock.getElapsedTime() * 15) * 1.0;
+                            comet.light.visible = false;
+                        }
                     } else if (!comet.burningOut) {
-                        // Trigger bright burnout effect just before fading out
+                        // Enter the final bright burnout stage
                         comet.burningOut = true;
                         comet.material.color.set(0xffffff); // Turn comet white for burnout
-                        comet.light.color.set(0xffffff); // Change light to white
-                        comet.light.intensity = 15.0; // Increase brightness for burnout flash
-                        comet.scale.set(150, 150, 1); // Increase size to emphasize burnout
-                        comet.material.opacity = 1.0; // Maintain full opacity during burnout
-        
-                        // Create burnout particles
-                        createBurnoutParticles(comet.position);
+                        comet.light.color.set(0xffffff); // Change light to white for bright glare
+                        comet.light.intensity = 20.0; // High intensity for dramatic burnout
+                        comet.light.visible = true; // Make the light visible
+                        comet.scale.set(150, 150, 1); // Increase size for emphasis
                     } else {
-                        // Gradually reduce opacity after burnout
+                        // Fade out smoothly
                         comet.material.opacity = Math.max(0, comet.material.opacity - delta * 0.5);
+                        comet.light.intensity = Math.max(0, comet.light.intensity - delta * 5);
+                        if (comet.material.opacity <= 0) {
+                            resetComet(comet);
+                        }
                     }
         
-                    if (comet.position.x < -window.innerWidth / 2 || comet.position.y < -window.innerHeight / 2 || comet.lifespan <= 0) {
+                    if (comet.position.x < -window.innerWidth / 2 || comet.position.y < -window.innerHeight / 2) {
                         resetComet(comet);
                     }
                 });
-            }
-        
-            function updateParticles(delta) {
-                for (let i = particleSystems.length - 1; i >= 0; i--) {
-                    const particleSystem = particleSystems[i];
-                    particleSystem.remainingTime -= delta;
-        
-                    if (particleSystem.remainingTime <= 0) {
-                        scene.remove(particleSystem);
-                        particleSystems.splice(i, 1);
-                    }
-                }
             }
         
             // Animate the Scene
@@ -897,9 +871,6 @@
         
                 // Update comet positions and burnout effect
                 updateComets(delta);
-        
-                // Update particle effects
-                updateParticles(delta);
         
                 // Render the scene
                 renderer.render(scene, camera);
@@ -920,7 +891,6 @@
         
             animate();
         </script>
-
 
 
 
