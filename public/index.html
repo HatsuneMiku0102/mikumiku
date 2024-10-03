@@ -170,8 +170,11 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
         <script src="https://unpkg.com/three@0.150.0/build/three.min.js"></script>
-        
-        <script src="https://unpkg.com/postprocessing@6.23.3/build/postprocessing.min.js"></script>
+
+        <script src="https://unpkg.com/three@0.152.2/examples/js/postprocessing/EffectComposer.js"></script>
+        <script src="https://unpkg.com/three@0.152.2/examples/js/postprocessing/RenderPass.js"></script>
+        <script src="https://unpkg.com/three@0.152.2/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
 
 
         <!-- Import Haru AI script -->
@@ -954,28 +957,40 @@
                 }
     
                 // -------------------------------
-                // 9. Post-processing with Bloom Effect
+                // 9. Post-processing with EffectComposer and UnrealBloomPass
                 // -------------------------------
-                if (typeof POSTPROCESSING === 'undefined') {
-                    console.error('PostProcessing library is not loaded.');
-                    return;
+                // Ensure that the necessary post-processing scripts are loaded
+                if (typeof THREE.EffectComposer === 'undefined') {
+                    console.error('EffectComposer is not loaded.');
+                } else {
+                    // Initialize EffectComposer
+                    const composer = new THREE.EffectComposer(renderer);
+    
+                    // Add RenderPass
+                    const renderPass = new THREE.RenderPass(scene, camera);
+                    composer.addPass(renderPass);
+    
+                    // Add UnrealBloomPass
+                    const bloomParams = {
+                        exposure: 1,
+                        bloomStrength: 1.5,
+                        bloomThreshold: 0,
+                        bloomRadius: 0
+                    };
+                    const bloomPass = new THREE.UnrealBloomPass(
+                        new THREE.Vector2(window.innerWidth, window.innerHeight),
+                        bloomParams.bloomStrength,
+                        bloomParams.bloomRadius,
+                        bloomParams.bloomThreshold
+                    );
+                    composer.addPass(bloomPass);
+    
+                    // If you want the last pass to render to the screen, set renderToScreen to true
+                    bloomPass.renderToScreen = true;
+    
+                    // Assign composer to a global variable if needed elsewhere
+                    window.composer = composer;
                 }
-    
-                const composer = new POSTPROCESSING.EffectComposer(renderer);
-                const renderPass = new POSTPROCESSING.RenderPass(scene, camera);
-                composer.addPass(renderPass);
-    
-                // Add Bloom Effect using PostProcessing's BloomEffect
-                const bloomEffect = new POSTPROCESSING.BloomEffect({
-                    luminanceThreshold: 0.8,
-                    luminanceSmoothing: 0.025,
-                    intensity: 1.5,
-                    resolutionScale: 1.0
-                });
-    
-                const bloomPass = new POSTPROCESSING.EffectPass(camera, bloomEffect);
-                bloomPass.renderToScreen = true; // Ensure this is set to true
-                composer.addPass(bloomPass);
     
                 // -------------------------------
                 // 10. Start Animation after textures are loaded
