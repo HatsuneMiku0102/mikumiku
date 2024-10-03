@@ -769,8 +769,7 @@
                     });
         
                     this.comet = new THREE.Sprite(cometMaterial);
-                    this.scale = 200 + Math.random() * 100;
-                    this.comet.scale.set(this.scale, this.scale, 1); // Fixed scale with some random variation
+                    this.comet.scale.set(200 + Math.random() * 100, 200 + Math.random() * 100, 1); // Fixed random size at start
                     this.comet.layers.set(1);
                     scene.add(this.comet);
         
@@ -785,21 +784,21 @@
                     this.comet.position.set(position.x, position.y, 0);
                     this.light.position.set(position.x, position.y, 0);
         
-                    // Straight diagonal movement from top-right to bottom-left
-                    const speedFactor = 500 + Math.random() * 200; // Base speed factor for comet
+                    // Set a constant diagonal velocity from top-right to bottom-left
+                    const speedFactor = 400; // Fixed speed factor for consistent movement
                     this.velocity = new THREE.Vector3(
                         -speedFactor,                 // Horizontal speed (leftward)
                         -speedFactor * 0.6,           // Vertical speed (downward)
                         0                             // No Z-axis movement
                     );
         
-                    this.lifespan = 10; // Lifespan to determine when to reset the comet
+                    this.lifespan = 15; // Lifespan to determine when to reset the comet
                 }
         
                 generateSpawnPosition() {
                     // Randomize spawn position across the top of the screen
-                    const spawnX = (Math.random() - 0.5) * window.innerWidth; // Anywhere along the width of the screen
-                    const spawnY = window.innerHeight / 2 + 400; // Top of the screen
+                    const spawnX = window.innerWidth / 2 + 800; // Starting from the far-right side of the screen
+                    const spawnY = (Math.random() - 0.5) * window.innerHeight; // Random height along the Y-axis
                     const spawnZ = 0; // Fixed Z-axis for no depth effect
         
                     return new THREE.Vector3(spawnX, spawnY, spawnZ);
@@ -808,12 +807,11 @@
                 update(delta) {
                     if (!this.comet) return;
         
-                    // Apply velocity to move in a straight diagonal path
+                    // Apply constant velocity to move in a straight diagonal path
                     this.comet.position.add(this.velocity.clone().multiplyScalar(delta));
                     this.light.position.copy(this.comet.position);
         
-                    // Ensure the comet maintains its scale and opacity
-                    this.comet.scale.set(this.scale, this.scale, 1);
+                    // Maintain constant size and opacity
                     this.comet.material.opacity = 1.0;
         
                     this.lifespan -= delta;
@@ -828,7 +826,7 @@
                 for (let i = 0; i < maxComets; i++) {
                     setTimeout(() => {
                         new Comet();
-                    }, Math.random() * 5000); // More randomized comet initialization for variety
+                    }, Math.random() * 3000); // More randomized comet initialization for variety
                 }
             }
         
@@ -889,6 +887,7 @@
             initComets();
             animate();
         </script>
+
 
 
 
