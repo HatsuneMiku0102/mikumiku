@@ -780,7 +780,7 @@
                 depthWrite: false,
             });
         
-            const cometCount = 3;
+            const cometCount = 5; // Increased number of comets for more variety
             const comets = [];
             for (let i = 0; i < cometCount; i++) {
                 const comet = new THREE.Sprite(cometMaterial);
@@ -803,7 +803,8 @@
                     -600, // Fixed speed on y-axis to move straight down diagonally
                     0
                 );
-                comet.lifespan = 3.0 + Math.random() * 2.0; // Comet will last between 3 to 5 seconds
+                comet.lifespan = 4.0 + Math.random() * 2.0; // Comet will last between 4 to 6 seconds
+                comet.burningOut = false; // Track whether burnout effect has started
             }
         
             function updateComets(delta) {
@@ -813,7 +814,20 @@
         
                     // Update light position and create flickering effect
                     comet.light.position.copy(comet.position);
-                    comet.light.intensity = 1.5 + Math.sin(clock.getElapsedTime() * 15) * 1.0; // Flickering effect
+        
+                    if (comet.lifespan > 1.0) {
+                        // Flickering effect during normal flight
+                        comet.light.intensity = 1.5 + Math.sin(clock.getElapsedTime() * 15) * 1.0;
+                    } else if (!comet.burningOut) {
+                        // Trigger bright burnout effect just before fading out
+                        comet.burningOut = true;
+                        comet.light.color.set(0xffffff); // Change to white light for burnout
+                        comet.light.intensity = 5.0; // Increase brightness for burnout flash
+                        comet.scale.set(120, 120, 1); // Make comet slightly larger during burnout
+                    } else {
+                        // Rapid flicker to simulate burning out
+                        comet.light.intensity = 5.0 + Math.sin(clock.getElapsedTime() * 50) * 3.0; // Rapid flickering burnout
+                    }
         
                     if (comet.position.x < -window.innerWidth / 2 || comet.position.y < -window.innerHeight / 2 || comet.lifespan <= 0) {
                         resetComet(comet);
@@ -825,7 +839,7 @@
             const noiseGenerator = new ImprovedNoise(); // Properly initialize noiseGenerator
             const cloudGeometry = new THREE.BufferGeometry();
             const cloudMaterial = new THREE.PointsMaterial({
-                size: 10,
+                size: 8, // Reduced size for smaller, subtler space dust
                 map: textureLoader.load('/textures/particle_clouds.png'),
                 color: 0xffffff,
                 sizeAttenuation: true,
@@ -835,7 +849,7 @@
                 depthWrite: false,
             });
         
-            const cloudCount = 4000;
+            const cloudCount = 5000; // Increased number of particles for more vibrant space dust
             const cloudPositions = new Float32Array(cloudCount * 3);
             for (let i = 0; i < cloudCount; i++) {
                 cloudPositions[i * 3] = (Math.random() - 0.5) * 8000;
@@ -876,7 +890,7 @@
                 pointLight.position.x = Math.sin(elapsedTime * 0.2) * 1500;
                 pointLight.position.y = Math.cos(elapsedTime * 0.2) * 1000;
         
-                // Update comet positions and flickering light effect
+                // Update comet positions and burnout effect
                 updateComets(delta);
         
                 // Update cosmic dust shimmer
@@ -914,6 +928,7 @@
         
             animate();
         </script>
+
 
 
 
