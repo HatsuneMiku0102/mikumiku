@@ -715,7 +715,7 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMappingExposure = 0.5; // Reduced exposure for overall brightness control
+            renderer.toneMappingExposure = 0.4; // Further reduced exposure to minimize background nebula glow
         
             // -------------------------------
             // 4. Scene and Camera Setup
@@ -783,7 +783,7 @@
             });
         
             // -------------------------------
-            // 7. Comet Class Definition with Smooth Pulsating Effect and Random Glow
+            // 7. Comet Class Definition with Pulsing Effect and Increased Tail Size
             // -------------------------------
             class Comet {
                 constructor(texture, existingComets) {
@@ -804,15 +804,15 @@
                     // Determine if this comet will have a pulsing flicker
                     this.canFlicker = Math.random() < 0.7; // 70% chance for flickering
                     if (this.canFlicker) {
-                        this.flickerFrequency = Math.random() * 2 + 1; // Frequency for pulsing
+                        this.flickerFrequency = Math.random() * 0.5 + 1.5; // Frequency for pulsing
                         this.flickerPhase = Math.random() * Math.PI * 2;
                         this.flickerIntensity = THREE.MathUtils.randFloat(0.3, 0.7); // Base intensity variation
                     }
         
-                    // Determine if this comet will have a bright burst at random points
-                    this.canBurst = true; // All comets can burst at random points
+                    // Set random burst effect at intervals
+                    this.canBurst = true;
                     this.burstTime = Date.now() + Math.random() * 5000 + 2000; // Random burst interval between 2-7 seconds
-                    this.burstDuration = 500; // Burst lasts for 500 ms
+                    this.burstDuration = 1000; // Burst lasts for 1 second
                     this.inBurst = false; // Track if currently in burst
                 }
         
@@ -843,8 +843,8 @@
                         0
                     );
         
-                    // Randomize scale to add visual variety
-                    const scale = Math.random() * 50 + 150;
+                    // Reduced scale by approximately 70%
+                    const scale = Math.random() * 15 + 45;
                     this.sprite.scale.set(scale, scale, 1);
         
                     // Random depth positioning to add depth
@@ -889,7 +889,7 @@
                     // Smooth Pulsating Effect for Brightness
                     if (this.canFlicker) {
                         const pulse = this.flickerIntensity + (0.5 + 0.5 * Math.sin(this.flickerFrequency * Date.now() * 0.001 + this.flickerPhase));
-                        this.sprite.material.opacity = THREE.MathUtils.clamp(pulse, 0.6, 1.2);
+                        this.sprite.material.opacity = THREE.MathUtils.clamp(pulse, 0.4, 1.0);
                     }
         
                     // Burst Effect
@@ -899,12 +899,14 @@
                     }
         
                     if (this.inBurst) {
-                        const elapsedTime = Date.now() - (this.burstTime - this.burstDuration - Math.random() * 200);
+                        const elapsedTime = Date.now() - (this.burstTime - this.burstDuration);
                         if (elapsedTime < this.burstDuration) {
                             // Increase opacity and brightness during burst
                             this.sprite.material.opacity = 1.5;
+                            this.sprite.material.color.set(0xffffcc); // Make the comet color warmer during burst
                         } else {
                             this.inBurst = false;
+                            this.sprite.material.color.copy(this.baseColor);
                         }
                     }
         
@@ -955,12 +957,12 @@
             const renderPass = new RenderPass(scene, camera);
             composer.addPass(renderPass);
         
-            // Add Bloom Effect with Increased Intensity for Bursting Effect
+            // Add Bloom Effect with Reduced Influence on Background
             const bloomParams = {
                 exposure: 1.0,
-                bloomStrength: 1.5, // Increased bloom strength to make comets look brighter
-                bloomThreshold: 0.2,
-                bloomRadius: 0.3 // Slightly larger radius for broader glow effect
+                bloomStrength: 0.6, // Reduced bloom strength for the background to make comets stand out more
+                bloomThreshold: 0.3,
+                bloomRadius: 0.1 // Smaller radius to minimize bloom spread on background
             };
             const bloomPass = new UnrealBloomPass(
                 new Vector2(window.innerWidth, window.innerHeight),
@@ -1019,6 +1021,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
         </script>
+
 
 
 
