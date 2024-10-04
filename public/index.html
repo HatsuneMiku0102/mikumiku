@@ -706,6 +706,17 @@
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000);
         camera.position.set(0, 0, 3000);
         
+        // Load Background Texture
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load('/textures/pillar.webp', (texture) => {
+            texture.colorSpace = THREE.SRGBColorSpace;
+            texture.encoding = THREE.sRGBEncoding;  // Ensure correct brightness
+            scene.background = texture;
+        }, undefined, (err) => {
+            console.error('Error loading background texture:', err);
+            scene.background = new THREE.Color(0x303030);
+        });
+        
         // Adding Ambient and Hemisphere Light for Overall Illumination
         const ambientLight = new THREE.AmbientLight(0x404040, 1.8);
         scene.add(ambientLight);
@@ -713,8 +724,11 @@
         const hemisphereLight = new THREE.HemisphereLight(0xddddff, 0x555555, 0.5);
         scene.add(hemisphereLight);
         
+        // Set camera to see layers 0 and 1
+        camera.layers.enable(0); // Background and main scene
+        camera.layers.enable(1); // Comet effects
+        
         // Load Star Textures
-        const textureLoader = new THREE.TextureLoader();
         const starTextures = [
             textureLoader.load('/textures/stars 001.png'),
             textureLoader.load('/textures/stars 002.png'),
@@ -724,9 +738,9 @@
             textureLoader.load('/textures/stars 006.png')
         ];
         
-        // Function to create star sprites in 3D space
+        // Function to add stars to the background seamlessly
         function createStarField() {
-            const starCount = 100; // Number of stars in the field
+            const starCount = 50; // Number of stars in the field
         
             for (let i = 0; i < starCount; i++) {
                 const texture = starTextures[Math.floor(Math.random() * starTextures.length)];
@@ -734,24 +748,20 @@
                     map: texture,
                     blending: THREE.AdditiveBlending,
                     transparent: true,
-                    opacity: 0.9
+                    opacity: 0.8  // Adjust opacity to blend into background
                 });
         
                 const star = new THREE.Sprite(starMaterial);
-                star.scale.set(100 + Math.random() * 200, 100 + Math.random() * 200, 1); // Randomize size
+                star.scale.set(200 + Math.random() * 150, 200 + Math.random() * 150, 1); // Randomize size
                 star.position.set(
-                    Math.random() * 10000 - 5000,  // Spread across X-axis
-                    Math.random() * 10000 - 5000,  // Spread across Y-axis
-                    Math.random() * -3000         // Depth into the screen
+                    Math.random() * window.innerWidth * 2 - window.innerWidth,  // Spread across X-axis
+                    Math.random() * window.innerHeight * 2 - window.innerHeight, // Spread across Y-axis
+                    -2000 + Math.random() * 1000                                // Spread behind the main scene
                 );
         
                 scene.add(star);
             }
         }
-        
-        // Set camera to see layers 0 and 1
-        camera.layers.enable(0); // Background and main scene
-        camera.layers.enable(1); // Comet effects
         
         // Comet Variables
         const cometTexture = textureLoader.load('/textures/comet1.png');
@@ -1008,6 +1018,7 @@
         spawnComets();
         animate();
         </script>
+
 
 
 
