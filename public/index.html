@@ -686,20 +686,24 @@
             fetchWeather();
         </script>
                 
+    
         <script type="module">
+        // Import necessary Three.js modules and postprocessing passes
         import * as THREE from '/js/three.module.min.js';
         import { EffectComposer } from '/js/postprocessing/EffectComposer.js';
         import { RenderPass } from '/js/postprocessing/RenderPass.js';
         import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
         import { FXAAShader } from '/js/shaders/FXAAShader.js';
         import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
-        import { MotionBlurPass } from '/js/postprocessing/MotionBlurPass.js'; // If available
+        import { MotionBlurPass } from '/js/postprocessing/MotionBlurPass.js'; // Ensure MotionBlurPass.js exists
         
-        // Custom Chromatic Aberration Shader (with reduced offset)
+        // --- 1. Define Shaders ---
+        
+        // Custom Chromatic Aberration Shader with reduced offset
         const ChromaticAberrationShader = {
             uniforms: {
                 "tDiffuse": { value: null },
-                "offset": { value: new THREE.Vector2(0.001, 0.001) } // Reduced strength
+                "offset": { value: new THREE.Vector2(0.001, 0.001) } // Reduced intensity
             },
             vertexShader: `
                 varying vec2 vUv;
@@ -729,43 +733,50 @@
             `
         };
         
-        // Renderer Setup
+        // --- 2. Renderer Setup ---
+        
         const canvas = document.getElementById('techCanvas');
         const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.5;
+        renderer.toneMappingExposure = 1.5; // Balanced overall lighting
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         
-        // Scene and Camera Setup
+        // --- 3. Scene and Camera Setup ---
+        
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000);
         camera.position.set(0, 0, 3000);
         
-        // Background Texture with Vignette Effect
+        // Enable camera layers for background and comet effects
+        camera.layers.enable(0); // Background and main scene
+        camera.layers.enable(1); // Comet effects
+        
+        // --- 4. Load Background Texture with Vignette Effect ---
+        
         const textureLoader = new THREE.TextureLoader();
         textureLoader.load('/textures/pillar.webp', (texture) => {
             texture.colorSpace = THREE.SRGBColorSpace;
-            texture.encoding = THREE.sRGBEncoding;
+            texture.encoding = THREE.sRGBEncoding; // Correct brightness
             scene.background = texture;
         }, undefined, (err) => {
             console.error('Error loading background texture:', err);
             scene.background = new THREE.Color(0x303030);
         });
         
-        // Lighting
+        // --- 5. Lighting Setup ---
+        
+        // Ambient Light for overall illumination
         const ambientLight = new THREE.AmbientLight(0x404040, 1.8);
         scene.add(ambientLight);
         
+        // Hemisphere Light for additional lighting effects
         const hemisphereLight = new THREE.HemisphereLight(0xddddff, 0x555555, 0.5);
         scene.add(hemisphereLight);
         
-        // Camera Layers
-        camera.layers.enable(0); // Background and main scene
-        camera.layers.enable(1); // Comet effects
+        // --- 6. Load Star Textures and Create Star Field ---
         
-        // Load Star Textures
         const starTextures = [
             textureLoader.load('/textures/stars 001.png'),
             textureLoader.load('/textures/stars 002.png'),
@@ -775,7 +786,6 @@
             textureLoader.load('/textures/stars 006.png')
         ];
         
-        // Function to add stars to the background seamlessly
         function createStarField() {
             const starCount = 50; // Number of stars in the field
         
@@ -785,22 +795,23 @@
                     map: texture,
                     blending: THREE.AdditiveBlending,
                     transparent: true,
-                    opacity: 0.8
+                    opacity: 0.8 // Blends into background
                 });
         
                 const star = new THREE.Sprite(starMaterial);
-                star.scale.set(200 + Math.random() * 150, 200 + Math.random() * 150, 1);
+                star.scale.set(200 + Math.random() * 150, 200 + Math.random() * 150, 1); // Random size
                 star.position.set(
-                    Math.random() * window.innerWidth * 2 - window.innerWidth,
-                    Math.random() * window.innerHeight * 2 - window.innerHeight,
-                    -2000 + Math.random() * 1000
+                    Math.random() * window.innerWidth * 2 - window.innerWidth,  // X-axis spread
+                    Math.random() * window.innerHeight * 2 - window.innerHeight, // Y-axis spread
+                    -2000 + Math.random() * 1000                                // Depth spread
                 );
         
                 scene.add(star);
             }
         }
         
-        // Load Multiple Comet Textures
+        // --- 7. Load Multiple Comet Textures ---
+        
         const cometTextures = [
             textureLoader.load('/textures/comet1.png'),
             textureLoader.load('/textures/comet2.png'),
@@ -808,13 +819,16 @@
             // Add more textures as needed
         ];
         
-        // Comet and Particle Variables
+        // --- 8. Comet and Particle Variables ---
+        
         const cometCount = 8;
         const comets = [];
         
         const particles = [];
-        const particleCount = 200;
+        const particleCount = 200; // Number of cosmic dust particles
         const particleTexture = textureLoader.load('/textures/particle_clouds.png');
+        
+        // --- 9. Functions to Create Comets and Particles ---
         
         // Function to create a new comet with diverse properties
         function createComet() {
@@ -830,7 +844,7 @@
             });
         
             const comet = new THREE.Sprite(cometMaterial);
-            const cometSize = 200 + Math.random() * 200; // Increased size
+            const cometSize = 200 + Math.random() * 200; // Increased size for visibility
             comet.scale.set(cometSize, cometSize, 1);
             comet.color = new THREE.Color(0xffffff);
             comet.material.color = comet.color;
@@ -890,18 +904,19 @@
                 map: particleTexture,
                 blending: THREE.AdditiveBlending,
                 transparent: true,
-                opacity: 0.5,
+                opacity: 0.5, // Subtle glow
                 depthWrite: false,
             });
         
             const particle = new THREE.Sprite(particleMaterial);
-            const particleSize = 5 + Math.random() * 10;
+            const particleSize = 5 + Math.random() * 10; // Smaller size
             particle.scale.set(particleSize, particleSize, 1);
             
+            // Position particles in a 3D space surrounding the scene
             particle.position.set(
                 Math.random() * window.innerWidth * 2 - window.innerWidth,
                 Math.random() * window.innerHeight * 2 - window.innerHeight,
-                Math.random() * 3000 - 1500
+                Math.random() * 3000 - 1500 // Depth spread
             );
         
             // Add a very soft light to the particle for a subtle glowing effect
@@ -915,28 +930,30 @@
             particles.push(particle);
         }
         
-        // Function to reset comet properties with optimized spawn positions and velocities
+        // --- 10. Function to Reset Comet Properties ---
+        
         function resetComet(comet) {
+            // Decide spawn side (e.g., right or bottom)
             const spawnSide = Math.random() > 0.5 ? 'right' : 'bottom';
         
             if (spawnSide === 'right') {
                 // Spawn off-screen to the right
                 comet.position.set(
-                    window.innerWidth / 2 + Math.random() * window.innerWidth,
-                    Math.random() * window.innerHeight * 2 - window.innerHeight,
-                    Math.random() * 1000 - 500
+                    window.innerWidth / 2 + Math.random() * window.innerWidth, // Start off-screen to the right
+                    Math.random() * window.innerHeight * 2 - window.innerHeight, // Random Y position
+                    Math.random() * 1000 - 500 // Depth variation
                 );
         
                 // Velocity towards the left with some vertical variation
-                const velocityX = -1200 - Math.random() * 600;
-                const velocityY = -300 + Math.random() * 600;
+                const velocityX = -1200 - Math.random() * 600; // Faster movement along X-axis
+                const velocityY = -300 + Math.random() * 600; // Varied vertical movement
                 comet.velocity = new THREE.Vector3(velocityX, velocityY, 0);
             } else {
                 // Spawn off-screen at the bottom
                 comet.position.set(
-                    Math.random() * window.innerWidth * 2 - window.innerWidth,
-                    -window.innerHeight / 2 - Math.random() * window.innerHeight,
-                    Math.random() * 1000 - 500
+                    Math.random() * window.innerWidth * 2 - window.innerWidth, // Random X position
+                    -window.innerHeight / 2 - Math.random() * window.innerHeight, // Spawn below the screen
+                    Math.random() * 1000 - 500 // Depth variation
                 );
         
                 // Velocity upwards with some horizontal variation
@@ -946,7 +963,7 @@
             }
         
             // Extend lifespan to allow longer travel across the screen
-            comet.lifespan = 30.0 + Math.random() * 30.0;
+            comet.lifespan = 30.0 + Math.random() * 30.0; // Between 30 and 60 seconds
             comet.burningOut = false;
         
             // Reset light intensity and opacity
@@ -959,9 +976,11 @@
             comet.rotation.z = Math.atan2(comet.velocity.y, comet.velocity.x);
         }
         
-        // Function to update comet positions, trails, and properties
+        // --- 11. Function to Update Comets ---
+        
         function updateComets(delta) {
             comets.forEach((comet) => {
+                // Move comet based on its velocity and delta time
                 comet.position.add(comet.velocity.clone().multiplyScalar(delta));
         
                 // Rotate the comet to align with its direction of travel
@@ -971,26 +990,25 @@
                 // Move the spotlight with the comet to simulate background lighting
                 if (comet.spotLight) {
                     comet.spotLight.position.copy(comet.position);
-                    comet.spotLight.position.z += 500;
+                    comet.spotLight.position.z += 500; // Offset for better lighting
                     comet.spotLight.intensity = 1.0 + Math.sin(clock.getElapsedTime() * 2) * 0.5;
                 }
         
                 // Update lifespan and adjust light intensity
                 comet.lifespan -= delta;
         
-                if (comet.lifespan > 25.0) { // Adjusted for longer lifespan
+                if (comet.lifespan > 25.0) { // Initial phase
                     comet.material.opacity = Math.min(1.0, comet.material.opacity + delta * 0.2);
-                } else if (comet.lifespan > 10.0) {
+                } else if (comet.lifespan > 10.0) { // Mid phase
                     comet.light.intensity = 5.0 + Math.sin(clock.getElapsedTime() * 40) * 1.0;
-                    // Simulate trail by reducing opacity slightly
                     comet.material.opacity = Math.min(1.0, comet.material.opacity + delta * 0.1);
-                } else if (!comet.burningOut) {
+                } else if (!comet.burningOut) { // Burning out phase
                     comet.burningOut = true;
                     comet.material.color.set(0xffffff);
                     comet.light.color.set(0xffffff);
                     comet.scale.set(comet.scale.x * 1.2, comet.scale.y * 1.2, 1);
                     comet.light.intensity = 6.0;
-                } else {
+                } else { // Fade out phase
                     comet.material.opacity = Math.max(0, comet.material.opacity - delta * 0.2); // Faster fade out
                     comet.light.intensity = Math.max(0, comet.light.intensity - delta * 2.0); // Faster light fade out
                     if (comet.material.opacity <= 0) {
@@ -1017,28 +1035,30 @@
             });
         }
         
-        // Function to update particle positions for subtle movement and reactive effects
+        // --- 12. Function to Update Particles ---
+        
         function updateParticles(delta) {
             particles.forEach((particle) => {
-                // Add subtle random movement to each particle to simulate floating
+                // Subtle random movement to simulate floating
                 particle.position.x += (Math.random() - 0.5) * 0.5 * delta;
                 particle.position.y += (Math.random() - 0.5) * 0.5 * delta;
                 particle.position.z += (Math.random() - 0.5) * 0.2 * delta;
         
-                // Add subtle movement based on camera position for parallax effect in 3D space
+                // Subtle movement based on camera position for parallax effect
                 particle.position.x += mouseX * 0.02 * delta;
                 particle.position.y += mouseY * 0.02 * delta;
             });
         }
         
-        // Function to adjust comet light intensity based on proximity to particles
+        // --- 13. Function to Adjust Comet Light Intensity Based on Proximity to Particles ---
+        
         function updateCometLightIntensity() {
             comets.forEach((comet) => {
-                let maxIntensity = 6.0;  // Default comet intensity
+                let maxIntensity = 6.0; // Default comet intensity
                 particles.forEach((particle) => {
                     const distance = comet.position.distanceTo(particle.position);
-                    if (distance < 500) {  // Threshold for effect
-                        maxIntensity = Math.max(maxIntensity, 6.0 + (500 - distance) / 100);  // Increase intensity closer to particle
+                    if (distance < 500) { // Threshold for effect
+                        maxIntensity = Math.max(maxIntensity, 6.0 + (500 - distance) / 100); // Increase intensity closer to particle
                     }
                 });
         
@@ -1047,7 +1067,8 @@
             });
         }
         
-        // Interactive camera movement based on mouse position
+        // --- 14. Interactive Camera Movement Based on Mouse Position ---
+        
         let mouseX = 0;
         let mouseY = 0;
         document.addEventListener('mousemove', (event) => {
@@ -1061,65 +1082,80 @@
             camera.position.y += (mouseY * 300 - camera.position.y) * 0.05;
         }
         
-        // Function to spawn comets one by one with random delay
+        // --- 15. Function to Spawn Comets with Random Delay ---
+        
         function spawnComets() {
             if (comets.length < cometCount) {
                 createComet();
-                const randomDelay = 1500 + Math.random() * 2000;
+                const randomDelay = 1500 + Math.random() * 2000; // 1.5 to 3.5 seconds delay
                 setTimeout(spawnComets, randomDelay);
             }
         }
         
-        // Spawn particles and stars at the beginning
+        // --- 16. Initialize Stars, Particles, and Comets ---
+        
+        // Spawn particles
         for (let i = 0; i < particleCount; i++) {
             createParticle();
         }
+        
+        // Create star field
         createStarField();
         
         // Create initial comets
         spawnComets();
         
-        // Clock for animations
+        // --- 17. Clock for Animations ---
+        
         const clock = new THREE.Clock();
         
-        // Postprocessing setup
+        // --- 18. Postprocessing Setup ---
+        
         const renderScene = new RenderPass(scene, camera);
         const composer = new EffectComposer(renderer);
         composer.addPass(renderScene);
         
-        // Bloom Pass
+        // Bloom Pass for glow effects
         const bloomPass = new UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
-            2.5,  // Increased strength
+            2.5,  // Increased strength for more pronounced glow
             0.6,  // Bloom radius
-            0.9   // Threshold
+            0.9   // Threshold for glow effect
         );
         composer.addPass(bloomPass);
         
-        // Chromatic Aberration Pass
+        // Chromatic Aberration Pass with reduced offset
         const chromaticAberrationPass = new ShaderPass(ChromaticAberrationShader);
         chromaticAberrationPass.uniforms['offset'].value = new THREE.Vector2(0.001, 0.001); // Reduced strength
         composer.addPass(chromaticAberrationPass);
+        
+        // Motion Blur Pass
+        const motionBlurPass = new MotionBlurPass();
+        composer.addPass(motionBlurPass);
         
         // FXAA Pass for Anti-Aliasing
         const fxaaPass = new ShaderPass(FXAAShader);
         fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
         composer.addPass(fxaaPass);
         
-        // Optional Motion Blur Pass
-        // const motionBlurPass = new MotionBlurPass(); // Ensure you have this shader
-        // composer.addPass(motionBlurPass);
+        // --- 19. Handle Window Resize ---
         
-        // Handle window resize
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            camera.aspect = width / height;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            composer.setSize(window.innerWidth, window.innerHeight);
-            fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
+            renderer.setSize(width, height);
+            composer.setSize(width, height);
+            fxaaPass.uniforms['resolution'].value.set(1 / width, 1 / height);
+            
+            // Update MotionBlurPass size
+            motionBlurPass.setSize(width, height);
         });
         
-        // Animation function
+        // --- 20. Animation Loop ---
+        
         function animate() {
             requestAnimationFrame(animate);
         
@@ -1128,15 +1164,17 @@
             // Update comets, particles, and camera
             updateComets(delta);
             updateParticles(delta);
-            updateCometLightIntensity();  // Update comet light intensity based on proximity to particles
+            updateCometLightIntensity(); // Adjust comet light based on proximity to particles
             updateCamera();
         
+            // Render the scene with postprocessing
             composer.render();
         }
         
-        // Start animation
+        // Start the animation loop
         animate();
         </script>
+
 
 
 
