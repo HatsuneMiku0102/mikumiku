@@ -916,14 +916,19 @@
         
         // Function to reset comet properties
         function resetComet(comet) {
+            // **Adjusted Spawn Position:**
             comet.position.set(
                 Math.random() * window.innerWidth * 2 - window.innerWidth, // Spread comets across entire horizontal width
                 window.innerHeight + 500,  // Position comets above the visible area
                 Math.random() * 1000 - 500  // Add depth variation to the comets
             );
-            const velocityX = -500 - Math.random() * 300;
-            const velocityY = -1000 - Math.random() * 600;
+        
+            // **Adjusted Velocity Components:**
+            // Increase horizontal velocity and decrease vertical velocity for more forward movement
+            const velocityX = (Math.random() - 0.5) * 800; // -400 to +400
+            const velocityY = -800 - Math.random() * 400;   // -800 to -1200
             comet.velocity = new THREE.Vector3(velocityX, velocityY, 0);
+        
             comet.lifespan = 20.0 + Math.random() * 20.0;
             comet.burningOut = false;
         
@@ -1005,7 +1010,8 @@
                 }
         
                 // Reset comet if it moves out of bounds
-                if (comet.position.x < -window.innerWidth || comet.position.y < -window.innerHeight * 1.5) {
+                if (comet.position.x < -window.innerWidth || comet.position.x > window.innerWidth ||
+                    comet.position.y < -window.innerHeight * 1.5) {
                     resetComet(comet);
                 }
             });
