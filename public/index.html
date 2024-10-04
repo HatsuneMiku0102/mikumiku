@@ -808,6 +808,10 @@
         const particleCount = 200;  // Number of cosmic dust particles
         const particleTexture = textureLoader.load('/textures/particle_clouds.png');
         
+        // **New:** Burning Particles for Comet Fire Trail
+        const burningParticles = [];
+        const burningParticleTexture = textureLoader.load('/textures/particle_clouds.png'); // Reusing existing texture
+        
         // Function to create a new comet with diverse properties
         function createComet() {
             const cometMaterial = new THREE.SpriteMaterial({
@@ -881,6 +885,35 @@
             particles.push(particle);
         }
         
+        // **New:** Function to create burning flame particles
+        function createBurningParticle(comet) {
+            const burningMaterial = new THREE.SpriteMaterial({
+                map: burningParticleTexture,
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                opacity: 1.0,
+                depthWrite: false,
+                color: new THREE.Color(0xff4500) // Fiery orange-red color
+            });
+        
+            const burningParticle = new THREE.Sprite(burningMaterial);
+            const size = 10 + Math.random() * 10;
+            burningParticle.scale.set(size, size, 1);
+        
+            // Position the burning particle at the comet's current position
+            burningParticle.position.copy(comet.position);
+        
+            // Assign a random velocity away from the comet to simulate dispersing flames
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 50 + Math.random() * 50;
+            burningParticle.velocity = new THREE.Vector3(Math.cos(angle) * speed, Math.sin(angle) * speed, 0);
+        
+            burningParticle.lifespan = 2.0 + Math.random() * 1.0; // Lifespan in seconds
+        
+            burningParticles.push(burningParticle);
+            scene.add(burningParticle);
+        }
+        
         // Function to reset comet properties
         function resetComet(comet) {
             comet.position.set(
@@ -927,10 +960,19 @@
                     comet.light.intensity = 5.0 + Math.sin(clock.getElapsedTime() * 40) * 1.0;
                 } else if (!comet.burningOut) {
                     comet.burningOut = true;
-                    comet.material.color.set(0xffffff);
-                    comet.light.color.set(0xffffff);
+        
+                    // **Updated: Change color to fiery hues**
+                    comet.material.color.set(0xff4500); // Fiery orange-red color
+                    comet.light.color.set(0xff4500);
+        
                     comet.scale.set(comet.scale.x * 1.2, comet.scale.y * 1.2, 1);
+        
                     comet.light.intensity = 6.0;
+        
+                    // **New: Start spawning burning particles**
+                    for (let i = 0; i < 5; i++) { // Spawn multiple particles at once
+                        createBurningParticle(comet);
+                    }
                 } else {
                     comet.material.opacity = Math.max(0, comet.material.opacity - delta * 0.1);
                     comet.light.intensity = Math.max(0, comet.light.intensity - delta * 1.5);
@@ -958,6 +1000,26 @@
                 particle.position.x += mouseX * 0.02 * delta;
                 particle.position.y += mouseY * 0.02 * delta;
             });
+        }
+        
+        // **New:** Function to update burning particles
+        function updateBurningParticles(delta) {
+            for (let i = burningParticles.length - 1; i >= 0; i--) {
+                const particle = burningParticles[i];
+                // Update position based on velocity
+                particle.position.add(particle.velocity.clone().multiplyScalar(delta));
+        
+                // Decrease lifespan
+                particle.lifespan -= delta;
+                if (particle.lifespan <= 0) {
+                    scene.remove(particle);
+                    burningParticles.splice(i, 1);
+                    continue;
+                }
+        
+                // Fade out opacity over time
+                particle.material.opacity = Math.max(0, particle.lifespan / 2.0);
+            }
         }
         
         // Function to adjust comet light intensity based on proximity to particles
@@ -1013,10 +1075,11 @@
         
             const delta = clock.getDelta();
         
-            // Update comets, particles, and camera
+            // Update comets, particles, burning particles, and camera
             updateComets(delta);
             updateParticles(delta);
-            updateCometLightIntensity();  // Update comet light intensity based on proximity to particles
+            updateBurningParticles(delta); // **New:** Update burning particles
+            updateCometLightIntensity();    // Update comet light intensity based on proximity to particles
             updateCamera();
             composer.render();
         }
@@ -1036,13 +1099,11 @@
         composer.addPass(bloomPass);
         
         // Chromatic Aberration Pass
-        
         const chromaticAberrationPass = new ShaderPass(ChromaticAberrationShader);
         chromaticAberrationPass.uniforms['offset'].value = new THREE.Vector2(0.00075, 0.00075); // Reduced strength of the chromatic aberration
         composer.addPass(chromaticAberrationPass);
         
-        
-         // FXAA Pass for Anti-Aliasing
+        // FXAA Pass for Anti-Aliasing
         const fxaaPass = new ShaderPass(FXAAShader);
         fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
         composer.addPass(fxaaPass);
@@ -1060,6 +1121,7 @@
         spawnComets();
         animate();
         </script>
+
 
 
 
