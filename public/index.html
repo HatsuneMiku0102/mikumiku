@@ -716,7 +716,7 @@
             scene.background = new THREE.Color(0x202020);
         });
         
-        // Adding Ambient and Hemisphere Light for Overall Illumination
+        // Adding Ambient Light for Overall Illumination
         const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
         scene.add(ambientLight);
         
@@ -755,9 +755,17 @@
         
             comet.light = cometLight;
         
-            // Assign comet and light to layer 1
+            // Create a spotlight for lighting up the background
+            const spotLight = new THREE.SpotLight(0xffffff, 1.0, 5000, Math.PI / 8, 0.5);
+            spotLight.castShadow = true;
+            spotLight.target = comet; // The spotlight target is the comet
+            scene.add(spotLight);
+            comet.spotLight = spotLight;
+        
+            // Assign comet, light, and spotlight to layer 1
             comet.layers.set(1);
             cometLight.layers.set(1);
+            spotLight.layers.set(1);
         
             resetComet(comet);
             comets.push(comet);
@@ -795,6 +803,13 @@
                 // Rotate the comet to align with its direction of travel
                 const angle = Math.atan2(comet.velocity.y, comet.velocity.x);
                 comet.rotation.z = angle;
+        
+                // Move the spotlight with the comet to simulate background lighting
+                if (comet.spotLight) {
+                    comet.spotLight.position.copy(comet.position);
+                    comet.spotLight.position.z += 500; // Place the spotlight behind the comet
+                    comet.spotLight.intensity = 1.0 + Math.sin(clock.getElapsedTime() * 2) * 0.5; // Flicker intensity slightly
+                }
         
                 // Update lifespan and adjust light intensity
                 comet.lifespan -= delta;
@@ -884,6 +899,7 @@
         spawnComets();
         animate();
         </script>
+
 
 
 
