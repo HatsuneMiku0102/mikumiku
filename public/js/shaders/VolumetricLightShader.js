@@ -10,13 +10,13 @@ export const VolumetricLightShader = {
         "cameraNear": { value: 0.1 }, // Camera near plane
         "cameraFar": { value: 20000 }, // Camera far plane
         "resolution": { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }, // Screen resolution
-        "density": { value: 0.96 }, // Density of the volumetric effect
-        "weight": { value: 0.4 },   // Weight of the volumetric effect
-        "decay": { value: 0.93 },   // Decay rate of the light
-        "exposure": { value: 0.6 }, // Exposure of the volumetric effect
-        "fStepSize": { value: 1.0 }, // Step size for ray marching
-        "uProjectionMatrix": { value: new THREE.Matrix4() }, // Renamed Projection Matrix
-        "uModelViewMatrix": { value: new THREE.Matrix4() }, // Renamed Model-View Matrix
+        "density": { value: 0.8 }, // Adjusted
+        "weight": { value: 0.3 },  // Adjusted
+        "decay": { value: 0.90 },  // Adjusted
+        "exposure": { value: 0.5 },// Adjusted
+        "fStepSize": { value: 0.8 },// Adjusted
+        "projectionMatrix": { value: new THREE.Matrix4() }, // Projection matrix
+        "modelViewMatrix": { value: new THREE.Matrix4() }, // Model-View matrix
     },
     vertexShader: `
         varying vec2 vUv;
@@ -37,8 +37,8 @@ export const VolumetricLightShader = {
         uniform float decay;
         uniform float exposure;
         uniform float fStepSize;
-        uniform mat4 uProjectionMatrix; // Renamed uniform
-        uniform mat4 uModelViewMatrix;  // Renamed uniform
+        uniform mat4 projectionMatrix;
+        uniform mat4 modelViewMatrix;
 
         varying vec2 vUv;
 
@@ -76,7 +76,7 @@ export const VolumetricLightShader = {
                 vec3 samplePos = worldPos + lightDir * stepSize * float(i);
                 
                 // Project the sample position back to screen space
-                vec4 clipPos = uProjectionMatrix * uModelViewMatrix * vec4(samplePos, 1.0);
+                vec4 clipPos = projectionMatrix * modelViewMatrix * vec4(samplePos, 1.0);
                 vec3 ndc = clipPos.xyz / clipPos.w;
                 vec2 sampleUv = ndc.xy * 0.5 + 0.5;
 
