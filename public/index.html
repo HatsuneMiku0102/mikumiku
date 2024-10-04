@@ -876,25 +876,29 @@
             });
         }
         
-        // Function to update particle positions for a subtle reactive effect with depth and react to comets
+        // Function to update particle positions for a subtle reactive effect with depth
         function updateParticles(delta) {
             particles.forEach((particle) => {
                 // Add subtle movement based on camera position for parallax effect in 3D space
                 particle.position.x += (mouseX * 50 - particle.position.x) * 0.01 * delta;
                 particle.position.y += (mouseY * 30 - particle.position.y) * 0.01 * delta;
                 particle.position.z += (mouseX * 10 - particle.position.z) * 0.005 * delta;
+            });
+        }
         
-                // Check distance from each comet to determine if it should increase light intensity
-                let maxIntensity = 0.2;  // Default intensity
-                comets.forEach((comet) => {
-                    const distance = particle.position.distanceTo(comet.position);
-                    if (distance < 600) {  // Threshold for effect
-                        maxIntensity = Math.max(maxIntensity, 1.0 - distance / 600);  // Increase intensity closer to comet
+        // Function to adjust comet light intensity based on proximity to particles
+        function updateCometLightIntensity() {
+            comets.forEach((comet) => {
+                let maxIntensity = 4.0;  // Default comet intensity
+                particles.forEach((particle) => {
+                    const distance = comet.position.distanceTo(particle.position);
+                    if (distance < 500) {  // Threshold for effect
+                        maxIntensity = Math.max(maxIntensity, 4.0 + (500 - distance) / 100);  // Increase intensity closer to particle
                     }
                 });
         
-                // Apply the light intensity to the particle
-                particle.light.intensity = maxIntensity;
+                // Apply the intensity to the comet's light
+                comet.light.intensity = maxIntensity;
             });
         }
         
@@ -937,6 +941,7 @@
             // Update comets, particles, and camera
             updateComets(delta);
             updateParticles(delta);
+            updateCometLightIntensity();  // Update comet light intensity based on proximity to particles
             updateCamera();
             composer.render();
         }
