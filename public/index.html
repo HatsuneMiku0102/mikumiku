@@ -808,7 +808,7 @@
         const particleCount = 200;  // Number of cosmic dust particles
         const particleTexture = textureLoader.load('/textures/particle_clouds.png');
         
-        // **New:** Burning Particles for Comet Fire Trail
+        // Burning Particles for Comet Fire Trail
         const burningParticles = [];
         const burningParticleTexture = textureLoader.load('/textures/particle_clouds.png'); // Reusing existing texture
         
@@ -885,7 +885,7 @@
             particles.push(particle);
         }
         
-        // **New:** Function to create burning flame particles
+        // Function to create burning flame particles
         function createBurningParticle(comet) {
             const burningMaterial = new THREE.SpriteMaterial({
                 map: burningParticleTexture,
@@ -933,6 +933,11 @@
             const cometSize = 150 + Math.random() * 200;
             comet.scale.set(cometSize, cometSize, 1);
             comet.rotation.z = Math.atan2(comet.velocity.y, comet.velocity.x);
+        
+            // **New:** Initialize flashing properties
+            comet.flashPhase = 0; // Phase for sine wave
+            comet.flashSpeed = Math.random() * 5 + 5; // Speed of flashing
+            comet.flashAmplitude = 3.0; // Amplitude of light intensity fluctuation
         }
         
         // Function to update comet positions and properties
@@ -969,12 +974,30 @@
         
                     comet.light.intensity = 6.0;
         
+                    // **New: Initialize flashing properties upon burning out**
+                    comet.flashPhase = 0; // Reset phase
+                    comet.flashSpeed = Math.random() * 5 + 5; // Randomize flash speed
+                    comet.flashAmplitude = 3.0; // Set flash amplitude
+        
                     // **New: Start spawning burning particles**
                     for (let i = 0; i < 5; i++) { // Spawn multiple particles at once
                         createBurningParticle(comet);
                     }
                 } else {
+                    // **New: Implement flashing effect during burningOut phase**
+                    comet.flashPhase += delta * comet.flashSpeed;
+                    // Calculate flashing intensity using sine wave
+                    const flash = Math.abs(Math.sin(comet.flashPhase));
+                    // Set light intensity with base value plus flash amplitude
+                    comet.light.intensity = 6.0 + comet.flashAmplitude * flash;
+        
+                    // Optionally, adjust comet's material opacity to sync with flashing
+                    // For a more pronounced effect, you can uncomment the following lines:
+                    // comet.material.opacity = Math.max(0.5, comet.material.opacity + 0.1 * flash * delta);
+        
                     comet.material.opacity = Math.max(0, comet.material.opacity - delta * 0.1);
+        
+                    // Decrease light intensity over time
                     comet.light.intensity = Math.max(0, comet.light.intensity - delta * 1.5);
                     if (comet.material.opacity <= 0) {
                         resetComet(comet);
@@ -1002,7 +1025,7 @@
             });
         }
         
-        // **New:** Function to update burning particles
+        // Function to update burning particles
         function updateBurningParticles(delta) {
             for (let i = burningParticles.length - 1; i >= 0; i--) {
                 const particle = burningParticles[i];
@@ -1078,7 +1101,7 @@
             // Update comets, particles, burning particles, and camera
             updateComets(delta);
             updateParticles(delta);
-            updateBurningParticles(delta); // **New:** Update burning particles
+            updateBurningParticles(delta); // Update burning particles
             updateCometLightIntensity();    // Update comet light intensity based on proximity to particles
             updateCamera();
             composer.render();
@@ -1121,6 +1144,7 @@
         spawnComets();
         animate();
         </script>
+
 
 
 
