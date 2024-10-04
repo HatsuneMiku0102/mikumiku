@@ -763,7 +763,7 @@
         camera.layers.enable(0); // Background and main scene
         camera.layers.enable(1); // Comet effects
         
-        // Load Star Textures
+        // Load Star Textures (Unused in the new dynamic starfield)
         const starTextures = [
             textureLoader.load('/textures/stars 001.png'),
             textureLoader.load('/textures/stars 002.png'),
@@ -773,30 +773,104 @@
             textureLoader.load('/textures/stars 006.png')
         ];
         
-        // Function to add stars to the background seamlessly
-        function createStarField() {
-            const starCount = 50; // Number of stars in the field
+        // Existing createStarField function is now replaced by createDynamicStarField
+        // Remove or comment out the existing createStarField function if not needed
+        // function createStarField() { ... }
         
+        // Function to create a dynamic twinkling starfield
+        function createDynamicStarField() {
+            const starCount = 1000; // Increased number of stars for density
+        
+            // Create BufferGeometry
+            const starsGeometry = new THREE.BufferGeometry();
+        
+            // Arrays to hold star attributes
+            const positions = new Float32Array(starCount * 3); // x, y, z for each star
+            const sizes = new Float32Array(starCount); // Size of each star
+            const twinklePhases = new Float32Array(starCount); // Twinkle phase for each star
+            const twinkleSpeeds = new Float32Array(starCount); // Twinkle speed for each star
+            const colors = new Float32Array(starCount * 3); // r, g, b for each star
+        
+            // Populate the arrays with random star data
             for (let i = 0; i < starCount; i++) {
-                const texture = starTextures[Math.floor(Math.random() * starTextures.length)];
-                const starMaterial = new THREE.SpriteMaterial({
-                    map: texture,
-                    blending: THREE.AdditiveBlending,
-                    transparent: true,
-                    opacity: 0.8  // Adjust opacity to blend into background
-                });
+                // Position stars randomly within a specified range
+                positions[i * 3] = Math.random() * window.innerWidth * 2 - window.innerWidth;
+                positions[i * 3 + 1] = Math.random() * window.innerHeight * 2 - window.innerHeight;
+                positions[i * 3 + 2] = Math.random() * 2000 - 1000; // Depth variation
         
-                const star = new THREE.Sprite(starMaterial);
-                star.scale.set(200 + Math.random() * 150, 200 + Math.random() * 150, 1); // Randomize size
-                star.position.set(
-                    Math.random() * window.innerWidth * 2 - window.innerWidth,  // Spread across X-axis
-                    Math.random() * window.innerHeight * 2 - window.innerHeight, // Spread across Y-axis
-                    -2000 + Math.random() * 1000                                // Spread behind the main scene
-                );
+                // Assign random sizes between 1 and 3
+                sizes[i] = 1 + Math.random() * 2;
         
-                scene.add(star);
+                // Assign random initial twinkle phases between 0 and 2π
+                twinklePhases[i] = Math.random() * Math.PI * 2;
+        
+                // Assign random twinkle speeds between 1 and 3 radians per second
+                twinkleSpeeds[i] = 1 + Math.random() * 2;
+        
+                // Assign random colors within a realistic range (mostly white with slight blue/yellow hues)
+                const hue = Math.random() * 0.1; // 0 to 0.1 in HSL (white to slightly blue)
+                const saturation = 0.0; // Low saturation for white stars
+                const lightness = 0.8 + Math.random() * 0.2; // High lightness for brightness
+                const color = new THREE.Color();
+                color.setHSL(hue, saturation, lightness);
+        
+                colors[i * 3] = color.r;
+                colors[i * 3 + 1] = color.g;
+                colors[i * 3 + 2] = color.b;
             }
+        
+            // Set attributes to geometry
+            starsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            starsGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+            starsGeometry.setAttribute('twinklePhase', new THREE.BufferAttribute(twinklePhases, 1));
+            starsGeometry.setAttribute('twinkleSpeed', new THREE.BufferAttribute(twinkleSpeeds, 1));
+            starsGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        
+            // Create a custom shader material for twinkling effect
+            const starsMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    time: { value: 0 },
+                },
+                vertexShader: `
+                    attribute float size;
+                    attribute float twinklePhase;
+                    attribute float twinkleSpeed;
+                    attribute vec3 color;
+                    varying float vTwinkle;
+                    varying vec3 vColor;
+                    uniform float time;
+                    void main() {
+                        vTwinkle = abs(sin(time * twinkleSpeed + twinklePhase));
+                        vColor = color;
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = size * (300.0 / -mvPosition.z); // Adjust point size based on depth
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    varying float vTwinkle;
+                    varying vec3 vColor;
+                    void main() {
+                        float alpha = vTwinkle;
+                        gl_FragColor = vec4(vColor, alpha);
+                    }
+                `,
+                blending: THREE.AdditiveBlending,
+                depthTest: false,
+                transparent: true,
+                vertexColors: true // Enable vertex colors
+            });
+        
+            // Create Points and add to scene
+            const stars = new THREE.Points(starsGeometry, starsMaterial);
+            scene.add(stars);
+        
+            // Store stars for updating
+            scene.userData.stars = stars;
         }
+        
+        // Call the new dynamic starfield function
+        createDynamicStarField();
         
         // Comet Variables
         const cometTexture = textureLoader.load('/textures/comet1.png');
@@ -1110,7 +1184,7 @@
         for (let i = 0; i < particleCount; i++) {
             createParticle();
         }
-        createStarField();
+        createDynamicStarField(); // Use the dynamic starfield function
         
         const clock = new THREE.Clock();
         
@@ -1119,6 +1193,7 @@
             requestAnimationFrame(animate);
         
             const delta = clock.getDelta();
+            const elapsedTime = clock.getElapsedTime();
         
             // Update comets, particles, burning particles, and camera
             updateComets(delta);
@@ -1126,6 +1201,12 @@
             updateBurningParticles(delta); // Update burning particles
             updateCometLightIntensity();    // Update comet light intensity based on proximity to particles
             updateCamera();
+        
+            // Update stars' time uniform for twinkling
+            if (scene.userData.stars) {
+                scene.userData.stars.material.uniforms.time.value = elapsedTime;
+            }
+        
             composer.render();
         }
         
@@ -1166,6 +1247,7 @@
         spawnComets();
         animate();
         </script>
+
 
 
 
