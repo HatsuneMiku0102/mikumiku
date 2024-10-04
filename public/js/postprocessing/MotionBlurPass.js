@@ -2,7 +2,6 @@
 
 import * as THREE from '/js/three.module.min.js';
 import { Pass } from '/js/postprocessing/Pass.js';
-import { ShaderMaterial } from '/js/three.module.min.js';
 
 // Motion Blur Shader
 const MotionBlurShader = {
@@ -15,7 +14,7 @@ const MotionBlurShader = {
         varying vec2 vUv;
         void main() {
             vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
     `,
     fragmentShader: `
@@ -25,9 +24,9 @@ const MotionBlurShader = {
         varying vec2 vUv;
 
         void main() {
-            vec4 current = texture2D( tDiffuse, vUv );
-            vec4 old = texture2D( tOld, vUv );
-            gl_FragColor = mix( current, old, damp );
+            vec4 current = texture2D(tDiffuse, vUv);
+            vec4 old = texture2D(tOld, vUv);
+            gl_FragColor = mix(current, old, damp);
         }
     `
 };
@@ -69,20 +68,8 @@ class MotionBlurPass extends Pass {
         this.initialized = false;
     }
 
-    clearOldFrame() {
-        // Render black to the old render target
-        const originalClearColor = this.renderer.getClearColor().clone();
-        const originalClearAlpha = this.renderer.getClearAlpha();
-
-        this.renderer.setRenderTarget(this.renderTargetOld);
-        this.renderer.clearColor();
-        this.renderer.clear();
-
-        // Restore original clear color and alpha
-        this.renderer.setClearColor(originalClearColor, originalClearAlpha);
-    }
-
     render(renderer, writeBuffer, readBuffer, deltaTime, maskActive) {
+        // Assign the renderer
         this.renderer = renderer;
 
         // Initialize the old frame on the first render call
@@ -114,6 +101,19 @@ class MotionBlurPass extends Pass {
         const temp = this.renderTargetOld;
         this.renderTargetOld = this.renderTargetCurrent;
         this.renderTargetCurrent = temp;
+    }
+
+    clearOldFrame() {
+        // Render black to the old render target
+        const originalClearColor = this.renderer.getClearColor().clone();
+        const originalClearAlpha = this.renderer.getClearAlpha();
+
+        this.renderer.setRenderTarget(this.renderTargetOld);
+        this.renderer.clearColor();
+        this.renderer.clear();
+
+        // Restore original clear color and alpha
+        this.renderer.setClearColor(originalClearColor, originalClearAlpha);
     }
 
     setSize(width, height) {
