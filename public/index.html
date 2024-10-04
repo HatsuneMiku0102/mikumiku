@@ -783,12 +783,12 @@
     
         // Load Star Textures
         const starTextures = [
-            textureLoader.load('./textures/stars 001.png'), // Ensure filenames and paths are correct
-            textureLoader.load('./textures/stars 002.png'),
-            textureLoader.load('./textures/stars 003.png'),
-            textureLoader.load('./textures/stars 004.png'),
-            textureLoader.load('./textures/stars 005.png'),
-            textureLoader.load('./textures/stars 006.png')
+            textureLoader.load('./textures/stars_001.png'), // Ensure filenames and paths are correct
+            textureLoader.load('./textures/stars_002.png'),
+            textureLoader.load('./textures/stars_003.png'),
+            textureLoader.load('./textures/stars_004.png'),
+            textureLoader.load('./textures/stars_005.png'),
+            textureLoader.load('./textures/stars_006.png')
         ];
     
         // Function to add stars to the background seamlessly
@@ -829,6 +829,36 @@
         const particles = [];
         const particleCount = 200;  // Number of cosmic dust particles
         const particleTexture = textureLoader.load('./textures/particle_clouds.png'); // Ensure path is correct
+    
+        // Function to create cosmic dust particles in a 3D volume
+        function createParticle() {
+            const particleMaterial = new THREE.SpriteMaterial({
+                map: particleTexture,
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                opacity: 0.5,  // Lower opacity for cosmic dust effect
+                depthWrite: false,
+            });
+    
+            const particle = new THREE.Sprite(particleMaterial);
+            const particleSize = 5 + Math.random() * 10;  // Smaller size to represent cosmic dust
+            particle.scale.set(particleSize, particleSize, 1);
+            
+            // Position particles in a 3D space surrounding the scene
+            particle.position.set(
+                Math.random() * window.innerWidth * 2 - window.innerWidth,
+                Math.random() * window.innerHeight * 2 - window.innerHeight,
+                Math.random() * 3000 - 1500  // Spread particles in a depth range in the scene
+            );
+    
+            // Add a very soft light to the particle for a subtle glowing effect
+            const particleLight = new THREE.PointLight(0xffffff, 0.2, 200);
+            particleLight.position.set(0, 0, 0);
+            particle.add(particleLight);
+    
+            scene.add(particle);
+            particles.push(particle);
+        }
     
         // Define target position variables for smooth light movement
         /*
