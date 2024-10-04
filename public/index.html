@@ -687,15 +687,15 @@
         </script>
                 
         <script type="module">
-        import * as THREE from '/js/three.module.min.js';
-        import { EffectComposer } from '/js/postprocessing/EffectComposer.js';
-        import { RenderPass } from '/js/postprocessing/RenderPass.js';
-        import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
-        import { FXAAShader } from '/js/shaders/FXAAShader.js';
-        import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
-        import { VolumetricLightShader } from '/js/shaders/VolumetricLightShader.js'; // *** Import the custom volumetric light shader
-
-        
+        // Import Three.js and necessary postprocessing modules using relative paths
+        import * as THREE from './js/three.module.min.js'; // Ensure the path is correct
+        import { EffectComposer } from './js/postprocessing/EffectComposer.js';
+        import { RenderPass } from './js/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from './js/postprocessing/UnrealBloomPass.js';
+        import { FXAAShader } from './js/shaders/FXAAShader.js';
+        import { ShaderPass } from './js/postprocessing/ShaderPass.js';
+        import { VolumetricLightShader } from './js/shaders/VolumetricLightShader.js'; // Ensure this path is correct
+    
         // Custom Chromatic Aberration Shader
         const ChromaticAberrationShader = {
             uniforms: {
@@ -713,23 +713,23 @@
                 uniform sampler2D tDiffuse;
                 uniform vec2 offset;
                 varying vec2 vUv;
-        
+    
                 void main() {
                     vec4 color = vec4(0.0);
                     vec2 redOffset = vUv + offset;
                     vec2 greenOffset = vUv;
                     vec2 blueOffset = vUv - offset;
-        
+    
                     color.r = texture2D(tDiffuse, redOffset).r;
                     color.g = texture2D(tDiffuse, greenOffset).g;
                     color.b = texture2D(tDiffuse, blueOffset).b;
                     color.a = texture2D(tDiffuse, vUv).a;
-        
+    
                     gl_FragColor = color;
                 }
             `
         };
-        
+    
         const canvas = document.getElementById('techCanvas');
         const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -737,14 +737,14 @@
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.5; // Adjusted for a more balanced overall lighting effect
         renderer.outputColorSpace = THREE.SRGBColorSpace;
-        
+    
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000);
         camera.position.set(0, 0, 3000);
-        
+    
         // Load Background Texture with Vignette Effect to Enhance Realism
         const textureLoader = new THREE.TextureLoader();
-        textureLoader.load('/textures/pillar.webp', (texture) => {
+        textureLoader.load('./textures/pillar.webp', (texture) => { // Adjust path as needed
             texture.colorSpace = THREE.SRGBColorSpace;
             texture.encoding = THREE.sRGBEncoding; // Ensure correct brightness
             scene.background = texture;
@@ -752,37 +752,37 @@
             console.error('Error loading background texture:', err);
             scene.background = new THREE.Color(0x303030);
         });
-        
+    
         // Adding Ambient and Hemisphere Light for Overall Illumination
         const ambientLight = new THREE.AmbientLight(0x404040, 1.8);
         scene.add(ambientLight);
-        
+    
         const hemisphereLight = new THREE.HemisphereLight(0xddddff, 0x555555, 0.5);
         scene.add(hemisphereLight);
-        
+    
         // Set camera to see layers 0 and 1
         camera.layers.enable(0); // Background and main scene
         camera.layers.enable(1); // Comet effects
-        
+    
         // Add a main light source for volumetric lighting
         const volumetricLight = new THREE.PointLight(0xffffff, 1.5, 10000);
         volumetricLight.position.set(0, 0, 0);
         scene.add(volumetricLight);
-        
+    
         // Load Star Textures
         const starTextures = [
-            textureLoader.load('/textures/stars 001.png'),
-            textureLoader.load('/textures/stars 002.png'),
-            textureLoader.load('/textures/stars 003.png'),
-            textureLoader.load('/textures/stars 004.png'),
-            textureLoader.load('/textures/stars 005.png'),
-            textureLoader.load('/textures/stars 006.png')
+            textureLoader.load('./textures/stars_001.png'), // Ensure filenames and paths are correct
+            textureLoader.load('./textures/stars_002.png'),
+            textureLoader.load('./textures/stars_003.png'),
+            textureLoader.load('./textures/stars_004.png'),
+            textureLoader.load('./textures/stars_005.png'),
+            textureLoader.load('./textures/stars_006.png')
         ];
-        
+    
         // Function to add stars to the background seamlessly
         function createStarField() {
             const starCount = 100; // *** Increased star count for better density
-        
+    
             for (let i = 0; i < starCount; i++) {
                 const texture = starTextures[Math.floor(Math.random() * starTextures.length)];
                 const starMaterial = new THREE.SpriteMaterial({
@@ -792,7 +792,7 @@
                     opacity: 0.8,  // Adjust opacity to blend into background
                     depthWrite: false // *** Optimize performance by disabling depth write
                 });
-        
+    
                 const star = new THREE.Sprite(starMaterial);
                 star.scale.set(200 + Math.random() * 150, 200 + Math.random() * 150, 1); // Randomize size
                 star.position.set(
@@ -800,24 +800,24 @@
                     Math.random() * window.innerHeight * 2 - window.innerHeight, // Spread across Y-axis
                     -2000 + Math.random() * 1000                                // Spread behind the main scene
                 );
-        
+    
                 // *** Add twinkling effect
                 star.userData = { twinkleSpeed: Math.random() * 0.5 + 0.5 };
                 scene.add(star);
                 particles.push(star); // *** Reuse particles array for stars
             }
         }
-        
+    
         // Comet Variables
-        const cometTexture = textureLoader.load('/textures/comet1.png');
+        const cometTexture = textureLoader.load('./textures/comet1.png'); // Ensure path is correct
         const cometCount = 8;
         const comets = [];
-        
+    
         // Particle Variables for Cosmic Dust
         const particles = [];
         const particleCount = 200;  // Number of cosmic dust particles
-        const particleTexture = textureLoader.load('/textures/particle_clouds.png');
-        
+        const particleTexture = textureLoader.load('./textures/particle_clouds.png'); // Ensure path is correct
+    
         // Function to create a new comet with diverse properties
         function createComet() {
             const cometMaterial = new THREE.SpriteMaterial({
@@ -827,32 +827,32 @@
                 opacity: 0.9,
                 depthWrite: false,
             });
-        
+    
             const comet = new THREE.Sprite(cometMaterial);
             const cometSize = 150 + Math.random() * 200;
             comet.scale.set(cometSize, cometSize, 1);
             comet.color = new THREE.Color(0xffffff);
             comet.material.color = comet.color;
-        
+    
             // Adding bright light to comet
             const cometLight = new THREE.PointLight(comet.color, 4.0 + Math.random() * 3.0, 4000 + Math.random() * 2000, 2);
             cometLight.position.set(0, 0, 0);
             cometLight.castShadow = true;
             comet.add(cometLight);
-        
+    
             comet.light = cometLight;
-        
+    
             // Create a spotlight for lighting up the background
             const spotLight = new THREE.SpotLight(0xffffff, 1.0, 5000, Math.PI / 8, 0.5);
             spotLight.castShadow = true;
             spotLight.target = comet;
             scene.add(spotLight);
             comet.spotLight = spotLight;
-        
-            // *** Create volumetric light effect (optional if using VolumetricLightShader)
+    
+            // *** Optional: Create volumetric light sprite (commented out if using shader-based volumetric lighting)
             /*
             const volumetricLightSprite = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: new THREE.TextureLoader().load('/textures/volumetric.png'), // *** Ensure you have a suitable volumetric texture
+                map: new THREE.TextureLoader().load('./textures/volumetric.png'), // *** Ensure you have a suitable volumetric texture
                 blending: THREE.AdditiveBlending,
                 transparent: true,
                 opacity: 0.2,
@@ -862,18 +862,18 @@
             volumetricLightSprite.position.set(0, 0, -500); // Position it behind the comet
             comet.add(volumetricLightSprite);
             */
-        
+    
             // Assign comet, light, and spotlight to layer 1
             comet.layers.set(1);
             cometLight.layers.set(1);
             spotLight.layers.set(1);
             // volumetricLightSprite.layers.set(1); // *** Add volumetric light to layer 1 if used
-        
+    
             resetComet(comet);
             comets.push(comet);
             scene.add(comet);
         }
-        
+    
         // Function to create cosmic dust particles in a 3D volume
         function createParticle() {
             const particleMaterial = new THREE.SpriteMaterial({
@@ -883,7 +883,7 @@
                 opacity: 0.5,  // Lower opacity for cosmic dust effect
                 depthWrite: false,
             });
-        
+    
             const particle = new THREE.Sprite(particleMaterial);
             const particleSize = 5 + Math.random() * 10;  // Smaller size to represent cosmic dust
             particle.scale.set(particleSize, particleSize, 1);
@@ -894,18 +894,18 @@
                 Math.random() * window.innerHeight * 2 - window.innerHeight,
                 Math.random() * 3000 - 1500  // Spread particles in a depth range in the scene
             );
-        
+    
             // Add a very soft light to the particle for a subtle glowing effect
             const particleLight = new THREE.PointLight(0xffffff, 0.2, 200);
             particleLight.position.set(0, 0, 0);
             particle.add(particleLight);
-        
+    
             particle.light = particleLight;
             
             scene.add(particle);
             particles.push(particle);
         }
-        
+    
         // Function to reset comet properties
         function resetComet(comet) {
             comet.position.set(
@@ -918,34 +918,34 @@
             comet.velocity = new THREE.Vector3(velocityX, velocityY, 0);
             comet.lifespan = 20.0 + Math.random() * 20.0;
             comet.burningOut = false;
-        
+    
             comet.light.intensity = 4.0 + Math.random() * 3.0;
-        
+    
             comet.material.opacity = 0.0;
             const cometSize = 150 + Math.random() * 200;
             comet.scale.set(cometSize, cometSize, 1);
             comet.rotation.z = Math.atan2(comet.velocity.y, comet.velocity.x);
         }
-        
+    
         // Function to update comet positions and properties
         function updateComets(delta) {
             comets.forEach((comet) => {
                 comet.position.add(comet.velocity.clone().multiplyScalar(delta));
-        
+    
                 // Rotate the comet to align with its direction of travel
                 const angle = Math.atan2(comet.velocity.y, comet.velocity.x);
                 comet.rotation.z = angle;
-        
+    
                 // Move the spotlight with the comet to simulate background lighting
                 if (comet.spotLight) {
                     comet.spotLight.position.copy(comet.position);
                     comet.spotLight.position.z += 500;
                     comet.spotLight.intensity = 1.0 + Math.sin(clock.getElapsedTime() * 2) * 0.5;
                 }
-        
+    
                 // Update lifespan and adjust light intensity
                 comet.lifespan -= delta;
-        
+    
                 if (comet.lifespan > 15.0) {
                     comet.material.opacity = Math.min(1.0, comet.material.opacity + delta * 0.3);
                 } else if (comet.lifespan > 5.0) {
@@ -963,14 +963,14 @@
                         resetComet(comet);
                     }
                 }
-        
+    
                 // Reset comet if it moves out of bounds
                 if (comet.position.x < -window.innerWidth || comet.position.y < -window.innerHeight * 1.5) {
                     resetComet(comet);
                 }
             });
         }
-        
+    
         // Function to update particle positions for subtle movement and reactive effects
         function updateParticles(delta) {
             particles.forEach((particle) => {
@@ -978,13 +978,13 @@
                 particle.position.x += (Math.random() - 0.5) * 0.5 * delta;
                 particle.position.y += (Math.random() - 0.5) * 0.5 * delta;
                 particle.position.z += (Math.random() - 0.5) * 0.2 * delta;
-        
+    
                 // Add subtle movement based on camera position for parallax effect in 3D space
                 particle.position.x += mouseX * 0.02 * delta;
                 particle.position.y += mouseY * 0.02 * delta;
             });
         }
-        
+    
         // Function to update comet light intensity based on proximity to particles
         function updateCometLightIntensity() {
             comets.forEach((comet) => {
@@ -995,12 +995,12 @@
                         maxIntensity = Math.max(maxIntensity, 4.0 + (500 - distance) / 100);  // Increase intensity closer to particle
                     }
                 });
-        
+    
                 // Apply the intensity to the comet's light
                 comet.light.intensity = maxIntensity;
             });
         }
-        
+    
         // Interactive camera movement based on mouse position
         let mouseX = 0;
         let mouseY = 0;
@@ -1008,13 +1008,13 @@
             mouseX = (event.clientX / window.innerWidth) * 2 - 1;
             mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
         });
-        
+    
         // Function to update the camera position based on mouse movement
         function updateCamera() {
             camera.position.x += (mouseX * 500 - camera.position.x) * 0.05;
             camera.position.y += (mouseY * 300 - camera.position.y) * 0.05;
         }
-        
+    
         // Function to spawn comets one by one with random delay
         function spawnComets() {
             if (comets.length < cometCount) {
@@ -1023,7 +1023,7 @@
                 setTimeout(spawnComets, randomDelay);
             }
         }
-        
+    
         // *** Function to update twinkling stars
         function updateStars(delta) {
             particles.forEach((star) => {
@@ -1032,31 +1032,29 @@
                 }
             });
         }
-        
+    
         // *** Function to update volumetric lighting uniforms
         function updateVolumetricLighting() {
             volumetricLightPass.uniforms['lightPosition'].value.copy(volumetricLight.position);
-            volumetricLightPass.uniforms['cameraNear'].value = camera.near;
-            volumetricLightPass.uniforms['cameraFar'].value = camera.far;
-            volumetricLightPass.uniforms['cameraPosition'].value.copy(camera.position);
+            // volumetricLightPass.uniforms['cameraPosition'].value.copy(camera.position); // Removed to prevent error
         }
-        
+    
         // *** Performance Optimization: Use shared materials and limit object counts
-        
+    
         // Spawn particles and stars at the beginning
         for (let i = 0; i < particleCount; i++) {
             createParticle();
         }
         createStarField();
-        
+    
         const clock = new THREE.Clock();
-        
+    
         // Animation function
         function animate() {
             requestAnimationFrame(animate);
-        
+    
             const delta = clock.getDelta();
-        
+    
             // Update comets, particles, stars, and camera
             updateComets(delta);
             updateParticles(delta);
@@ -1064,19 +1062,19 @@
             updateCometLightIntensity();  // Update comet light intensity based on proximity to particles
             updateCamera();
             updateVolumetricLighting(); // *** Update volumetric lighting uniforms
-        
+    
             composer.render();
         }
-        
+    
         // *** Depth Texture Setup
         const depthTexture = new THREE.DepthTexture();
         depthTexture.type = THREE.UnsignedShortType;
-        
+    
         // *** Postprocessing setup
         const renderScene = new RenderPass(scene, camera);
         const composer = new EffectComposer(renderer);
         composer.addPass(renderScene);
-        
+    
         // *** Render target with depth
         const renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, {
             format: THREE.RGBAFormat,
@@ -1084,7 +1082,7 @@
             depthBuffer: true
         });
         renderScene.renderToScreen = false;
-        
+    
         // *** Bloom Pass
         const bloomPass = new UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
@@ -1093,16 +1091,17 @@
             0.9   // Threshold for glow effect
         );
         composer.addPass(bloomPass);
-        
+    
         // *** Chromatic Aberration Pass
         const chromaticAberrationPass = new ShaderPass(ChromaticAberrationShader);
         chromaticAberrationPass.uniforms['offset'].value = new THREE.Vector2(0.0015, 0.0015); // *** Reduced the strength of the chromatic aberration
         composer.addPass(chromaticAberrationPass);
-        
+    
         // *** Volumetric Light Pass
         const volumetricLightPass = new ShaderPass(VolumetricLightShader);
+        volumetricLightPass.uniforms['tDiffuse'].value = null; // Will be set automatically by EffectComposer
         volumetricLightPass.uniforms['tDepth'].value = depthTexture; // Pass the depth texture
-        volumetricLightPass.uniforms['lightPosition'].value = volumetricLight.position.clone(); // Set the light position
+        volumetricLightPass.uniforms['lightPosition'].value = volumetricLight.position.clone(); // Set the light position (THREE.Vector3)
         volumetricLightPass.uniforms['cameraNear'].value = camera.near; // Set camera near
         volumetricLightPass.uniforms['cameraFar'].value = camera.far; // Set camera far
         volumetricLightPass.uniforms['resolution'].value = new THREE.Vector2(window.innerWidth, window.innerHeight);
@@ -1113,12 +1112,12 @@
         volumetricLightPass.uniforms['fStepSize'].value = 1.0;
         volumetricLightPass.renderToScreen = true; // Ensure it renders last
         composer.addPass(volumetricLightPass);
-        
+    
         // *** FXAA Pass for Anti-Aliasing
         const fxaaPass = new ShaderPass(FXAAShader);
         fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
         composer.addPass(fxaaPass);
-        
+    
         // Handle window resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -1129,7 +1128,7 @@
             volumetricLightPass.uniforms['resolution'].value.set(window.innerWidth, window.innerHeight);
             fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
         });
-        
+    
         // Start comet spawning and animation
         spawnComets();
         animate();
