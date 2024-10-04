@@ -733,10 +733,10 @@
         const cometCount = 8;
         const comets = [];
         
-        // Particle Variables
+        // Particle Variables for Cosmic Dust
         const particles = [];
-        const particleCount = 50;  // Number of particles
-        const particleTexture = new THREE.TextureLoader().load('/textures/particle_clouds.png');
+        const particleCount = 150;  // Number of cosmic dust particles
+        const particleTexture = new THREE.TextureLoader().load('/textures/particle.png');
         
         // Function to create a new comet with diverse properties
         function createComet() {
@@ -779,27 +779,27 @@
             scene.add(comet);
         }
         
-        // Function to create particles with a small light intensity
+        // Function to create cosmic dust particles
         function createParticle() {
             const particleMaterial = new THREE.SpriteMaterial({
                 map: particleTexture,
                 blending: THREE.AdditiveBlending,
                 transparent: true,
-                opacity: 0.7,
+                opacity: 0.5,  // Lower opacity for cosmic dust effect
                 depthWrite: false,
             });
         
             const particle = new THREE.Sprite(particleMaterial);
-            const particleSize = 50 + Math.random() * 30;  // Small size variation
+            const particleSize = 10 + Math.random() * 10;  // Smaller size to represent dust
             particle.scale.set(particleSize, particleSize, 1);
             particle.position.set(
                 Math.random() * window.innerWidth - window.innerWidth / 2,
                 Math.random() * window.innerHeight - window.innerHeight / 2,
-                Math.random() * 500 - 250
+                Math.random() * 1000 - 500
             );
         
-            // Add a soft light to the particle
-            const particleLight = new THREE.PointLight(0xffffff, 0.5, 500);
+            // Add a very soft light to the particle for a subtle glowing effect
+            const particleLight = new THREE.PointLight(0xffffff, 0.2, 200);
             particleLight.position.set(0, 0, 0);
             particle.add(particleLight);
         
@@ -872,6 +872,15 @@
             });
         }
         
+        // Function to update particle positions for a subtle reactive effect
+        function updateParticles(delta) {
+            particles.forEach((particle) => {
+                // Add subtle movement based on camera position for parallax effect
+                particle.position.x += (mouseX * 20 - particle.position.x) * 0.01 * delta;
+                particle.position.y += (mouseY * 20 - particle.position.y) * 0.01 * delta;
+            });
+        }
+        
         // Interactive camera movement based on mouse position
         let mouseX = 0;
         let mouseY = 0;
@@ -908,8 +917,9 @@
         
             const delta = clock.getDelta();
         
-            // Update comets and particles
+            // Update comets, particles, and camera
             updateComets(delta);
+            updateParticles(delta);
             updateCamera();
             composer.render();
         }
@@ -946,6 +956,7 @@
         spawnComets();
         animate();
         </script>
+
 
 
 
