@@ -746,12 +746,12 @@
             });
         
             const comet = new THREE.Sprite(cometMaterial);
-            comet.scale.set(150 + Math.random() * 50, 150 + Math.random() * 50, 1);
+            comet.scale.set(200 + Math.random() * 70, 200 + Math.random() * 70, 1); // Increased size of comets
             comet.color = naturalColors[Math.floor(Math.random() * naturalColors.length)];
             comet.material.color = comet.color;
         
             // Adding bright light to comet
-            const cometLight = new THREE.PointLight(comet.color, 2.5, 2000, 2);
+            const cometLight = new THREE.PointLight(comet.color, 2.5, 2500, 2);
             cometLight.position.set(0, 0, 0);
             cometLight.castShadow = true;
             comet.add(cometLight);  // Attach the light to the comet
@@ -770,13 +770,13 @@
         // Function to reset comet properties
         function resetComet(comet) {
             comet.position.set(
-                -window.innerWidth / 2 + Math.random() * window.innerWidth,  // Random X position
-                window.innerHeight / 2 + 100,  // Just above the title bar
+                -window.innerWidth / 2 + Math.random() * window.innerWidth * 2,  // Random X position spanning entire canvas width
+                window.innerHeight / 1 + 200,  // Higher spawn above the title bar
                 0  // Fixed Z position for straight diagonal movement
             );
             comet.velocity = new THREE.Vector3(
-                -600,  // X component for diagonal movement to the left
-                -1000,  // Y component for falling downward
+                -800,  // Increased X component for faster diagonal movement
+                -1200,  // Increased Y component for faster downward movement
                 0  // No Z-axis velocity for straight movement
             );
             comet.lifespan = 15.0 + Math.random() * 5.0;
@@ -786,7 +786,7 @@
             comet.light.intensity = 2.5;
         
             comet.material.opacity = 0.0;
-            comet.scale.set(150 + Math.random() * 50, 150 + Math.random() * 50, 1);
+            comet.scale.set(200 + Math.random() * 70, 200 + Math.random() * 70, 1); // Set to match increased size
             comet.rotation.z = Math.atan2(comet.velocity.y, comet.velocity.x);
         }
         
@@ -811,7 +811,7 @@
                     comet.burningOut = true;
                     comet.material.color.set(0xffffff);
                     comet.light.color.set(0xffffff);
-                    comet.scale.set(200, 200, 1);
+                    comet.scale.set(250, 250, 1); // Increased during burnout for dramatic effect
                     comet.light.intensity = 3.0; // Slight boost before fading out
                 } else {
                     comet.material.opacity = Math.max(0, comet.material.opacity - delta * 0.2);
@@ -834,7 +834,7 @@
         function spawnComets() {
             if (comets.length < cometCount) {
                 createComet();
-                setTimeout(spawnComets, 3000); // Spawn a new comet every 3 seconds
+                setTimeout(spawnComets, 2000); // Spawn a new comet every 2 seconds
             }
         }
         
