@@ -731,7 +731,7 @@
             const canvas = document.getElementById('techCanvas');
             const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.innerPixelRatio);
+            renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.toneMappingExposure = 1.5; // Adjusted for a more balanced overall lighting effect
             renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -888,8 +888,6 @@
             
             // === End of Dynamic Twinkling Starfield Implementation ===
             
-            // === Comet Spawning Implementation ===
-            
             // Comet Lifespan Constants (in seconds)
             const COMET_ACTIVE_DURATION = 7;  // Active for 7 seconds
             const COMET_FADE_DURATION = 1;    // Fade out over 1 second
@@ -907,10 +905,6 @@
             // Burning Particles for Comet Fire Trail
             const burningParticles = [];
             const burningParticleTexture = textureLoader.load('/textures/particle_clouds.png'); // Reusing existing texture
-            
-            // Flag to control spawning
-            let isSpawning = true;
-            let spawnTimeout = null;
             
             // Function to create a new comet with diverse properties
             function createComet() {
@@ -1055,51 +1049,121 @@
                 comet.flashAmplitude = 3.0; // Amplitude of light intensity fluctuation
             }
             
-            // === Comet Spawning Implementation ===
+            // Function to update comet positions and properties
+            function updateComets(delta) {
+                comets.forEach((comet, index) => {
+                    comet.elapsed += delta;
             
+                    if (comet.elapsed < COMET_ACTIVE_DURATION) {
+                        // **Active Phase:**
+                        // Fully visible, normal opacity and intensity
+                        comet.material.opacity = 0.9;
+                        comet.light.intensity = 4.0 + Math.random() * 3.0;
+                    } else if (comet.elapsed < COMET_ACTIVE_DURATION + COMET_FADE_DURATION) {
+                        // **Fade-Out Phase:**
+                        const fadeProgress = (comet.elapsed - COMET_ACTIVE_DURATION) / COMET_FADE_DURATION;
+                        comet.material.opacity = THREE.MathUtils.lerp(0.9, 0.0, fadeProgress);
+                        comet.light.intensity = THREE.MathUtils.lerp(comet.light.intensity, 0.0, fadeProgress);
+            
+                        // **Special Fade-Out for the First Comet**
+                        if (index === 0) {
+                            // Apply a more pronounced fade-out
+                            comet.material.opacity = THREE.MathUtils.lerp(0.9, 0.2, fadeProgress);
+                            comet.light.intensity = THREE.MathUtils.lerp(comet.light.intensity, 1.0, fadeProgress);
+                        }
+                    } else {
+                        // **Reset the Comet:**
+                        resetComet(comet);
+                    }
+            
+                    // **Update Position:**
+                    comet.position.add(comet.velocity.clone().multiplyScalar(delta));
+            
+                    // **Rotate the comet to align with its direction of travel**
+                    const angle = Math.atan2(comet.velocity.y, comet.velocity.x);
+                    comet.rotation.z = angle;
+            
+                    // **Move the spotlight with the comet to simulate background lighting**
+                    if (comet.spotLight) {
+                        comet.spotLight.position.copy(comet.position);
+                        comet.spotLight.position.z += 500;
+                        comet.spotLight.intensity = 1.0 + Math.sin(clock.getElapsedTime() * 2) * 0.5;
+                    }
+                });
+            }
+            
+            // Function to update particle positions for subtle movement and reactive effects
+            function updateParticles(delta) {
+                particles.forEach((particle) => {
+                    // Add subtle random movement to each particle to simulate floating
+                    particle.position.x += (Math.random() - 0.5) * 0.5 * delta;
+                    particle.position.y += (Math.random() - 0.5) * 0.5 * delta;
+                    particle.position.z += (Math.random() - 0.5) * 0.2 * delta;
+            
+                    // Add subtle movement based on camera position for parallax effect in 3D space
+                    particle.position.x += mouseX * 0.02 * delta;
+                    particle.position.y += mouseY * 0.02 * delta;
+                });
+            }
+            
+            // Function to update burning particles
+            function updateBurningParticles(delta) {
+                for (let i = burningParticles.length - 1; i >= 0; i--) {
+                    const particle = burningParticles[i];
+                    // Update position based on velocity
+                    particle.position.add(particle.velocity.clone().multiplyScalar(delta));
+            
+                    // Decrease lifespan
+                    particle.lifespan -= delta;
+                    if (particle.lifespan <= 0) {
+                        scene.remove(particle);
+                        burningParticles.splice(i, 1);
+                        continue;
+                    }
+            
+                    // Fade out opacity over time
+                    particle.material.opacity = Math.max(0, particle.lifespan / 2.0);
+                }
+            }
+            
+            // Function to adjust comet light intensity based on proximity to particles
+            function updateCometLightIntensity() {
+                comets.forEach((comet) => {
+                    let maxIntensity = 4.0;  // Default comet intensity
+                    particles.forEach((particle) => {
+                        const distance = comet.position.distanceTo(particle.position);
+                        if (distance < 500) {  // Threshold for effect
+                            maxIntensity = Math.max(maxIntensity, 4.0 + (500 - distance) / 100);  // Increase intensity closer to particle
+                        }
+                    });
+            
+                    // Apply the intensity to the comet's light
+                    comet.light.intensity = maxIntensity;
+                });
+            }
+            
+            // Interactive camera movement based on mouse position
+            let mouseX = 0;
+            let mouseY = 0;
+            document.addEventListener('mousemove', (event) => {
+                mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+                mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+            });
+            
+            // Function to update the camera position based on mouse movement
+            function updateCamera() {
+                camera.position.x += (mouseX * 500 - camera.position.x) * 0.05;
+                camera.position.y += (mouseY * 300 - camera.position.y) * 0.05;
+            }
             
             // Function to spawn comets one by one with random delay
-            function spawnCometWithDelay() {
-                if (!isSpawning) return;
-    
+            function spawnComets() {
                 if (comets.length < cometCount) {
                     createComet();
                     const randomDelay = 1500 + Math.random() * 2000;
-                    spawnTimeout = setTimeout(spawnCometWithDelay, randomDelay);
+                    setTimeout(spawnComets, randomDelay);
                 }
             }
-            
-            // Function to start spawning comets
-            function startSpawningComets() {
-                if (isSpawning && !spawnTimeout) {
-                    spawnCometWithDelay();
-                }
-            }
-            
-            // Function to stop spawning comets
-            function stopSpawningComets() {
-                isSpawning = false;
-                if (spawnTimeout) {
-                    clearTimeout(spawnTimeout);
-                    spawnTimeout = null;
-                }
-            }
-            
-            // Event Listener for Page Visibility Change
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) {
-                    // Page is hidden, stop spawning comets
-                    stopSpawningComets();
-                } else {
-                    // Page is visible, resume spawning comets
-                    if (comets.length < cometCount) {
-                        isSpawning = true;
-                        spawnCometWithDelay();
-                    }
-                }
-            });
-            
-            // === End of Comet Spawning Implementation ===
             
             // === Satellite Implementation ===
             
@@ -1169,7 +1233,7 @@
             
             // Spawn static stars and comets at the beginning
             createStaticStarField();
-            startSpawningComets();
+            spawnComets();
             for (let i = 0; i < particleCount; i++) {
                 createParticle();
             }
