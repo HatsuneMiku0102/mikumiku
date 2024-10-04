@@ -694,23 +694,57 @@
         import { FXAAShader } from '/js/shaders/FXAAShader.js';
         import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
         
+        // Custom Chromatic Aberration Shader
+        const ChromaticAberrationShader = {
+            uniforms: {
+                "tDiffuse": { value: null },
+                "offset": { value: new THREE.Vector2(0.001, 0.001) } // Controls the intensity of the effect
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D tDiffuse;
+                uniform vec2 offset;
+                varying vec2 vUv;
+        
+                void main() {
+                    vec4 color = vec4(0.0);
+                    vec2 redOffset = vUv + offset;
+                    vec2 greenOffset = vUv;
+                    vec2 blueOffset = vUv - offset;
+        
+                    color.r = texture2D(tDiffuse, redOffset).r;
+                    color.g = texture2D(tDiffuse, greenOffset).g;
+                    color.b = texture2D(tDiffuse, blueOffset).b;
+                    color.a = texture2D(tDiffuse, vUv).a;
+        
+                    gl_FragColor = color;
+                }
+            `
+        };
+        
         const canvas = document.getElementById('techCanvas');
         const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 2.0;  // Increased exposure for enhanced overall lighting effect
+        renderer.toneMappingExposure = 1.5; // Adjusted for a more balanced overall lighting effect
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000);
         camera.position.set(0, 0, 3000);
         
-        // Load Background Texture
+        // Load Background Texture with Vignette Effect to Enhance Realism
         const textureLoader = new THREE.TextureLoader();
         textureLoader.load('/textures/pillar.webp', (texture) => {
             texture.colorSpace = THREE.SRGBColorSpace;
-            texture.encoding = THREE.sRGBEncoding;  // Ensure correct brightness
+            texture.encoding = THREE.sRGBEncoding; // Ensure correct brightness
             scene.background = texture;
         }, undefined, (err) => {
             console.error('Error loading background texture:', err);
@@ -994,11 +1028,16 @@
         // Bloom Pass
         const bloomPass = new UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
-            3.0,  // Increased strength for more glowing effect
-            0.8,  // Bloom radius
-            0.85  // Threshold for glow effect
+            2.0,  // Adjusted strength for more subtle glowing effect
+            0.6,  // Bloom radius
+            0.9   // Threshold for glow effect
         );
         composer.addPass(bloomPass);
+        
+        // Chromatic Aberration Pass
+        const chromaticAberrationPass = new ShaderPass(ChromaticAberrationShader);
+        chromaticAberrationPass.uniforms['offset'].value = new THREE.Vector2(0.002, 0.002); // Set the strength of the chromatic aberration
+        composer.addPass(chromaticAberrationPass);
         
         // FXAA Pass for Anti-Aliasing
         const fxaaPass = new ShaderPass(FXAAShader);
@@ -1018,6 +1057,7 @@
         spawnComets();
         animate();
         </script>
+
 
 
 
