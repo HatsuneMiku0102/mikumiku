@@ -746,9 +746,11 @@
             comet.material.color = comet.color;
         
             // Adding light to comet
-            comet.light = new THREE.PointLight(comet.color, 1.0, 1000, 2);
-            comet.light.visible = true;
-            scene.add(comet.light);
+            const cometLight = new THREE.PointLight(comet.color, 1.5, 1000, 2);
+            cometLight.position.set(0, 0, 0);
+            comet.add(cometLight);  // Add light as a child to the comet
+        
+            comet.light = cometLight;
         
             resetComet(comet);
             comets.push(comet);
@@ -772,19 +774,16 @@
         
             // Set initial light intensity and make sure it's visible immediately
             comet.light.intensity = 1.5;
-            comet.light.visible = true;
         
             comet.material.opacity = 0.0;
             comet.scale.set(150 + Math.random() * 50, 150 + Math.random() * 50, 1);
             comet.rotation.z = Math.atan2(comet.velocity.y, comet.velocity.x);
-            comet.light.position.copy(comet.position);
         }
         
         // Function to update comet positions and properties
         function updateComets(delta) {
             comets.forEach((comet) => {
                 comet.position.add(comet.velocity.clone().multiplyScalar(delta));
-                comet.light.position.copy(comet.position);
         
                 // Rotate the comet to align with its direction of travel
                 const angle = Math.atan2(comet.velocity.y, comet.velocity.x);
@@ -801,7 +800,6 @@
                 if (comet.lifespan > 10.0) {
                     comet.material.opacity = Math.min(1.0, comet.material.opacity + delta * 0.2);
                     comet.light.intensity = Math.min(1.5, comet.light.intensity + delta * 0.2);
-                    comet.light.visible = true;
                 } else if (comet.lifespan > 3.0) {
                     comet.light.intensity = 1.0 + Math.sin(clock.getElapsedTime() * 10) * 0.3; // Soft flickering effect
                 } else if (!comet.burningOut) {
@@ -809,7 +807,6 @@
                     comet.material.color.set(0xffffff);
                     comet.light.color.set(0xffffff);
                     comet.light.intensity = 10.0; // Increased intensity during burning out
-                    comet.light.visible = true;
                     comet.scale.set(200, 200, 1);
                 } else {
                     comet.material.opacity = Math.max(0, comet.material.opacity - delta * 0.2);
@@ -866,13 +863,7 @@
             composer.setSize(window.innerWidth, window.innerHeight);
         });
         
-        // Force an initial render to initialize the scene properly
-        function initialRender() {
-            composer.render();
-        }
-        
-        // Start animation and force an initial render
-        initialRender();
+        // Start animation
         animate();
         </script>
 
