@@ -14,7 +14,7 @@ export const VolumetricLightShader = {
         "weight": { value: 0.3 },  // Adjusted
         "decay": { value: 0.90 },  // Adjusted
         "exposure": { value: 0.5 },// Adjusted
-        "fStepSize": { value: 0.8 },// Adjusted
+        "fStepSize": { value: 1.0 }, // Step size for ray marching
         "projectionMatrix": { value: new THREE.Matrix4() }, // Projection matrix
         "modelViewMatrix": { value: new THREE.Matrix4() }, // Model-View matrix
     },
