@@ -770,13 +770,14 @@
             comet.lifespan = 15.0 + Math.random() * 5.0;
             comet.burningOut = false;
         
-            // Set initial light intensity
-            comet.light.intensity = 1.0;
-            comet.light.position.copy(comet.position);
+            // Set initial light intensity and make sure it's visible immediately
+            comet.light.intensity = 1.5;
+            comet.light.visible = true;
         
             comet.material.opacity = 0.0;
             comet.scale.set(150 + Math.random() * 50, 150 + Math.random() * 50, 1);
             comet.rotation.z = Math.atan2(comet.velocity.y, comet.velocity.x);
+            comet.light.position.copy(comet.position);
         }
         
         // Function to update comet positions and properties
@@ -865,7 +866,13 @@
             composer.setSize(window.innerWidth, window.innerHeight);
         });
         
-        // Start animation
+        // Force an initial render to initialize the scene properly
+        function initialRender() {
+            composer.render();
+        }
+        
+        // Start animation and force an initial render
+        initialRender();
         animate();
         </script>
 
