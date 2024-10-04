@@ -1036,10 +1036,9 @@
         // *** Function to update volumetric lighting uniforms
         function updateVolumetricLighting() {
             volumetricLightPass.uniforms['lightPosition'].value.copy(volumetricLight.position);
-            volumetricLightPass.uniforms['projectionMatrix'].value.copy(camera.projectionMatrix);
-            volumetricLightPass.uniforms['modelViewMatrix'].value.copy(camera.matrixWorldInverse);
-            // Remove or comment out the following line if it exists
-            // volumetricLightPass.uniforms['cameraPosition'].value.copy(camera.position);
+            volumetricLightPass.uniforms['uProjectionMatrix'].value.copy(camera.projectionMatrix);
+            volumetricLightPass.uniforms['uModelViewMatrix'].value.copy(camera.matrixWorldInverse);
+            // volumetricLightPass.uniforms['cameraPosition'].value.copy(camera.position); // Removed to prevent error
         }
     
         // *** Performance Optimization: Use shared materials and limit object counts
@@ -1105,6 +1104,8 @@
         volumetricLightPass.uniforms['tDiffuse'].value = null; // Will be set automatically by EffectComposer
         volumetricLightPass.uniforms['tDepth'].value = depthTexture; // Pass the depth texture
         volumetricLightPass.uniforms['lightPosition'].value = volumetricLight.position.clone(); // Set the light position (THREE.Vector3)
+        volumetricLightPass.uniforms['uProjectionMatrix'].value = camera.projectionMatrix.clone(); // Set projection matrix
+        volumetricLightPass.uniforms['uModelViewMatrix'].value = camera.matrixWorldInverse.clone();  // Set model-view matrix
         volumetricLightPass.uniforms['cameraNear'].value = camera.near; // Set camera near
         volumetricLightPass.uniforms['cameraFar'].value = camera.far; // Set camera far
         volumetricLightPass.uniforms['resolution'].value = new THREE.Vector2(window.innerWidth, window.innerHeight);
