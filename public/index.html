@@ -736,7 +736,7 @@
         // Particle Variables for Cosmic Dust
         const particles = [];
         const particleCount = 200;  // Number of cosmic dust particles
-        const particleTexture = new THREE.TextureLoader().load('/textures/particle_clouds.png');
+        const particleTexture = new THREE.TextureLoader().load('/textures/particle.png');
         
         // Function to create a new comet with diverse properties
         function createComet() {
@@ -876,13 +876,17 @@
             });
         }
         
-        // Function to update particle positions for a subtle reactive effect with depth
+        // Function to update particle positions for subtle movement and reactive effects
         function updateParticles(delta) {
             particles.forEach((particle) => {
+                // Add subtle random movement to each particle to simulate floating
+                particle.position.x += (Math.random() - 0.5) * 0.5 * delta;
+                particle.position.y += (Math.random() - 0.5) * 0.5 * delta;
+                particle.position.z += (Math.random() - 0.5) * 0.2 * delta;
+        
                 // Add subtle movement based on camera position for parallax effect in 3D space
-                particle.position.x += (mouseX * 50 - particle.position.x) * 0.01 * delta;
-                particle.position.y += (mouseY * 30 - particle.position.y) * 0.01 * delta;
-                particle.position.z += (mouseX * 10 - particle.position.z) * 0.005 * delta;
+                particle.position.x += mouseX * 0.02 * delta;
+                particle.position.y += mouseY * 0.02 * delta;
             });
         }
         
@@ -978,6 +982,7 @@
         spawnComets();
         animate();
         </script>
+
 
 
 
