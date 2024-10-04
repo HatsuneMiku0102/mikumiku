@@ -685,7 +685,7 @@
             setInterval(fetchWeather, 3600000); // Update every hour
             fetchWeather();
         </script>
-        
+                
         <script type="module">
         import * as THREE from '/js/three.module.min.js';
         import { EffectComposer } from '/js/postprocessing/EffectComposer.js';
@@ -721,6 +721,10 @@
         const hemisphereLight = new THREE.HemisphereLight(0xddddff, 0x555555, 0.3);
         scene.add(hemisphereLight);
         
+        // Set camera to see layers 0 and 1
+        camera.layers.enable(0); // Background and main scene
+        camera.layers.enable(1); // Comet effects
+        
         // Comet Variables
         const cometTexture = textureLoader.load('/textures/comet1.png');
         const cometCount = 5;
@@ -731,8 +735,8 @@
             new THREE.Color(0xffa500)
         ];
         
-        // Creating Comets with Bright Light
-        for (let i = 0; i < cometCount; i++) {
+        // Function to create a new comet
+        function createComet() {
             const cometMaterial = new THREE.SpriteMaterial({
                 map: cometTexture,
                 blending: THREE.AdditiveBlending,
@@ -754,6 +758,10 @@
         
             comet.light = cometLight;
         
+            // Assign comet and light to layer 1
+            comet.layers.set(1);
+            cometLight.layers.set(1);
+        
             resetComet(comet);
             comets.push(comet);
             scene.add(comet);
@@ -762,8 +770,8 @@
         // Function to reset comet properties
         function resetComet(comet) {
             comet.position.set(
-                -window.innerWidth / 2 + Math.random() * window.innerWidth,  // Start from a random X position above screen
-                window.innerHeight / 1.5,  // Start above the visible area at the top
+                -window.innerWidth / 2 + Math.random() * window.innerWidth,  // Random X position
+                window.innerHeight / 2 + 100,  // Just above the title bar
                 0  // Fixed Z position for straight diagonal movement
             );
             comet.velocity = new THREE.Vector3(
@@ -797,7 +805,7 @@
                 if (comet.lifespan > 10.0) {
                     comet.material.opacity = Math.min(1.0, comet.material.opacity + delta * 0.3);
                 } else if (comet.lifespan > 3.0) {
-                    // Flickering effect before burnout
+                    // Flickering effect before burnout, only on layer 1
                     comet.light.intensity = 2.5 + Math.sin(clock.getElapsedTime() * 50) * 0.5;
                 } else if (!comet.burningOut) {
                     comet.burningOut = true;
@@ -821,6 +829,14 @@
         }
         
         const clock = new THREE.Clock();
+        
+        // Function to spawn comets one by one
+        function spawnComets() {
+            if (comets.length < cometCount) {
+                createComet();
+                setTimeout(spawnComets, 3000); // Spawn a new comet every 3 seconds
+            }
+        }
         
         // Animation function
         function animate() {
@@ -860,7 +876,8 @@
             composer.setSize(window.innerWidth, window.innerHeight);
         });
         
-        // Start animation
+        // Start comet spawning and animation
+        spawnComets();
         animate();
         </script>
 
