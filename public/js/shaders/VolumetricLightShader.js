@@ -15,6 +15,8 @@ export const VolumetricLightShader = {
         "decay": { value: 0.93 },   // Decay rate of the light
         "exposure": { value: 0.6 }, // Exposure of the volumetric effect
         "fStepSize": { value: 1.0 }, // Step size for ray marching
+        "uProjectionMatrix": { value: new THREE.Matrix4() }, // Renamed Projection Matrix
+        "uModelViewMatrix": { value: new THREE.Matrix4() }, // Renamed Model-View Matrix
     },
     vertexShader: `
         varying vec2 vUv;
@@ -35,6 +37,8 @@ export const VolumetricLightShader = {
         uniform float decay;
         uniform float exposure;
         uniform float fStepSize;
+        uniform mat4 uProjectionMatrix; // Renamed uniform
+        uniform mat4 uModelViewMatrix;  // Renamed uniform
 
         varying vec2 vUv;
 
@@ -72,7 +76,7 @@ export const VolumetricLightShader = {
                 vec3 samplePos = worldPos + lightDir * stepSize * float(i);
                 
                 // Project the sample position back to screen space
-                vec4 clipPos = projectionMatrix * modelViewMatrix * vec4(samplePos, 1.0);
+                vec4 clipPos = uProjectionMatrix * uModelViewMatrix * vec4(samplePos, 1.0);
                 vec3 ndc = clipPos.xyz / clipPos.w;
                 vec2 sampleUv = ndc.xy * 0.5 + 0.5;
 
