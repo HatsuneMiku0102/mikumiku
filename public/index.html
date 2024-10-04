@@ -802,12 +802,12 @@
             
             // Number of dynamic stars
             const dynamicStarCount = 1000;
-    
+            
             // Arrays to hold star attributes
             const dynamicPositions = [];
             const dynamicSizes = [];
             const dynamicPhases = [];
-    
+            
             // Generate random positions and attributes for each dynamic star
             for (let i = 0; i < dynamicStarCount; i++) {
                 // Position stars randomly within a large cube to encompass the scene
@@ -815,31 +815,31 @@
                 const y = Math.random() * window.innerHeight * 2 - window.innerHeight;
                 const z = Math.random() * 3000 - 1500;
                 dynamicPositions.push(x, y, z);
-    
+        
                 // Assign random sizes between 1 and 3
                 dynamicSizes.push(1 + Math.random() * 2);
-    
+        
                 // Assign random phases for twinkling
                 dynamicPhases.push(Math.random() * Math.PI * 2);
             }
-    
+            
             // Create BufferGeometry for dynamic stars
             const dynamicStarsGeometry = new THREE.BufferGeometry();
             dynamicStarsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(dynamicPositions, 3));
             dynamicStarsGeometry.setAttribute('size', new THREE.Float32BufferAttribute(dynamicSizes, 1));
             dynamicStarsGeometry.setAttribute('phase', new THREE.Float32BufferAttribute(dynamicPhases, 1));
-    
+            
             // Define the vertex shader
             const starVertexShader = `
                 uniform float time;
                 attribute float size;
                 attribute float phase;
                 varying float vTwinkle;
-    
+            
                 void main() {
                     // Calculate twinkle based on time and phase
                     vTwinkle = abs(sin(time + phase));
-    
+            
                     // Adjust the size based on twinkle
                     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
                     gl_PointSize = size * (1.0 + vTwinkle * 0.5);
@@ -847,12 +847,12 @@
                     gl_Position = projectionMatrix * mvPosition;
                 }
             `;
-    
+            
             // Define the fragment shader
             const starFragmentShader = `
                 uniform vec3 starColor;
                 varying float vTwinkle;
-    
+            
                 void main() {
                     // Calculate distance from the center of the point
                     float dist = length(gl_PointCoord - vec2(0.5));
@@ -866,13 +866,13 @@
                     gl_FragColor = vec4(color, alpha);
                 }
             `;
-    
+            
             // Define the uniforms
             const dynamicStarUniforms = {
                 time: { value: 0.0 },
                 starColor: { value: new THREE.Color(0xffffff) } // Brilliant white
             };
-    
+            
             // Create the ShaderMaterial for dynamic stars
             const dynamicStarsMaterial = new THREE.ShaderMaterial({
                 uniforms: dynamicStarUniforms,
@@ -882,7 +882,7 @@
                 blending: THREE.AdditiveBlending,
                 depthWrite: false
             });
-    
+            
             // Create the Points object for dynamic stars
             const dynamicStars = new THREE.Points(dynamicStarsGeometry, dynamicStarsMaterial);
             scene.add(dynamicStars);
@@ -1193,109 +1193,14 @@
                 }
             }
             
-            // Spawn static stars and dynamic starfield at the beginning
-            createStaticStarField();
-            
-            // === Dynamic Twinkling Starfield Implementation ===
-            
-            // Number of dynamic stars
-    
-
-    
-            // Generate random positions and attributes for each dynamic star
-            for (let i = 0; i < dynamicStarCount; i++) {
-                // Position stars randomly within a large cube to encompass the scene
-                const x = Math.random() * window.innerWidth * 2 - window.innerWidth;
-                const y = Math.random() * window.innerHeight * 2 - window.innerHeight;
-                const z = Math.random() * 3000 - 1500;
-                dynamicPositions.push(x, y, z);
-    
-                // Assign random sizes between 1 and 3
-                dynamicSizes.push(1 + Math.random() * 2);
-    
-                // Assign random phases for twinkling
-                dynamicPhases.push(Math.random() * Math.PI * 2);
-            }
-    
-            // Create BufferGeometry for dynamic stars
-            const dynamicStarsGeometry = new THREE.BufferGeometry();
-            dynamicStarsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(dynamicPositions, 3));
-            dynamicStarsGeometry.setAttribute('size', new THREE.Float32BufferAttribute(dynamicSizes, 1));
-            dynamicStarsGeometry.setAttribute('phase', new THREE.Float32BufferAttribute(dynamicPhases, 1));
-    
-            // Define the vertex shader
-            const starVertexShader = `
-                uniform float time;
-                attribute float size;
-                attribute float phase;
-                varying float vTwinkle;
-    
-                void main() {
-                    // Calculate twinkle based on time and phase
-                    vTwinkle = abs(sin(time + phase));
-    
-                    // Adjust the size based on twinkle
-                    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                    gl_PointSize = size * (1.0 + vTwinkle * 0.5);
-                    
-                    gl_Position = projectionMatrix * mvPosition;
-                }
-            `;
-    
-            // Define the fragment shader
-            const starFragmentShader = `
-                uniform vec3 starColor;
-                varying float vTwinkle;
-    
-                void main() {
-                    // Calculate distance from the center of the point
-                    float dist = length(gl_PointCoord - vec2(0.5));
-                    
-                    // Smooth edges for the star
-                    float alpha = 1.0 - smoothstep(0.4, 0.5, dist);
-                    
-                    // Adjust brightness based on twinkle
-                    vec3 color = starColor * vTwinkle;
-                    
-                    gl_FragColor = vec4(color, alpha);
-                }
-            `;
-    
-            // Define the uniforms
-            const dynamicStarUniforms = {
-                time: { value: 0.0 },
-                starColor: { value: new THREE.Color(0xffffff) } // Brilliant white
-            };
-    
-            // Create the ShaderMaterial for dynamic stars
-            const dynamicStarsMaterial = new THREE.ShaderMaterial({
-                uniforms: dynamicStarUniforms,
-                vertexShader: starVertexShader,
-                fragmentShader: starFragmentShader,
-                transparent: true,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false
-            });
-    
-            // Create the Points object for dynamic stars
-            const dynamicStars = new THREE.Points(dynamicStarsGeometry, dynamicStarsMaterial);
-            scene.add(dynamicStars);
-            
-            // === End of Dynamic Twinkling Starfield Implementation ===
-            
-            // Function to update comet positions and properties (as defined above)
-            // ... [Same as above]
-            // (Ensure all previously defined functions are included here)
-            
             // Function to update dynamic stars' twinkling
             function updateDynamicStars(delta) {
                 dynamicStarUniforms.time.value += delta;
             }
             
-            // Create comets and particles at the beginning
-            for (let i = 0; i < cometCount; i++) {
-                createComet();
-            }
+            // Spawn static stars and dynamic starfield at the beginning
+            createStaticStarField();
+            spawnComets();
             for (let i = 0; i < particleCount; i++) {
                 createParticle();
             }
@@ -1354,7 +1259,7 @@
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
             
-            // Start comet spawning and animation
+            // Start animation
             animate();
         </script>
 
