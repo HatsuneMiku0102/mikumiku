@@ -807,16 +807,72 @@
                 nebulaMaterial.uniforms.time.value += delta;
             }
         
-            // Spawn particles and stars at the beginning
-            for (let i = 0; i < particleCount; i++) {
-                createParticle();
-            }
-            createStarField();
-        
             // Comet Variables
             const cometTexture = textureLoader.load('/textures/comet1.png');
             const cometCount = 8;
             const comets = [];
+        
+            // Function to create a new comet with diverse properties
+            function createComet() {
+                const cometMaterial = new THREE.SpriteMaterial({
+                    map: cometTexture,
+                    blending: THREE.AdditiveBlending,
+                    transparent: true,
+                    opacity: 0.9,
+                    depthWrite: false,
+                });
+        
+                const comet = new THREE.Sprite(cometMaterial);
+                const cometSize = 150 + Math.random() * 200;
+                comet.scale.set(cometSize, cometSize, 1);
+                comet.color = new THREE.Color(0xffffff);
+                comet.material.color = comet.color;
+        
+                // Adding bright light to comet
+                const cometLight = new THREE.PointLight(comet.color, 4.0 + Math.random() * 3.0, 4000 + Math.random() * 2000, 2);
+                cometLight.position.set(0, 0, 0);
+                cometLight.castShadow = true;
+                comet.add(cometLight);
+        
+                comet.light = cometLight;
+        
+                // Create a spotlight for lighting up the background
+                const spotLight = new THREE.SpotLight(0xffffff, 1.0, 5000, Math.PI / 8, 0.5);
+                spotLight.castShadow = true;
+                spotLight.target = comet;
+                scene.add(spotLight);
+                comet.spotLight = spotLight;
+        
+                // Assign comet, light, and spotlight to layer 1
+                comet.layers.set(1);
+                cometLight.layers.set(1);
+                spotLight.layers.set(1);
+        
+                resetComet(comet);
+                comets.push(comet);
+                scene.add(comet);
+            }
+        
+            // Function to reset comet properties
+            function resetComet(comet) {
+                comet.position.set(
+                    window.innerWidth / 2 + Math.random() * window.innerWidth / 2,
+                    window.innerHeight / 1 + 500,
+                    Math.random() * 1000 - 500  // Add depth variation to the comets
+                );
+                const velocityX = -500 - Math.random() * 300;
+                const velocityY = -1000 - Math.random() * 600;
+                comet.velocity = new THREE.Vector3(velocityX, velocityY, 0);
+                comet.lifespan = 20.0 + Math.random() * 20.0;
+                comet.burningOut = false;
+        
+                comet.light.intensity = 4.0 + Math.random() * 3.0;
+        
+                comet.material.opacity = 0.0;
+                const cometSize = 150 + Math.random() * 200;
+                comet.scale.set(cometSize, cometSize, 1);
+                comet.rotation.z = Math.atan2(comet.velocity.y, comet.velocity.x);
+            }
         
             // Function to spawn comets one by one with random delay
             function spawnComets() {
@@ -826,6 +882,12 @@
                     setTimeout(spawnComets, randomDelay);
                 }
             }
+        
+            // Spawn particles and stars at the beginning
+            for (let i = 0; i < particleCount; i++) {
+                createParticle();
+            }
+            createStarField();
         
             const clock = new THREE.Clock();
         
