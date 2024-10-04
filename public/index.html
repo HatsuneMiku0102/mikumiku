@@ -699,7 +699,7 @@
         const ChromaticAberrationShader = {
             uniforms: {
                 "tDiffuse": { value: null },
-                "offset": { value: new THREE.Vector2(0.001, 0.001) } // Controls the intensity of the effect
+                "offset": { value: new THREE.Vector2(0.00075, 0.00075) } // Reduced offset for subtler effect
             },
             vertexShader: `
                 varying vec2 vUv;
@@ -884,8 +884,8 @@
         // Function to reset comet properties
         function resetComet(comet) {
             comet.position.set(
-                window.innerWidth / 2 + Math.random() * window.innerWidth / 2,
-                window.innerHeight / 1 + 500,
+                Math.random() * window.innerWidth * 2 - window.innerWidth, // Spread comets across entire horizontal width
+                window.innerHeight + 500,  // Position comets above the visible area
                 Math.random() * 1000 - 500  // Add depth variation to the comets
             );
             const velocityX = -500 - Math.random() * 300;
@@ -1036,13 +1036,13 @@
         composer.addPass(bloomPass);
         
         // Chromatic Aberration Pass
-
-        const chromaticAberrationPass = new ShaderPass(ChromaticAberrationShader);
-        chromaticAberrationPass.uniforms['offset'].value = new THREE.Vector2(0.001, 0.001); // Reduced strength of the chromatic aberration
-        composer.addPass(chromaticAberrationPass);
-
         
-        // FXAA Pass for Anti-Aliasing
+        const chromaticAberrationPass = new ShaderPass(ChromaticAberrationShader);
+        chromaticAberrationPass.uniforms['offset'].value = new THREE.Vector2(0.00075, 0.00075); // Reduced strength of the chromatic aberration
+        composer.addPass(chromaticAberrationPass);
+        
+        
+         // FXAA Pass for Anti-Aliasing
         const fxaaPass = new ShaderPass(FXAAShader);
         fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
         composer.addPass(fxaaPass);
@@ -1060,6 +1060,7 @@
         spawnComets();
         animate();
         </script>
+
 
 
 
