@@ -889,6 +889,10 @@
             
             // === End of Dynamic Twinkling Starfield Implementation ===
             
+            // Comet Lifespan Constants (in seconds)
+            const COMET_ACTIVE_DURATION = 7;  // Active for 7 seconds
+            const COMET_FADE_DURATION = 1;    // Fade out over 1 second
+            
             // Comet Variables
             const cometTexture = textureLoader.load('/textures/comet1.png');
             const cometCount = 8;
@@ -984,7 +988,7 @@
                     transparent: true,
                     opacity: 1.0,
                     depthWrite: false,
-                    color: new THREE.Color(0xff4500) // Fiery orange-red color (can be adjusted or removed if desired)
+                    color: new THREE.Color(0xff4500) // Fiery orange-red color
                 });
             
                 const burningParticle = new THREE.Sprite(burningMaterial);
@@ -1005,9 +1009,9 @@
                 scene.add(burningParticle);
             }
             
-            // Function to reset comet properties (Time-Based Lifecycle)
+            // Function to reset comet properties
             function resetComet(comet) {
-                // **Spawn Position:**
+                // **Adjusted Spawn Position:**
                 comet.position.set(
                     Math.random() * window.innerWidth * 2 - window.innerWidth, // Spread comets across entire horizontal width
                     window.innerHeight + 500,  // Position comets above the visible area
@@ -1027,18 +1031,20 @@
             
                 comet.velocity = new THREE.Vector3(velocityX, velocityY, 0);
             
-                // **Set Lifespan to 8 Seconds (Time-Based)**
-                comet.lifespan = 8.0; // Fixed lifespan of 8 seconds
+                // **Set Lifespan Properties**
+                comet.lifespan = COMET_ACTIVE_DURATION + COMET_FADE_DURATION; // Total lifespan
+                comet.elapsed = 0; // Time since creation
+            
                 comet.burningOut = false;
             
                 comet.light.intensity = 4.0 + Math.random() * 3.0;
             
-                comet.material.opacity = 0.0;
+                comet.material.opacity = 0.9;
                 const cometSize = 150 + Math.random() * 200;
                 comet.scale.set(cometSize, cometSize, 1);
                 comet.rotation.z = Math.atan2(comet.velocity.y, comet.velocity.x);
             
-                // **Initialize Flashing Properties**
+                // **Initialize flashing properties**
                 comet.flashPhase = 0; // Phase for sine wave
                 comet.flashSpeed = Math.random() * 5 + 5; // Speed of flashing
                 comet.flashAmplitude = 3.0; // Amplitude of light intensity fluctuation
@@ -1046,38 +1052,44 @@
             
             // Function to update comet positions and properties
             function updateComets(delta) {
-                comets.forEach((comet) => {
+                comets.forEach((comet, index) => {
+                    comet.elapsed += delta;
+            
+                    if (comet.elapsed < COMET_ACTIVE_DURATION) {
+                        // **Active Phase:**
+                        // Fully visible, normal opacity and intensity
+                        comet.material.opacity = 0.9;
+                        comet.light.intensity = 4.0 + Math.random() * 3.0;
+                    } else if (comet.elapsed < COMET_ACTIVE_DURATION + COMET_FADE_DURATION) {
+                        // **Fade-Out Phase:**
+                        const fadeProgress = (comet.elapsed - COMET_ACTIVE_DURATION) / COMET_FADE_DURATION;
+                        comet.material.opacity = THREE.MathUtils.lerp(0.9, 0.0, fadeProgress);
+                        comet.light.intensity = THREE.MathUtils.lerp(comet.light.intensity, 0.0, fadeProgress);
+            
+                        // **Special Fade-Out for the First Comet**
+                        if (index === 0) {
+                            // Apply a more pronounced fade-out
+                            comet.material.opacity = THREE.MathUtils.lerp(0.9, 0.2, fadeProgress);
+                            comet.light.intensity = THREE.MathUtils.lerp(comet.light.intensity, 1.0, fadeProgress);
+                        }
+                    } else {
+                        // **Reset the Comet:**
+                        resetComet(comet);
+                    }
+            
+                    // **Update Position:**
                     comet.position.add(comet.velocity.clone().multiplyScalar(delta));
             
-                    // Rotate the comet to align with its direction of travel
+                    // **Rotate the comet to align with its direction of travel**
                     const angle = Math.atan2(comet.velocity.y, comet.velocity.x);
                     comet.rotation.z = angle;
             
-                    // Move the spotlight with the comet to simulate background lighting
+                    // **Move the spotlight with the comet to simulate background lighting**
                     if (comet.spotLight) {
                         comet.spotLight.position.copy(comet.position);
                         comet.spotLight.position.z += 500;
                         comet.spotLight.intensity = 1.0 + Math.sin(clock.getElapsedTime() * 2) * 0.5;
                     }
-            
-                    // Update lifespan
-                    comet.lifespan -= delta;
-            
-                    if (comet.lifespan > 2.0) {
-                        // **Normal Phase: Fade in**
-                        comet.material.opacity = Math.min(1.0, comet.material.opacity + delta * 0.5);
-                    } else if (comet.lifespan > 0.0) {
-                        // **Fade-Out Phase: Smoothly reduce opacity and light intensity**
-                        const fadeProgress = (2.0 - comet.lifespan) / 2.0; // 0 to 1
-                        comet.material.opacity = Math.max(0.0, comet.material.opacity - delta * 0.5);
-                        comet.light.intensity = THREE.MathUtils.lerp(comet.light.intensity, 1.0, fadeProgress * 0.05); // Gradually reduce intensity
-                    } else {
-                        // **End of Lifespan: Reset Comet**
-                        resetComet(comet);
-                    }
-            
-                    // === Remove Position-Based Boundary Check ===
-                    // **Removed**: Previously, comets were reset based on their position. Now, only time-based resets are used.
                 });
             }
             
@@ -1154,36 +1166,72 @@
                 }
             }
             
+            // === Satellite Implementation ===
+            
+            // Load Satellite Texture
+            const satelliteTexture = textureLoader.load('/textures/voyager_1.png', () => {
+                console.log('Satellite texture loaded successfully.');
+            }, undefined, (err) => {
+                console.error('Error loading satellite texture:', err);
+            });
+            
+            // Create Satellite Material
+            const satelliteMaterial = new THREE.SpriteMaterial({
+                map: satelliteTexture,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                opacity: 1.0
+            });
+            
+            // Create Satellite Sprite
+            const satellite = new THREE.Sprite(satelliteMaterial);
+            
+            // Set Initial Scale
+            satellite.scale.set(100, 100, 1); // Adjust size as needed
+            
+            // Set Initial Position (e.g., far right, random Y and Z)
+            satellite.position.set(
+                window.innerWidth + 200, // Start off-screen to the right
+                (Math.random() - 0.5) * window.innerHeight, // Random Y position
+                Math.random() * 1000 - 500 // Random Z position for depth
+            );
+            
+            // Add Satellite to the Scene
+            scene.add(satellite);
+            
+            // Satellite Movement Parameters
+            const satelliteSpeed = 50; // Units per second
+            const satelliteRotationSpeed = 0.5; // Radians per second
+            
+            // Function to update the Satellite's position and rotation
+            function updateSatellite(delta) {
+                // Move the satellite to the left
+                satellite.position.x -= satelliteSpeed * delta;
+            
+                // Rotate the satellite subtly
+                satellite.rotation.z += satelliteRotationSpeed * delta;
+            
+                // If the satellite has moved off-screen to the left, reset its position to the right
+                if (satellite.position.x < -window.innerWidth - 200) {
+                    satellite.position.x = window.innerWidth + 200;
+                    satellite.position.y = (Math.random() - 0.5) * window.innerHeight;
+                    satellite.position.z = Math.random() * 1000 - 500;
+                }
+            }
+            
+            // === End of Satellite Implementation ===
+            
             // Function to update dynamic stars' twinkling
             function updateDynamicStars(delta) {
                 dynamicStarUniforms.time.value += delta;
             }
             
-            // Spawn static stars and dynamic starfield at the beginning
+            // Spawn static stars and comets at the beginning
             createStaticStarField();
             spawnComets();
             for (let i = 0; i < particleCount; i++) {
                 createParticle();
-            }
-            
-            const clock = new THREE.Clock();
-            
-            // Animation function
-            function animate() {
-                requestAnimationFrame(animate);
-            
-                const delta = clock.getDelta();
-            
-                // Update dynamic stars' twinkling
-                updateDynamicStars(delta);
-            
-                // Update comets, particles, burning particles, and camera
-                updateComets(delta);
-                updateParticles(delta);
-                updateBurningParticles(delta); // Update burning particles
-                updateCometLightIntensity();    // Update comet light intensity based on proximity to particles
-                updateCamera();
-                composer.render();
             }
             
             // === Postprocessing Setup ===
@@ -1219,6 +1267,30 @@
                 composer.setSize(window.innerWidth, window.innerHeight);
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
+            
+            const clock = new THREE.Clock();
+            
+            // Animation function
+            function animate() {
+                requestAnimationFrame(animate);
+            
+                const delta = clock.getDelta();
+            
+                // Update dynamic stars' twinkling
+                updateDynamicStars(delta);
+            
+                // Update comets, particles, burning particles, and camera
+                updateComets(delta);
+                updateParticles(delta);
+                updateBurningParticles(delta); // Update burning particles
+                updateCometLightIntensity();    // Update comet light intensity based on proximity to particles
+                updateCamera();
+            
+                // Update Satellite
+                updateSatellite(delta);
+            
+                composer.render();
+            }
             
             // Start animation
             animate();
