@@ -1,15 +1,13 @@
 // VolumetricLightShader.js
 
-import * as THREE from './js/three.module.min.js'; // Adjust the path based on your project structure
-
 export const VolumetricLightShader = {
     uniforms: {
         "tDiffuse": { value: null }, // Original scene
         "tDepth": { value: null },   // Depth texture
-        "lightPosition": { value: new THREE.Vector3(0, 0, 0) }, // Position of the light in world space
+        "lightPosition": { value: [0, 0, 0] }, // Position of the light in world space as an array
         "cameraNear": { value: 0.1 }, // Camera near plane
         "cameraFar": { value: 20000 }, // Camera far plane
-        "resolution": { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }, // Screen resolution
+        "resolution": { value: [window.innerWidth, window.innerHeight] }, // Screen resolution as an array
         "density": { value: 0.96 }, // Density of the volumetric effect
         "weight": { value: 0.4 },   // Weight of the volumetric effect
         "decay": { value: 0.93 },   // Decay rate of the light
