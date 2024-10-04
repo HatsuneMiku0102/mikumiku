@@ -818,6 +818,19 @@
         const particleCount = 200;  // Number of cosmic dust particles
         const particleTexture = textureLoader.load('./textures/particle_clouds.png'); // Ensure path is correct
     
+        // Define target position variables for smooth light movement
+        let targetLightPosition = new THREE.Vector3(0, 0, 0);
+    
+        // Update target position based on mouse movements
+        document.addEventListener('mousemove', (event) => {
+            // Normalize mouse coordinates between -1 and 1
+            const normalizedMouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            const normalizedMouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+            // Set target position with some scaling factors
+            targetLightPosition.set(normalizedMouseX * 1000, normalizedMouseY * 1000, 0);
+        });
+    
         // Function to create a new comet with diverse properties
         function createComet() {
             const cometMaterial = new THREE.SpriteMaterial({
@@ -905,19 +918,6 @@
             scene.add(particle);
             particles.push(particle);
         }
-    
-        // Define target position variables for smooth light movement
-        let targetLightPosition = new THREE.Vector3(0, 0, 0);
-    
-        // Update target position based on mouse movements
-        document.addEventListener('mousemove', (event) => {
-            // Normalize mouse coordinates between -1 and 1
-            const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-            const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
-            
-            // Set target position with some scaling factors
-            targetLightPosition.set(mouseX * 1000, mouseY * 1000, 0);
-        });
     
         // Function to reset comet properties
         function resetComet(comet) {
@@ -1013,9 +1013,6 @@
                 comet.light.intensity = maxIntensity;
             });
         }
-    
-        // Interactive camera movement based on mouse position is now decoupled from light movement
-        // We've already implemented smooth light position updates in the animate function
     
         // Function to update the camera position based on mouse movement
         function updateCamera() {
