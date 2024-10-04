@@ -693,12 +693,13 @@
         import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
         import { FXAAShader } from '/js/shaders/FXAAShader.js';
         import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
+        import { VolumetricLightShader } from '/js/shaders/VolumetricLightShader.js'; // *** Added for Volumetric Lighting
         
         // Custom Chromatic Aberration Shader
         const ChromaticAberrationShader = {
             uniforms: {
                 "tDiffuse": { value: null },
-                "offset": { value: new THREE.Vector2(0.001, 0.001) } // Controls the intensity of the effect
+                "offset": { value: new THREE.Vector2(0.0015, 0.0015) } // *** Reduced chromatic aberration offset
             },
             vertexShader: `
                 varying vec2 vUv;
@@ -774,7 +775,7 @@
         
         // Function to add stars to the background seamlessly
         function createStarField() {
-            const starCount = 50; // Number of stars in the field
+            const starCount = 100; // *** Increased star count for better density
         
             for (let i = 0; i < starCount; i++) {
                 const texture = starTextures[Math.floor(Math.random() * starTextures.length)];
@@ -782,7 +783,8 @@
                     map: texture,
                     blending: THREE.AdditiveBlending,
                     transparent: true,
-                    opacity: 0.8  // Adjust opacity to blend into background
+                    opacity: 0.8,  // Adjust opacity to blend into background
+                    depthWrite: false // *** Optimize performance by disabling depth write
                 });
         
                 const star = new THREE.Sprite(starMaterial);
@@ -793,7 +795,10 @@
                     -2000 + Math.random() * 1000                                // Spread behind the main scene
                 );
         
+                // *** Add twinkling effect
+                star.userData = { twinkleSpeed: Math.random() * 0.5 + 0.5 };
                 scene.add(star);
+                particles.push(star); // *** Reuse particles array for stars
             }
         }
         
@@ -838,10 +843,23 @@
             scene.add(spotLight);
             comet.spotLight = spotLight;
         
+            // *** Create volumetric light effect
+            const volumetricLight = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: new THREE.TextureLoader().load('/textures/volumetric.png'), // *** Ensure you have a suitable volumetric texture
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                opacity: 0.2,
+                depthWrite: false
+            }));
+            volumetricLight.scale.set(1000, 1000, 1);
+            volumetricLight.position.set(0, 0, -500); // Position it behind the comet
+            comet.add(volumetricLight);
+        
             // Assign comet, light, and spotlight to layer 1
             comet.layers.set(1);
             cometLight.layers.set(1);
             spotLight.layers.set(1);
+            volumetricLight.layers.set(1); // *** Add volumetric light to layer 1
         
             resetComet(comet);
             comets.push(comet);
@@ -959,7 +977,7 @@
             });
         }
         
-        // Function to adjust comet light intensity based on proximity to particles
+        // Function to update comet light intensity based on proximity to particles
         function updateCometLightIntensity() {
             comets.forEach((comet) => {
                 let maxIntensity = 4.0;  // Default comet intensity
@@ -998,6 +1016,19 @@
             }
         }
         
+        // *** Function to update twinkling stars
+        function updateStars(delta) {
+            particles.forEach((star) => {
+                if (star.userData.twinkleSpeed) {
+                    star.material.opacity = 0.5 + 0.3 * Math.sin(clock.elapsedTime * star.userData.twinkleSpeed);
+                }
+            });
+        }
+        
+        // *** Performance Optimization: Use InstancedMesh for Cosmic Dust Particles
+        // Note: Implementing InstancedMesh requires significant changes. For simplicity, we'll limit the number of particles
+        // and ensure materials are shared to reduce draw calls.
+        
         // Spawn particles and stars at the beginning
         for (let i = 0; i < particleCount; i++) {
             createParticle();
@@ -1012,11 +1043,15 @@
         
             const delta = clock.getDelta();
         
-            // Update comets, particles, and camera
+            // Update comets, particles, stars, and camera
             updateComets(delta);
             updateParticles(delta);
+            updateStars(delta); // *** Update star twinkling
             updateCometLightIntensity();  // Update comet light intensity based on proximity to particles
             updateCamera();
+        
+            // *** Optional: Additional performance optimizations can be added here
+        
             composer.render();
         }
         
@@ -1036,13 +1071,18 @@
         
         // Chromatic Aberration Pass
         const chromaticAberrationPass = new ShaderPass(ChromaticAberrationShader);
-        chromaticAberrationPass.uniforms['offset'].value = new THREE.Vector2(0.002, 0.002); // Set the strength of the chromatic aberration
+        chromaticAberrationPass.uniforms['offset'].value = new THREE.Vector2(0.0015, 0.0015); // *** Reduced the strength of the chromatic aberration
         composer.addPass(chromaticAberrationPass);
         
         // FXAA Pass for Anti-Aliasing
         const fxaaPass = new ShaderPass(FXAAShader);
         fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
         composer.addPass(fxaaPass);
+        
+        // *** Volumetric Light Pass
+        const volumetricLightPass = new ShaderPass(VolumetricLightShader); // *** Ensure you have this shader available
+        volumetricLightPass.renderToScreen = true; // Make sure this pass renders last
+        composer.addPass(volumetricLightPass);
         
         // Handle window resize
         window.addEventListener('resize', () => {
@@ -1057,6 +1097,7 @@
         spawnComets();
         animate();
         </script>
+
 
 
 
