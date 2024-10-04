@@ -1017,9 +1017,13 @@
                 }
         
                 // **Updated Boundary Check:**
-                // Reset comet if it moves out of bounds horizontally or vertically
-                if (comet.position.x < -window.innerWidth || comet.position.x > window.innerWidth ||
-                    comet.position.y < -window.innerHeight * 1.5) {
+                // Add a buffer to prevent comets from despawning too early
+                const bufferX = comet.scale.x; // Buffer based on comet size
+                const bufferY = comet.scale.y;
+        
+                if (comet.position.x < -window.innerWidth - bufferX || 
+                    comet.position.x > window.innerWidth + bufferX ||
+                    comet.position.y < -window.innerHeight * 1.5 - bufferY) {
                     resetComet(comet);
                 }
             });
@@ -1158,6 +1162,7 @@
         spawnComets();
         animate();
         </script>
+
 
 
 
