@@ -923,10 +923,17 @@
                 Math.random() * 1000 - 500  // Add depth variation to the comets
             );
         
-            // **Adjusted Velocity Components:**
-            // Increase horizontal velocity and decrease vertical velocity for more forward movement
-            const velocityX = (Math.random() - 0.5) * 800; // -400 to +400
-            const velocityY = -800 - Math.random() * 400;   // -800 to -1200
+            // **Adjusted Velocity Components for Diagonal Forward Movement:**
+            // Define angle range towards bottom left (225 degrees to 270 degrees)
+            const minAngle = 5 * Math.PI / 4; // 225 degrees
+            const maxAngle = 3 * Math.PI / 2; // 270 degrees
+            const angle = Math.random() * (maxAngle - minAngle) + minAngle;
+        
+            const speed = 800 + Math.random() * 400; // 800 to 1200 units per second
+        
+            const velocityX = Math.cos(angle) * speed; // Negative X for leftward movement
+            const velocityY = Math.sin(angle) * speed; // Negative Y for downward movement
+        
             comet.velocity = new THREE.Vector3(velocityX, velocityY, 0);
         
             comet.lifespan = 20.0 + Math.random() * 20.0;
@@ -1009,7 +1016,8 @@
                     }
                 }
         
-                // Reset comet if it moves out of bounds
+                // **Updated Boundary Check:**
+                // Reset comet if it moves out of bounds horizontally or vertically
                 if (comet.position.x < -window.innerWidth || comet.position.x > window.innerWidth ||
                     comet.position.y < -window.innerHeight * 1.5) {
                     resetComet(comet);
@@ -1150,6 +1158,7 @@
         spawnComets();
         animate();
         </script>
+
 
 
 
