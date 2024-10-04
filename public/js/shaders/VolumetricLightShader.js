@@ -1,13 +1,15 @@
 // VolumetricLightShader.js
 
+import * as THREE from '../three.module.min.js'; // Adjust the path based on your project structure
+
 export const VolumetricLightShader = {
     uniforms: {
         "tDiffuse": { value: null }, // Original scene
         "tDepth": { value: null },   // Depth texture
-        "lightPosition": { value: [0, 0, 0] }, // Position of the light in world space as an array
+        "lightPosition": { value: new THREE.Vector3(0, 0, 0) }, // Position of the light in world space
         "cameraNear": { value: 0.1 }, // Camera near plane
         "cameraFar": { value: 20000 }, // Camera far plane
-        "resolution": { value: [window.innerWidth, window.innerHeight] }, // Screen resolution as an array
+        "resolution": { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }, // Screen resolution
         "density": { value: 0.96 }, // Density of the volumetric effect
         "weight": { value: 0.4 },   // Weight of the volumetric effect
         "decay": { value: 0.93 },   // Decay rate of the light
@@ -36,10 +38,10 @@ export const VolumetricLightShader = {
 
         varying vec2 vUv;
 
-        float readDepth( sampler2D depthSampler, vec2 coord ){
-            float fragCoordZ = texture2D( depthSampler, coord ).x;
+        float readDepth(sampler2D depthSampler, vec2 coord) {
+            float fragCoordZ = texture2D(depthSampler, coord).x;
             float z = fragCoordZ * 2.0 - 1.0; // Back to NDC 
-            return ( 2.0 * cameraNear * cameraFar ) / ( cameraFar + cameraNear - z * ( cameraFar - cameraNear ) );
+            return (2.0 * cameraNear * cameraFar) / (cameraFar + cameraNear - z * (cameraFar - cameraNear));
         }
 
         void main() {
