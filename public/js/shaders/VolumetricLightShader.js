@@ -1,5 +1,7 @@
 // VolumetricLightShader.js
 
+import * as THREE from './three.module.min.js'; // Adjust the path based on your project structure
+
 export const VolumetricLightShader = {
     uniforms: {
         "tDiffuse": { value: null }, // Original scene
