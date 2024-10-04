@@ -773,6 +773,11 @@
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000);
         camera.position.set(0, 0, 3000);
         
+        // Particle Variables for Cosmic Dust
+        const particles = [];
+        const particleCount = 200;  // Defined particle count
+        const particleTexture = new THREE.TextureLoader().load('/textures/particle_clouds.png');
+        
         // Load the nebula texture and create an animated background
         const textureLoader = new THREE.TextureLoader();
         textureLoader.load('/textures/pillar.webp', (texture) => {
@@ -893,7 +898,37 @@
             }
         }
         
-        // Your existing functions for comets, particles, and other elements would be placed here...
+        // Function to create cosmic dust particles in a 3D volume
+        function createParticle() {
+            const particleMaterial = new THREE.SpriteMaterial({
+                map: particleTexture,
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                opacity: 0.5,  // Lower opacity for cosmic dust effect
+                depthWrite: false,
+            });
+        
+            const particle = new THREE.Sprite(particleMaterial);
+            const particleSize = 5 + Math.random() * 10;  // Smaller size to represent cosmic dust
+            particle.scale.set(particleSize, particleSize, 1);
+            
+            // Position particles in a 3D space surrounding the scene
+            particle.position.set(
+                Math.random() * window.innerWidth * 2 - window.innerWidth,
+                Math.random() * window.innerHeight * 2 - window.innerHeight,
+                Math.random() * 3000 - 1500  // Spread particles in a depth range in the scene
+            );
+        
+            // Add a very soft light to the particle for a subtle glowing effect
+            const particleLight = new THREE.PointLight(0xffffff, 0.2, 200);
+            particleLight.position.set(0, 0, 0);
+            particle.add(particleLight);
+        
+            particle.light = particleLight;
+            
+            scene.add(particle);
+            particles.push(particle);
+        }
         
         // Postprocessing setup
         const renderScene = new RenderPass(scene, camera);
@@ -928,6 +963,7 @@
             fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
         });
         </script>
+
 
 
 
