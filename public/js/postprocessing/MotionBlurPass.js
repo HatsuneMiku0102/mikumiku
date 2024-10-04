@@ -65,8 +65,8 @@ class MotionBlurPass extends Pass {
             format: THREE.RGBAFormat
         });
 
-        // Initialize the old frame with black
-        this.clearOldFrame();
+        // Flag to check if initial frame has been cleared
+        this.initialized = false;
     }
 
     clearOldFrame() {
@@ -78,18 +78,25 @@ class MotionBlurPass extends Pass {
         this.renderer.clearColor();
         this.renderer.clear();
 
+        // Restore original clear color and alpha
         this.renderer.setClearColor(originalClearColor, originalClearAlpha);
     }
 
     render(renderer, writeBuffer, readBuffer, deltaTime, maskActive) {
         this.renderer = renderer;
 
+        // Initialize the old frame on the first render call
+        if (!this.initialized) {
+            this.clearOldFrame();
+            this.initialized = true;
+        }
+
         // Set uniforms
         this.material.uniforms['tDiffuse'].value = readBuffer.texture;
         this.material.uniforms['tOld'].value = this.renderTargetOld.texture;
         this.material.uniforms['damp'].value = 0.96; // Adjust for more or less blur
 
-        // Render the current frame combined with the old frame
+        // Render the current frame combined with the old frame to renderTargetCurrent
         renderer.setRenderTarget(this.renderTargetCurrent);
         renderer.render(this.scene, this.camera);
 
