@@ -759,10 +759,9 @@
             const hemisphereLight = new THREE.HemisphereLight(0xddddff, 0x555555, 0.5);
             scene.add(hemisphereLight);
             
-            // Set camera to see layers 0, 1, and 2
+            // Set camera to see layers 0 and 1
             camera.layers.enable(0); // Background and main scene
             camera.layers.enable(1); // Comet effects
-            camera.layers.enable(2); // Satellite
             
             // Load Star Textures
             const starTextures = [
@@ -886,7 +885,6 @@
             
             // Create the Points object for dynamic stars
             const dynamicStars = new THREE.Points(dynamicStarsGeometry, dynamicStarsMaterial);
-            dynamicStars.layers.set(0); // Assign to layer 0
             scene.add(dynamicStars);
             
             // === End of Dynamic Twinkling Starfield Implementation ===
@@ -1060,105 +1058,57 @@
             
             // === Comet Spawning Implementation ===
             
-            // Define Layers for Bloom
-            const BLOOM_LAYER = 1;
-            const SATELLITE_LAYER = 2;
+            // Flag to control spawning
+            let isSpawning = true;
+            let spawnTimeout = null;
             
-            // Create Render Targets
-            const bloomRenderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, {
-                format: THREE.RGBAFormat,
-                encoding: THREE.sRGBEncoding,
-                depthBuffer: false,
-                stencilBuffer: false
+            // Function to spawn comets one by one with random delay
+            function spawnCometWithDelay() {
+                if (!isSpawning) return;
+    
+                if (comets.length < cometCount) {
+                    createComet();
+                    const randomDelay = 1500 + Math.random() * 2000;
+                    spawnTimeout = setTimeout(spawnCometWithDelay, randomDelay);
+                }
+            }
+            
+            // Function to start spawning comets
+            function startSpawningComets() {
+                if (isSpawning && !spawnTimeout) {
+                    spawnCometWithDelay();
+                }
+            }
+            
+            // Function to stop spawning comets
+            function stopSpawningComets() {
+                isSpawning = false;
+                if (spawnTimeout) {
+                    clearTimeout(spawnTimeout);
+                    spawnTimeout = null;
+                }
+            }
+            
+            // Event Listener for Page Visibility Change
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    // Page is hidden, stop spawning comets
+                    stopSpawningComets();
+                } else {
+                    // Page is visible, resume spawning comets
+                    if (comets.length < cometCount) {
+                        isSpawning = true;
+                        spawnCometWithDelay();
+                    }
+                }
             });
             
-            // Composer for Bloom
-            const bloomComposer = new EffectComposer(renderer, bloomRenderTarget);
-            bloomComposer.addPass(new RenderPass(scene, camera));
-            
-            // Bloom Pass
-            const bloomPass = new UnrealBloomPass(
-                new THREE.Vector2(window.innerWidth, window.innerHeight),
-                1.5,  // Strength of bloom
-                0.4,  // Bloom radius
-                0.85  // Threshold for bloom
-            );
-            bloomComposer.addPass(bloomPass);
-            
-            // Composer for Final Scene
-            const finalComposer = new EffectComposer(renderer);
-            finalComposer.addPass(new RenderPass(scene, camera));
-            
-            // Chromatic Aberration Pass
-            const chromaticAberrationPass = new ShaderPass(ChromaticAberrationShader);
-            chromaticAberrationPass.uniforms['offset'].value = new THREE.Vector2(0.00075, 0.00075); // Reduced strength of the chromatic aberration
-            finalComposer.addPass(chromaticAberrationPass);
-            
-            // FXAA Pass for Anti-Aliasing
-            const fxaaPass = new ShaderPass(FXAAShader);
-            fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
-            finalComposer.addPass(fxaaPass);
-            
-            // Set up selective bloom
-            const darkMaterial = new THREE.MeshBasicMaterial({ color: "black" });
-            const materials = {};
-            
-            function darkenNonBloomed(obj) {
-                if (obj.isMesh && obj.layers.test(BLOOM_LAYER)) {
-                    materials[obj.uuid] = obj.material;
-                    obj.material = darkMaterial;
-                }
-            }
-            
-            function restoreMaterial(obj) {
-                if (materials[obj.uuid]) {
-                    obj.material = materials[obj.uuid];
-                    delete materials[obj.uuid];
-                }
-            }
-            
-            // Function to handle selective bloom
-            function renderBloom() {
-                scene.traverse(darkenNonBloomed);
-                bloomComposer.render();
-                scene.traverse(restoreMaterial);
-            }
-            
-            // Function to render the entire scene without bloom
-            function renderFinal() {
-                finalComposer.render();
-            }
-            
-            // Composer to combine bloom and final render
-            // Using a second renderer or compositor is complex, so we use separate composers here
-            
-            // Function to update the Animation
-            function animate() {
-                requestAnimationFrame(animate);
-            
-                const delta = clock.getDelta();
-            
-                // Update dynamic stars' twinkling
-                updateDynamicStars(delta);
-            
-                // Update comets, particles, burning particles, and camera
-                updateComets(delta);
-                updateParticles(delta);
-                updateBurningParticles(delta); // Update burning particles
-                updateCometLightIntensity();    // Update comet light intensity based on proximity to particles
-                updateCamera();
-            
-                // Update Satellite
-                updateSatellite(delta);
-            
-                // Render bloom only for BLOOM_LAYER
-                renderBloom();
-            
-                // Render the final scene
-                renderFinal();
-            }
+            // === End of Comet Spawning Implementation ===
             
             // === Satellite Implementation ===
+            
+            // Define Satellite Layer (Ensure this is declared only once)
+            const SATELLITE_LAYER = 2;
             
             // Load Satellite Texture
             const satelliteTexture = textureLoader.load('/textures/voyager_1.png', () => {
@@ -1176,7 +1126,7 @@
             const satelliteMaterial = new THREE.SpriteMaterial({
                 map: satelliteTexture,
                 transparent: true,
-                blending: THREE.NormalBlending, // Changed to NormalBlending for cleaner look
+                blending: THREE.NormalBlending, // Changed from AdditiveBlending to NormalBlending
                 depthWrite: false,
                 opacity: 0.95 // Slightly reduced opacity for subtlety
             });
@@ -1194,8 +1144,7 @@
                 Math.random() * 1000 - 500 // Random Z position for depth
             );
             
-            // Assign Satellite to Layer 2
-            const SATELLITE_LAYER = 2;
+            // Assign Satellite to Its Own Layer
             satellite.layers.set(SATELLITE_LAYER);
             
             // Add Satellite to the Scene
@@ -1235,37 +1184,107 @@
                 createParticle();
             }
             
-            // === Event Listener for Page Visibility Change ===
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) {
-                    // Page is hidden, stop spawning comets
-                    stopSpawningComets();
-                } else {
-                    // Page is visible, resume spawning comets
-                    if (comets.length < cometCount) {
-                        isSpawning = true;
-                        spawnCometWithDelay();
-                    }
-                }
-            });
-            
-            // === End of Comet Spawning Implementation ===
-            
             // === Postprocessing Setup ===
             
-            // Note: Selective bloom has been integrated above in the animation loop
+            const composer = new EffectComposer(renderer);
+            
+            // Render Pass for Layer 0 (Main Scene)
+            const renderPass = new RenderPass(scene, camera);
+            renderPass.clear = true;
+            renderPass.renderToScreen = false; // Not the final render
+            renderPass.clearDepth = true; // Clear depth before next pass
+            
+            // Configure camera to render only layer 0
+            camera.layers.set(0);
+            
+            composer.addPass(renderPass);
+            
+            // Add Bloom Pass
+            const bloomPass = new UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                1.5,  // Strength of bloom
+                0.4,  // Bloom radius
+                0.85  // Bloom threshold
+            );
+            composer.addPass(bloomPass);
+            
+            // Restore camera layers to render all (if needed)
+            camera.layers.set(0);
+            
+            // Create a ShaderPass to composite the bloom and main render
+            const finalPass = new ShaderPass({
+                uniforms: {
+                    baseTexture: { value: null },
+                    bloomTexture: { value: bloomPass.renderTarget2.texture }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform sampler2D baseTexture;
+                    uniform sampler2D bloomTexture;
+                    varying vec2 vUv;
+                    
+                    void main() {
+                        vec4 base = texture2D(baseTexture, vUv);
+                        vec4 bloom = texture2D(bloomTexture, vUv);
+                        gl_FragColor = base + bloom;
+                    }
+                `
+            });
+            finalPass.needsSwap = true;
+            
+            composer.addPass(finalPass);
+            
+            // FXAA Pass for Anti-Aliasing
+            const fxaaPass = new ShaderPass(FXAAShader);
+            fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
+            composer.addPass(fxaaPass);
             
             // Handle window resize
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
-                bloomComposer.setSize(window.innerWidth, window.innerHeight);
-                finalComposer.setSize(window.innerWidth, window.innerHeight);
+                composer.setSize(window.innerWidth, window.innerHeight);
                 fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
             });
             
             const clock = new THREE.Clock();
+            
+            // Animation function
+            function animate() {
+                requestAnimationFrame(animate);
+            
+                const delta = clock.getDelta();
+            
+                // Update dynamic stars' twinkling
+                updateDynamicStars(delta);
+            
+                // Update comets, particles, burning particles, and camera
+                updateComets(delta);
+                updateParticles(delta);
+                updateBurningParticles(delta); // Update burning particles
+                updateCometLightIntensity();    // Update comet light intensity based on proximity to particles
+                updateCamera();
+            
+                // Update Satellite
+                updateSatellite(delta);
+            
+                // Render postprocessed scene (layer 0)
+                camera.layers.set(0);
+                composer.render();
+            
+                // Render satellite (layer 2) without postprocessing
+                renderer.autoClear = false;
+                camera.layers.set(SATELLITE_LAYER);
+                renderer.render(scene, camera);
+                renderer.autoClear = true;
+            }
             
             // Start animation
             animate();
