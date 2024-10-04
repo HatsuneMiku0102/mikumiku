@@ -697,12 +697,12 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.5;  // Increased for more light intensity
+        renderer.toneMappingExposure = 1.8;  // Increased to enhance overall lighting and bloom effect
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000);
-        camera.position.set(0, 0, 4000);
+        camera.position.set(0, 0, 3000);
         
         // Scene Background Texture
         const textureLoader = new THREE.TextureLoader();
@@ -746,12 +746,12 @@
             });
         
             const comet = new THREE.Sprite(cometMaterial);
-            comet.scale.set(200 + Math.random() * 70, 200 + Math.random() * 70, 1); // Increased size of comets
+            comet.scale.set(250 + Math.random() * 100, 250 + Math.random() * 100, 1); // Increased size of comets
             comet.color = naturalColors[Math.floor(Math.random() * naturalColors.length)];
             comet.material.color = comet.color;
         
             // Adding bright light to comet
-            const cometLight = new THREE.PointLight(comet.color, 2.5, 2500, 2);
+            const cometLight = new THREE.PointLight(comet.color, 4.0, 3000, 2); // Increased intensity for more glow
             cometLight.position.set(0, 0, 0);
             cometLight.castShadow = true;
             comet.add(cometLight);  // Attach the light to the comet
@@ -771,7 +771,7 @@
         function resetComet(comet) {
             comet.position.set(
                 -window.innerWidth / 2 + Math.random() * window.innerWidth * 2,  // Random X position spanning entire canvas width
-                window.innerHeight / 1 + 200,  // Higher spawn above the title bar
+                window.innerHeight / 1 + 300,  // Higher spawn above the title bar
                 0  // Fixed Z position for straight diagonal movement
             );
             comet.velocity = new THREE.Vector3(
@@ -783,10 +783,10 @@
             comet.burningOut = false;
         
             // Set light intensity to constant value
-            comet.light.intensity = 2.5;
+            comet.light.intensity = 4.0;
         
             comet.material.opacity = 0.0;
-            comet.scale.set(200 + Math.random() * 70, 200 + Math.random() * 70, 1); // Set to match increased size
+            comet.scale.set(250 + Math.random() * 100, 250 + Math.random() * 100, 1); // Set to match increased size
             comet.rotation.z = Math.atan2(comet.velocity.y, comet.velocity.x);
         }
         
@@ -806,13 +806,13 @@
                     comet.material.opacity = Math.min(1.0, comet.material.opacity + delta * 0.3);
                 } else if (comet.lifespan > 3.0) {
                     // Flickering effect before burnout, only on layer 1
-                    comet.light.intensity = 2.5 + Math.sin(clock.getElapsedTime() * 50) * 0.5;
+                    comet.light.intensity = 4.0 + Math.sin(clock.getElapsedTime() * 50) * 0.7;
                 } else if (!comet.burningOut) {
                     comet.burningOut = true;
                     comet.material.color.set(0xffffff);
                     comet.light.color.set(0xffffff);
-                    comet.scale.set(250, 250, 1); // Increased during burnout for dramatic effect
-                    comet.light.intensity = 3.0; // Slight boost before fading out
+                    comet.scale.set(300, 300, 1); // Increased during burnout for dramatic effect
+                    comet.light.intensity = 5.0; // Slight boost before fading out
                 } else {
                     comet.material.opacity = Math.max(0, comet.material.opacity - delta * 0.2);
                     comet.light.intensity = Math.max(0, comet.light.intensity - delta * 2);
@@ -862,9 +862,9 @@
         
         const bloomPass = new UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
-            1.5,  // Increased strength for more glowing effect
-            0.4,
-            0.85
+            2.0,  // Increased strength for more glowing effect
+            0.5,  // Bloom radius
+            1.0   // Threshold for glow effect
         );
         composer.addPass(bloomPass);
         
