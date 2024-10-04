@@ -743,6 +743,42 @@
             hemisphereLight.layers.set(MAIN_LAYER);
             scene.add(hemisphereLight);
         
+            // Create Static Star Field
+            function createStaticStarField() {
+                const starCount = 50; // Number of static stars in the field
+        
+                const starTextures = [
+                    textureLoader.load('/textures/stars 001.png'),
+                    textureLoader.load('/textures/stars 002.png'),
+                    textureLoader.load('/textures/stars 003.png'),
+                    textureLoader.load('/textures/stars 004.png'),
+                    textureLoader.load('/textures/stars 005.png'),
+                    textureLoader.load('/textures/stars 006.png')
+                ];
+        
+                for (let i = 0; i < starCount; i++) {
+                    const texture = starTextures[Math.floor(Math.random() * starTextures.length)];
+                    const starMaterial = new THREE.SpriteMaterial({
+                        map: texture,
+                        blending: THREE.AdditiveBlending,
+                        transparent: true,
+                        opacity: 0.8  // Adjust opacity to blend into background
+                    });
+        
+                    const star = new THREE.Sprite(starMaterial);
+                    star.scale.set(200 + Math.random() * 150, 200 + Math.random() * 150, 1); // Randomize size
+                    star.position.set(
+                        Math.random() * window.innerWidth * 2 - window.innerWidth,  // Spread across X-axis
+                        Math.random() * window.innerHeight * 2 - window.innerHeight, // Spread across Y-axis
+                        -2000 + Math.random() * 1000                                // Spread behind the main scene
+                    );
+        
+                    star.layers.set(MAIN_LAYER);
+                    scene.add(star);
+                }
+            }
+            // === End of Static Star Field Creation ===
+        
             // Create Comet
             function createComet() {
                 const cometMaterial = new THREE.SpriteMaterial({
@@ -883,44 +919,28 @@
                 particle.position.set(
                     Math.random() * window.innerWidth * 2 - window.innerWidth,
                     Math.random() * window.innerHeight * 2 - window.innerHeight,
-                    Math.random() * 3000 - 1500
+                    Math.random() * 3000 - 1500  
                 );
         
                 const particleLight = new THREE.PointLight(0xffffff, 0.2, 200);
                 particleLight.position.set(0, 0, 0);
                 particle.add(particleLight);
-                particle.light = particleLight;
-        
                 particle.layers.set(COMET_LAYER);
                 scene.add(particle);
                 particles.push(particle);
             }
         
-            // Burning Particles for Comet Fire Trail
-            function createBurningParticle(comet) {
-                const burningMaterial = new THREE.SpriteMaterial({
-                    map: textureLoader.load('/textures/particle_clouds.png'),
-                    blending: THREE.AdditiveBlending,
-                    transparent: true,
-                    opacity: 1.0,
-                    depthWrite: false,
-                    color: new THREE.Color(0xff4500)
+            // Update Comets
+            function updateComets(delta) {
+                comets.forEach((comet, index) => {
+                    comet.position.add(comet.velocity.clone().multiplyScalar(delta));
+                    comet.elapsed += delta;
+        
+                    if (comet.elapsed > comet.lifespan) {
+                        scene.remove(comet);
+                        comets.splice(index, 1);
+                    }
                 });
-        
-                const burningParticle = new THREE.Sprite(burningMaterial);
-                const size = 10 + Math.random() * 10;
-                burningParticle.scale.set(size, size, 1);
-        
-                burningParticle.position.copy(comet.position);
-        
-                const angle = Math.random() * Math.PI * 2;
-                const speed = 50 + Math.random() * 50;
-                burningParticle.velocity = new THREE.Vector3(Math.cos(angle) * speed, Math.sin(angle) * speed, 0);
-                burningParticle.lifespan = 2.0 + Math.random() * 1.0;
-        
-                burningParticle.layers.set(COMET_LAYER);
-                burningParticles.push(burningParticle);
-                scene.add(burningParticle);
             }
         
             // Camera Movement
@@ -935,19 +955,6 @@
             function updateCameraPosition(delta) {
                 camera.position.x += (mouseX * 500 - camera.position.x) * 0.05;
                 camera.position.y += (mouseY * 300 - camera.position.y) * 0.05;
-            }
-        
-            // Update Comets
-            function updateComets(delta) {
-                comets.forEach((comet, index) => {
-                    comet.position.add(comet.velocity.clone().multiplyScalar(delta));
-                    comet.elapsed += delta;
-        
-                    if (comet.elapsed > comet.lifespan) {
-                        scene.remove(comet);
-                        comets.splice(index, 1);
-                    }
-                });
             }
         
             // Postprocessing Setup
@@ -1001,6 +1008,10 @@
                 finalComposer.setSize(window.innerWidth, window.innerHeight);
             });
         
+            // Darkening non-bloomed objects
+            const darkMaterial = new THREE.MeshBasicMaterial({ color: 'black' });
+            const materials = {};
+        
             function darkenNonBloomed(obj) {
                 if (obj.isMesh || obj.isSprite) {
                     if (obj.layers.test(BLOOM_SCENE) === false) {
@@ -1022,9 +1033,13 @@
                 requestAnimationFrame(animate);
                 const delta = clock.getDelta();
         
+                // Update dynamic stars' twinkling
                 dynamicStarUniforms.time.value += delta;
+        
+                // Update comets
                 updateComets(delta);
         
+                // Update particles
                 particles.forEach((particle) => {
                     particle.position.x += (Math.random() - 0.5) * 0.5 * delta;
                     particle.position.y += (Math.random() - 0.5) * 0.5 * delta;
@@ -1034,6 +1049,7 @@
                     particle.position.y += mouseY * 0.02 * delta;
                 });
         
+                // Update burning particles
                 for (let i = burningParticles.length - 1; i >= 0; i--) {
                     const particle = burningParticles[i];
                     particle.position.add(particle.velocity.clone().multiplyScalar(delta));
@@ -1048,9 +1064,7 @@
                     particle.material.opacity = Math.max(0, particle.lifespan / 2.0);
                 }
         
-                updateCometLightIntensity();
-                updateCameraPosition(delta);
-        
+                // Update satellite position
                 satellite.position.x -= 50 * delta;
                 satellite.rotation.z += 0.5 * delta;
         
@@ -1060,25 +1074,28 @@
                     satellite.position.z = Math.random() * 1000 - 500;
                 }
         
+                // Render bloom
                 scene.traverse(darkenNonBloomed);
                 bloomComposer.render(delta);
                 scene.traverse(restoreMaterial);
-        
                 finalPass.uniforms['bloomTexture'].value = bloomComposer.readBuffer.texture;
                 finalComposer.render(delta);
         
+                // Render satellite
                 renderer.autoClear = false;
                 camera.layers.set(SATELLITE_LAYER);
                 renderer.render(scene, camera);
                 renderer.autoClear = true;
             }
         
+            // Initial Setup
             createStaticStarField();
-            spawnCometWithDelay();
-            for (let i = 0; i < 200; i++) {
+            spawnCometWithDelay(); 
+            for (let i = 0; i < 200; i++) { 
                 createParticle();
             }
         
+            // Start Animation
             animate();
         </script>
 
