@@ -706,23 +706,48 @@
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000);
         camera.position.set(0, 0, 3000);
         
-        // Scene Background Texture with Enhanced Brightness
-        const textureLoader = new THREE.TextureLoader();
-        textureLoader.load('/textures/pillar.webp', (texture) => {
-            texture.colorSpace = THREE.SRGBColorSpace;
-            texture.encoding = THREE.sRGBEncoding;  // Ensure correct brightness
-            scene.background = texture;
-        }, undefined, (err) => {
-            console.error('Error loading background texture:', err);
-            scene.background = new THREE.Color(0x303030);
-        });
-        
         // Adding Ambient and Hemisphere Light for Overall Illumination
         const ambientLight = new THREE.AmbientLight(0x404040, 1.8);
         scene.add(ambientLight);
         
         const hemisphereLight = new THREE.HemisphereLight(0xddddff, 0x555555, 0.5);
         scene.add(hemisphereLight);
+        
+        // Load Star Textures
+        const textureLoader = new THREE.TextureLoader();
+        const starTextures = [
+            textureLoader.load('/textures/stars 001.png'),
+            textureLoader.load('/textures/stars 002.png'),
+            textureLoader.load('/textures/stars 003.png'),
+            textureLoader.load('/textures/stars 004.png'),
+            textureLoader.load('/textures/stars 005.png'),
+            textureLoader.load('/textures/stars 006.png')
+        ];
+        
+        // Function to create star sprites in 3D space
+        function createStarField() {
+            const starCount = 100; // Number of stars in the field
+        
+            for (let i = 0; i < starCount; i++) {
+                const texture = starTextures[Math.floor(Math.random() * starTextures.length)];
+                const starMaterial = new THREE.SpriteMaterial({
+                    map: texture,
+                    blending: THREE.AdditiveBlending,
+                    transparent: true,
+                    opacity: 0.9
+                });
+        
+                const star = new THREE.Sprite(starMaterial);
+                star.scale.set(100 + Math.random() * 200, 100 + Math.random() * 200, 1); // Randomize size
+                star.position.set(
+                    Math.random() * 10000 - 5000,  // Spread across X-axis
+                    Math.random() * 10000 - 5000,  // Spread across Y-axis
+                    Math.random() * -3000         // Depth into the screen
+                );
+        
+                scene.add(star);
+            }
+        }
         
         // Set camera to see layers 0 and 1
         camera.layers.enable(0); // Background and main scene
@@ -736,7 +761,7 @@
         // Particle Variables for Cosmic Dust
         const particles = [];
         const particleCount = 200;  // Number of cosmic dust particles
-        const particleTexture = new THREE.TextureLoader().load('/textures/particle_clouds.png');
+        const particleTexture = textureLoader.load('/textures/particle_clouds.png');
         
         // Function to create a new comet with diverse properties
         function createComet() {
@@ -929,10 +954,11 @@
             }
         }
         
-        // Spawn particles at the beginning
+        // Spawn particles and stars at the beginning
         for (let i = 0; i < particleCount; i++) {
             createParticle();
         }
+        createStarField();
         
         const clock = new THREE.Clock();
         
@@ -982,6 +1008,7 @@
         spawnComets();
         animate();
         </script>
+
 
 
 
