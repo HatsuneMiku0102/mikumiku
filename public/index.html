@@ -688,87 +688,53 @@
                 
     
         <script type="module">
-            // === Importing Necessary Modules ===
             import * as THREE from '/js/three.module.min.js';
             import { EffectComposer } from '/js/postprocessing/EffectComposer.js';
             import { RenderPass } from '/js/postprocessing/RenderPass.js';
             import { UnrealBloomPass } from '/js/postprocessing/UnrealBloomPass.js';
             import { FXAAShader } from '/js/shaders/FXAAShader.js';
             import { ShaderPass } from '/js/postprocessing/ShaderPass.js';
-            // === End of Module Imports ===
         
-            // === Layer Definitions ===
-            const MAIN_LAYER = 0;      // Default layer for the main scene
-            const COMET_LAYER = 1;     // Layer for comets and related effects
-            const SATELLITE_LAYER = 2; // Separate layer for the satellite
-            const BLOOM_SCENE = 3;     // Layer for bloom effects
-            // === End of Layer Definitions ===
+            const MAIN_LAYER = 0;      
+            const COMET_LAYER = 1;     
+            const SATELLITE_LAYER = 2; 
+            const BLOOM_SCENE = 1;
         
-            // === Custom Chromatic Aberration Shader ===
-            const ChromaticAberrationShader = {
-                uniforms: {
-                    "tDiffuse": { value: null },
-                    "offset": { value: new THREE.Vector2(0.00075, 0.00075) }
-                },
-                vertexShader: `
-                    varying vec2 vUv;
-                    void main() {
-                        vUv = uv;
-                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                    }
-                `,
-                fragmentShader: `
-                    uniform sampler2D tDiffuse;
-                    uniform vec2 offset;
-                    varying vec2 vUv;
-                    void main() {
-                        vec4 color = vec4(0.0);
-                        vec2 redOffset = vUv + offset;
-                        vec2 greenOffset = vUv;
-                        vec2 blueOffset = vUv - offset;
-                        color.r = texture2D(tDiffuse, redOffset).r;
-                        color.g = texture2D(tDiffuse, greenOffset).g;
-                        color.b = texture2D(tDiffuse, blueOffset).b;
-                        color.a = texture2D(tDiffuse, vUv).a;
-                        gl_FragColor = color;
-                    }
-                `
-            };
-            // === End of Custom Shader ===
+            const COMET_ACTIVE_DURATION = 7;  
+            const COMET_FADE_DURATION = 1;    
+            const cometCount = 8; // Total number of comets
+            const cometSize = 150; // Base size for comets
         
-            // === Renderer Setup ===
+            const clock = new THREE.Clock();
             const canvas = document.getElementById('techCanvas');
             const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000);
+            const textureLoader = new THREE.TextureLoader();
+            const comets = [];
+            const burningParticles = [];
+            const particles = [];
+        
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.5; // Adjusted for balanced lighting
+            renderer.toneMappingExposure = 1.5;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.autoClear = false; // Important for layered rendering
-            // === End of Renderer Setup ===
+            renderer.autoClear = false;
         
-            // === Scene and Camera Setup ===
-            const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000);
             camera.position.set(0, 0, 3000);
-            // === End of Scene and Camera Setup ===
         
-            // === Texture Loader ===
-            const textureLoader = new THREE.TextureLoader();
-            // === End of Texture Loader ===
-        
-            // === Background Setup ===
+            // Load Background Texture
             textureLoader.load('/textures/pillar.webp', (texture) => {
                 texture.colorSpace = THREE.SRGBColorSpace;
-                texture.encoding = THREE.sRGBEncoding; // Ensure correct brightness
+                texture.encoding = THREE.sRGBEncoding;
                 scene.background = texture;
             }, undefined, (err) => {
                 console.error('Error loading background texture:', err);
                 scene.background = new THREE.Color(0x303030);
             });
-            // === End of Background Setup ===
         
-            // === Lighting Setup ===
+            // Lighting Setup
             const ambientLight = new THREE.AmbientLight(0x404040, 1.8);
             ambientLight.layers.set(MAIN_LAYER);
             scene.add(ambientLight);
@@ -776,125 +742,11 @@
             const hemisphereLight = new THREE.HemisphereLight(0xddddff, 0x555555, 0.5);
             hemisphereLight.layers.set(MAIN_LAYER);
             scene.add(hemisphereLight);
-            // === End of Lighting Setup ===
         
-            // === Star Textures ===
-            const starTextures = [
-                textureLoader.load('/textures/stars 001.png'),
-                textureLoader.load('/textures/stars 002.png'),
-                textureLoader.load('/textures/stars 003.png'),
-                textureLoader.load('/textures/stars 004.png'),
-                textureLoader.load('/textures/stars 005.png'),
-                textureLoader.load('/textures/stars 006.png')
-            ];
-            // === End of Star Textures ===
-        
-            // === Static Star Field Creation ===
-            function createStaticStarField() {
-                const starCount = 50;
-                for (let i = 0; i < starCount; i++) {
-                    const texture = starTextures[Math.floor(Math.random() * starTextures.length)];
-                    const starMaterial = new THREE.SpriteMaterial({
-                        map: texture,
-                        blending: THREE.AdditiveBlending,
-                        transparent: true,
-                        opacity: 0.8
-                    });
-        
-                    const star = new THREE.Sprite(starMaterial);
-                    star.scale.set(200 + Math.random() * 150, 200 + Math.random() * 150, 1);
-                    star.position.set(
-                        Math.random() * window.innerWidth * 2 - window.innerWidth,
-                        Math.random() * window.innerHeight * 2 - window.innerHeight,
-                        -2000 + Math.random() * 1000
-                    );
-        
-                    star.layers.set(MAIN_LAYER);
-                    scene.add(star);
-                }
-            }
-            // === End of Static Star Field Creation ===
-        
-            // === Dynamic Twinkling Starfield Implementation ===
-            const dynamicStarCount = 1000;
-            const dynamicPositions = [];
-            const dynamicSizes = [];
-            const dynamicPhases = [];
-        
-            for (let i = 0; i < dynamicStarCount; i++) {
-                const x = Math.random() * window.innerWidth * 2 - window.innerWidth;
-                const y = Math.random() * window.innerHeight * 2 - window.innerHeight;
-                const z = Math.random() * 3000 - 1500;
-                dynamicPositions.push(x, y, z);
-                dynamicSizes.push(1 + Math.random() * 2);
-                dynamicPhases.push(Math.random() * Math.PI * 2);
-            }
-        
-            const dynamicStarsGeometry = new THREE.BufferGeometry();
-            dynamicStarsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(dynamicPositions, 3));
-            dynamicStarsGeometry.setAttribute('size', new THREE.Float32BufferAttribute(dynamicSizes, 1));
-            dynamicStarsGeometry.setAttribute('phase', new THREE.Float32BufferAttribute(dynamicPhases, 1));
-        
-            const starVertexShader = `
-                uniform float time;
-                attribute float size;
-                attribute float phase;
-                varying float vTwinkle;
-        
-                void main() {
-                    vTwinkle = abs(sin(time + phase));
-                    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                    gl_PointSize = size * (1.0 + vTwinkle * 0.5);
-                    gl_Position = projectionMatrix * mvPosition;
-                }
-            `;
-        
-            const starFragmentShader = `
-                uniform vec3 starColor;
-                varying float vTwinkle;
-        
-                void main() {
-                    float dist = length(gl_PointCoord - vec2(0.5));
-                    float alpha = 1.0 - smoothstep(0.4, 0.5, dist);
-                    vec3 color = starColor * vTwinkle;
-                    gl_FragColor = vec4(color, alpha);
-                }
-            `;
-        
-            const dynamicStarUniforms = {
-                time: { value: 0.0 },
-                starColor: { value: new THREE.Color(0xffffff) }
-            };
-        
-            const dynamicStarsMaterial = new THREE.ShaderMaterial({
-                uniforms: dynamicStarUniforms,
-                vertexShader: starVertexShader,
-                fragmentShader: starFragmentShader,
-                transparent: true,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false
-            });
-        
-            const dynamicStars = new THREE.Points(dynamicStarsGeometry, dynamicStarsMaterial);
-            dynamicStars.layers.set(MAIN_LAYER);
-            scene.add(dynamicStars);
-            // === End of Dynamic Twinkling Starfield Implementation ===
-        
-            // === Comet Spawning and Management ===
-            const COMET_ACTIVE_DURATION = 7;
-            const COMET_FADE_DURATION = 1;
-            const cometTexture = textureLoader.load('/textures/comet1.png');
-            const cometCount = 8;
-            const comets = [];
-            const burningParticles = [];
-            const burningParticleTexture = textureLoader.load('/textures/particle_clouds.png');
-        
-            let isSpawning = true;
-            let spawnTimeout = null;
-        
+            // Create Comet
             function createComet() {
                 const cometMaterial = new THREE.SpriteMaterial({
-                    map: cometTexture,
+                    map: textureLoader.load('/textures/comet1.png'),
                     blending: THREE.AdditiveBlending,
                     transparent: true,
                     opacity: 0.9,
@@ -902,8 +754,7 @@
                 });
         
                 const comet = new THREE.Sprite(cometMaterial);
-                const cometSize = 150 + Math.random() * 200;
-                comet.scale.set(cometSize, cometSize, 1);
+                comet.scale.set(cometSize + Math.random() * 200, cometSize + Math.random() * 200, 1);
                 comet.color = new THREE.Color(0xffffff);
                 comet.material.color = comet.color;
         
@@ -911,7 +762,6 @@
                 cometLight.position.set(0, 0, 0);
                 cometLight.castShadow = true;
                 comet.add(cometLight);
-        
                 comet.light = cometLight;
         
                 const spotLight = new THREE.SpotLight(0xffffff, 1.0, 5000, Math.PI / 8, 0.5);
@@ -929,6 +779,7 @@
                 scene.add(comet);
             }
         
+            // Reset Comet
             function resetComet(comet) {
                 comet.position.set(
                     Math.random() * window.innerWidth * 2 - window.innerWidth,
@@ -941,27 +792,21 @@
                 const angle = centerAngle + (Math.random() * angleVariation * 2 - angleVariation);
         
                 const speed = 1000 + Math.random() * 200;
-        
                 const velocityX = Math.cos(angle) * speed;
                 const velocityY = Math.sin(angle) * speed;
         
                 comet.velocity = new THREE.Vector3(velocityX, velocityY, 0);
-        
                 comet.lifespan = COMET_ACTIVE_DURATION + COMET_FADE_DURATION;
                 comet.elapsed = 0;
-        
                 comet.burningOut = false;
-        
                 comet.light.intensity = 4.0 + Math.random() * 3.0;
-        
                 comet.material.opacity = 0.9;
-                comet.scale.set(cometSize, cometSize, 1);
                 comet.rotation.z = Math.atan2(comet.velocity.y, comet.velocity.x);
-                
-                comet.flashPhase = 0;
-                comet.flashSpeed = Math.random() * 5 + 5;
-                comet.flashAmplitude = 3.0;
             }
+        
+            // Comet Spawning
+            let isSpawning = true;
+            let spawnTimeout = null;
         
             function spawnCometWithDelay() {
                 if (!isSpawning) return;
@@ -997,15 +842,9 @@
                     }
                 }
             });
-            // === End of Comet Spawning and Management ===
         
-            // === Satellite Implementation ===
-            const satelliteTexture = textureLoader.load('/textures/voyager_1.png', () => {
-                console.log('Satellite texture loaded successfully.');
-            }, undefined, (err) => {
-                console.error('Error loading satellite texture:', err);
-            });
-        
+            // Satellite Setup
+            const satelliteTexture = textureLoader.load('/textures/voyager_1.png');
             satelliteTexture.minFilter = THREE.LinearFilter;
             satelliteTexture.magFilter = THREE.LinearFilter;
             satelliteTexture.generateMipmaps = false;
@@ -1023,11 +862,9 @@
             satellite.position.set(window.innerWidth + 200, (Math.random() - 0.5) * window.innerHeight, Math.random() * 1000 - 500);
             satellite.layers.set(SATELLITE_LAYER);
             scene.add(satellite);
-            // === End of Satellite Implementation ===
         
-            // === Cosmic Dust Particles Creation ===
-            const particles = [];
-            const particleCount = 200;
+            // Cosmic Dust Particles
+            const particleCount = 200;  
             const particleTexture = textureLoader.load('/textures/particle_clouds.png');
         
             function createParticle() {
@@ -1058,12 +895,11 @@
                 scene.add(particle);
                 particles.push(particle);
             }
-            // === End of Cosmic Dust Particles Creation ===
         
-            // === Burning Particles for Comet Fire Trail ===
+            // Burning Particles for Comet Fire Trail
             function createBurningParticle(comet) {
                 const burningMaterial = new THREE.SpriteMaterial({
-                    map: burningParticleTexture,
+                    map: textureLoader.load('/textures/particle_clouds.png'),
                     blending: THREE.AdditiveBlending,
                     transparent: true,
                     opacity: 1.0,
@@ -1086,11 +922,11 @@
                 burningParticles.push(burningParticle);
                 scene.add(burningParticle);
             }
-            // === End of Burning Particles ===
         
-            // === Camera Movement Based on Mouse Position ===
+            // Camera Movement
             let mouseX = 0;
             let mouseY = 0;
+        
             document.addEventListener('mousemove', (event) => {
                 mouseX = (event.clientX / window.innerWidth) * 2 - 1;
                 mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -1100,27 +936,21 @@
                 camera.position.x += (mouseX * 500 - camera.position.x) * 0.05;
                 camera.position.y += (mouseY * 300 - camera.position.y) * 0.05;
             }
-            // === End of Camera Movement ===
         
-            // === Comet Light Intensity Adjustment Based on Particle Proximity ===
-            function updateCometLightIntensity() {
-                comets.forEach((comet) => {
-                    let maxIntensity = 4.0;  // Default comet intensity
-                    particles.forEach((particle) => {
-                        const distance = comet.position.distanceTo(particle.position);
-                        if (distance < 500) {
-                            maxIntensity = Math.max(maxIntensity, 4.0 + (500 - distance) / 100);
-                        }
-                    });
-                    comet.light.intensity = maxIntensity;
+            // Update Comets
+            function updateComets(delta) {
+                comets.forEach((comet, index) => {
+                    comet.position.add(comet.velocity.clone().multiplyScalar(delta));
+                    comet.elapsed += delta;
+        
+                    if (comet.elapsed > comet.lifespan) {
+                        scene.remove(comet);
+                        comets.splice(index, 1);
+                    }
                 });
             }
-            // === End of Comet Light Intensity Adjustment ===
         
-            // === Postprocessing Setup ===
-            const darkMaterial = new THREE.MeshBasicMaterial({ color: 'black' });
-            const materials = {};
-            
+            // Postprocessing Setup
             const bloomComposer = new EffectComposer(renderer);
             bloomComposer.renderToScreen = false;
             bloomComposer.addPass(new RenderPass(scene, camera));
@@ -1161,9 +991,8 @@
             }), 'baseTexture');
             finalPass.needsSwap = true;
             finalComposer.addPass(finalPass);
-            // === End of Postprocessing Setup ===
         
-            // === Window Resize Handling ===
+            // Window Resize Handling
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
@@ -1171,7 +1000,6 @@
                 bloomComposer.setSize(window.innerWidth, window.innerHeight);
                 finalComposer.setSize(window.innerWidth, window.innerHeight);
             });
-            // === End of Window Resize Handling ===
         
             function darkenNonBloomed(obj) {
                 if (obj.isMesh || obj.isSprite) {
@@ -1189,32 +1017,14 @@
                 }
             }
         
-            // === Animation Loop ===
-            const clock = new THREE.Clock();
-        
-            function updateComets(delta) {
-                comets.forEach((comet, index) => {
-                    comet.position.add(comet.velocity.clone().multiplyScalar(delta));
-                    comet.elapsed += delta;
-        
-                    if (comet.elapsed > comet.lifespan) {
-                        scene.remove(comet);
-                        comets.splice(index, 1);
-                    }
-                });
-            }
-        
+            // Animation Loop
             function animate() {
                 requestAnimationFrame(animate);
                 const delta = clock.getDelta();
         
-                // Update dynamic stars' twinkling
                 dynamicStarUniforms.time.value += delta;
-        
-                // Update comets
                 updateComets(delta);
         
-                // Update particles
                 particles.forEach((particle) => {
                     particle.position.x += (Math.random() - 0.5) * 0.5 * delta;
                     particle.position.y += (Math.random() - 0.5) * 0.5 * delta;
@@ -1224,7 +1034,6 @@
                     particle.position.y += mouseY * 0.02 * delta;
                 });
         
-                // Update burning particles
                 for (let i = burningParticles.length - 1; i >= 0; i--) {
                     const particle = burningParticles[i];
                     particle.position.add(particle.velocity.clone().multiplyScalar(delta));
@@ -1239,13 +1048,9 @@
                     particle.material.opacity = Math.max(0, particle.lifespan / 2.0);
                 }
         
-                // Adjust comet light intensity based on particle proximity
                 updateCometLightIntensity();
-        
-                // Update camera position based on mouse movement
                 updateCameraPosition(delta);
         
-                // Update Satellite
                 satellite.position.x -= 50 * delta;
                 satellite.rotation.z += 0.5 * delta;
         
@@ -1255,37 +1060,28 @@
                     satellite.position.z = Math.random() * 1000 - 500;
                 }
         
-                // Render bloom scene
                 scene.traverse(darkenNonBloomed);
                 bloomComposer.render(delta);
                 scene.traverse(restoreMaterial);
         
-                // Update the bloomTexture uniform
                 finalPass.uniforms['bloomTexture'].value = bloomComposer.readBuffer.texture;
-        
-                // Render the final composite
                 finalComposer.render(delta);
         
-                // Render satellite separately without postprocessing
                 renderer.autoClear = false;
                 camera.layers.set(SATELLITE_LAYER);
                 renderer.render(scene, camera);
                 renderer.autoClear = true;
             }
-            // === End of Animation Loop ===
         
-            // === Initial Scene Setup ===
             createStaticStarField();
-            spawnCometWithDelay(); // Start spawning comets
-            for (let i = 0; i < 200; i++) { // Create cosmic dust particles
+            spawnCometWithDelay();
+            for (let i = 0; i < 200; i++) {
                 createParticle();
             }
-            // === End of Initial Scene Setup ===
         
-            // === Start Animation ===
             animate();
-            // === End of Start Animation ===
         </script>
+
 
 
 
