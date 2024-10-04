@@ -706,7 +706,7 @@
         
         // Scene Background Texture
         const textureLoader = new THREE.TextureLoader();
-        textureLoader.load('/textures/nebula.webp', (texture) => {
+        textureLoader.load('/textures/pillar.webp', (texture) => {
             texture.colorSpace = THREE.SRGBColorSpace;
             scene.background = texture;
         }, undefined, (err) => {
@@ -747,7 +747,7 @@
             comet.material.color = comet.color;
         
             // Adding bright light to comet
-            const cometLight = new THREE.PointLight(comet.color, 2.0, 2000, 2);
+            const cometLight = new THREE.PointLight(comet.color, 2.5, 2000, 2);
             cometLight.position.set(0, 0, 0);
             cometLight.castShadow = true;
             comet.add(cometLight);  // Attach the light to the comet
@@ -767,15 +767,15 @@
                 0  // Fixed Z position for straight diagonal movement
             );
             comet.velocity = new THREE.Vector3(
-                -100 - Math.random() * 200,  // Reduced X velocity for more vertical movement
-                -600 - Math.random() * 400,  // Increased Y velocity for faster movement
+                -850 - Math.random() * 150,  // 85% influence in X direction for diagonal movement
+                -150 - Math.random() * 50,   // 15% influence in Y direction for slight vertical movement
                 0  // No Z-axis velocity for straight movement
             );
             comet.lifespan = 15.0 + Math.random() * 5.0;
             comet.burningOut = false;
         
-            // Set initial light intensity and ensure it's visible
-            comet.light.intensity = 3.0;
+            // Set light intensity to constant value
+            comet.light.intensity = 2.5;
         
             comet.material.opacity = 0.0;
             comet.scale.set(150 + Math.random() * 50, 150 + Math.random() * 50, 1);
@@ -796,18 +796,15 @@
         
                 if (comet.lifespan > 10.0) {
                     comet.material.opacity = Math.min(1.0, comet.material.opacity + delta * 0.3);
-                    comet.light.intensity = Math.min(3.0, comet.light.intensity + delta * 0.5);
                 } else if (comet.lifespan > 3.0) {
-                    comet.light.intensity = 2.0 + Math.sin(clock.getElapsedTime() * 20) * 1.5; // More noticeable flickering
+                    // Comet's appearance remains stable, no intensity changes
                 } else if (!comet.burningOut) {
                     comet.burningOut = true;
                     comet.material.color.set(0xffffff);
                     comet.light.color.set(0xffffff);
-                    comet.light.intensity = 2.5; // Spike intensity just before fading out
                     comet.scale.set(200, 200, 1);
                 } else {
                     comet.material.opacity = Math.max(0, comet.material.opacity - delta * 0.2);
-                    comet.light.intensity = Math.max(0, comet.light.intensity - delta * 2);
                     if (comet.material.opacity <= 0) {
                         resetComet(comet);
                     }
@@ -863,6 +860,7 @@
         // Start animation
         animate();
         </script>
+
 
 
 
