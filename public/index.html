@@ -1076,6 +1076,18 @@
                 camera.position.y += (mouseY * 300 - camera.position.y) * 0.05;
             }
         
+            function updateComets(delta) {
+                for (let i = comets.length - 1; i >= 0; i--) {
+                    const comet = comets[i];
+                    comet.position.add(comet.velocity.clone().multiplyScalar(delta));
+                    comet.elapsed += delta;
+                    if (comet.elapsed >= comet.lifespan) {
+                        scene.remove(comet);
+                        comets.splice(i, 1);
+                    }
+                }
+            }
+        
             function updateCometLightIntensity() {
                 comets.forEach((comet) => {
                     let maxIntensity = 4.0;  
@@ -1233,6 +1245,7 @@
         
             animate();
         </script>
+
 
 
 
