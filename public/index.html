@@ -716,7 +716,7 @@
             scene.background = new THREE.Color(0x202020);
         });
         
-        // Adding Ambient Light for Overall Illumination
+        // Adding Ambient and Hemisphere Light for Overall Illumination
         const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
         scene.add(ambientLight);
         
@@ -729,10 +729,10 @@
         
         // Comet Variables
         const cometTexture = textureLoader.load('/textures/comet1.png');
-        const cometCount = 5;
+        const cometCount = 8;
         const comets = [];
         
-        // Function to create a new comet
+        // Function to create a new comet with diverse properties
         function createComet() {
             const cometMaterial = new THREE.SpriteMaterial({
                 map: cometTexture,
@@ -743,12 +743,13 @@
             });
         
             const comet = new THREE.Sprite(cometMaterial);
-            comet.scale.set(250 + Math.random() * 100, 250 + Math.random() * 100, 1); // Increased size of comets
+            const cometSize = 150 + Math.random() * 200;  // More diverse size
+            comet.scale.set(cometSize, cometSize, 1);
             comet.color = new THREE.Color(0xffffff); // All comets are white
             comet.material.color = comet.color;
         
             // Adding bright light to comet
-            const cometLight = new THREE.PointLight(comet.color, 5.0, 4000, 2); // Increased intensity for more glow
+            const cometLight = new THREE.PointLight(comet.color, 4.0 + Math.random() * 3.0, 4000 + Math.random() * 2000, 2); // Diverse intensity for more uniqueness
             cometLight.position.set(0, 0, 0);
             cometLight.castShadow = true;
             comet.add(cometLight);  // Attach the light to the comet
@@ -776,22 +777,21 @@
         function resetComet(comet) {
             comet.position.set(
                 window.innerWidth / 2 + Math.random() * window.innerWidth / 2,  // Random X position spanning only the right half of the screen
-                window.innerHeight / 1 + 400,  // Higher spawn above the visible area for more travel distance
+                window.innerHeight / 1 + 500,  // Higher spawn above the visible area for more travel distance
                 0  // Fixed Z position for straight diagonal movement
             );
-            comet.velocity = new THREE.Vector3(
-                -600,  // Reduced X component for a straighter diagonal movement to the left
-                -1300,  // Increased Y component for more downward movement
-                0  // No Z-axis velocity for straight movement
-            );
-            comet.lifespan = 25.0 + Math.random() * 10.0;  // Increased lifespan for longer travel time
+            const velocityX = -500 - Math.random() * 300;  // Diverse X component for more varied diagonal movement
+            const velocityY = -1000 - Math.random() * 600;  // Diverse Y component for varied downward movement
+            comet.velocity = new THREE.Vector3(velocityX, velocityY, 0);
+            comet.lifespan = 20.0 + Math.random() * 20.0;  // More diverse lifespan
             comet.burningOut = false;
         
-            // Set light intensity to constant value
-            comet.light.intensity = 5.0;
+            // Set light intensity to initial value
+            comet.light.intensity = 4.0 + Math.random() * 3.0;
         
             comet.material.opacity = 0.0;
-            comet.scale.set(250 + Math.random() * 100, 250 + Math.random() * 100, 1); // Set to match increased size
+            const cometSize = 150 + Math.random() * 200;  // Set size diversity
+            comet.scale.set(cometSize, cometSize, 1);
             comet.rotation.z = Math.atan2(comet.velocity.y, comet.velocity.x);
         }
         
@@ -823,7 +823,7 @@
                     comet.burningOut = true;
                     comet.material.color.set(0xffffff);
                     comet.light.color.set(0xffffff);
-                    comet.scale.set(300, 300, 1); // Increased during burnout for dramatic effect
+                    comet.scale.set(comet.scale.x * 1.2, comet.scale.y * 1.2, 1); // Increased during burnout for dramatic effect
                     comet.light.intensity = 6.0; // Slight boost before fading out
                 } else {
                     comet.material.opacity = Math.max(0, comet.material.opacity - delta * 0.1);
@@ -842,11 +842,12 @@
         
         const clock = new THREE.Clock();
         
-        // Function to spawn comets one by one
+        // Function to spawn comets one by one with random delay
         function spawnComets() {
             if (comets.length < cometCount) {
                 createComet();
-                setTimeout(spawnComets, 2000); // Spawn a new comet every 2 seconds
+                const randomDelay = 1500 + Math.random() * 2000; // Random delay between 1.5 to 3.5 seconds
+                setTimeout(spawnComets, randomDelay);
             }
         }
         
