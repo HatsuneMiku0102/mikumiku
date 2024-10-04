@@ -1,6 +1,6 @@
 // VolumetricLightShader.js
 
-import * as THREE from './three.module.min.js'; // Adjust the path based on your project structure
+import * as THREE from './js/three.module.min.js'; // Adjust the path based on your project structure
 
 export const VolumetricLightShader = {
     uniforms: {
