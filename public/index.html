@@ -1175,20 +1175,25 @@
                 console.error('Error loading satellite texture:', err);
             });
             
+            // Adjust Texture Filtering for Crisp Appearance
+            satelliteTexture.minFilter = THREE.LinearFilter;
+            satelliteTexture.magFilter = THREE.LinearFilter;
+            satelliteTexture.generateMipmaps = false;
+            
             // Create Satellite Material
             const satelliteMaterial = new THREE.SpriteMaterial({
                 map: satelliteTexture,
                 transparent: true,
-                blending: THREE.AdditiveBlending,
+                blending: THREE.NormalBlending, // Changed to NormalBlending for cleaner look
                 depthWrite: false,
-                opacity: 1.0
+                opacity: 0.95 // Slightly reduced opacity for subtlety
             });
             
             // Create Satellite Sprite
             const satellite = new THREE.Sprite(satelliteMaterial);
             
-            // Set Initial Scale
-            satellite.scale.set(100, 100, 1); // Adjust size as needed
+            // Set Increased Scale
+            satellite.scale.set(150, 150, 1); // Increased size from 100 to 150
             
             // Set Initial Position (e.g., far right, random Y and Z)
             satellite.position.set(
