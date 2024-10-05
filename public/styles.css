@@ -423,19 +423,49 @@ body {
 }
 
 .description-box {
-    width: 100%;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    width: 80%;
+    max-width: 500px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 1rem;
-    padding: 1rem;
+    padding: 1.5rem;
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.5s ease, padding 0.5s ease;
-    margin-top: 1rem;
+    transition: max-height 0.5s ease, padding 0.5s ease, transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 2000; 
 }
 
 .description-box.visible {
-    max-height: 200px;
-    padding: 1rem;
+    max-height: 400px; 
+    padding: 2rem;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.description-box::after {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 0 10px 10px 10px;
+    border-style: solid;
+    border-color: transparent transparent rgba(255, 255, 255, 0.2) transparent;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.description-box.visible::after {
+    opacity: 1;
 }
 
 .description-box p {
@@ -457,7 +487,6 @@ body {
 .toggle-description:hover {
     color: #ff4081;
 }
-
 .browsing-container {
     padding: 20px;
     background-color: #f5f5f5;
