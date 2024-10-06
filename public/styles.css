@@ -368,7 +368,7 @@ body {
     background: radial-gradient(circle, rgba(0, 229, 255, 0.5), transparent 70%);
     border-radius: 50%;
     transform: translateX(calc(100% - 10px));
-    transition: transform 0.5s ease-out;
+    transition: transform 0.5s ease-out, background 0.3s ease;
 }
 
 .progress-bar-container:hover .progress-bar::after {
@@ -434,6 +434,15 @@ body {
 }
 
 /* Combined Time and Weather Widget */
+.widgets-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+    gap: 40px;
+    background-color: #f5f5f5;
+}
+
 .time-weather-widget {
     display: flex;
     flex-direction: row;
@@ -455,7 +464,7 @@ body {
     box-shadow: var(--box-shadow-hover);
 }
 
-.clock-container {
+.clock-section {
     flex: 1 1 300px;
     background: rgba(255, 255, 255, 0.05);
     padding: 1.5rem;
@@ -468,12 +477,72 @@ body {
     transition: background var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
 }
 
-.clock-container:hover {
+.clock-section:hover {
     background: rgba(255, 255, 255, 0.15);
     box-shadow: 0 8px 60px rgba(0, 0, 0, 0.2);
 }
 
-.weather-info {
+.clocks-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    width: 100%;
+}
+
+.digital-clock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.digital-clock .local-time {
+    font-size: var(--current-time-font-size);
+    font-weight: 700;
+    color: var(--primary-color);
+    animation: fadeIn 1s ease forwards;
+}
+
+.digital-clock .current-date,
+.digital-clock .day-of-week,
+.digital-clock .time-zone {
+    font-size: var(--content-font-size);
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    animation: fadeIn 1s ease forwards;
+}
+
+.analog-clock-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.analog-clock {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    background: transparent;
+    transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
+}
+
+.analog-clock:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+}
+
+.last-visit-message {
+    margin-top: 15px;
+    font-size: 1rem;
+    text-align: center;
+    color: #666666;
+    animation: fadeIn 1s ease forwards;
+}
+
+.weather-section {
     flex: 1 1 300px;
     background: rgba(255, 255, 255, 0.05);
     padding: 1.5rem;
@@ -486,33 +555,35 @@ body {
     transition: background var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
 }
 
-.weather-info:hover {
+.weather-section:hover {
     background: rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
 }
 
-.weather-info img, .weather-info svg {
+.weather-icon {
     width: 100px;
     height: 100px;
-    transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
-    cursor: pointer;
+    margin-bottom: 10px;
+    animation: fadeIn 1s ease forwards;
 }
 
-.weather-info img:hover, .weather-info svg:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 10px var(--shadow-color);
-}
-
-.weather-info p {
+.weather-description,
+.temperature,
+.humidity,
+.wind-speed {
     font-size: var(--content-font-size);
     color: #ffffff;
     line-height: 1.5;
     margin-top: 0.5rem;
     transition: color var(--transition-duration) ease;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    animation: fadeIn 1s ease forwards;
 }
 
-.weather-info p:hover {
+.weather-description:hover,
+.temperature:hover,
+.humidity:hover,
+.wind-speed:hover {
     color: var(--secondary-color);
 }
 
@@ -625,6 +696,7 @@ body {
     max-width: 75%;
     word-wrap: break-word;
     font-size: 1rem;
+    animation: fadeIn 0.5s ease forwards;
 }
 
 .user-message {
@@ -653,6 +725,7 @@ body {
     border-radius: 5px;
     padding: 0.5rem;
     font-size: 1rem;
+    transition: border-color var(--transition-duration) ease;
 }
 
 .chat-input:focus {
@@ -802,6 +875,15 @@ body {
     }
 }
 
+@keyframes pulseLight {
+    0% {
+        left: -20%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
 /* Responsive Design */
 
 /* Large Screens (Desktop) */
@@ -811,11 +893,11 @@ body {
         height: 200px;
     }
 
-    .clock-container {
+    .clock-section {
         padding: 20px;
     }
 
-    .clock p, #last-visit-message, #greeting, #time-zone {
+    .clock-section p, #last-visit-message, #greeting, #time-zone {
         font-size: 1.2rem;
     }
 
@@ -857,25 +939,15 @@ body {
         height: 180px;
     }
 
-    .clock-container {
+    .clock-section {
         padding: 18px;
     }
 
-    .clock p, #last-visit-message, #greeting, #time-zone {
+    .clock-section p, #last-visit-message, #greeting, #time-zone {
         font-size: 1.1rem;
     }
 }
 
-.widgets-container {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 20px;
-    gap: 40px;
-    background-color: #f5f5f5;
-}
-
-/* Small Screens (Mobile) */
 @media (max-width: 768px) {
     .title-bar .container, .widgets-container {
         flex-direction: column;
@@ -932,11 +1004,11 @@ body {
         height: 120px;
     }
 
-    .clock-container {
+    .clock-section {
         padding: 12px;
     }
 
-    .clock p, #last-visit-message, #greeting, #time-zone {
+    .clock-section p, #last-visit-message, #greeting, #time-zone {
         font-size: 0.9rem;
     }
 
@@ -959,7 +1031,7 @@ body {
         font-size: 1.2rem;
     }
 
-    .clock-container .description-box.visible {
+    .clock-section .description-box.visible {
         max-height: 100px;
     }
 
@@ -968,11 +1040,11 @@ body {
         height: 120px;
     }
 
-    .clock-container {
+    .clock-section {
         padding: 12px;
     }
 
-    .clock p, #last-visit-message, #greeting, #time-zone {
+    .clock-section p, #last-visit-message, #greeting, #time-zone {
         font-size: 0.9rem;
     }
 }
@@ -1019,7 +1091,7 @@ body {
         font-size: 1.2rem;
     }
 
-    .clock-container .description-box.visible {
+    .clock-section .description-box.visible {
         max-height: 100px;
     }
 
@@ -1028,11 +1100,11 @@ body {
         height: 120px;
     }
 
-    .clock-container {
+    .clock-section {
         padding: 12px;
     }
 
-    .clock p, #last-visit-message, #greeting, #time-zone {
+    .clock-section p, #last-visit-message, #greeting, #time-zone {
         font-size: 0.9rem;
     }
 }
@@ -1046,7 +1118,7 @@ body {
 }
 
 /* Enhanced Clock Container Styling for Modern Look */
-.clock-container {
+.clock-section {
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(10px);
     border-radius: var(--border-radius);
@@ -1059,9 +1131,13 @@ body {
     transition: all var(--transition-duration) ease;
 }
 
-.clock-container:hover {
+.clock-section:hover {
     background: rgba(255, 255, 255, 0.15);
     box-shadow: 0 8px 60px rgba(0, 0, 0, 0.2);
+}
+
+.weather-info {
+    position: relative;
 }
 
 .weather-info p {
@@ -1078,38 +1154,17 @@ body {
 }
 
 .analog-clock {
-    width: 200px;
-    height: 200px;
-    border-radius: 50%;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-    background: transparent;
-    transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
-}
-
-.analog-clock:hover {
-    transform: scale(1.05);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
-}
-
-.current-date {
-    white-space: nowrap;
-}
-
-canvas[aria-label="Analog Clock"] {
-    outline: none;
-}
-
-button, .dropdown-button, .manage-consent-button, .consent-button, .close-button, .toggle-description {
-    transition: all var(--transition-duration) ease;
-}
-
-.weather-info {
-    position: relative;
-}
-
-.weather-info:hover p {
-}
-
-#analog-clock {
     pointer-events: none;
+}
+
+.weather-info img, .weather-info svg {
+    width: 100px;
+    height: 100px;
+    transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
+    cursor: pointer;
+}
+
+.weather-info img:hover, .weather-info svg:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px var(--shadow-color);
 }
