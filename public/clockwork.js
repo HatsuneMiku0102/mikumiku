@@ -1,7 +1,13 @@
 // clockwork.js
 
 (function () {
-    let clockInitialized = false;
+    // Check if clockwork has already been initialized
+    if (window.clockworkInitialized) {
+        console.log("clockwork.js is already initialized.");
+        return;
+    }
+    window.clockworkInitialized = true;
+    console.log("Initializing clockwork.js");
 
     /**
      * Retrieves the value of a CSS variable from the :root selector.
@@ -25,7 +31,9 @@
         const date = new Date();
         date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
         const expires = "expires=" + date.toUTCString();
-        document.cookie = `${name}=${value}; ${expires}; path=/`;
+        const secure = location.protocol === 'https:' ? "; Secure" : "";
+        const sameSite = "; SameSite=Lax";
+        document.cookie = `${name}=${value}; ${expires}; path=/;${secure}${sameSite}`;
     }
 
     /**
@@ -343,9 +351,6 @@
      * Initializes the clock by setting up event listeners and starting updates.
      */
     function initializeClock() {
-        if (clockInitialized) return;
-        clockInitialized = true;
-
         updateLastVisit();
         drawAnalogClock();
         updateClock();
