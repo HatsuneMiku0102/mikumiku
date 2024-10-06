@@ -92,14 +92,13 @@
 
         <!-- Description Modal -->
         <div id="descriptionModal" class="description-modal" aria-hidden="true" role="dialog" aria-labelledby="descriptionModalTitle" aria-describedby="descriptionModalDescription">
-            <div class="modal-content">
+            <div class="description-modal-content">
                 <span class="close-button" id="closeDescriptionButton">&times;</span>
                 <h2 id="descriptionModalTitle">Description</h2>
                 <p id="descriptionModalDescription">Loading description...</p>
-                <button class="toggle-description">Close</button>
             </div>
         </div>
-
+        <div class="description-overlay"></div>
 
         <!-- Widgets Container -->
         <div class="widgets-container">
@@ -162,7 +161,7 @@
 
         <!-- Consent Modal -->
         <div id="consentModal" class="consent-modal" aria-hidden="true" role="dialog" aria-labelledby="consentModalTitle" aria-describedby="consentModalDescription">
-            <div class="modal-content">
+            <div class="consent-modal-content">
                 <span class="close-button" id="closeConsentModal">&times;</span>
                 <h2 id="consentModalTitle">Cookie Consent</h2>
                 <p id="consentModalDescription">
@@ -174,16 +173,16 @@
                 </div>
             </div>
         </div>
-
+        <div class="consent-overlay"></div>
 
         <!-- Socket.io Client Library -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
-
         <!-- Import Haru AI script -->
         <script src="haru.js"></script>
-            
+
+        <!-- Consent Modal Script -->
         <script>
             // [Cookie Consent Script]
             (function () {
@@ -269,7 +268,7 @@
                 }
 
                 function showModal() {
-                    consentModal.classList.add('active');
+                    consentModal.classList.add('visible');
                     document.body.classList.add('modal-active');
                     consentModal.setAttribute('aria-hidden', 'false');
 
@@ -282,7 +281,7 @@
                 }
 
                 function hideModal() {
-                    consentModal.classList.remove('active');
+                    consentModal.classList.remove('visible');
                     document.body.classList.remove('modal-active');
                     consentModal.setAttribute('aria-hidden', 'true');
                 }
@@ -372,6 +371,50 @@
 
                 document.addEventListener('DOMContentLoaded', init);
             })();
+        </script>
+
+        <!-- Description and Consent Modal Toggle Script -->
+        <script>
+            // Description Modal Elements
+            const descriptionModal = document.getElementById("descriptionModal");
+            const descriptionOverlay = document.querySelector(".description-overlay");
+            const closeDescriptionButton = document.getElementById("closeDescriptionButton");
+            const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
+
+            // Open Description Modal
+            toggleDescriptionButton.addEventListener("click", function () {
+                descriptionModal.classList.toggle("visible");
+                descriptionOverlay.classList.toggle("active");
+                if (descriptionModal.classList.contains("visible")) {
+                    toggleDescriptionButton.textContent = "Hide Description";
+                    document.body.style.overflow = "hidden";
+                } else {
+                    toggleDescriptionButton.textContent = "Show Description";
+                    document.body.style.overflow = "";
+                }
+            });
+
+            // Close Description Modal
+            closeDescriptionButton.addEventListener("click", function () {
+                descriptionModal.classList.remove("visible");
+                descriptionOverlay.classList.remove("active");
+                toggleDescriptionButton.textContent = "Show Description";
+                document.body.style.overflow = "";
+            });
+
+            // Close Description Modal by Clicking on Overlay
+            descriptionOverlay.addEventListener("click", function () {
+                descriptionModal.classList.remove("visible");
+                descriptionOverlay.classList.remove("active");
+                toggleDescriptionButton.textContent = "Show Description";
+                document.body.style.overflow = "";
+            });
+
+            // Prevent modal from closing when clicking inside the modal content
+            const descriptionModalContent = descriptionModal.querySelector('.description-modal-content');
+            descriptionModalContent.addEventListener("click", function (event) {
+                event.stopPropagation();
+            });
         </script>
 
         <script>
@@ -612,33 +655,6 @@
                 }
             }, 5000);
 
-            // Modal Toggle Logic
-            const descriptionModal = document.getElementById("descriptionModal");
-            const closeDescriptionButton = document.getElementById("closeDescriptionButton");
-            const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
-
-            toggleDescriptionButton.addEventListener("click", function () {
-                if (descriptionModal.style.display === "block") {
-                    descriptionModal.style.display = "none";
-                    toggleDescriptionButton.textContent = "Show Description";
-                } else {
-                    descriptionModal.style.display = "block";
-                    toggleDescriptionButton.textContent = "Hide Description";
-                }
-            });
-
-            closeDescriptionButton.addEventListener("click", function () {
-                descriptionModal.style.display = "none";
-                toggleDescriptionButton.textContent = "Show Description";
-            });
-
-            window.addEventListener("click", function (event) {
-                if (event.target === descriptionModal) {
-                    descriptionModal.style.display = "none";
-                    toggleDescriptionButton.textContent = "Show Description";
-                }
-            });
-
             // Clock Update Script
             function updateClocks() {
                 const now = new Date();
@@ -697,6 +713,7 @@
             fetchWeather();
         </script>
 
+        <!-- Three.js and Related Scripts -->
         <script type="module">
             import * as THREE from '/js/three.module.min.js';
             import { EffectComposer } from '/js/postprocessing/EffectComposer.js';
@@ -887,7 +904,6 @@
                 cometLight.position.set(0, 0, 0);
                 cometLight.castShadow = true;
                 comet.add(cometLight);
-                comet.light = cometLight;
                 const spotLight = new THREE.SpotLight(0xffffff, 1.0, 5000, Math.PI / 8, 0.5);
                 spotLight.castShadow = true;
                 spotLight.target = comet;
@@ -1149,17 +1165,7 @@
             }
             
             animate();
-
         </script>
-
-
-
-
-
-
-
-
-
 
     </body>
 </html>
