@@ -34,7 +34,8 @@ function updateClock() {
     const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
     if (currentDateElement) {
         try {
-            const formattedDate = now.toLocaleDateString(undefined, dateOptions);
+            // Explicitly set locale to 'en-US' to ensure consistent month formatting
+            const formattedDate = now.toLocaleDateString('en-US', dateOptions);
             currentDateElement.textContent = formattedDate;
         } catch (error) {
             console.error('Error updating current date:', error);
@@ -46,7 +47,7 @@ function updateClock() {
     const dayOptions = { weekday: 'long' };
     if (dayOfWeekElement) {
         try {
-            dayOfWeekElement.textContent = now.toLocaleDateString(undefined, dayOptions);
+            dayOfWeekElement.textContent = now.toLocaleDateString('en-US', dayOptions);
         } catch (error) {
             console.error('Error updating day of the week:', error);
         }
@@ -84,26 +85,7 @@ function updateClock() {
         }
     }
 
-    // Update background color based on time of day
-    const clockContainer = document.querySelector('.clock-container');
-    if (clockContainer) {
-        try {
-            const hour = now.getHours();
-            let backgroundColor;
-            if (hour >= 6 && hour < 12) {
-                backgroundColor = getCSSVariable('--background-color-morning', '#FFFAE5'); // Morning
-            } else if (hour >= 12 && hour < 18) {
-                backgroundColor = getCSSVariable('--background-color-afternoon', '#FFF1C9'); // Afternoon
-            } else if (hour >= 18 && hour < 21) {
-                backgroundColor = getCSSVariable('--background-color-evening', '#FFD1DC'); // Evening
-            } else {
-                backgroundColor = getCSSVariable('--background-color-night', '#2C3E50'); // Night
-            }
-            clockContainer.style.backgroundColor = backgroundColor;
-        } catch (error) {
-            console.error('Error updating background color:', error);
-        }
-    }
+    // Removed background color updates based on time of day to prevent readability issues
 }
 
 /**
