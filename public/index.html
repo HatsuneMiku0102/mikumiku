@@ -91,14 +91,14 @@
         </div>
 
         <!-- Description Modal -->
-        <div id="descriptionModal" class="description-modal" aria-hidden="true" role="dialog" aria-labelledby="descriptionModalTitle" aria-describedby="descriptionModalDescription">
-            <div class="description-modal-content">
+        <div id="descriptionModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="descriptionModalTitle" aria-describedby="descriptionModalDescription">
+            <div class="modal-content">
                 <span class="close-button" id="closeDescriptionButton">&times;</span>
                 <h2 id="descriptionModalTitle">Description</h2>
                 <p id="descriptionModalDescription">Loading description...</p>
             </div>
         </div>
-        <div class="description-overlay"></div>
+        <div class="overlay"></div>
 
 
         <!-- Widgets Container -->
@@ -166,7 +166,7 @@
                 <span class="close-button" id="closeConsentModal">&times;</span>
                 <h2 id="consentModalTitle">Cookie Consent</h2>
                 <p id="consentModalDescription">
-                    I use cookies stored in your browser to enhance your experience on my personal website. These cookies are essential for the website's functionality. By clicking "Accept," you consent to their use. You can also manage your cookie preferences in the "<a href="#" id="manageConsentModal" class="manage-consent-button">Manage Cookie Preferences</a>" section.
+                    I use cookies stored in your browser to enhance your experience on my personal website. These cookies are essential for the website's functionality. By clicking "Accept," you consent to their use.
                 </p>
                 <div class="consent-buttons">
                     <button id="acceptConsent" class="consent-button">Accept</button>
@@ -175,6 +175,7 @@
             </div>
         </div>
         <div class="consent-overlay"></div>
+
 
 
         <!-- Socket.io Client Library -->
@@ -313,14 +314,7 @@
                         disableCookies();
                     });
 
-                    manageConsentButtons.forEach(button => {
-                        if (button) {
-                            button.addEventListener('click', function (event) {
-                                event.preventDefault();
-                                showModal();
-                            });
-                        }
-                    });
+
 
                     closeButton.addEventListener('click', function () {
                         alert('Please make a choice regarding cookie usage.');
@@ -376,13 +370,12 @@
         </script>
 
         <script>
-            // Now Playing Elements and Socket.IO Integration
             const socket = io("https://mikumiku.dev");
             let lastHeartbeatReceived = Date.now();
             let isSessionExpired = false;
             let browsingStartTime = null;
             let browsingInterval = null;
-
+            
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
             const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -394,7 +387,7 @@
             const likeCountElement = document.getElementById("likeCount");
             const publishedDateElement = document.getElementById("publishedDate");
             const videoCategoryElement = document.getElementById("videoCategory");
-            const videoDescriptionElement = document.getElementById("videoDescription");
+            const videoDescriptionElement = document.getElementById("descriptionModalDescription"); // Updated line
             const timeElapsedElement = document.getElementById("timeElapsed");
 
             function formatNumber(number) {
