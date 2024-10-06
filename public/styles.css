@@ -111,6 +111,7 @@ body {
     gap: 1rem;
 }
 
+/* Personality Section */
 .personality-section {
     display: flex;
     align-items: center;
@@ -183,6 +184,7 @@ body {
     background: linear-gradient(135deg, rgba(0, 229, 255, 0.8), rgba(0, 0, 255, 0.9));
 }
 
+/* Dropdown Menu */
 .dropdown {
     position: relative;
 }
@@ -243,7 +245,7 @@ body {
     padding: 0 1rem;
 }
 
-/* Now Playing */
+/* Now Playing Section */
 .now-playing {
     display: flex;
     flex-direction: row;
@@ -412,6 +414,7 @@ body {
     color: #888;
 }
 
+/* Description Overlay */
 .description-overlay {
     position: fixed;
     top: 0;
@@ -422,7 +425,7 @@ body {
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease;
-    z-index: 2400; /* Slightly below the description box */
+    z-index: 2400; /* Slightly below the description modal */
 }
 
 .description-overlay.active {
@@ -430,8 +433,8 @@ body {
     visibility: visible;
 }
 
-/* Description Box */
-.description-box {
+/* Description Modal */
+.description-modal {
     position: fixed;
     top: 50%;
     left: 50%;
@@ -452,8 +455,7 @@ body {
     z-index: 2500; /* Above the overlay */
 }
 
-/* Visible State */
-.description-box.visible {
+.description-modal.visible {
     max-height: 400px;
     padding: 2rem;
     opacity: 1;
@@ -462,7 +464,7 @@ body {
     animation: fadeInScale 0.3s ease forwards;
 }
 
-.description-box::after {
+.description-modal::after {
     content: "";
     position: absolute;
     top: -10px;
@@ -475,11 +477,11 @@ body {
     transition: opacity 0.3s ease;
 }
 
-.description-box.visible::after {
+.description-modal.visible::after {
     opacity: 1;
 }
 
-.description-box p {
+.description-modal p {
     font-size: 1rem;
     color: #ffffff;
     line-height: 1.5;
@@ -499,7 +501,8 @@ body {
     color: var(--secondary-color);
 }
 
-.overlay {
+/* Consent Overlay */
+.consent-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -509,12 +512,140 @@ body {
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease;
-    z-index: 1500;
+    z-index: 2400; /* Slightly below the consent modal */
 }
 
-.overlay.active {
+.consent-overlay.active {
     opacity: 1;
     visibility: visible;
+}
+
+/* Consent Modal */
+.consent-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    width: 90%;
+    max-width: 500px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease, padding 0.5s ease, transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 2500; /* Above the overlay */
+}
+
+.consent-modal.visible {
+    max-height: 600px;
+    padding: 2rem;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+    animation: fadeInScale 0.3s ease forwards;
+}
+
+.consent-modal::after {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 0 10px 10px 10px;
+    border-style: solid;
+    border-color: transparent transparent rgba(255, 255, 255, 0.2) transparent;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.consent-modal.visible::after {
+    opacity: 1;
+}
+
+.consent-modal h2 {
+    font-size: 2rem;
+    color: var(--primary-color);
+    text-shadow: 0 0 10px var(--shadow-color);
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.consent-modal p {
+    font-size: 1rem;
+    color: #ffffff;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.consent-modal a {
+    color: var(--secondary-color);
+    text-decoration: underline;
+}
+
+.consent-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+/* General Modal Styles */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    z-index: 2000; /* Above other elements */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.7);
+    animation: fadeIn 0.3s ease forwards;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: rgba(0, 0, 0, 0.85);
+    padding: 2rem;
+    border: 1px solid #888;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 1.5rem;
+    position: relative;
+    color: #ffffff;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    animation: slideDown 0.5s ease forwards;
+}
+
+.close-button {
+    color: #ffffff;
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color var(--transition-duration) ease;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: var(--secondary-color);
 }
 
 /* Widgets Container */
@@ -791,40 +922,85 @@ body {
 }
 
 /* Consent Modal */
+.consent-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    width: 90%;
+    max-width: 500px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    max-height: 600px;
+    overflow: hidden;
+    transition: max-height 0.5s ease, padding 0.5s ease, transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 2500; /* Above the overlay */
+}
+
+.consent-modal.visible {
+    max-height: 600px;
+    padding: 2rem;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+    animation: fadeInScale 0.3s ease forwards;
+}
+
+.consent-modal::after {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 0 10px 10px 10px;
+    border-style: solid;
+    border-color: transparent transparent rgba(255, 255, 255, 0.2) transparent;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.consent-modal.visible::after {
+    opacity: 1;
+}
+
+.consent-modal h2 {
+    font-size: 2rem;
+    color: var(--primary-color);
+    text-shadow: 0 0 10px var(--shadow-color);
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.consent-modal p {
+    font-size: 1rem;
+    color: #ffffff;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.consent-modal a {
+    color: var(--secondary-color);
+    text-decoration: underline;
+}
+
 .consent-buttons {
     display: flex;
     justify-content: center;
     gap: 1rem;
+    margin-top: 1.5rem;
 }
 
-.consent-button {
-    background-color: var(--primary-color);
-    color: #ffffff;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color var(--transition-duration) ease, transform 0.2s ease;
-    box-shadow: 0 4px 10px rgba(0, 229, 255, 0.3);
-}
-
-.consent-button:hover {
-    background-color: var(--secondary-color);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(255, 64, 129, 0.4);
-}
-
-.consent-button:active {
-    transform: translateY(0);
-    box-shadow: 0 4px 10px rgba(255, 64, 129, 0.3);
-}
-
-/* Description Modal */
+/* General Modal Styles (if needed) */
 .modal {
-    display: none;
+    display: none; /* Hidden by default */
     position: fixed;
-    z-index: 2000;
+    z-index: 2000; /* Above other elements */
     left: 0;
     top: 0;
     width: 100%;
@@ -832,6 +1008,9 @@ body {
     overflow: auto;
     background-color: rgba(0, 0, 0, 0.7);
     animation: fadeIn 0.3s ease forwards;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .modal.active {
@@ -870,25 +1049,6 @@ body {
     color: var(--secondary-color);
 }
 
-/* Overlay (for Description Modal) */
-.overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease;
-    z-index: 1500;
-}
-
-.overlay.active {
-    opacity: 1;
-    visibility: visible;
-}
-
 /* Keyframe Animations */
 @keyframes spin {
     0% { transform: rotate(0deg); }
@@ -919,10 +1079,16 @@ body {
 
 @keyframes neonGlow {
     from {
-        text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color), 0 0 20px var(--primary-color), 0 0 40px var(--primary-color);
+        text-shadow: 0 0 5px var(--primary-color), 
+                     0 0 10px var(--primary-color), 
+                     0 0 20px var(--primary-color), 
+                     0 0 40px var(--primary-color);
     }
     to {
-        text-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color), 0 0 30px var(--primary-color), 0 0 50px var(--primary-color);
+        text-shadow: 0 0 10px var(--primary-color), 
+                     0 0 20px var(--primary-color), 
+                     0 0 30px var(--primary-color), 
+                     0 0 50px var(--primary-color);
     }
 }
 
@@ -994,8 +1160,18 @@ body {
         margin-top: -20px;
     }
 
-    .description-box.visible {
+    .description-modal.visible {
         max-height: 150px;
+    }
+
+    .description-modal {
+        width: 95%;
+        max-width: 400px;
+    }
+
+    .consent-modal {
+        width: 95%;
+        max-width: 400px;
     }
 }
 
@@ -1040,7 +1216,7 @@ body {
         font-size: 1.4rem;
     }
 
-    .description-box.visible {
+    .description-modal.visible {
         max-height: 120px;
     }
 }
