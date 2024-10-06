@@ -32,13 +32,22 @@ html, body {
     color: #ffffff;
     overflow-x: hidden;
     scroll-behavior: smooth;
-    background: transparent; /* Make background transparent to show the canvas */
+    background: transparent; /* Made transparent to show Three.js canvas */
+    display: flex;
+    flex-direction: column; /* Enable flex layout for sticky footer */
+    min-height: 100vh; /* Ensure body takes full viewport height */
 }
 
 body {
     display: flex;
     flex-direction: column;
-    min-height: 100vh; /* Ensure body takes full viewport height */
+}
+
+/* Page Container to take available space */
+.page-container {
+    flex: 1; /* Allows footer to stay at the bottom */
+    display: flex;
+    flex-direction: column;
 }
 
 /* Three.js Canvas */
@@ -53,19 +62,12 @@ body {
     background: transparent;
 }
 
-/* Page Container */
-.page-container {
-    display: flex;
-    flex-direction: column;
-    flex: 1; /* Take up remaining space to push footer to bottom */
-}
-
 /* Title Bar */
 .title-bar {
     position: fixed;
     top: 0;
     width: 100%;
-    background: rgba(0, 0, 0, 0.6); /* Semi-transparent background */
+    background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(10px);
     padding: 1.5rem 0;
     display: flex;
@@ -266,7 +268,6 @@ body {
     margin: 9rem auto 2rem auto; /* Added bottom margin for spacing */
     padding: 0 1rem;
     animation: fadeIn 1s ease forwards;
-    flex: 1; /* Take up remaining space */
 }
 
 /* Now Playing */
@@ -558,7 +559,6 @@ body {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(10px);
     animation: slideDown 0.5s ease forwards;
-    transition: transform var(--transition-duration) ease, opacity var(--transition-duration) ease;
 }
 
 .consent-button {
@@ -601,7 +601,7 @@ body {
     right: 20px;
     width: 350px;
     max-width: 100%;
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.1); /* Transparent background */
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     border-radius: 10px;
     overflow: hidden;
@@ -713,13 +713,13 @@ body {
 
 /* Footer */
 .footer {
-    background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent background */
+    background-color: rgba(0, 0, 0, 0.85);
     padding: 1.25rem 0;
     text-align: center;
     color: #999999;
     font-size: 1rem;
     width: 100%;
-    margin-top: auto; /* Push footer to the bottom */
+    margin-top: auto; /* Ensures footer stays at bottom */
     backdrop-filter: blur(5px);
     animation: fadeInUp 1s ease forwards;
 }
@@ -731,70 +731,54 @@ body {
     gap: 0.5rem;
 }
 
-/* Widgets Container */
+/* Live Clock, Weather Widget, and About Me Sections */
 .widgets-container {
     display: flex;
-    gap: 1rem;
+    gap: 2rem;
+    flex-wrap: wrap;
     justify-content: center;
     padding: 2rem 0;
-    flex-wrap: wrap;
-    animation: fadeIn 1s ease forwards;
 }
 
-/* Live Clock Widget */
-.live-clock.box-container,
-.weather-widget.box-container,
-.about.box-container {
+.box-container {
     background: rgba(255, 255, 255, 0.1); /* Semi-transparent background */
     border-radius: var(--border-radius);
     padding: 1.5rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(5px);
-    transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
 }
 
-.live-clock.box-container:hover,
-.weather-widget.box-container:hover,
-.about.box-container:hover {
-    background: rgba(255, 255, 255, 0.2);
+.box-container:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    box-shadow: var(--box-shadow-hover);
+}
+
+.live-clock, .weather-widget, .about {
+    background: rgba(255, 255, 255, 0.1); /* Transparent and modern */
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
+}
+
+.live-clock:hover, .weather-widget:hover, .about:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--box-shadow-hover);
 }
 
 .widget-title {
     font-size: 1.5rem;
-    color: var(--primary-color);
     margin-bottom: 1rem;
-    text-align: center;
-    animation: fadeInDown 1s ease forwards;
-}
-
-.clock-container,
-.weather-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.weather-info img {
-    width: 50px;
-    height: 50px;
-}
-
-.about.box-container h2 {
-    font-size: 2rem;
     color: var(--primary-color);
-    margin-bottom: 1rem;
-    text-align: center;
-    animation: fadeInDown 1s ease forwards;
+    text-shadow: 1px 1px 5px var(--shadow-color);
 }
 
-.about.box-container p {
-    font-size: 1.1rem;
+.clock-container, .weather-info, .about p {
+    font-size: 1rem;
     color: #ffffff;
     text-align: center;
-    animation: fadeInUp 1s ease forwards;
 }
 
 /* Keyframe Animations */
@@ -861,11 +845,6 @@ body {
     }
 }
 
-@keyframes fadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; }
-}
-
 @keyframes fadeInDown {
     from { opacity: 0; transform: translateY(-20px); }
     to { opacity: 1; transform: translateY(0); }
@@ -904,6 +883,11 @@ body {
 
     .progress-bar-container {
         margin-top: -15px;
+    }
+
+    .widgets-container {
+        flex-direction: column;
+        align-items: center;
     }
 }
 
@@ -944,10 +928,7 @@ body {
         margin-top: -20px;
     }
 
-    /* Adjust description box for smaller screens */
-    .description-box.visible {
-        max-height: 150px;
-    }
+    /* Adjust box heights or other styles as needed */
 }
 
 @media (max-width: 480px) {
@@ -959,11 +940,11 @@ body {
         font-size: 1.4rem;
     }
 
-    .about.box-container h2 {
+    .about h2 {
         font-size: 2rem;
     }
 
-    .about.box-container p {
+    .about p {
         font-size: 1.1rem;
     }
 
@@ -989,10 +970,5 @@ body {
 
     .video-title-container p {
         font-size: 1.4rem;
-    }
-
-    /* Adjust description box for very small screens */
-    .description-box.visible {
-        max-height: 120px;
     }
 }
