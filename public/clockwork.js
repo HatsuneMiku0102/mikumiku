@@ -52,9 +52,34 @@
     }
 
     /**
+     * Checks if the user has consented to necessary cookies.
+     * @returns {boolean} True if consented, false otherwise.
+     */
+    function hasNecessaryConsent() {
+        const consent = getCookie('cookieConsent');
+        if (consent) {
+            try {
+                const consentObj = JSON.parse(consent);
+                return consentObj.necessary === true;
+            } catch (error) {
+                console.error('Error parsing cookieConsent:', error);
+                return false;
+            }
+        }
+        // If no consent cookie is found, assume no consent
+        return false;
+    }
+
+    /**
      * Updates the "time since last visit" message using cookies.
      */
     function updateLastVisit() {
+        // Check for necessary consent before proceeding
+        if (!hasNecessaryConsent()) {
+            console.log('Necessary cookies are not consented. Skipping last visit message.');
+            return;
+        }
+
         const lastVisitMessageElement = document.getElementById('last-visit-message');
         const lastVisit = getCookie('lastVisit');
         const now = new Date();
@@ -340,6 +365,11 @@
 
         // Update 'lastVisit' cookie when the user is about to leave the page
         window.addEventListener('beforeunload', () => {
+            // Check for necessary consent before setting the cookie
+            if (!hasNecessaryConsent()) {
+                console.log("Consent not given. 'lastVisit' cookie will not be set.");
+                return;
+            }
             try {
                 const now = new Date();
                 setCookie('lastVisit', now.toISOString(), 365);
