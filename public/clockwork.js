@@ -15,74 +15,73 @@ function getCSSVariable(variableName, fallback = '#ffffff') {
 /**
  * Updates the clock and related elements on the page.
  */
-    function updateClock() {
-        const now = new Date();
-    
-        // Update local time
-        const localTimeElement = document.getElementById('local-time');
-        const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-        if (localTimeElement) {
-            try {
-                localTimeElement.textContent = now.toLocaleTimeString('en-US', timeOptions);
-            } catch (error) {
-                console.error('Error updating local time:', error);
-            }
+function updateClock() {
+    const now = new Date();
+
+    // Update local time
+    const localTimeElement = document.getElementById('local-time');
+    const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+    if (localTimeElement) {
+        try {
+            localTimeElement.textContent = now.toLocaleTimeString('en-US', timeOptions);
+        } catch (error) {
+            console.error('Error updating local time:', error);
         }
-    
-        // Update date
-        const currentDateElement = document.getElementById('current-date');
-        const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' }; // Ensure full month name
-        if (currentDateElement) {
-            try {
-                // Specify the locale explicitly, e.g., 'en-US'
-                const formattedDate = now.toLocaleDateString('en-US', dateOptions);
-                currentDateElement.textContent = formattedDate;
-            } catch (error) {
-                console.error('Error updating current date:', error);
-            }
+    }
+
+    // Update date
+    const currentDateElement = document.getElementById('current-date');
+    const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' }; // Ensure full month name
+    if (currentDateElement) {
+        try {
+            // Specify the locale explicitly, e.g., 'en-US'
+            const formattedDate = now.toLocaleDateString('en-US', dateOptions);
+            currentDateElement.textContent = formattedDate;
+        } catch (error) {
+            console.error('Error updating current date:', error);
         }
-    
-        // Update day of the week
-        const dayOfWeekElement = document.getElementById('day-of-week');
-        const dayOptions = { weekday: 'long' };
-        if (dayOfWeekElement) {
-            try {
-                dayOfWeekElement.textContent = now.toLocaleDateString('en-US', dayOptions);
-            } catch (error) {
-                console.error('Error updating day of the week:', error);
-            }
+    }
+
+    // Update day of the week
+    const dayOfWeekElement = document.getElementById('day-of-week');
+    const dayOptions = { weekday: 'long' };
+    if (dayOfWeekElement) {
+        try {
+            dayOfWeekElement.textContent = now.toLocaleDateString('en-US', dayOptions);
+        } catch (error) {
+            console.error('Error updating day of the week:', error);
         }
-    
-        // Update time zone
-        const timeZoneElement = document.getElementById('time-zone');
-        if (timeZoneElement) {
-            try {
-                const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                timeZoneElement.textContent = `Time Zone: ${timeZone}`;
-            } catch (error) {
-                console.error('Error updating time zone:', error);
-            }
+    }
+
+    // Update time zone
+    const timeZoneElement = document.getElementById('time-zone');
+    if (timeZoneElement) {
+        try {
+            const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            timeZoneElement.textContent = `Time Zone: ${timeZone}`;
+        } catch (error) {
+            console.error('Error updating time zone:', error);
         }
-    
-        // Update greeting
-        const greetingElement = document.getElementById('greeting');
-        if (greetingElement) {
-            try {
-                const hour = now.getHours();
-                let greeting;
-                if (hour >= 5 && hour < 12) {
-                    greeting = 'Good morning!';
-                } else if (hour >= 12 && hour < 18) {
-                    greeting = 'Good afternoon!';
-                } else if (hour >= 18 && hour < 22) {
-                    greeting = 'Good evening!';
-                } else {
-                    greeting = 'Good night!';
-                }
-                greetingElement.textContent = greeting;
-            } catch (error) {
-                console.error('Error updating greeting:', error);
+    }
+
+    // Update greeting
+    const greetingElement = document.getElementById('greeting');
+    if (greetingElement) {
+        try {
+            const hour = now.getHours();
+            let greeting;
+            if (hour >= 5 && hour < 12) {
+                greeting = 'Good morning!';
+            } else if (hour >= 12 && hour < 18) {
+                greeting = 'Good afternoon!';
+            } else if (hour >= 18 && hour < 22) {
+                greeting = 'Good evening!';
+            } else {
+                greeting = 'Good night!';
             }
+            greetingElement.textContent = greeting;
+        } catch (error) {
+            console.error('Error updating greeting:', error);
         }
     }
 
@@ -143,9 +142,9 @@ function updateLastVisit() {
         }
     }
 
-    // Update last visit time
+    // Update last visit time as ISO string for consistency
     try {
-        localStorage.setItem('lastVisit', now);
+        localStorage.setItem('lastVisit', now.toISOString());
     } catch (error) {
         console.error('Error updating last visit in localStorage:', error);
     }
