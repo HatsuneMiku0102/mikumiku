@@ -2,6 +2,7 @@
 
 // Update the clock and related elements
 function updateClock() {
+    console.log("updateClock called"); // Debugging statement
     const now = new Date();
 
     // Update local time
@@ -13,9 +14,11 @@ function updateClock() {
 
     // Update date
     const currentDateElement = document.getElementById('current-date');
-    const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+    const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' }; // Ensure 'month' is 'long'
     if (currentDateElement) {
-        currentDateElement.textContent = now.toLocaleDateString(undefined, dateOptions);
+        const formattedDate = now.toLocaleDateString(undefined, dateOptions);
+        console.log("Formatted Date:", formattedDate); // Debugging statement
+        currentDateElement.textContent = formattedDate;
     }
 
     // Update day of the week
@@ -54,13 +57,13 @@ function updateClock() {
     if (clockContainer) {
         let backgroundColor;
         if (hour >= 6 && hour < 12) {
-            backgroundColor = '#FFFAE5'; // Morning
+            backgroundColor = 'var(--background-color-morning)'; // Morning
         } else if (hour >= 12 && hour < 18) {
-            backgroundColor = '#FFF1C9'; // Afternoon
+            backgroundColor = 'var(--background-color-afternoon)'; // Afternoon
         } else if (hour >= 18 && hour < 21) {
-            backgroundColor = '#FFD1DC'; // Evening
+            backgroundColor = 'var(--background-color-evening)'; // Evening
         } else {
-            backgroundColor = '#2C3E50'; // Night
+            backgroundColor = 'var(--background-color-night)'; // Night
         }
         clockContainer.style.setProperty('--background-color', backgroundColor);
     }
@@ -68,6 +71,7 @@ function updateClock() {
 
 // Show time since last visit
 function updateLastVisit() {
+    console.log("updateLastVisit called"); // Debugging statement
     const lastVisitMessageElement = document.getElementById('last-visit-message');
     const now = new Date();
     const lastVisit = localStorage.getItem('lastVisit');
@@ -105,10 +109,20 @@ function updateLastVisit() {
 
 // Draw analog clock with fancy animations
 function drawAnalogClock() {
+    console.log("drawAnalogClock called"); // Debugging statement
     const canvas = document.getElementById('analog-clock');
-    if (!canvas) return;
+    if (!canvas) {
+        console.error("Canvas element with id 'analog-clock' not found.");
+        return;
+    }
     const ctx = canvas.getContext('2d');
+    if (!ctx) {
+        console.error("2D context not supported or canvas already initialized.");
+        return;
+    }
+
     const radius = canvas.width / 2;
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear any existing drawings
     ctx.translate(radius, radius);
     const clockRadius = radius * 0.90;
 
@@ -120,6 +134,7 @@ function drawAnalogClock() {
     }
 
     function drawFace(ctx, radius) {
+        console.log("drawFace called"); // Debugging statement
         // Clear the canvas
         ctx.clearRect(-radius, -radius, canvas.width, canvas.height);
 
@@ -132,8 +147,8 @@ function drawAnalogClock() {
         // Gradient border
         const grad = ctx.createRadialGradient(0, 0, radius * 0.95, 0, 0, radius * 1.05);
         grad.addColorStop(0, '#fff');
-        grad.addColorStop(0.5, '#00e5ff');
-        grad.addColorStop(1, '#ff4081');
+        grad.addColorStop(0.5, 'var(--primary-color)');
+        grad.addColorStop(1, 'var(--secondary-color)');
         ctx.strokeStyle = grad;
         ctx.lineWidth = radius * 0.05;
         ctx.stroke();
@@ -146,6 +161,7 @@ function drawAnalogClock() {
     }
 
     function drawNumbers(ctx, radius) {
+        console.log("drawNumbers called"); // Debugging statement
         ctx.font = `${radius * 0.15}px Arial`;
         ctx.textBaseline = 'middle';
         ctx.textAlign = 'center';
@@ -164,6 +180,7 @@ function drawAnalogClock() {
     }
 
     function drawTime(ctx, radius) {
+        console.log("drawTime called"); // Debugging statement
         const now = new Date();
         let hour = now.getHours() % 12;
         let minute = now.getMinutes();
@@ -183,6 +200,7 @@ function drawAnalogClock() {
     }
 
     function drawHand(ctx, pos, length, width, color = '#fff') {
+        console.log("drawHand called"); // Debugging statement
         ctx.beginPath();
         ctx.lineWidth = width;
         ctx.lineCap = 'round';
@@ -199,6 +217,7 @@ function drawAnalogClock() {
 
 // Initialize functions
 function initializeClock() {
+    console.log("initializeClock called"); // Debugging statement
     updateLastVisit();
     drawAnalogClock();
     updateClock();
