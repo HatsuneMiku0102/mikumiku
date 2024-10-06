@@ -22,8 +22,7 @@ function setCookie(name, value, days) {
     const date = new Date();
     date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
     const expires = "expires=" + date.toUTCString();
-    const encodedValue = encodeURIComponent(value);
-    document.cookie = `${name}=${encodedValue}; ${expires}; path=/; SameSite=Lax`;
+    document.cookie = `${name}=${value}; ${expires}; path=/`;
 }
 
 /**
@@ -148,47 +147,27 @@ function updateLastVisit() {
     if (lastVisit && lastVisitMessageElement) {
         try {
             const previousVisit = new Date(lastVisit);
-            console.log(`Previous Visit: ${previousVisit.toISOString()}`); // Debugging
-            if (isNaN(previousVisit)) {
-                throw new Error('Invalid previous visit date.');
-            }
-
             const timeDifference = now - previousVisit;
-            console.log(`Time Difference (ms): ${timeDifference}`); // Debugging
+            const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeDifference / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((timeDifference / (1000 * 60)) % 60);
 
-            if (timeDifference < 0) {
-                throw new Error('Previous visit date is in the future.');
-            }
-
-            const seconds = Math.floor(timeDifference / 1000);
-            const minutes = Math.floor(seconds / 60);
-            const hours = Math.floor(minutes / 60);
-            const days = Math.floor(hours / 24);
+            console.log(`Previous Visit: ${previousVisit}`);
+            console.log(`Current Time: ${now}`);
+            console.log(`Time Difference: ${timeDifference}ms (${days} days, ${hours} hours, ${minutes} minutes)`);
 
             let message = 'Welcome back! You last visited ';
-            const parts = [];
-
             if (days > 0) {
-                parts.push(`${days} day(s)`);
+                message += `${days} day(s) `;
             }
-            if (hours % 24 > 0) {
-                parts.push(`${hours % 24} hour(s)`);
+            if (hours > 0) {
+                message += `${hours} hour(s) `;
             }
-            if (minutes % 60 > 0) {
-                parts.push(`${minutes % 60} minute(s)`);
+            if (minutes > 0 && days === 0) {
+                message += `${minutes} minute(s) `;
             }
-            if (seconds % 60 > 0 && days === 0 && hours === 0 && minutes === 0) {
-                parts.push(`${seconds % 60} second(s)`);
-            }
-
-            if (parts.length === 0) {
-                message += 'just now.';
-            } else {
-                message += parts.join(' ') + ' ago.';
-            }
-
+            message += 'ago.';
             lastVisitMessageElement.textContent = message;
-            console.log(`Message: ${message}`); // Debugging
         } catch (error) {
             console.error('Error updating last visit message:', error);
             if (lastVisitMessageElement) {
@@ -198,7 +177,7 @@ function updateLastVisit() {
     } else if (lastVisitMessageElement) {
         try {
             lastVisitMessageElement.textContent = 'Welcome to my website!';
-            console.log('First visit: Welcome message displayed.'); // Debugging
+            console.log('No previous visit detected. Displaying welcome message.');
         } catch (error) {
             console.error('Error setting initial welcome message:', error);
         }
@@ -207,7 +186,7 @@ function updateLastVisit() {
     // Update last visit time as ISO string for consistency and set cookie for 365 days
     try {
         setCookie('lastVisit', now.toISOString(), 365);
-        console.log(`Set lastVisit cookie to: ${now.toISOString()}`); // Debugging
+        console.log(`Set 'lastVisit' cookie to ${now.toISOString()}`);
     } catch (error) {
         console.error('Error updating last visit in cookies:', error);
     }
