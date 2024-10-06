@@ -1,7 +1,7 @@
 // clockwork.js
 
 (function () {
-    // Initialization flag to prevent multiple initializations
+    // Initialization flag to prevent multiple executions
     let clockInitialized = false;
 
     /**
@@ -28,7 +28,7 @@
         const expires = "expires=" + date.toUTCString();
         const secure = location.protocol === 'https:' ? "; Secure" : "";
         const sameSite = "; SameSite=Lax";
-        document.cookie = `${name}=${value}; ${expires}; path=/;${secure}${sameSite}`;
+        document.cookie = `${name}=${encodeURIComponent(value)}; ${expires}; path=/;${secure}${sameSite}`;
     }
 
     /**
@@ -78,7 +78,7 @@
                 if (hours > 0) {
                     message += `${hours} hour(s) `;
                 }
-                if (minutes > 0 && days === 0) {
+                if (minutes > 0 || (days === 0 && hours === 0)) {
                     message += `${minutes} minute(s) `;
                 }
                 message += 'ago.';
@@ -199,7 +199,20 @@
     }
 
     /**
+     * Initializes the clock by setting up event listeners and starting updates.
+     */
+    function initializeClock() {
+        if (clockInitialized) return;
+        clockInitialized = true;
+
+        updateLastVisit();
+        updateClock();
+        setInterval(updateClock, 1000);
+    }
+
+    /**
      * Draws the analog clock on the canvas.
+     * (Ensure this function is correctly implemented without syntax errors.)
      */
     function drawAnalogClock() {
         const canvas = document.getElementById('analog-clock');
@@ -240,9 +253,6 @@
          * @param {number} radius - The radius of the clock.
          */
         function drawFace(ctx, radius) {
-            // Clear the canvas
-            ctx.clearRect(-radius, -radius, canvas.width, canvas.height);
-
             // Outer circle
             ctx.beginPath();
             ctx.arc(0, 0, radius, 0, 2 * Math.PI);
@@ -252,8 +262,8 @@
             // Gradient border
             const grad = ctx.createRadialGradient(0, 0, radius * 0.95, 0, 0, radius * 1.05);
             grad.addColorStop(0, '#fff');
-            grad.addColorStop(0.5, getCSSVariable('--primary-color', '#00e5ff'));
-            grad.addColorStop(1, getCSSVariable('--secondary-color', '#ff4081'));
+            grad.addColorStop(0.5, '#00e5ff'); // Example primary color
+            grad.addColorStop(1, '#ff4081'); // Example secondary color
             ctx.strokeStyle = grad;
             ctx.lineWidth = radius * 0.05;
             ctx.stroke();
