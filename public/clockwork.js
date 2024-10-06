@@ -31,11 +31,10 @@ function updateClock() {
 
     // Update date
     const currentDateElement = document.getElementById('current-date');
-    const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+    const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' }; // Ensure full month name
     if (currentDateElement) {
         try {
-            // Explicitly set locale to 'en-US' to ensure consistent month formatting
-            const formattedDate = now.toLocaleDateString('en-US', dateOptions);
+            const formattedDate = now.toLocaleDateString(undefined, dateOptions);
             currentDateElement.textContent = formattedDate;
         } catch (error) {
             console.error('Error updating current date:', error);
@@ -47,7 +46,7 @@ function updateClock() {
     const dayOptions = { weekday: 'long' };
     if (dayOfWeekElement) {
         try {
-            dayOfWeekElement.textContent = now.toLocaleDateString('en-US', dayOptions);
+            dayOfWeekElement.textContent = now.toLocaleDateString(undefined, dayOptions);
         } catch (error) {
             console.error('Error updating day of the week:', error);
         }
@@ -85,7 +84,26 @@ function updateClock() {
         }
     }
 
-    // Removed background color updates based on time of day to prevent readability issues
+    // Remove background color changes to ensure readability
+    // If you still want to apply some styling based on time, consider adjusting text colors or shadows instead
+    const clockContainer = document.querySelector('.clock-container');
+    if (clockContainer) {
+        try {
+            // Optionally, adjust text color based on time for better readability
+            const hour = now.getHours();
+            if (hour >= 6 && hour < 18) {
+                // Daytime - lighter text shadow
+                clockContainer.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.4)';
+            } else {
+                // Nighttime - stronger text shadow
+                clockContainer.style.boxShadow = '0 4px 10px rgba(255, 255, 255, 0.3)';
+            }
+            // Alternatively, you can remove dynamic styling entirely
+            // clockContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.6)'; // Fixed background color
+        } catch (error) {
+            console.error('Error updating clock container styling:', error);
+        }
+    }
 }
 
 /**
