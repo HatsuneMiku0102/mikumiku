@@ -251,7 +251,7 @@ body {
 .now-playing {
     display: flex;
     flex-direction: row;
-    background: rgba(0, 0, 0, 0.6); /* Transparent Black Background */
+    background: rgba(0, 0, 0, 0.6);
     border-radius: 1.5rem;
     padding: 2rem;
     width: 100%;
@@ -259,8 +259,8 @@ body {
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
     gap: 2rem;
     flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
+    justify-content: flex-start;
+    align-items: flex-start;
 }
 
 .now-playing:hover {
@@ -269,7 +269,7 @@ body {
 }
 
 .now-playing-sidebar {
-    width: 30%;
+    width: 25%;
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -290,7 +290,7 @@ body {
 }
 
 .video-section {
-    width: 70%;
+    width: 75%;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -540,31 +540,32 @@ body {
     box-shadow: var(--box-shadow-hover);
 }
 
-/* Clock Section within the Combined Widget */
+/* Clock Section within the Merged Widget */
 .time-weather-widget .clock-container {
     flex: 1 1 300px;
-    background: rgba(0, 0, 0, 0.3); /* Removed white background, set to semi-transparent black */
-    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.05); /* Semi-transparent for glassmorphism */
+    backdrop-filter: blur(10px);
+    padding: 2rem;
     border-radius: var(--border-radius);
-    backdrop-filter: blur(8px);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
     display: flex;
     flex-direction: column;
     align-items: center;
-    transition: background var(--transition-duration) ease;
+    transition: all var(--transition-duration) ease;
 }
 
 .time-weather-widget .clock-container:hover {
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 60px rgba(0, 0, 0, 0.2);
 }
 
-/* Weather Section within the Combined Widget */
+/* Weather Section within the Merged Widget */
 .time-weather-widget .weather-info {
     flex: 1 1 300px;
-    background: rgba(0, 0, 0, 0.3); /* Removed white background, set to semi-transparent black */
-    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.05); /* Semi-transparent for glassmorphism */
+    backdrop-filter: blur(10px);
+    padding: 2rem;
     border-radius: var(--border-radius);
-    backdrop-filter: blur(8px);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
     display: flex;
     flex-direction: column;
@@ -573,7 +574,7 @@ body {
 }
 
 .time-weather-widget .weather-info:hover {
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(255, 255, 255, 0.1);
 }
 
 /* Widget Titles */
@@ -687,14 +688,17 @@ body {
 
 .weather-info p {
     font-size: var(--content-font-size);
-    color: #ffffff;
+    color: transparent; /* Gradient text */
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    background-clip: text;
     line-height: 1.5;
     margin-top: 0.5rem;
-    transition: color var(--transition-duration) ease;
+    transition: all var(--transition-duration) ease;
 }
 
 .weather-info p:hover {
-    color: var(--secondary-color);
+    background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
 }
 
 /* About Section */
@@ -1034,11 +1038,20 @@ body {
     .time-weather-widget .clock-container #time-zone {
         font-size: 1.1rem;
     }
+
+    /* Adjust Now Playing Sidebar Width */
+    .now-playing-sidebar {
+        width: 25%;
+    }
+
+    .video-section {
+        width: 70%;
+    }
 }
 
 /* Small Screens (Mobile) */
 @media (max-width: 768px) {
-    .title-bar .container, .widgets-container {
+    .title-bar .container, .widgets-container, .now-playing {
         flex-direction: column;
         align-items: center;
     }
@@ -1054,40 +1067,6 @@ body {
         flex: 1 1 100%;
         max-width: 100%;
         padding: 1.25rem;
-    }
-
-    .time-weather-widget .clock-container .video-title-container h2 {
-        font-size: 1.8rem;
-    }
-
-    .time-weather-widget .clock-container .video-title-container p {
-        font-size: 1.6rem;
-    }
-
-    .time-weather-widget .clock-container .thumbnail-container {
-        width: 100%;
-    }
-
-    .time-weather-widget .clock-container .video-thumbnail {
-        max-width: 100%;
-        height: 150px;
-    }
-
-    .time-weather-widget .clock-container .progress-bar-container {
-        margin-top: -20px;
-    }
-
-    .time-weather-widget .clock-container .description-box.visible {
-        max-height: 150px;
-    }
-
-    .time-weather-widget .clock-container #analog-clock {
-        width: 150px;
-        height: 150px;
-    }
-
-    .time-weather-widget .clock-container {
-        padding: 15px;
     }
 
     .time-weather-widget .clock-container .clock p, 
@@ -1116,7 +1095,7 @@ body {
         font-size: 1.4rem;
     }
 
-    .time-weather-widget .clock-container .description-box.visible {
+    .clock-container .description-box.visible {
         max-height: 120px;
     }
 
@@ -1125,15 +1104,24 @@ body {
         height: 120px;
     }
 
-    .time-weather-widget .clock-container {
+    .clock-container {
         padding: 12px;
     }
 
-    .time-weather-widget .clock-container .clock p, 
-    .time-weather-widget .clock-container #last-visit-message, 
-    .time-weather-widget .clock-container #greeting, 
-    .time-weather-widget .clock-container #time-zone {
+    .clock-container .clock p, 
+    .clock-container #last-visit-message, 
+    .clock-container #greeting, 
+    .clock-container #time-zone {
         font-size: 0.9rem;
+    }
+
+    /* Adjust Now Playing Sidebar Width */
+    .now-playing-sidebar {
+        width: 100%;
+    }
+
+    .video-section {
+        width: 100%;
     }
 }
 
@@ -1179,7 +1167,7 @@ body {
         font-size: 1.2rem;
     }
 
-    .time-weather-widget .clock-container .description-box.visible {
+    .clock-container .description-box.visible {
         max-height: 100px;
     }
 
@@ -1188,14 +1176,14 @@ body {
         height: 120px;
     }
 
-    .time-weather-widget .clock-container {
+    .clock-container {
         padding: 12px;
     }
 
-    .time-weather-widget .clock-container .clock p, 
-    .time-weather-widget .clock-container #last-visit-message, 
-    .time-weather-widget .clock-container #greeting, 
-    .time-weather-widget .clock-container #time-zone {
+    .clock-container .clock p, 
+    .clock-container #last-visit-message, 
+    .clock-container #greeting, 
+    .clock-container #time-zone {
         font-size: 0.9rem;
     }
 }
@@ -1206,4 +1194,39 @@ body {
         flex-direction: column;
         align-items: center;
     }
+}
+
+/* Enhanced Clock Container with Glassmorphism */
+.clock-container {
+    background: rgba(255, 255, 255, 0.1); /* Semi-transparent white */
+    backdrop-filter: blur(10px); /* Glass effect */
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all var(--transition-duration) ease;
+}
+
+.clock-container:hover {
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 60px rgba(0, 0, 0, 0.2);
+}
+
+/* Enhanced Weather Info with Gradient Text */
+.weather-info p {
+    font-size: var(--content-font-size);
+    color: transparent; /* Gradient text */
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    line-height: 1.5;
+    margin-top: 0.5rem;
+    transition: all var(--transition-duration) ease;
+}
+
+.weather-info p:hover {
+    background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
 }
