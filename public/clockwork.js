@@ -4,6 +4,10 @@
     // Initialization flag to prevent multiple executions
     let clockInitialized = false;
 
+    // Variables to track the last formatted date and day of the week
+    let lastFormattedDate = null;
+    let lastFormattedDayOfWeek = null;
+
     /**
      * Retrieves the value of a CSS variable from the :root selector.
      * @param {string} variableName - The name of the CSS variable (e.g., '--primary-color').
@@ -165,10 +169,11 @@
         const currentDateElement = document.getElementById('current-date');
         if (currentDateElement) {
             try {
-                const formattedDate = formatDate(now);
+                const formattedDate = formatDate(now).trim();
                 // Only update if the date has changed to prevent unnecessary DOM updates
-                if (currentDateElement.textContent !== formattedDate) {
+                if (lastFormattedDate !== formattedDate) {
                     currentDateElement.textContent = formattedDate;
+                    lastFormattedDate = formattedDate;
                     console.log(`Updated date to: ${formattedDate}`);
                 }
             } catch (error) {
@@ -180,10 +185,11 @@
         const dayOfWeekElement = document.getElementById('day-of-week');
         if (dayOfWeekElement) {
             try {
-                const formattedDay = formatDayOfWeek(now);
+                const formattedDay = formatDayOfWeek(now).trim();
                 // Only update if the day has changed
-                if (dayOfWeekElement.textContent !== formattedDay) {
+                if (lastFormattedDayOfWeek !== formattedDay) {
                     dayOfWeekElement.textContent = formattedDay;
+                    lastFormattedDayOfWeek = formattedDay;
                     console.log(`Updated day of the week to: ${formattedDay}`);
                 }
             } catch (error) {
