@@ -13,6 +13,39 @@ function getCSSVariable(variableName, fallback = '#ffffff') {
 }
 
 /**
+ * Sets a cookie with the given name, value, and expiration in days.
+ * @param {string} name - The name of the cookie.
+ * @param {string} value - The value to store.
+ * @param {number} days - Number of days until the cookie expires.
+ */
+function setCookie(name, value, days) {
+    const date = new Date();
+    date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+    const expires = "expires=" + date.toUTCString();
+    document.cookie = `${name}=${value}; ${expires}; path=/`;
+}
+
+/**
+ * Retrieves the value of a cookie by name.
+ * @param {string} name - The name of the cookie.
+ * @returns {string|null} The value of the cookie or null if not found.
+ */
+function getCookie(name) {
+    const cname = name + "=";
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const ca = decodedCookie.split(';');
+    for (let c of ca) {
+        while (c.charAt(0) === ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(cname) === 0) {
+            return c.substring(cname.length, c.length);
+        }
+    }
+    return null;
+}
+
+/**
  * Updates the clock and related elements on the page.
  */
 function updateClock() {
@@ -104,12 +137,12 @@ function updateClock() {
 }
 
 /**
- * Updates the "time since last visit" message.
+ * Updates the "time since last visit" message using cookies.
  */
 function updateLastVisit() {
     const lastVisitMessageElement = document.getElementById('last-visit-message');
     const now = new Date();
-    const lastVisit = localStorage.getItem('lastVisit');
+    const lastVisit = getCookie('lastVisit');
 
     if (lastVisit && lastVisitMessageElement) {
         try {
@@ -142,11 +175,11 @@ function updateLastVisit() {
         }
     }
 
-    // Update last visit time as ISO string for consistency
+    // Update last visit time as ISO string for consistency and set cookie for 365 days
     try {
-        localStorage.setItem('lastVisit', now.toISOString());
+        setCookie('lastVisit', now.toISOString(), 365);
     } catch (error) {
-        console.error('Error updating last visit in localStorage:', error);
+        console.error('Error updating last visit in cookies:', error);
     }
 }
 
