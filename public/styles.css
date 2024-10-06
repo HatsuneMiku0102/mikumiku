@@ -1,7 +1,7 @@
 /* CSS Variables */
 :root {
-    --primary-color: #00e5ff;
-    --secondary-color: #ff4081;
+    --primary-color: #00e5ff; /* Neon Blue */
+    --secondary-color: #ff4081; /* Neon Pink */
     --shadow-color: rgba(0, 229, 255, 0.7);
     --hover-shadow-color: rgba(255, 64, 129, 0.7);
     --title-font-size: 2rem;
@@ -12,6 +12,10 @@
     --border-radius: 15px;
     --box-shadow-default: 0 4px 10px rgba(0, 0, 0, 0.4);
     --box-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.7);
+    --background-gradient: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(255, 64, 129, 0.2));
+    --modal-background: rgba(0, 0, 0, 0.85);
+    --overlay-background: rgba(0, 0, 0, 0.5);
+    --font-family: 'Roboto', sans-serif;
 }
 
 /* Reset and Base Styles */
@@ -24,11 +28,11 @@
 html, body {
     height: 100%;
     width: 100%;
-    font-family: 'Roboto', sans-serif;
+    font-family: var(--font-family);
     color: #ffffff;
     overflow-x: hidden;
     scroll-behavior: smooth;
-    background: transparent;
+    background: #0e0e0e; /* Dark background for contrast */
 }
 
 body {
@@ -45,7 +49,7 @@ body {
     height: 100vh;
     z-index: -1;
     pointer-events: none;
-    background-color: transparent;
+    background: transparent;
 }
 
 /* Title Bar */
@@ -61,6 +65,7 @@ body {
     align-items: center;
     z-index: 1000;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    animation: slideDown 0.5s ease forwards;
 }
 
 .title-bar .container {
@@ -84,17 +89,23 @@ body {
     display: flex;
     align-items: center;
     gap: 1rem;
+    animation: fadeIn 1s ease forwards;
 }
 
 .logo {
     width: 3rem;
     cursor: pointer;
+    transition: transform var(--transition-duration) ease;
+}
+
+.logo:hover {
+    transform: rotate(360deg);
 }
 
 .site-title {
     font-size: 1.8rem;
     color: var(--primary-color);
-    text-shadow: 2px 2px 5px rgba(0, 229, 255, 0.7);
+    text-shadow: 2px 2px 10px var(--shadow-color);
     cursor: pointer;
     animation: neonGlow 2s infinite alternate;
     transition: color var(--transition-duration) ease, transform 0.3s ease;
@@ -123,13 +134,14 @@ body {
     height: 50px;
     border-radius: 50%;
     background-color: var(--primary-color);
-    box-shadow: 0 0 10px rgba(0, 229, 255, 0.7);
+    box-shadow: 0 0 15px var(--shadow-color);
     transition: transform 0.4s ease, background-color 0.3s ease;
     cursor: pointer;
 }
 
 .personality-circle:hover {
     transform: scale(1.1);
+    background-color: var(--secondary-color);
 }
 
 .personality-text-box {
@@ -138,20 +150,21 @@ body {
     left: 50%;
     transform: translateX(-50%);
     text-align: center;
-    font-family: 'Roboto', sans-serif;
+    font-family: var(--font-family);
     font-size: 1.2em;
     color: #ffffff;
     max-width: 300px;
     padding: 15px 20px;
-    border-radius: 15px;
+    border-radius: var(--border-radius);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-    background: linear-gradient(135deg, rgba(0, 229, 255, 0.6), rgba(0, 0, 255, 0.8));
+    background: var(--modal-background);
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.2);
     transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
     z-index: 1001;
     opacity: 0;
     pointer-events: none;
+    animation: fadeOutScale 0.4s ease forwards;
 }
 
 .personality-text-box.visible {
@@ -180,7 +193,7 @@ body {
 .personality-text-box:hover {
     transform: translateX(-50%) translateY(-5px);
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.6);
-    background: linear-gradient(135deg, rgba(0, 229, 255, 0.8), rgba(0, 0, 255, 0.9));
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.8), rgba(255, 64, 129, 0.9));
 }
 
 .dropdown {
@@ -195,11 +208,13 @@ body {
     border-radius: 5px;
     cursor: pointer;
     transition: background-color var(--transition-duration) ease, transform var(--transition-duration) ease;
+    box-shadow: 0 4px 10px rgba(0, 229, 255, 0.3);
 }
 
 .dropdown-button:hover {
     background-color: var(--secondary-color);
     transform: scale(1.05);
+    box-shadow: 0 6px 15px rgba(255, 64, 129, 0.4);
 }
 
 .dropdown-content {
@@ -227,6 +242,7 @@ body {
 
 .dropdown-content a:hover {
     background-color: var(--secondary-color);
+    color: #000000;
 }
 
 .dropdown:hover .dropdown-content {
@@ -241,6 +257,7 @@ body {
     max-width: 1200px;
     margin: 9rem auto 2rem auto; /* Added bottom margin for spacing */
     padding: 0 1rem;
+    animation: fadeIn 1s ease forwards;
 }
 
 /* Now Playing */
@@ -248,11 +265,12 @@ body {
     display: flex;
     flex-direction: row;
     background: rgba(0, 0, 0, 0.6);
-    border-radius: 1.5rem;
+    border-radius: var(--border-radius);
     padding: 2rem;
     width: 100%;
     transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--box-shadow-default);
+    backdrop-filter: blur(10px);
 }
 
 .now-playing:hover {
@@ -260,6 +278,7 @@ body {
     box-shadow: var(--box-shadow-hover);
 }
 
+/* Sidebar Items */
 .now-playing-sidebar {
     width: 30%;
     display: flex;
@@ -274,13 +293,16 @@ body {
     padding: 0.5rem 1rem;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 1rem;
-    transition: background var(--transition-duration) ease;
+    transition: background var(--transition-duration) ease, transform var(--transition-duration) ease;
+    backdrop-filter: blur(5px);
 }
 
 .sidebar-item:hover {
     background: rgba(255, 255, 255, 0.2);
+    transform: translateX(5px);
 }
 
+/* Video Section */
 .video-section {
     width: 70%;
     display: flex;
@@ -295,12 +317,14 @@ body {
     color: #ffffff;
     margin-bottom: 0.5rem;
     text-align: center;
+    animation: fadeInDown 1s ease forwards;
 }
 
 .video-title-container p {
     font-size: 1.8rem;
     color: var(--primary-color);
     text-align: center;
+    animation: fadeInUp 1s ease forwards;
 }
 
 .thumbnail-container {
@@ -313,10 +337,12 @@ body {
 .video-thumbnail {
     max-width: 80%;
     height: 200px;
-    border-radius: 1rem;
+    border-radius: var(--border-radius);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
     transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
     object-fit: cover;
+    cursor: pointer;
+    animation: zoomIn 1s ease forwards;
 }
 
 .video-thumbnail:hover {
@@ -344,6 +370,7 @@ body {
     color: var(--secondary-color);
     text-align: center;
     margin-top: 1rem;
+    animation: pulseText 2s infinite;
 }
 
 .progress-bar-container {
@@ -395,22 +422,11 @@ body {
     z-index: 1;
 }
 
-@keyframes pulse {
-    0% {
-        box-shadow: 0 0 15px 10px rgba(255, 64, 129, 0.3);
-    }
-    50% {
-        box-shadow: 0 0 15px 15px rgba(255, 64, 129, 0.5);
-    }
-    100% {
-        box-shadow: 0 0 15px 10px rgba(255, 64, 129, 0.3);
-    }
-}
-
 .time-elapsed {
     margin-top: 10px;
     font-size: 14px;
     color: #888;
+    animation: fadeIn 1s ease forwards;
 }
 
 /* Description Modal */
@@ -435,17 +451,18 @@ body {
 }
 
 .description-modal-content {
-    background-color: rgba(0, 0, 0, 0.85);
+    background-color: var(--modal-background);
     padding: 2rem;
     border: 1px solid #888;
     width: 90%;
     max-width: 500px;
-    border-radius: 1.5rem;
+    border-radius: var(--border-radius);
     position: relative;
     color: #ffffff;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(10px);
     animation: slideDown 0.5s ease forwards;
+    transition: transform var(--transition-duration) ease, opacity var(--transition-duration) ease;
 }
 
 .close-button {
@@ -456,12 +473,13 @@ body {
     font-size: 1.5rem;
     font-weight: bold;
     cursor: pointer;
-    transition: color var(--transition-duration) ease;
+    transition: color var(--transition-duration) ease, transform var(--transition-duration) ease;
 }
 
 .close-button:hover,
 .close-button:focus {
     color: var(--secondary-color);
+    transform: scale(1.2);
 }
 
 .toggle-description {
@@ -471,11 +489,12 @@ body {
     cursor: pointer;
     font-size: 1rem;
     margin-top: 0.5rem;
-    transition: color var(--transition-duration) ease;
+    transition: color var(--transition-duration) ease, transform var(--transition-duration) ease;
 }
 
 .toggle-description:hover {
     color: var(--secondary-color);
+    transform: scale(1.05);
 }
 
 /* Overlay Styles */
@@ -485,7 +504,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--overlay-background);
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease;
@@ -519,12 +538,12 @@ body {
 }
 
 .consent-modal-content {
-    background-color: rgba(0, 0, 0, 0.85);
+    background-color: var(--modal-background);
     padding: 2rem;
     border: 1px solid #888;
     width: 90%;
     max-width: 500px;
-    border-radius: 1.5rem;
+    border-radius: var(--border-radius);
     position: relative;
     color: #ffffff;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -540,7 +559,7 @@ body {
     border-radius: 0.5rem;
     font-size: 1rem;
     cursor: pointer;
-    transition: background-color var(--transition-duration) ease, transform 0.2s ease;
+    transition: background-color var(--transition-duration) ease, transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
     box-shadow: 0 4px 10px rgba(0, 229, 255, 0.3);
 }
 
@@ -572,11 +591,14 @@ body {
     right: 20px;
     width: 350px;
     max-width: 100%;
-    background-color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.1);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     border-radius: 10px;
     overflow: hidden;
     z-index: 1000;
+    backdrop-filter: blur(5px);
+    transition: transform var(--transition-duration) ease, opacity var(--transition-duration) ease;
+    animation: fadeIn 1s ease forwards;
 }
 
 .chat-header {
@@ -587,6 +609,7 @@ body {
     justify-content: space-between;
     align-items: center;
     font-size: 1.2rem;
+    animation: slideInDown 0.5s ease forwards;
 }
 
 .close-chat {
@@ -595,6 +618,12 @@ body {
     color: white;
     font-size: 1.2rem;
     cursor: pointer;
+    transition: color var(--transition-duration) ease, transform var(--transition-duration) ease;
+}
+
+.close-chat:hover {
+    color: var(--secondary-color);
+    transform: scale(1.2);
 }
 
 .chat-content {
@@ -612,6 +641,7 @@ body {
     max-width: 75%;
     word-wrap: break-word;
     font-size: 1rem;
+    animation: fadeInUp 0.5s ease forwards;
 }
 
 .user-message {
@@ -623,27 +653,33 @@ body {
 
 .bot-message {
     align-self: flex-start;
-    background-color: #f1f1f1;
-    color: #333333;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    text-align: left;
 }
 
 .chat-input-container {
     display: flex;
     padding: 0.5rem;
-    border-top: 1px solid #ddd;
-    background-color: #f9f9f9;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
 .chat-input {
     flex: 1;
-    border: 1px solid #ddd;
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 5px;
     padding: 0.5rem;
     font-size: 1rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    transition: border-color var(--transition-duration) ease, background-color var(--transition-duration) ease;
 }
 
 .chat-input:focus {
     border-color: var(--primary-color);
+    background-color: rgba(255, 255, 255, 0.2);
+    outline: none;
 }
 
 .send-message {
@@ -655,11 +691,14 @@ body {
     border-radius: 5px;
     font-size: 1rem;
     cursor: pointer;
-    transition: background-color var(--transition-duration) ease;
+    transition: background-color var(--transition-duration) ease, transform var(--transition-duration) ease;
+    box-shadow: 0 4px 10px rgba(0, 229, 255, 0.3);
 }
 
 .send-message:hover {
-    background-color: #008c9e;
+    background-color: var(--secondary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(255, 64, 129, 0.4);
 }
 
 /* Footer */
@@ -671,6 +710,8 @@ body {
     font-size: 1rem;
     width: 100%;
     margin-top: auto;
+    backdrop-filter: blur(5px);
+    animation: fadeInUp 1s ease forwards;
 }
 
 .footer .container {
@@ -703,6 +744,16 @@ body {
     to { opacity: 1; }
 }
 
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOutScale {
+    from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    to { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+}
+
 @keyframes slideDown {
     from { transform: translateY(-50px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
@@ -732,6 +783,32 @@ body {
         opacity: 1;
         transform: translate(-50%, -50%) scale(1);
     }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes zoomIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulseText {
+    0% { color: var(--secondary-color); }
+    50% { color: #ffffff; }
+    100% { color: var(--secondary-color); }
+}
+
+@keyframes slideInDown {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
 }
 
 /* Responsive Design */
