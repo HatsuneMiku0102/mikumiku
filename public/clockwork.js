@@ -56,8 +56,8 @@
      */
     function updateLastVisit() {
         const lastVisitMessageElement = document.getElementById('last-visit-message');
-        const now = new Date();
         const lastVisit = getCookie('lastVisit');
+        const now = new Date();
 
         if (lastVisit && lastVisitMessageElement) {
             try {
@@ -96,14 +96,6 @@
             } catch (error) {
                 console.error('Error setting initial welcome message:', error);
             }
-        }
-
-        // Update last visit time as ISO string for consistency and set cookie for 365 days
-        try {
-            setCookie('lastVisit', now.toISOString(), 365);
-            console.log(`Set 'lastVisit' cookie to ${now.toISOString()}`);
-        } catch (error) {
-            console.error('Error updating last visit in cookies:', error);
         }
     }
 
@@ -199,18 +191,6 @@
     }
 
     /**
-     * Initializes the clock by setting up event listeners and starting updates.
-     */
-    function initializeClock() {
-        if (clockInitialized) return;
-        clockInitialized = true;
-
-        updateLastVisit();
-        updateClock();
-        setInterval(updateClock, 1000);
-    }
-
-    /**
      * Draws the analog clock on the canvas.
      * (Ensure this function is correctly implemented without syntax errors.)
      */
@@ -233,7 +213,6 @@
         canvas.setAttribute('data-initialized', 'true');
 
         const radius = canvas.width / 2;
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear any existing drawings
         ctx.translate(radius, radius);
         const clockRadius = radius * 0.90;
 
@@ -241,6 +220,7 @@
          * Draws the clock face, numbers, and hands.
          */
         function drawClock() {
+            ctx.clearRect(-radius, -radius, canvas.width, canvas.height); // Clear the canvas
             drawFace(ctx, clockRadius);
             drawNumbers(ctx, clockRadius);
             drawTime(ctx, clockRadius);
@@ -262,8 +242,8 @@
             // Gradient border
             const grad = ctx.createRadialGradient(0, 0, radius * 0.95, 0, 0, radius * 1.05);
             grad.addColorStop(0, '#fff');
-            grad.addColorStop(0.5, '#00e5ff'); // Example primary color
-            grad.addColorStop(1, '#ff4081'); // Example secondary color
+            grad.addColorStop(0.5, getCSSVariable('--primary-color', '#00e5ff')); // Use CSS variable
+            grad.addColorStop(1, getCSSVariable('--secondary-color', '#ff4081')); // Use CSS variable
             ctx.strokeStyle = grad;
             ctx.lineWidth = radius * 0.05;
             ctx.stroke();
@@ -319,7 +299,7 @@
 
             // Second hand
             second = second * Math.PI / 30;
-            drawHand(ctx, second, radius * 0.85, radius * 0.02, '#ff4081');
+            drawHand(ctx, second, radius * 0.85, radius * 0.02, getCSSVariable('--accent-color', '#ff4081'));
         }
 
         /**
@@ -357,6 +337,17 @@
         drawAnalogClock();
         updateClock();
         setInterval(updateClock, 1000);
+
+        // Update 'lastVisit' cookie when the user is about to leave the page
+        window.addEventListener('beforeunload', () => {
+            try {
+                const now = new Date();
+                setCookie('lastVisit', now.toISOString(), 365);
+                console.log(`Set 'lastVisit' cookie to ${now.toISOString()}`);
+            } catch (error) {
+                console.error('Error updating last visit in cookies on unload:', error);
+            }
+        });
     }
 
     // Wait for the DOM to load before initializing
