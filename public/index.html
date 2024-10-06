@@ -1,177 +1,178 @@
-    <!DOCTYPE html>
-    <html lang="en">
-    
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>MikuMiku | Home</title>
-        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="/styles.css">
-    </head>
-    
-    <body>
-        <!-- Three.js Canvas -->
-        <canvas id="techCanvas"></canvas>
-    
-        <div class="page-container">
-            <!-- Title Bar -->
-            <div class="title-bar">
-                <div class="container">
-                    <div class="left-section"></div>
-                    <div class="center-section">
-                        <div class="logo-title-wrapper">
-                            <img src="/logo.webp" alt="Logo" class="logo" loading="lazy">
-                            <h1 class="site-title" id="dynamicTitle">MikuMiku</h1>
-                        </div>
-                    </div>
-                    <div class="right-section">
-                        <div class="personality-section">
-                            <div id="personalityCircle" class="personality-circle"></div>
-                            <div id="personalityTextBox" class="personality-text-box">
-                                <div id="personalityPhrase" class="personality-text-wrapper"></div>
-                            </div>
-                        </div>
-                        <div class="dropdown">
-                            <button class="dropdown-button">Menu</button>
-                            <div class="dropdown-content">
-                                <a href="/admin-login.html">Admin Login</a>
-                            </div>
-                        </div>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MikuMiku | Home</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+    <!-- Three.js Canvas -->
+    <canvas id="techCanvas"></canvas>
+
+    <div class="page-container">
+        <!-- Title Bar -->
+        <div class="title-bar">
+            <div class="container">
+                <div class="left-section"></div>
+                <div class="center-section">
+                    <div class="logo-title-wrapper">
+                        <img src="/logo.webp" alt="Logo" class="logo" loading="lazy">
+                        <h1 class="site-title" id="dynamicTitle">MikuMiku</h1>
                     </div>
                 </div>
-            </div>
-    
-            <!-- Now Playing Container -->
-            <div class="now-playing-container">
-                <div id="nowPlayingBox" class="now-playing">
-                    <div class="now-playing-sidebar">
-                        <div class="sidebar-item">
-                            <span>Channel:</span> <span id="channelName">Loading...</span>
-                        </div>
-                        <div class="sidebar-item">
-                            <span>Views:</span> <span id="viewCount">Loading...</span>
-                        </div>
-                        <div class="sidebar-item">
-                            <span>Likes:</span> <span id="likeCount">Loading...</span>
-                        </div>
-                        <div class="sidebar-item">
-                            <span>Uploaded:</span> <span id="publishedDate">Loading...</span>
-                        </div>
-                        <div class="sidebar-item video-category">
-                            <span>Category:</span> <span id="videoCategory">Loading...</span>
+                <div class="right-section">
+                    <div class="personality-section">
+                        <div id="personalityCircle" class="personality-circle"></div>
+                        <div id="personalityTextBox" class="personality-text-box">
+                            <div id="personalityPhrase" class="personality-text-wrapper"></div>
                         </div>
                     </div>
-    
-                    <div class="video-section">
-                        <div class="video-title-container">
-                            <h2>Currently Playing</h2>
-                            <p id="videoTitle">Loading...</p>
-                        </div>
-    
-                        <div class="thumbnail-container">
-                            <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls>
-                                Your browser does not support the video tag.
-                            </video>
-                            <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
-                            <div id="loadingSpinner" class="loading-spinner"></div> <!-- Moved inside thumbnail-container for proper positioning -->
-                        </div>
-    
-                        <div id="offline-indicator" class="offline-indicator">I’m not on YouTube at the moment, soz :(</div>
-    
-                        <div class="progress-bar-container">
-                            <div id="progressBar" class="progress-bar"></div>
-                        </div>
-    
-                        <div id="timeElapsedContainer" class="time-elapsed"><span id="timeElapsed">0s</span></div>
-    
-                        <button class="toggle-description" id="toggleDescriptionButton">Show Description</button>
-                    </div>
-                </div>
-            </div>
-    
-            <!-- Description Modal -->
-            <div id="descriptionModal" class="description-modal" aria-hidden="true" role="dialog" aria-labelledby="descriptionModalTitle" aria-describedby="descriptionModalDescription">
-                <div class="description-modal-content">
-                    <span class="close-button" id="closeDescriptionButton">&times;</span>
-                    <h2 id="descriptionModalTitle">Description</h2>
-                    <p id="descriptionModalDescription">Loading description...</p>
-                </div>
-            </div>
-    
-            <!-- Consent Modal -->
-            <div id="consentModal" class="consent-modal" aria-hidden="true" role="dialog" aria-labelledby="consentModalTitle" aria-describedby="consentModalDescription">
-                <div class="consent-modal-content">
-                    <span class="close-button" id="closeConsentModal">&times;</span>
-                    <h2 id="consentModalTitle">Cookie Consent</h2>
-                    <p id="consentModalDescription">
-                        I use cookies stored in your browser to enhance your experience on my personal website. These cookies are essential for the website's functionality. By clicking "Accept," you consent to their use.
-                    </p>
-                    <div class="consent-buttons">
-                        <button id="acceptConsent" class="consent-button">Accept</button>
-                        <button id="declineConsent" class="consent-button">Decline</button>
-                    </div>
-                </div>
-            </div>
-    
-            <!-- Widgets Container -->
-            <div class="widgets-container">
-                <!-- Live Clock Widget -->
-                <div class="live-clock box-container">
-                    <h3 class="widget-title current-time-title">My Current Time</h3>
-                    <div class="clock-container">
-                        <div class="clock">
-                            <p id="local-time">--:--:--</p>
-                            <p id="current-date">24 Sep 2024</p>
+                    <div class="dropdown">
+                        <button class="dropdown-button">Menu</button>
+                        <div class="dropdown-content">
+                            <a href="/admin-login.html">Admin Login</a>
                         </div>
                     </div>
-                </div>
-    
-                <!-- Weather Widget -->
-                <div class="weather-widget box-container">
-                    <h3 class="widget-title current-weather-title">My Current Weather</h3>
-                    <div class="weather-info">
-                        <img id="weather-icon" src="" alt="Weather Icon" loading="lazy">
-                        <p id="weather-description">Loading...</p>
-                        <p id="temperature">--°C</p>
-                        <p id="humidity">Humidity: --%</p>
-                        <p id="wind-speed">Wind: -- m/s</p>
-                    </div>
-                </div>
-            </div>
-    
-            <!-- About Section -->
-            <div class="content-wrapper">
-                <div class="now-playing-about-wrapper">
-                    <div class="about box-container" id="aboutMe">
-                        <h2>About Me</h2>
-                        <p>Hey there, I'm Hystoriya, a 24-year-old developer. This is my personal website that I made for no apparent reason. If you find yourself here randomly, then hi :)</p>
-                    </div>
-                </div>
-            </div>
-    
-            <!-- Footer -->
-            <footer class="footer">
-                <div class="container">
-                    <p>&copy; 2024 MikuMiku. All rights reserved.</p>
-                    <!-- The "Manage Cookie Preferences" button has been removed as per your request -->
-                </div>
-            </footer>
-    
-            <!-- Chat Box -->
-            <div id="chat-box" class="chat-box">
-                <div class="chat-header">
-                    <h3>Haru AI</h3>
-                    <button id="close-chat" class="close-chat">X</button>
-                </div>
-                <div id="chat-content" class="chat-content">
-                    <div class="message bot-message">Hi! I'm Haru, how can I help you today?</div>
-                </div>
-                <div class="chat-input-container">
-                    <input type="text" id="chat-input" class="chat-input" placeholder="Type your message..." />
-                    <button id="send-message" class="send-message">Send</button>
                 </div>
             </div>
         </div>
+
+        <!-- Now Playing Container -->
+        <div class="now-playing-container">
+            <div id="nowPlayingBox" class="now-playing">
+                <div class="now-playing-sidebar">
+                    <div class="sidebar-item">
+                        <span>Channel:</span> <span id="channelName">Loading...</span>
+                    </div>
+                    <div class="sidebar-item">
+                        <span>Views:</span> <span id="viewCount">Loading...</span>
+                    </div>
+                    <div class="sidebar-item">
+                        <span>Likes:</span> <span id="likeCount">Loading...</span>
+                    </div>
+                    <div class="sidebar-item">
+                        <span>Uploaded:</span> <span id="publishedDate">Loading...</span>
+                    </div>
+                    <div class="sidebar-item video-category">
+                        <span>Category:</span> <span id="videoCategory">Loading...</span>
+                    </div>
+                </div>
+
+                <div class="video-section">
+                    <div class="video-title-container">
+                        <h2>Currently Playing</h2>
+                        <p id="videoTitle">Loading...</p>
+                    </div>
+
+                    <div class="thumbnail-container">
+                        <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls>
+                            Your browser does not support the video tag.
+                        </video>
+                        <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
+                    </div>
+
+                    <div id="offline-indicator" class="offline-indicator">I’m not on YouTube at the moment, soz :(</div>
+
+                    <div class="progress-bar-container">
+                        <div id="progressBar" class="progress-bar"></div>
+                    </div>
+
+                    <div id="timeElapsedContainer" class="time-elapsed"><span id="timeElapsed">0s</span></div>
+
+                    <button class="toggle-description" id="toggleDescriptionButton">Show Description</button>
+
+                    <div id="loadingSpinner" class="loading-spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Description Modal -->
+        <div id="descriptionModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="descriptionModalTitle" aria-describedby="descriptionModalDescription">
+            <div class="modal-content">
+                <span class="close-button" id="closeDescriptionButton">&times;</span>
+                <h2 id="descriptionModalTitle">Description</h2>
+                <p id="descriptionModalDescription">Loading description...</p>
+            </div>
+        </div>
+
+        <!-- Consent Modal -->
+        <div id="consentModal" class="modal consent-modal" aria-hidden="true" role="dialog" aria-labelledby="consentModalTitle" aria-describedby="consentModalDescription">
+            <div class="modal-content">
+                <span class="close-button" id="closeConsentModal">&times;</span>
+                <h2 id="consentModalTitle">Cookie Consent</h2>
+                <p id="consentModalDescription">
+                    I use cookies stored in your browser to enhance your experience on my personal website. These cookies are essential for the website's functionality. By clicking "Accept," you consent to their use.
+                </p>
+                <div class="consent-buttons">
+                    <button id="acceptConsent" class="consent-button">Accept</button>
+                    <button id="declineConsent" class="consent-button">Decline</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Widgets Container -->
+        <div class="widgets-container">
+            <!-- Live Clock Widget -->
+            <div class="live-clock box-container">
+                <h3 class="widget-title current-time-title">My Current Time</h3>
+                <div class="clock-container">
+                    <div class="clock">
+                        <p id="local-time">--:--:--</p>
+                        <p id="current-date">24 Sep 2024</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weather Widget -->
+            <div class="weather-widget box-container">
+                <h3 class="widget-title current-weather-title">My Current Weather</h3>
+                <div class="weather-info">
+                    <img id="weather-icon" src="" alt="Weather Icon" loading="lazy">
+                    <p id="weather-description">Loading...</p>
+                    <p id="temperature">--°C</p>
+                    <p id="humidity">Humidity: --%</p>
+                    <p id="wind-speed">Wind: -- m/s</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- About Section -->
+        <div class="content-wrapper">
+            <div class="now-playing-about-wrapper">
+                <div class="about box-container" id="aboutMe">
+                    <h2>About Me</h2>
+                    <p>Hey there, I'm Hystoriya, a 24-year-old developer. This is my personal website that I made for no apparent reason. If you find yourself here randomly, then hi :)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container">
+                <p>&copy; 2024 MikuMiku. All rights reserved.</p>
+                <!-- The "Manage Cookie Preferences" button has been removed as per your request -->
+            </div>
+        </footer>
+
+        <!-- Chat Box -->
+        <div id="chat-box" class="chat-box">
+            <div class="chat-header">
+                <h3>Haru AI</h3>
+                <button id="close-chat" class="close-chat">X</button>
+            </div>
+            <div id="chat-content" class="chat-content">
+                <div class="message bot-message">Hi! I'm Haru, how can I help you today?</div>
+            </div>
+            <div class="chat-input-container">
+                <input type="text" id="chat-input" class="chat-input" placeholder="Type your message..." />
+                <button id="send-message" class="send-message">Send</button>
+            </div>
+        </div>
+    </div>
 
         <!-- Socket.io Client Library -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -185,7 +186,7 @@
             // [Cookie Consent Script]
             (function () {
                 'use strict';
-
+        
                 const CONFIG = {
                     consentCookieName: 'cookieConsent',
                     consentCookieExpiryDays: 365,
@@ -193,8 +194,8 @@
                     consentModalId: 'consentModal',
                     acceptButtonId: 'acceptConsent',
                     declineButtonId: 'declineConsent',
-                    manageButtonIds: ['manageConsentModal', 'manageConsentFooter'],
                     closeButtonId: 'closeConsentModal',
+                    // Removed manageButtonIds as they no longer exist in HTML
                     cookieCategories: {
                         necessary: {
                             enabled: true,
@@ -203,13 +204,13 @@
                     },
                     focusableSelectors: 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
                 };
-
+        
                 const consentModal = document.getElementById(CONFIG.consentModalId);
                 const acceptButton = document.getElementById(CONFIG.acceptButtonId);
                 const declineButton = document.getElementById(CONFIG.declineButtonId);
                 const closeButton = document.getElementById(CONFIG.closeButtonId);
-                const manageConsentButtons = CONFIG.manageButtonIds.map(id => document.getElementById(id));
-
+                // Removed manageConsentButtons as they are no longer in HTML
+        
                 function setCookie(name, value, days, path = '/') {
                     let expires = "";
                     if (days) {
@@ -221,7 +222,7 @@
                     const sameSite = "; SameSite=Lax";
                     document.cookie = name + "=" + (value || "") + expires + "; path=" + path + secure + sameSite;
                 }
-
+        
                 function getCookie(name) {
                     const nameEQ = name + "=";
                     const ca = document.cookie.split(';');
@@ -232,17 +233,17 @@
                     }
                     return null;
                 }
-
+        
                 function eraseCookie(name, path = '/') {
                     document.cookie = name + '=; Max-Age=-99999999; path=' + path + ';';
                 }
-
+        
                 function trapFocus(modal) {
                     const focusableElements = modal.querySelectorAll(CONFIG.focusableSelectors);
                     if (focusableElements.length === 0) return;
                     const firstFocusableElement = focusableElements[0];
                     const lastFocusableElement = focusableElements[focusableElements.length - 1];
-
+        
                     function handleFocus(event) {
                         if (event.key === 'Tab') {
                             if (event.shiftKey) {
@@ -261,38 +262,38 @@
                             event.preventDefault();
                         }
                     }
-
+        
                     modal.addEventListener('keydown', handleFocus);
                 }
-
+        
                 function showModal() {
                     consentModal.classList.add('active');
                     document.body.classList.add('modal-active');
                     consentModal.setAttribute('aria-hidden', 'false');
-
+        
                     const focusableElements = consentModal.querySelectorAll(CONFIG.focusableSelectors);
                     if (focusableElements.length) {
                         focusableElements[0].focus();
                     }
-
+        
                     trapFocus(consentModal);
                 }
-
+        
                 function hideModal() {
                     consentModal.classList.remove('active');
                     document.body.classList.remove('modal-active');
                     consentModal.setAttribute('aria-hidden', 'true');
                 }
-
+        
                 function initConsentModal() {
                     const existingConsent = getCookie(CONFIG.consentCookieName);
-
+        
                     if (!existingConsent) {
                         showModal();
                     } else {
                         applyConsent(existingConsent);
                     }
-
+        
                     acceptButton.addEventListener('click', function () {
                         setCookie(CONFIG.consentCookieName, JSON.stringify({
                             necessary: true
@@ -300,7 +301,7 @@
                         hideModal();
                         initializeCookies();
                     });
-
+        
                     declineButton.addEventListener('click', function () {
                         setCookie(CONFIG.consentCookieName, JSON.stringify({
                             necessary: false
@@ -308,20 +309,19 @@
                         hideModal();
                         disableCookies();
                     });
-
-
-
+        
                     closeButton.addEventListener('click', function () {
                         alert('Please make a choice regarding cookie usage.');
+                        closeButton.focus(); // Return focus to the close button
                     });
-
+        
                     window.addEventListener('click', function (event) {
                         if (event.target === consentModal) {
                             alert('Please make a choice regarding cookie usage.');
                         }
                     });
                 }
-
+        
                 function applyConsent(consentValue) {
                     try {
                         const consent = JSON.parse(consentValue);
@@ -335,15 +335,17 @@
                         showModal();
                     }
                 }
-
+        
                 function initializeCookies(consent) {
                     console.log('Necessary cookies enabled.');
+                    // Initialize necessary cookies or functionalities here
                 }
-
+        
                 function disableCookies() {
                     console.log('Necessary cookies disabled.');
+                    // Disable cookies or functionalities here
                 }
-
+        
                 function areCookiesEnabled() {
                     const testCookie = 'test_cookie_consent';
                     setCookie(testCookie, 'test', 1);
@@ -351,7 +353,7 @@
                     eraseCookie(testCookie);
                     return result;
                 }
-
+        
                 function init() {
                     if (areCookiesEnabled()) {
                         initConsentModal();
@@ -359,10 +361,11 @@
                         console.warn('Cookies are disabled in this browser. Consent modal will not be displayed.');
                     }
                 }
-
+        
                 document.addEventListener('DOMContentLoaded', init);
             })();
         </script>
+
 
         <script>
             const socket = io("https://mikumiku.dev");
