@@ -125,6 +125,26 @@
     }
 
     /**
+     * Formats the date consistently.
+     * @param {Date} date - The date to format.
+     * @returns {string} The formatted date string.
+     */
+    function formatDate(date) {
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return date.toLocaleDateString('en-US', options);
+    }
+
+    /**
+     * Formats the day of the week consistently.
+     * @param {Date} date - The date to extract the day from.
+     * @returns {string} The formatted day of the week.
+     */
+    function formatDayOfWeek(date) {
+        const options = { weekday: 'long' };
+        return date.toLocaleDateString('en-US', options);
+    }
+
+    /**
      * Updates the clock and related elements on the page.
      */
     function updateClock() {
@@ -143,12 +163,14 @@
 
         // Update date
         const currentDateElement = document.getElementById('current-date');
-        const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' }; // Ensure full month name
         if (currentDateElement) {
             try {
-                // Specify the locale explicitly, e.g., 'en-US'
-                const formattedDate = now.toLocaleDateString('en-US', dateOptions);
-                currentDateElement.textContent = formattedDate;
+                const formattedDate = formatDate(now);
+                // Only update if the date has changed to prevent unnecessary DOM updates
+                if (currentDateElement.textContent !== formattedDate) {
+                    currentDateElement.textContent = formattedDate;
+                    console.log(`Updated date to: ${formattedDate}`);
+                }
             } catch (error) {
                 console.error('Error updating current date:', error);
             }
@@ -156,10 +178,14 @@
 
         // Update day of the week
         const dayOfWeekElement = document.getElementById('day-of-week');
-        const dayOptions = { weekday: 'long' };
         if (dayOfWeekElement) {
             try {
-                dayOfWeekElement.textContent = now.toLocaleDateString('en-US', dayOptions);
+                const formattedDay = formatDayOfWeek(now);
+                // Only update if the day has changed
+                if (dayOfWeekElement.textContent !== formattedDay) {
+                    dayOfWeekElement.textContent = formattedDay;
+                    console.log(`Updated day of the week to: ${formattedDay}`);
+                }
             } catch (error) {
                 console.error('Error updating day of the week:', error);
             }
