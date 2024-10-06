@@ -1,5 +1,11 @@
 // clockwork.js
 
+// Function to get the value of a CSS variable
+function getCSSVariable(variableName) {
+    const rootStyles = getComputedStyle(document.documentElement);
+    return rootStyles.getPropertyValue(variableName).trim();
+}
+
 // Update the clock and related elements
 function updateClock() {
     console.log("updateClock called"); // Debugging statement
@@ -121,19 +127,23 @@ function drawAnalogClock() {
         return;
     }
 
+    // Retrieve CSS variable values
+    const primaryColor = getCSSVariable('--primary-color');
+    const secondaryColor = getCSSVariable('--secondary-color');
+
     const radius = canvas.width / 2;
     ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear any existing drawings
     ctx.translate(radius, radius);
     const clockRadius = radius * 0.90;
 
     function drawClock() {
-        drawFace(ctx, clockRadius);
+        drawFace(ctx, clockRadius, primaryColor, secondaryColor);
         drawNumbers(ctx, clockRadius);
         drawTime(ctx, clockRadius);
         requestAnimationFrame(drawClock);
     }
 
-    function drawFace(ctx, radius) {
+    function drawFace(ctx, radius, primaryColor, secondaryColor) {
         console.log("drawFace called"); // Debugging statement
         // Clear the canvas
         ctx.clearRect(-radius, -radius, canvas.width, canvas.height);
@@ -147,8 +157,8 @@ function drawAnalogClock() {
         // Gradient border
         const grad = ctx.createRadialGradient(0, 0, radius * 0.95, 0, 0, radius * 1.05);
         grad.addColorStop(0, '#fff');
-        grad.addColorStop(0.5, 'var(--primary-color)');
-        grad.addColorStop(1, 'var(--secondary-color)');
+        grad.addColorStop(0.5, primaryColor); // Use the fetched primaryColor
+        grad.addColorStop(1, secondaryColor); // Use the fetched secondaryColor
         ctx.strokeStyle = grad;
         ctx.lineWidth = radius * 0.05;
         ctx.stroke();
