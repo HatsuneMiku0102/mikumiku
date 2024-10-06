@@ -84,22 +84,18 @@ function updateClock() {
         }
     }
 
-    // Remove background color changes to ensure readability
-    // If you still want to apply some styling based on time, consider adjusting text colors or shadows instead
+    // Optional: Adjust text styling based on time for better readability
     const clockContainer = document.querySelector('.clock-container');
     if (clockContainer) {
         try {
-            // Optionally, adjust text color based on time for better readability
             const hour = now.getHours();
             if (hour >= 6 && hour < 18) {
                 // Daytime - lighter text shadow
-                clockContainer.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.4)';
+                clockContainer.style.textShadow = '0 0 5px rgba(255, 255, 255, 0.7)';
             } else {
                 // Nighttime - stronger text shadow
-                clockContainer.style.boxShadow = '0 4px 10px rgba(255, 255, 255, 0.3)';
+                clockContainer.style.textShadow = '0 0 10px rgba(0, 0, 0, 0.7)';
             }
-            // Alternatively, you can remove dynamic styling entirely
-            // clockContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.6)'; // Fixed background color
         } catch (error) {
             console.error('Error updating clock container styling:', error);
         }
@@ -167,6 +163,12 @@ function drawAnalogClock() {
         console.error("2D context not supported or canvas already initialized.");
         return;
     }
+
+    // Prevent multiple initializations
+    if (canvas.getAttribute('data-initialized') === 'true') {
+        return;
+    }
+    canvas.setAttribute('data-initialized', 'true');
 
     // Retrieve CSS variable values
     const primaryColor = getCSSVariable('--primary-color', '#00e5ff');
