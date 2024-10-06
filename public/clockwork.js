@@ -1,7 +1,12 @@
 // clockwork.js
 
 (function () {
-    let clockInitialized = false;
+    // Check if the clock has already been initialized
+    if (window.clockInitialized) {
+        console.log("Clock is already initialized.");
+        return;
+    }
+    window.clockInitialized = true;
 
     /**
      * Retrieves the value of a CSS variable from the :root selector.
@@ -201,177 +206,7 @@
      * Initializes the clock by setting up event listeners and starting updates.
      */
     function initializeClock() {
-        if (clockInitialized) return;
-        clockInitialized = true;
-
         updateLastVisit();
-        drawAnalogClock();
-        updateClock();
-        setInterval(updateClock, 1000);
-    }
-
-    // Wait for the DOM to load before initializing
-    document.addEventListener('DOMContentLoaded', () => {
-        try {
-            initializeClock();
-        } catch (error) {
-            console.error('Error initializing clock:', error);
-        }
-    });
-
-    /**
-     * Draws the analog clock on the canvas.
-     */
-    function drawAnalogClock() {
-        const canvas = document.getElementById('analog-clock');
-        if (!canvas) {
-            console.error("Canvas element with id 'analog-clock' not found.");
-            return;
-        }
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-            console.error("2D context not supported or canvas already initialized.");
-            return;
-        }
-
-        // Prevent multiple initializations
-        if (canvas.getAttribute('data-initialized') === 'true') {
-            return;
-        }
-        canvas.setAttribute('data-initialized', 'true');
-
-        // Retrieve CSS variable values
-        const primaryColor = getCSSVariable('--primary-color', '#00e5ff');
-        const secondaryColor = getCSSVariable('--secondary-color', '#ff4081');
-
-        const radius = canvas.width / 2;
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear any existing drawings
-        ctx.translate(radius, radius);
-        const clockRadius = radius * 0.90;
-
-        /**
-         * Draws the clock face, numbers, and hands.
-         */
-        function drawClock() {
-            drawFace(ctx, clockRadius, primaryColor, secondaryColor);
-            drawNumbers(ctx, clockRadius);
-            drawTime(ctx, clockRadius);
-            requestAnimationFrame(drawClock);
-        }
-
-        /**
-         * Draws the clock face with gradients.
-         * @param {CanvasRenderingContext2D} ctx - The canvas context.
-         * @param {number} radius - The radius of the clock.
-         * @param {string} primaryColor - The primary color for the gradient.
-         * @param {string} secondaryColor - The secondary color for the gradient.
-         */
-        function drawFace(ctx, radius, primaryColor, secondaryColor) {
-            // Clear the canvas
-            ctx.clearRect(-radius, -radius, canvas.width, canvas.height);
-
-            // Outer circle
-            ctx.beginPath();
-            ctx.arc(0, 0, radius, 0, 2 * Math.PI);
-            ctx.fillStyle = '#333';
-            ctx.fill();
-
-            // Gradient border
-            const grad = ctx.createRadialGradient(0, 0, radius * 0.95, 0, 0, radius * 1.05);
-            grad.addColorStop(0, '#fff');
-            grad.addColorStop(0.5, primaryColor); // Use the fetched primaryColor
-            grad.addColorStop(1, secondaryColor); // Use the fetched secondaryColor
-            ctx.strokeStyle = grad;
-            ctx.lineWidth = radius * 0.05;
-            ctx.stroke();
-
-            // Center dot
-            ctx.beginPath();
-            ctx.arc(0, 0, radius * 0.05, 0, 2 * Math.PI);
-            ctx.fillStyle = '#fff';
-            ctx.fill();
-        }
-
-        /**
-         * Draws the numbers on the clock face.
-         * @param {CanvasRenderingContext2D} ctx - The canvas context.
-         * @param {number} radius - The radius of the clock.
-         */
-        function drawNumbers(ctx, radius) {
-            ctx.font = `${radius * 0.15}px Arial`;
-            ctx.textBaseline = 'middle';
-            ctx.textAlign = 'center';
-            ctx.fillStyle = '#fff';
-
-            for (let num = 1; num <= 12; num++) {
-                const angle = num * Math.PI / 6;
-                ctx.rotate(angle);
-                ctx.translate(0, -radius * 0.8);
-                ctx.rotate(-angle);
-                ctx.fillText(num.toString(), 0, 0);
-                ctx.rotate(angle);
-                ctx.translate(0, radius * 0.8);
-                ctx.rotate(-angle);
-            }
-        }
-
-        /**
-         * Draws the clock hands based on the current time.
-         * @param {CanvasRenderingContext2D} ctx - The canvas context.
-         * @param {number} radius - The radius of the clock.
-         */
-        function drawTime(ctx, radius) {
-            const now = new Date();
-            let hour = now.getHours() % 12;
-            let minute = now.getMinutes();
-            let second = now.getSeconds();
-
-            // Hour hand
-            hour = hour * Math.PI / 6 + minute * Math.PI / (6 * 60) + second * Math.PI / (360 * 60);
-            drawHand(ctx, hour, radius * 0.5, radius * 0.07);
-
-            // Minute hand
-            minute = minute * Math.PI / 30 + second * Math.PI / (30 * 60);
-            drawHand(ctx, minute, radius * 0.75, radius * 0.07);
-
-            // Second hand
-            second = second * Math.PI / 30;
-            drawHand(ctx, second, radius * 0.85, radius * 0.02, '#ff4081');
-        }
-
-        /**
-         * Draws a single hand on the clock.
-         * @param {CanvasRenderingContext2D} ctx - The canvas context.
-         * @param {number} pos - The position of the hand in radians.
-         * @param {number} length - The length of the hand.
-         * @param {number} width - The width of the hand.
-         * @param {string} color - The color of the hand.
-         */
-        function drawHand(ctx, pos, length, width, color = '#fff') {
-            ctx.beginPath();
-            ctx.lineWidth = width;
-            ctx.lineCap = 'round';
-            ctx.strokeStyle = color;
-            ctx.moveTo(0, 0);
-            ctx.rotate(pos);
-            ctx.lineTo(0, -length);
-            ctx.stroke();
-            ctx.rotate(-pos);
-        }
-
-        // Start the clock animation
-        drawClock();
-    }
-
-    /**
-     * Initializes the clock by setting up event listeners and starting updates.
-     */
-    function initializeClock() {
-        if (clockInitialized) return;
-        clockInitialized = true;
-
-        updateLastVisit();
-        drawAnalogClock();
         updateClock();
         setInterval(updateClock, 1000);
     }
