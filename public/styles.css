@@ -12,6 +12,10 @@
     --border-radius: 15px;
     --box-shadow-default: 0 4px 10px rgba(0, 0, 0, 0.4);
     --box-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.7);
+    --background-color-morning: #FFFAE5;
+    --background-color-afternoon: #FFF1C9;
+    --background-color-evening: #FFD1DC;
+    --background-color-night: #2C3E50;
 }
 
 /* Reset and Base Styles */
@@ -367,7 +371,6 @@ body {
     transition: width 0.5s ease-out;
 }
 
-
 /* Add a subtle glow effect */
 .progress-bar::after {
     content: '';
@@ -381,7 +384,6 @@ body {
     transform: translateX(calc(100% - 10px));
     transition: transform 0.5s ease-out;
 }
-
 
 .progress-bar-container:hover .progress-bar::after {
     background: radial-gradient(circle, rgba(255, 64, 129, 0.5), transparent 70%);
@@ -398,7 +400,6 @@ body {
     animation: pulseLight 2s infinite linear;
 }
 
-
 @keyframes pulseLight {
     0% {
         left: -20%;
@@ -408,7 +409,6 @@ body {
     }
 }
 
-
 .time-elapsed {
     margin-top: 10px;
     font-size: 1rem;
@@ -416,6 +416,7 @@ body {
     text-align: center;
 }
 
+/* Description Modal */
 .description-box {
     position: fixed;
     top: 50%;
@@ -483,6 +484,7 @@ body {
     color: var(--secondary-color);
 }
 
+/* Overlay (for Description Modal) */
 .overlay {
     position: fixed;
     top: 0;
@@ -576,18 +578,78 @@ body {
 
 /* Clock Styles */
 .clock p {
-    font-size: 2rem;
+    font-size: var(--current-time-font-size);
     font-weight: bold;
     color: #ffffff;
-    margin: 0;
+    margin: 0.5rem 0;
     letter-spacing: 2px;
     text-shadow: 0 0 5px var(--shadow-color);
     transition: color var(--transition-duration) ease, text-shadow var(--transition-duration) ease;
 }
 
-.clock p:hover {
+#greeting {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    text-shadow: 0 0 5px var(--shadow-color);
+    margin-bottom: 0.5rem;
+    transition: color var(--transition-duration) ease, text-shadow var(--transition-duration) ease;
+}
+
+#greeting:hover {
     color: var(--secondary-color);
     text-shadow: 0 0 10px var(--hover-shadow-color);
+}
+
+#day-of-week {
+    font-size: 1.2rem;
+    color: #ffffff;
+    text-shadow: 0 0 3px var(--shadow-color);
+    margin-bottom: 0.5rem;
+    transition: color var(--transition-duration) ease, text-shadow var(--transition-duration) ease;
+}
+
+#day-of-week:hover {
+    color: var(--secondary-color);
+    text-shadow: 0 0 7px var(--hover-shadow-color);
+}
+
+#time-zone {
+    font-size: 1.2rem;
+    color: #ffffff;
+    text-shadow: 0 0 3px var(--shadow-color);
+    transition: color var(--transition-duration) ease, text-shadow var(--transition-duration) ease;
+}
+
+#time-zone:hover {
+    color: var(--secondary-color);
+    text-shadow: 0 0 7px var(--hover-shadow-color);
+}
+
+#last-visit-message {
+    font-size: 1rem;
+    color: #ccc;
+    margin-top: 1rem;
+    text-align: center;
+    transition: color var(--transition-duration) ease;
+}
+
+#last-visit-message:hover {
+    color: var(--secondary-color);
+}
+
+/* Analog Clock Canvas */
+#analog-clock {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    background: transparent;
+    transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
+}
+
+#analog-clock:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
 }
 
 /* Weather Info Styles */
@@ -853,25 +915,6 @@ body {
     color: var(--secondary-color);
 }
 
-/* Overlay (for Description Modal) */
-.overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease;
-    z-index: 1500;
-}
-
-.overlay.active {
-    opacity: 1;
-    visibility: visible;
-}
-
 /* Keyframe Animations */
 @keyframes spin {
     0% { transform: rotate(0deg); }
@@ -921,7 +964,29 @@ body {
 }
 
 /* Responsive Design */
-@media (max-width: 1200px) {
+
+/* Large Screens (Desktop) */
+@media (min-width: 1201px) {
+    #analog-clock {
+        width: 200px;
+        height: 200px;
+    }
+
+    .clock-container {
+        padding: 20px;
+    }
+
+    .clock p, #last-visit-message, #greeting, #time-zone {
+        font-size: 1.2rem;
+    }
+
+    .now-playing-container {
+        margin: 9rem auto;
+    }
+}
+
+/* Medium Screens (Tablet) */
+@media (max-width: 1200px) and (min-width: 769px) {
     .now-playing {
         flex-direction: column;
     }
@@ -938,8 +1003,22 @@ body {
     .progress-bar-container {
         margin-top: -15px;
     }
+
+    #analog-clock {
+        width: 180px;
+        height: 180px;
+    }
+
+    .clock-container {
+        padding: 18px;
+    }
+
+    .clock p, #last-visit-message, #greeting, #time-zone {
+        font-size: 1.1rem;
+    }
 }
 
+/* Small Screens (Mobile) */
 @media (max-width: 768px) {
     .title-bar .container, .widgets-container {
         flex-direction: column;
@@ -980,8 +1059,45 @@ body {
     .description-box.visible {
         max-height: 150px;
     }
+
+    #analog-clock {
+        width: 150px;
+        height: 150px;
+    }
+
+    .clock-container {
+        padding: 15px;
+    }
+
+    .clock p, #last-visit-message, #greeting, #time-zone {
+        font-size: 1rem;
+    }
+
+    .chat-box {
+        width: 90%;
+        bottom: 10px;
+        right: 10px;
+    }
+
+    .sidebar-item {
+        font-size: 1rem;
+        padding: 0.5rem;
+    }
+
+    .video-title-container h2 {
+        font-size: 1.5rem;
+    }
+
+    .video-title-container p {
+        font-size: 1.4rem;
+    }
+
+    .description-box.visible {
+        max-height: 120px;
+    }
 }
 
+/* Extra Small Screens (Very Small Mobile) */
 @media (max-width: 480px) {
     .logo {
         width: 2rem;
@@ -1011,20 +1127,32 @@ body {
     }
 
     .sidebar-item {
-        font-size: 1rem;
-        padding: 0.5rem;
+        font-size: 0.9rem;
+        padding: 0.4rem;
     }
 
     .video-title-container h2 {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
     }
 
     .video-title-container p {
-        font-size: 1.4rem;
+        font-size: 1.2rem;
     }
 
     .description-box.visible {
-        max-height: 120px;
+        max-height: 100px;
+    }
+
+    #analog-clock {
+        width: 120px;
+        height: 120px;
+    }
+
+    .clock-container {
+        padding: 12px;
+    }
+
+    .clock p, #last-visit-message, #greeting, #time-zone {
+        font-size: 0.9rem;
     }
 }
-
