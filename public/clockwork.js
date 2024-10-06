@@ -1,6 +1,7 @@
 // clockwork.js
 
 (function () {
+    // Initialization flag to prevent multiple initializations
     let clockInitialized = false;
 
     /**
@@ -218,10 +219,6 @@
         }
         canvas.setAttribute('data-initialized', 'true');
 
-        // Retrieve CSS variable values
-        const primaryColor = getCSSVariable('--primary-color', '#00e5ff');
-        const secondaryColor = getCSSVariable('--secondary-color', '#ff4081');
-
         const radius = canvas.width / 2;
         ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear any existing drawings
         ctx.translate(radius, radius);
@@ -231,7 +228,7 @@
          * Draws the clock face, numbers, and hands.
          */
         function drawClock() {
-            drawFace(ctx, clockRadius, primaryColor, secondaryColor);
+            drawFace(ctx, clockRadius);
             drawNumbers(ctx, clockRadius);
             drawTime(ctx, clockRadius);
             requestAnimationFrame(drawClock);
@@ -241,10 +238,8 @@
          * Draws the clock face with gradients.
          * @param {CanvasRenderingContext2D} ctx - The canvas context.
          * @param {number} radius - The radius of the clock.
-         * @param {string} primaryColor - The primary color for the gradient.
-         * @param {string} secondaryColor - The secondary color for the gradient.
          */
-        function drawFace(ctx, radius, primaryColor, secondaryColor) {
+        function drawFace(ctx, radius) {
             // Clear the canvas
             ctx.clearRect(-radius, -radius, canvas.width, canvas.height);
 
@@ -257,8 +252,8 @@
             // Gradient border
             const grad = ctx.createRadialGradient(0, 0, radius * 0.95, 0, 0, radius * 1.05);
             grad.addColorStop(0, '#fff');
-            grad.addColorStop(0.5, primaryColor); // Use the fetched primaryColor
-            grad.addColorStop(1, secondaryColor); // Use the fetched secondaryColor
+            grad.addColorStop(0.5, getCSSVariable('--primary-color', '#00e5ff'));
+            grad.addColorStop(1, getCSSVariable('--secondary-color', '#ff4081'));
             ctx.strokeStyle = grad;
             ctx.lineWidth = radius * 0.05;
             ctx.stroke();
@@ -306,11 +301,11 @@
 
             // Hour hand
             hour = hour * Math.PI / 6 + minute * Math.PI / (6 * 60) + second * Math.PI / (360 * 60);
-            drawHand(ctx, hour, radius * 0.5, radius * 0.07);
+            drawHand(ctx, hour, radius * 0.5, radius * 0.07, '#fff');
 
             // Minute hand
             minute = minute * Math.PI / 30 + second * Math.PI / (30 * 60);
-            drawHand(ctx, minute, radius * 0.75, radius * 0.07);
+            drawHand(ctx, minute, radius * 0.75, radius * 0.07, '#fff');
 
             // Second hand
             second = second * Math.PI / 30;
