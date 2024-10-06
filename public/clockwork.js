@@ -1,5 +1,7 @@
 // clockwork.js
 
+let lastVisitUpdated = false; // Flag to prevent multiple executions
+
 /**
  * Retrieves the value of a CSS variable from the :root selector.
  * @param {string} variableName - The name of the CSS variable (e.g., '--primary-color').
@@ -43,6 +45,68 @@ function getCookie(name) {
         }
     }
     return null;
+}
+
+/**
+ * Updates the "time since last visit" message using cookies.
+ */
+function updateLastVisit() {
+    if (lastVisitUpdated) {
+        console.warn('updateLastVisit has already been called.');
+        return;
+    }
+    lastVisitUpdated = true; // Set the flag to prevent re-execution
+
+    const lastVisitMessageElement = document.getElementById('last-visit-message');
+    const now = new Date();
+    const lastVisit = getCookie('lastVisit');
+
+    if (lastVisit && lastVisitMessageElement) {
+        try {
+            const previousVisit = new Date(lastVisit);
+            const timeDifference = now - previousVisit;
+            const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeDifference / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((timeDifference / (1000 * 60)) % 60);
+
+            console.log(`Previous Visit: ${previousVisit}`);
+            console.log(`Current Time: ${now}`);
+            console.log(`Time Difference: ${timeDifference}ms (${days} days, ${hours} hours, ${minutes} minutes)`);
+
+            let message = 'Welcome back! You last visited ';
+            if (days > 0) {
+                message += `${days} day(s) `;
+            }
+            if (hours > 0) {
+                message += `${hours} hour(s) `;
+            }
+            if (minutes > 0 && days === 0) {
+                message += `${minutes} minute(s) `;
+            }
+            message += 'ago.';
+            lastVisitMessageElement.textContent = message;
+        } catch (error) {
+            console.error('Error updating last visit message:', error);
+            if (lastVisitMessageElement) {
+                lastVisitMessageElement.textContent = 'Welcome to my website!';
+            }
+        }
+    } else if (lastVisitMessageElement) {
+        try {
+            lastVisitMessageElement.textContent = 'Welcome to my website!';
+            console.log('No previous visit detected. Displaying welcome message.');
+        } catch (error) {
+            console.error('Error setting initial welcome message:', error);
+        }
+    }
+
+    // Update last visit time as ISO string for consistency and set cookie for 365 days
+    try {
+        setCookie('lastVisit', now.toISOString(), 365);
+        console.log(`Set 'lastVisit' cookie to ${now.toISOString()}`);
+    } catch (error) {
+        console.error('Error updating last visit in cookies:', error);
+    }
 }
 
 /**
@@ -133,62 +197,6 @@ function updateClock() {
         } catch (error) {
             console.error('Error updating clock container styling:', error);
         }
-    }
-}
-
-/**
- * Updates the "time since last visit" message using cookies.
- */
-function updateLastVisit() {
-    const lastVisitMessageElement = document.getElementById('last-visit-message');
-    const now = new Date();
-    const lastVisit = getCookie('lastVisit');
-
-    if (lastVisit && lastVisitMessageElement) {
-        try {
-            const previousVisit = new Date(lastVisit);
-            const timeDifference = now - previousVisit;
-            const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((timeDifference / (1000 * 60 * 60)) % 24);
-            const minutes = Math.floor((timeDifference / (1000 * 60)) % 60);
-
-            console.log(`Previous Visit: ${previousVisit}`);
-            console.log(`Current Time: ${now}`);
-            console.log(`Time Difference: ${timeDifference}ms (${days} days, ${hours} hours, ${minutes} minutes)`);
-
-            let message = 'Welcome back! You last visited ';
-            if (days > 0) {
-                message += `${days} day(s) `;
-            }
-            if (hours > 0) {
-                message += `${hours} hour(s) `;
-            }
-            if (minutes > 0 && days === 0) {
-                message += `${minutes} minute(s) `;
-            }
-            message += 'ago.';
-            lastVisitMessageElement.textContent = message;
-        } catch (error) {
-            console.error('Error updating last visit message:', error);
-            if (lastVisitMessageElement) {
-                lastVisitMessageElement.textContent = 'Welcome to my website!';
-            }
-        }
-    } else if (lastVisitMessageElement) {
-        try {
-            lastVisitMessageElement.textContent = 'Welcome to my website!';
-            console.log('No previous visit detected. Displaying welcome message.');
-        } catch (error) {
-            console.error('Error setting initial welcome message:', error);
-        }
-    }
-
-    // Update last visit time as ISO string for consistency and set cookie for 365 days
-    try {
-        setCookie('lastVisit', now.toISOString(), 365);
-        console.log(`Set 'lastVisit' cookie to ${now.toISOString()}`);
-    } catch (error) {
-        console.error('Error updating last visit in cookies:', error);
     }
 }
 
