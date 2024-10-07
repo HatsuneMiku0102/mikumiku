@@ -1,5 +1,3 @@
-
-
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const errorMessage = document.getElementById('error-message');
@@ -7,15 +5,12 @@ document.addEventListener('DOMContentLoaded', () => {
     loginForm.addEventListener('submit', async (event) => {
         event.preventDefault(); 
 
-     
         errorMessage.style.display = 'none';
 
-      
         const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value.trim();
 
         try {
-           
             const response = await fetch('/login', {
                 method: 'POST',
                 headers: {
@@ -27,10 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (response.ok && data.auth) {
-
                 window.location.href = data.redirect;
             } else {
-
                 errorMessage.textContent = data.message || 'Invalid username or password.';
                 errorMessage.style.display = 'block';
             }
