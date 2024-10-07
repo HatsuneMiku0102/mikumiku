@@ -1332,19 +1332,16 @@ function updateMembershipMapping(discordId, userInfo) {
 
 const IPINFO_API_KEY = process.env.IPINFO_API_KEY; // Pulls from Heroku environment
 
-// Function to extract a single IP address
-function extractSingleIP(req) {
-    const forwarded = req.headers['x-forwarded-for'];
-    if (forwarded) {
-        const ips = forwarded.split(',').map(ip => ip.trim());
-        return ips[0]; // Return the first IP in the list
+const getClientIp = (req) => {
+    const forwardedFor = req.headers['x-forwarded-for'];
+    if (forwardedFor) {
+        return forwardedFor.split(',')[0].trim();
     }
     return req.connection.remoteAddress;
-}
+};
 
-// Updated /fetch-location endpoint
 app.get('/fetch-location', async (req, res) => {
-    const ip = extractSingleIP(req);
+    const ip = getClientIp(req);
 
     try {
         const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
@@ -1355,11 +1352,9 @@ app.get('/fetch-location', async (req, res) => {
     }
 });
 
-// Updated /api/location/:ip endpoint
 app.get('/api/location/:ip', async (req, res) => {
     try {
         const ip = req.params.ip;
-
         if (!IPINFO_API_KEY) {
             console.error("IPINFO_API_KEY is not set");
             return res.status(500).json({ error: 'IPinfo API key is missing' });
@@ -1380,13 +1375,11 @@ app.get('/api/location/:ip', async (req, res) => {
     }
 });
 
-// Updated /track endpoint
 app.post('/track', (req, res) => {
-    const ip = extractSingleIP(req);
+    const ip = getClientIp(req);
 
     console.log(`Extracted IP: ${ip}`);
 
-    // Send IP to IPinfo or any geolocation service
     getGeoLocation(ip)
         .then(location => {
             res.json({ ip, location });
@@ -1397,7 +1390,6 @@ app.post('/track', (req, res) => {
         });
 });
 
-// Updated getGeoLocation function
 async function getGeoLocation(ip) {
     try {
         const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
@@ -1412,7 +1404,6 @@ async function getGeoLocation(ip) {
     }
 }
 
-// Socket.IO connection handling
 io.on('connection', (socket) => {
     const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
 
@@ -1435,6 +1426,7 @@ io.on('connection', (socket) => {
         });
     });
 });
+
 
 
 
