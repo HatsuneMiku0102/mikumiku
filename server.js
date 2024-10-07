@@ -1329,6 +1329,22 @@ function updateMembershipMapping(discordId, userInfo) {
     }
 }
 
+
+const IPINFO_API_KEY = process.env.IPINFO_API_KEY; // Pulls from Heroku environment
+
+app.get('/fetch-location', async (req, res) => {
+    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+    try {
+        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error fetching location data:', error.message);
+        res.status(500).json({ error: 'Failed to fetch location data' });
+    }
+});
+
+
 app.get('/api/location/:ip', async (req, res) => {
     try {
         const ip = req.params.ip;
