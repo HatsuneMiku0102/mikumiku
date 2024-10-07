@@ -57,15 +57,141 @@ body {
     position: fixed;
     top: 0;
     width: 100%;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(10px);
     padding: 1.5rem 0;
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    transition: background-color 0.3s ease, backdrop-filter 0.3s ease, box-shadow 0.3s ease;
+    background: transparent;
+    backdrop-filter: none;
+    box-shadow: none;
+}
+
+.title-bar.scrolled {
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
 }
+
+.title-bar .site-title {
+    color: #ffffff;
+    transition: color 0.3s ease;
+}
+
+.title-bar.scrolled .site-title {
+    color: var(--primary-color);
+}
+
+.title-bar .logo {
+    filter: brightness(0) invert(1);
+    transition: filter 0.3s ease;
+}
+
+.title-bar.scrolled .logo {
+    filter: none;
+}
+
+/* Menu Button Styles */
+.menu-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.menu-button i {
+    font-size: 1.5rem;
+    color: #ffffff;
+    transition: color 0.3s ease;
+}
+
+.title-bar.scrolled .menu-button i {
+    color: var(--primary-color);
+}
+
+.menu-button:hover {
+    transform: scale(1.1);
+}
+
+/* Overlay Menu Styles */
+.overlay-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(5px);
+    z-index: 2000;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    transition: opacity 0.5s ease;
+}
+
+.overlay-menu.active {
+    display: flex;
+    opacity: 1;
+}
+
+.overlay-menu .overlay-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+}
+
+.overlay-menu .overlay-content a {
+    color: #ffffff;
+    font-size: 2rem;
+    text-decoration: none;
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.overlay-menu .overlay-content a:hover {
+    color: var(--secondary-color);
+    transform: scale(1.05);
+}
+
+/* Close Button for Overlay Menu */
+.close-overlay {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    background: none;
+    border: none;
+    font-size: 3rem;
+    color: #ffffff;
+    cursor: pointer;
+    transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.close-overlay:hover {
+    transform: rotate(90deg);
+    color: var(--secondary-color);
+}
+
+/* Prevent body scrolling when overlay is active */
+body.overlay-active {
+    overflow: hidden;
+}
+
+/* Adjustments for the personality circle when title bar is scrolled */
+.title-bar.scrolled .personality-circle {
+    background-color: var(--secondary-color);
+    box-shadow: 0 0 10px rgba(255, 64, 129, 0.7);
+}
+
+.title-bar.scrolled .personality-text-box {
+    background: linear-gradient(135deg, rgba(255, 64, 129, 0.6), rgba(255, 0, 255, 0.8));
+}
+
 
 .title-bar .container {
     display: flex;
