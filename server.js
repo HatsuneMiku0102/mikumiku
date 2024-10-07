@@ -1333,7 +1333,7 @@ function updateMembershipMapping(discordId, userInfo) {
 const IPINFO_API_KEY = process.env.IPINFO_API_KEY; // Pulls from Heroku environment
 
 app.get('/fetch-location', async (req, res) => {
-    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress;
 
     try {
         const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
@@ -1348,14 +1348,13 @@ app.get('/fetch-location', async (req, res) => {
 app.get('/api/location/:ip', async (req, res) => {
     try {
         const ip = req.params.ip;
-        const apiKey = process.env.IPINFO_API_KEY;
 
-        if (!apiKey) {
+        if (!IPINFO_API_KEY) {
             console.error("IPINFO_API_KEY is not set");
             return res.status(500).json({ error: 'IPinfo API key is missing' });
         }
 
-        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${apiKey}`);
+        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
         const locationData = response.data;
 
         res.json({
@@ -1371,12 +1370,10 @@ app.get('/api/location/:ip', async (req, res) => {
 });
 
 app.post('/track', (req, res) => {
-    // Extracting client IP address
     const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress;
 
     console.log(`Extracted IP: ${ip}`);
 
-    // Send IP to IPinfo or any geolocation service
     getGeoLocation(ip)
         .then(location => {
             res.json({ ip, location });
@@ -1389,7 +1386,7 @@ app.post('/track', (req, res) => {
 
 async function getGeoLocation(ip) {
     try {
-        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${process.env.IPINFO_TOKEN}`);
+        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
         return response.data; // This contains city, region, country, etc.
     } catch (error) {
         console.error('Error fetching geolocation from IPinfo:', error);
@@ -1402,7 +1399,6 @@ async function getGeoLocation(ip) {
 }
 
 io.on('connection', (socket) => {
-    // Extract IP from socket handshake headers
     const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0] || socket.handshake.address;
 
     console.log(`New connection from IP: ${ip}`);
@@ -1424,6 +1420,7 @@ io.on('connection', (socket) => {
         });
     });
 });
+
 
 
 
