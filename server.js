@@ -609,56 +609,45 @@ app.post('/login', loginLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
 
-        if (!username || !password) {
-            logger.warn(`Missing username or password in login attempt.`);
-            return res.status(400).json({ auth: false, message: 'Username and password are required.' });
-        }
-
         const adminUsername = process.env.ADMIN_USERNAME;
-        const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
+        const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH; // Bcrypt hashed password
 
         if (username !== adminUsername) {
             logger.warn(`Failed login attempt for username: ${username} from IP: ${req.ip}`);
-            return res.status(401).json({ auth: false, message: 'Invalid username or password.' });
+            return res.status(401).json({ auth: false, message: 'Invalid username or password' });
         }
 
-        // Validate password using bcrypt
+        // Use bcrypt to compare passwords
         const isPasswordValid = await bcrypt.compare(password, adminPasswordHash);
 
         if (!isPasswordValid) {
             logger.warn(`Failed login attempt for username: ${username} from IP: ${req.ip}`);
-            return res.status(401).json({ auth: false, message: 'Invalid username or password.' });
+            return res.status(401).json({ auth: false, message: 'Invalid username or password' });
         }
 
-        // Generate a JWT token for the admin user
         const token = jwt.sign({ id: adminUsername }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
             expiresIn: 86400 // 24 hours
         });
 
-        // Set the JWT as a cookie
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 86400 * 1000 // 24 hours
+            secure: process.env.NODE_ENV === 'production', // Set to true in production for HTTPS
+            sameSite: 'strict', // Helps prevent CSRF
+            maxAge: 86400 * 1000, // 24 hours in milliseconds
+            path: '/', // Ensure it's accessible from the whole site
+            domain: process.env.NODE_ENV === 'production' ? '.mikumiku.dev' : null // Domain in production
         });
 
-        // Check if req.session exists before calling save
-        if (req.session) {
-            req.session.save((err) => {
-                if (err) {
-                    logger.error(`Error saving session: ${err}`);
-                    return res.status(500).json({ auth: false, message: 'Error saving session.' });
-                }
-                res.status(200).json({ auth: true, redirect: '/admin-dashboard.html' });
-            });
-        } else {
-            logger.error(`Session object is undefined during login.`);
-            return res.status(500).json({ auth: false, message: 'Internal Server Error: Session not found.' });
-        }
+        req.session.save((err) => {
+            if (err) {
+                logger.error(`Error saving session: ${err}`);
+                return res.status(500).json({ auth: false, message: 'Error saving session' });
+            }
+            res.status(200).json({ auth: true, redirect: '/admin-dashboard.html' });
+        });
     } catch (error) {
         logger.error(`Unexpected error during login: ${error}`);
-        res.status(500).json({ auth: false, message: 'Internal Server Error.' });
+        res.status(500).json({ auth: false, message: 'Internal Server Error' });
     }
 });
 
