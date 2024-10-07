@@ -1329,7 +1329,30 @@ function updateMembershipMapping(discordId, userInfo) {
     }
 }
 
+app.get('/api/location/:ip', async (req, res) => {
+    try {
+        const ip = req.params.ip;
+        const apiKey = process.env.IPINFO_API_KEY;
 
+        if (!apiKey) {
+            console.error("IPINFO_API_KEY is not set");
+            return res.status(500).json({ error: 'IPinfo API key is missing' });
+        }
+
+        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${apiKey}`);
+        const locationData = response.data;
+
+        res.json({
+            ip: ip,
+            city: locationData.city,
+            region: locationData.region,
+            country: locationData.country,
+        });
+    } catch (error) {
+        console.error(`Error fetching geolocation for IP ${req.params.ip}:`, error);
+        res.status(500).json({ error: 'Failed to fetch geolocation data' });
+    }
+});
 
 app.post('/track', (req, res) => {
     // Extracting client IP address
