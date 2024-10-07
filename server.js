@@ -179,7 +179,7 @@ app.use(
 );
 
 
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 
 // Serve Static Files
 app.use(express.static(path.join(__dirname, 'public'), {
@@ -1329,11 +1329,64 @@ function updateMembershipMapping(discordId, userInfo) {
     }
 }
 
-// ----------------------
-// Import and Use External Routes (If Any)
-// ----------------------
-// const authRoutes = require('./routes/auth');
-// app.use('/auth', authRoutes);
+
+
+app.post('/track', (req, res) => {
+    // Extracting client IP address
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress;
+
+    console.log(`Extracted IP: ${ip}`);
+
+    // Send IP to IPinfo or any geolocation service
+    getGeoLocation(ip)
+        .then(location => {
+            res.json({ ip, location });
+        })
+        .catch(err => {
+            console.error('Error fetching location:', err);
+            res.status(500).json({ error: 'Unable to get location' });
+        });
+});
+
+async function getGeoLocation(ip) {
+    try {
+        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${process.env.IPINFO_TOKEN}`);
+        return response.data; // This contains city, region, country, etc.
+    } catch (error) {
+        console.error('Error fetching geolocation from IPinfo:', error);
+        return {
+            city: 'Unknown',
+            region: 'Unknown',
+            country: 'Unknown'
+        };
+    }
+}
+
+io.on('connection', (socket) => {
+    // Extract IP from socket handshake headers
+    const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0] || socket.handshake.address;
+
+    console.log(`New connection from IP: ${ip}`);
+
+    getGeoLocation(ip).then(location => {
+        socket.emit('locationUpdate', {
+            ip,
+            city: location.city,
+            region: location.region,
+            country: location.country
+        });
+    }).catch(err => {
+        console.error('Error fetching location:', err);
+        socket.emit('locationUpdate', {
+            ip,
+            city: 'Unknown',
+            region: 'Unknown',
+            country: 'Unknown'
+        });
+    });
+});
+
+
 
 // ----------------------
 // Start the Server
