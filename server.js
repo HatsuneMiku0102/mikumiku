@@ -1329,9 +1329,6 @@ function updateMembershipMapping(discordId, userInfo) {
     }
 }
 
-
-const IPINFO_API_KEY = process.env.IPINFO_API_KEY; // Pulls from Heroku environment
-
 const getClientIp = (req) => {
     const forwardedFor = req.headers['x-forwarded-for'];
     if (forwardedFor) {
