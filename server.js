@@ -239,7 +239,7 @@ app.use(session({
     saveUninitialized: false,
     store: sessionStore,
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // Set to true in production
+        secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 1 day
     }
@@ -1239,6 +1239,7 @@ app.post('/login', async (req, res) => {
         res.status(500).json({ auth: false, message: 'Internal Server Error' });
     }
 });
+
 
 
 
