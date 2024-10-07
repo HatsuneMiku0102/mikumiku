@@ -193,11 +193,15 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret',
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGO_URL,
+        ttl: 14 * 24 * 60 * 60, // 14 days
+    }),
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production', // Ensure this matches your environment
         httpOnly: true,
-        sameSite: 'strict', // Prevent CSRF
-        maxAge: 86400 * 1000 // 24 hours
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000 // 1 day
     }
 }));
 
