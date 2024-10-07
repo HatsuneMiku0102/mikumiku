@@ -82,14 +82,8 @@
         document.addEventListener('DOMContentLoaded', function () {
             console.log('Admin dashboard script loaded.');
 
-            // Extract the 'token' cookie if available
             const cookieString = document.cookie;
-            console.log('Current cookies:', cookieString);
-
-            const token = cookieString
-                .split('; ')
-                .find(row => row.startsWith('token='))
-                ?.split('=')[1];
+            const token = cookieString.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
 
             if (!token) {
                 console.warn('No valid token found, redirecting to login page.');
@@ -98,8 +92,9 @@
                 console.log('Valid token detected:', token);
             }
 
-            // Connect to the socket server
             const socket = io();
+            const ipListElement = document.getElementById('ip-list');
+            const ipElements = new Map();
 
             socket.on('connect', () => {
                 console.log('Connected to socket server.');
@@ -109,7 +104,6 @@
                 console.error('Error connecting to socket:', error);
             });
 
-            // Listen for active users update from the server
             socket.on('activeUsersUpdate', (data) => {
                 console.log('Active users data received:', data);
 
@@ -117,15 +111,16 @@
                     const activeUsersCount = data.users.length;
                     document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
 
-                    const ipListElement = document.getElementById('ip-list');
-                    ipListElement.innerHTML = ''; // Clear previous IP list
+                    ipListElement.innerHTML = '';
 
-                    // Loop through the users array and display each user's location info
                     data.users.forEach(user => {
-                        const ipItem = document.createElement('li');
-                        ipItem.classList.add('ip-item');
-                        ipItem.innerText = `IP: ${user.ip}, City: ${user.city || 'Unknown'}, Region: ${user.region || 'Unknown'}, Country: ${user.country || 'Unknown'}`;
-                        ipListElement.appendChild(ipItem);
+                        if (!ipElements.has(user.ip)) {
+                            const ipItem = document.createElement('li');
+                            ipItem.classList.add('ip-item');
+                            ipItem.innerText = `IP: ${user.ip}, City: ${user.city || 'Unknown'}, Region: ${user.region || 'Unknown'}, Country: ${user.country || 'Unknown'}`;
+                            ipListElement.appendChild(ipItem);
+                            ipElements.set(user.ip, ipItem);
+                        }
                     });
                 } else {
                     console.warn('No valid active users data found.');
@@ -133,29 +128,30 @@
                 }
             });
 
-            // Listen for individual location updates from the server
             socket.on('locationUpdate', (data) => {
                 console.log('Location update received from server:', data);
-                // Update the IP list with the new location information
                 if (data && data.ip) {
-                    const ipListElement = document.getElementById('ip-list');
-                    const ipItem = document.createElement('li');
-                    ipItem.classList.add('ip-item');
-                    ipItem.innerText = `IP: ${data.ip}, City: ${data.city || 'Unknown'}, Region: ${data.region || 'Unknown'}, Country: ${data.country || 'Unknown'}`;
-                    ipListElement.appendChild(ipItem);
+                    if (ipElements.has(data.ip)) {
+                        // Update existing list item
+                        const ipItem = ipElements.get(data.ip);
+                        ipItem.innerText = `IP: ${data.ip}, City: ${data.city || 'Unknown'}, Region: ${data.region || 'Unknown'}, Country: ${data.country || 'Unknown'}`;
+                    } else {
+                        // Add new list item if not already present
+                        const ipItem = document.createElement('li');
+                        ipItem.classList.add('ip-item');
+                        ipItem.innerText = `IP: ${data.ip}, City: ${data.city || 'Unknown'}, Region: ${data.region || 'Unknown'}, Country: ${data.country || 'Unknown'}`;
+                        ipListElement.appendChild(ipItem);
+                        ipElements.set(data.ip, ipItem);
+                    }
                 }
             });
 
-            // Logout logic
             document.getElementById('logout').addEventListener('click', () => {
                 console.log('Logout initiated.');
-
                 fetch('/logout', { method: 'POST', credentials: 'include' })
                     .then(() => {
                         console.log('Logout request successful, clearing token cookie.');
-                        // Clear the JWT token by setting its expiration to the past
                         document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                        // Redirect the user to the login page
                         window.location.href = '/admin-login.html';
                     })
                     .catch(error => {
