@@ -178,11 +178,32 @@ app.use(
     })
 );
 
+
+app.set('trust proxy', 1);
+
 // Serve Static Files
 app.use(express.static(path.join(__dirname, 'public'), {
     etag: false,
     maxAge: 0,
     lastModified: false
+}));
+
+
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-session-secret',
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGO_URL,
+        collectionName: 'sessions',
+        ttl: 14 * 24 * 60 * 60, // 14 days
+        autoRemove: 'native'
+    }),
+    cookie: {
+        secure: process.env.NODE_ENV === 'production', // secure cookies in production
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 1 day
+    }
 }));
 
 // ----------------------
