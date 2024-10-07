@@ -64,40 +64,50 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Admin dashboard script loaded.');
-
+    
             // Extract the 'token' cookie if available
             const cookieString = document.cookie;
             console.log('Current cookies:', cookieString);
-
-            const token = cookieString
-                .split('; ')
-                .find(row => row.startsWith('token='))
-                ?.split('=')[1];
-
+    
+            let token = null;
+            try {
+                token = cookieString
+                    .split('; ')
+                    .find(row => row.startsWith('token='))
+                    ?.split('=')[1];
+            } catch (error) {
+                console.error('Error extracting token:', error);
+            }
+    
             if (!token) {
                 console.warn('No valid token found, redirecting to login page.');
                 window.location.href = '/admin-login.html';
             } else {
                 console.log('Valid token detected:', token);
+                // Optionally, you can verify the token here (on the client-side) if needed
             }
         });
-
+    
         // Logout logic
-        document.getElementById('logout').addEventListener('click', () => {
-            console.log('Logout initiated.');
-
-            fetch('/logout', { method: 'POST', credentials: 'include' })
-                .then(() => {
-                    console.log('Logout request successful, clearing token cookie.');
-                    // Clear the JWT token by setting its expiration to the past
-                    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                    // Redirect the user to the login page
-                    window.location.href = '/admin-login.html';
-                })
-                .catch(error => {
-                    console.error('Logout failed:', error);
-                });
-        });
+        const logoutButton = document.getElementById('logout');
+        if (logoutButton) {
+            logoutButton.addEventListener('click', () => {
+                console.log('Logout initiated.');
+    
+                fetch('/logout', { method: 'POST', credentials: 'include' })
+                    .then(() => {
+                        console.log('Logout request successful, clearing token cookie.');
+                        // Clear the JWT token by setting its expiration to the past
+                        document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=mikumiku.dev;';
+                        // Redirect the user to the login page
+                        window.location.href = '/admin-login.html';
+                    })
+                    .catch(error => {
+                        console.error('Logout failed:', error);
+                    });
+            });
+        }
     </script>
+
 </body>
 </html>
