@@ -283,23 +283,24 @@ function convertISO8601ToSeconds(isoDuration) {
 // ----------------------
 function verifyToken(req, res, next) {
     const token = req.cookies.token;
-    logger.info(`Token from cookie: ${token}`);
+    console.log("Token received in request:", token);
 
     if (!token) {
-        logger.info('Token not found. Redirecting to login.');
+        console.log("No token found, redirecting to login.");
         return res.redirect('/admin-login.html');
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    jwt.verify(token, process.env.JWT_SECRET || 'your-jwt-secret-key', (err, decoded) => {
         if (err) {
-            logger.info(`Token verification failed: ${err.message}`);
+            console.log("Token verification failed:", err.message);
             return res.redirect('/admin-login.html');
         }
-        logger.info(`Token successfully verified. User ID: ${decoded.id}`);
+        console.log("Token verified successfully, user ID:", decoded.id);
         req.userId = decoded.id;
         next();
     });
 }
+
 
 // ----------------------
 // OAuth Helper Functions
@@ -724,7 +725,6 @@ app.delete('/api/comments/:id', verifyToken, async (req, res) => {
 app.get('/admin-dashboard.html', verifyToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
-
 // ----------------------
 // Additional Routes
 // ----------------------
