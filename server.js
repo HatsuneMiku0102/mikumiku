@@ -786,84 +786,9 @@ app.get('/api/weather', async (req, res) => {
     }
 });
 
-// ----------------------
-// Active Users Tracking
-// ----------------------
 
-// Set to store unique IPs
-const processedIPs = new Set();
 
-// Function to get Valid IP Address
-function getValidIpAddress(req) {
-    let ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
-    if (ipAddress.includes(',')) {
-        // Extract first valid IP from the list
-        ipAddress = ipAddress.split(',').map(ip => ip.trim())[0];
-    }
-
-    // Normalize IPv6-mapped IPv4 addresses
-    if (ipAddress.startsWith('::ffff:')) {
-        ipAddress = ipAddress.replace('::ffff:', '');
-    }
-
-    // Check for duplicates
-    if (processedIPs.has(ipAddress)) {
-        logger.warn(`Duplicate IP detected: ${ipAddress}, skipping processing.`);
-        return null; // Indicate duplicate IP
-    }
-
-    // Add to processed IPs
-    processedIPs.add(ipAddress);
-    return ipAddress;
-}
-
-// Function to Fetch Location Data from IPInfo API
-async function fetchLocationData(ip) {
-    try {
-        const response = await axios.get(`https://ipinfo.io/${ip}?token=${process.env.IPINFO_API_KEY}`);
-        const { ip: userIP, city, region, country } = response.data;
-
-        return {
-            ip: userIP,
-            city: city || 'Unknown',
-            region: region || 'Unknown',
-            country: country || 'Unknown'
-        };
-    } catch (error) {
-        logger.error(`Error fetching location data for IP ${ip}: ${error}`);
-        return {
-            ip,
-            city: 'Unknown',
-            region: 'Unknown',
-            country: 'Unknown'
-        };
-    }
-}
-
-// Function to Attach Location Data Middleware (Unused in Current Routes)
-async function attachLocationData(req, res, next) {
-    const clientIp = getClientIp(req);
-
-    if (clientIp) {
-        logger.info(`Client IP detected: ${clientIp}`);
-
-        const locationData = await fetchLocationData(clientIp);
-        req.location = locationData; // Attach location data to the request object
-    } else {
-        logger.info('No valid public IP detected.');
-    }
-
-    next();
-}
-
-// Normalize IP Address Function
-function normalizeIp(ip) {
-    if (ip.startsWith('::ffff:')) {
-        return ip.replace('::ffff:', '');
-    }
-    return ip;
-}
 
 // ----------------------
 // WebSocket (Socket.IO) Configuration
