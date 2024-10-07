@@ -1,5 +1,3 @@
-// server.js
-
 'use strict';
 
 // ----------------------
@@ -24,7 +22,6 @@ const fs = require('fs');
 const winston = require('winston');
 const { DateTime } = require('luxon');
 const fetch = require('node-fetch');
-const retry = require('async-retry');
 const { body, validationResult } = require('express-validator');
 const dialogflow = require('@google-cloud/dialogflow');
 const uuid = require('uuid');
@@ -178,7 +175,6 @@ app.use(
     })
 );
 
-
 app.set('trust proxy', true);
 
 // Serve Static Files
@@ -188,7 +184,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
     lastModified: false
 }));
 
-
+// Session Middleware
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret',
     resave: false,
@@ -204,7 +200,6 @@ app.use(session({
         maxAge: 24 * 60 * 60 * 1000 // 1 day
     }
 }));
-
 
 // ----------------------
 // Rate Limiting Middleware
@@ -278,9 +273,7 @@ function convertISO8601ToSeconds(isoDuration) {
     return hours * 3600 + minutes * 60 + seconds;
 }
 
-// ----------------------
 // JWT Verification Middleware
-// ----------------------
 function verifyToken(req, res, next) {
     const token = req.cookies.token; // Read the JWT from the cookie
 
@@ -298,8 +291,6 @@ function verifyToken(req, res, next) {
         next();
     });
 }
-
-
 
 // ----------------------
 // OAuth Helper Functions
@@ -406,6 +397,10 @@ const REDIRECT_URI = process.env.REDIRECT_URI || 'https://mikumiku.dev/callback'
 // Membership Mapping File Path
 const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
 
+// ----------------------
+// Membership Mapping Functions
+// ----------------------
+
 // Update Membership Mapping Function
 function updateMembershipMapping(discordId, userInfo) {
     let membershipMapping = {};
@@ -453,7 +448,43 @@ async function sendUserInfoToDiscordBot(discordId, userInfo) {
 }
 
 // ----------------------
-// Define OAuth Routes
+// Geolocation Functions
+// ----------------------
+
+// Ensure IPINFO_API_KEY is defined
+const IPINFO_API_KEY = process.env.IPINFO_API_KEY;
+
+if (!IPINFO_API_KEY) {
+    logger.error("IPINFO_API_KEY environment variable is not set.");
+    process.exit(1); // Exit if the key isn't available
+}
+
+// Get Client IP Function
+const getClientIp = (req) => {
+    const forwardedFor = req.headers['x-forwarded-for'];
+    if (forwardedFor) {
+        return forwardedFor.split(',')[0].trim();
+    }
+    return req.connection.remoteAddress;
+};
+
+// Get Geolocation Data
+async function getGeoLocation(ip) {
+    try {
+        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
+        return response.data; // This contains city, region, country, etc.
+    } catch (error) {
+        logger.error('Error fetching geolocation from IPinfo:', error);
+        return {
+            city: 'Unknown',
+            region: 'Unknown',
+            country: 'Unknown'
+        };
+    }
+}
+
+// ----------------------
+// OAuth Routes
 // ----------------------
 
 // Login Route
@@ -705,14 +736,13 @@ app.delete('/api/comments/:id', verifyToken, async (req, res) => {
 });
 
 // ----------------------
-// OAuth Routes Continued
-// ----------------------
-
 // Admin Dashboard Route (Protected)
+// ----------------------
 app.get('/admin-dashboard.html', verifyToken, (req, res) => {
     logger.info(`Access granted to user with ID: ${req.userId}`);
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
+
 // ----------------------
 // Additional Routes
 // ----------------------
@@ -786,10 +816,6 @@ app.get('/api/weather', async (req, res) => {
     }
 });
 
-
-
-
-
 // ----------------------
 // WebSocket (Socket.IO) Configuration
 // ----------------------
@@ -802,13 +828,35 @@ let currentVideo = null;
 let currentBrowsing = null;
 const videoHeartbeat = {};
 let lastBrowsingUpdateTime = 0;
+let activeUsers = [];
 
 // Socket.IO Connection Handling
 io.on('connection', async (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
+    const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
+    logger.info(`New connection from IP: ${ip}`);
 
+    // Emit initial location update
+    getGeoLocation(ip).then(location => {
+        socket.emit('locationUpdate', {
+            ip,
+            city: location.city,
+            region: location.region,
+            country: location.country
+        });
+    }).catch(err => {
+        logger.error('Error fetching location:', err);
+        socket.emit('locationUpdate', {
+            ip,
+            city: 'Unknown',
+            region: 'Unknown',
+            country: 'Unknown'
+        });
+    });
 
+    // Add user to active users
+    const user = { id: socket.id, ip };
     activeUsers.push(user);
     io.emit('activeUsersUpdate', { users: activeUsers });
 
@@ -855,10 +903,8 @@ io.on('connection', async (socket) => {
     // Update Video Progress or Mark New Video Presence
     socket.on('updateVideoProgress', (data) => {
         logger.info(`[Socket.IO] Video update received: ${JSON.stringify(data)}`);
-    
         const { videoId, title, description, channelTitle, viewCount, likeCount, publishedAt, category, thumbnail, currentTime, duration, isPaused } = data;
 
-        // Check if the video is already being tracked
         if (currentVideo && currentVideo.videoId === videoId) {
             // Update existing video details
             currentVideo.currentTime = currentTime;
@@ -1007,42 +1053,6 @@ app.post('/api/videos',
 );
 
 // ----------------------
-// Weather API Route
-// ----------------------
-app.get('/api/weather', async (req, res) => {
-    const city = req.query.city || 'Leeds';
-    const units = 'metric'; // or 'imperial' for Fahrenheit
-    const apiKey = process.env.OPENWEATHER_API_KEY;
-
-    if (!apiKey) {
-        logger.error('OPENWEATHER_API_KEY is not set in environment variables.');
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
-
-    const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=${units}&appid=${apiKey}`;
-
-    try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-            // Attempt to parse error message from response
-            let errorMsg = 'Failed to fetch weather data';
-            try {
-                const errorData = await response.json();
-                errorMsg = errorData.message || errorMsg;
-            } catch (e) {
-                logger.error('Error parsing error response:', e);
-            }
-            return res.status(response.status).json({ error: errorMsg });
-        }
-        const data = await response.json();
-        res.json(data);
-    } catch (error) {
-        logger.error(`Error fetching weather data for city ${city}:`, error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-});
-
-// ----------------------
 // Web Search Functionality with Dialogflow Integration
 // ----------------------
 
@@ -1093,6 +1103,13 @@ async function getWebSearchResults(query) {
 
         if (!response.ok) {
             logger.error(`Error fetching web search results: ${response.status} - ${response.statusText}`);
+            let errorMsg = 'Failed to fetch web search data';
+            try {
+                const errorData = await response.json();
+                errorMsg = errorData.message || errorMsg;
+            } catch (e) {
+                logger.error('Error parsing error response:', e);
+            }
             return `Error: Received status code ${response.status}. Please check the request or try again later.`;
         }
 
@@ -1180,105 +1197,26 @@ app.post('/api/dialogflow', async (req, res) => {
     }
 });
 
-
-
-
 // ----------------------
-// Membership Mapping Functions
+// Geolocation Routes
 // ----------------------
 
-// Read, Update, and Write Membership Mapping
-function updateMembershipMapping(discordId, userInfo) {
-    let membershipMapping = {};
-
-    if (fs.existsSync(membershipFilePath)) {
-        const data = fs.readFileSync(membershipFilePath, 'utf8');
-        logger.info(`Read existing membership mapping file: ${data}`);
-        try {
-            membershipMapping = JSON.parse(data);
-        } catch (err) {
-            logger.error(`Error parsing membership mapping file: ${err}`);
-            membershipMapping = {};
-        }
-    } else {
-        logger.info('Membership mapping file does not exist. A new one will be created.');
-    }
-
-    membershipMapping[discordId] = {
-        "membership_id": userInfo.membershipId,
-        "platform_type": userInfo.platformType,
-        "bungie_name": userInfo.bungieName,
-        "registration_date": new Date(),
-        "clan_id": "4900827"
-    };
-
-    try {
-        fs.writeFileSync(membershipFilePath, JSON.stringify(membershipMapping, null, 2), 'utf8');
-        logger.info(`Updated membership mapping file: ${JSON.stringify(membershipMapping, null, 2)}`);
-    } catch (err) {
-        logger.error(`Error writing to membership mapping file: ${err}`);
-    }
-
-    try {
-        const updatedData = fs.readFileSync(membershipFilePath, 'utf8');
-        logger.info(`Verified membership mapping file content: ${updatedData}`);
-    } catch (err) {
-        logger.error(`Error reading membership mapping file after update: ${err}`);
-    }
-}
-
-
-
-
-// Ensure IPINFO_API_KEY is defined globally
-const IPINFO_API_KEY = process.env.IPINFO_API_KEY;
-
-if (!IPINFO_API_KEY) {
-    console.error("IPINFO_API_KEY environment variable is not set.");
-    process.exit(1); // Exit if the key isn't available
-}
-
-// Moved getClientIp function to the top for global use
-const getClientIp = (req) => {
-    const forwardedFor = req.headers['x-forwarded-for'];
-    if (forwardedFor) {
-        return forwardedFor.split(',')[0].trim();
-    }
-    return req.connection.remoteAddress;
-};
-
-// Reused the getGeoLocation function
-async function getGeoLocation(ip) {
-    try {
-        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
-        return response.data; // This contains city, region, country, etc.
-    } catch (error) {
-        console.error('Error fetching geolocation from IPinfo:', error);
-        return {
-            city: 'Unknown',
-            region: 'Unknown',
-            country: 'Unknown'
-        };
-    }
-}
-
-// Updating all occurrences where `fetchLocationData` was mistakenly used
+// Fetch Location Route
 app.get('/fetch-location', async (req, res) => {
     const ip = getClientIp(req);
-
     try {
         const locationData = await getGeoLocation(ip);
         res.json(locationData);
     } catch (error) {
-        console.error('Error fetching location data:', error.message);
+        logger.error('Error fetching location data:', error.message);
         res.status(500).json({ error: 'Failed to fetch location data' });
     }
 });
 
+// Get Geolocation by IP Route
 app.get('/api/location/:ip', async (req, res) => {
     try {
         const ip = req.params.ip;
-
         const locationData = await getGeoLocation(ip);
         res.json({
             ip: ip,
@@ -1287,55 +1225,42 @@ app.get('/api/location/:ip', async (req, res) => {
             country: locationData.country,
         });
     } catch (error) {
-        console.error(`Error fetching geolocation for IP ${req.params.ip}:`, error);
+        logger.error(`Error fetching geolocation for IP ${req.params.ip}:`, error);
         res.status(500).json({ error: 'Failed to fetch geolocation data' });
     }
 });
 
+// Track IP Route
 app.post('/track', (req, res) => {
     const ip = getClientIp(req);
-
-    console.log(`Extracted IP: ${ip}`);
-
+    logger.info(`Extracted IP: ${ip}`);
     getGeoLocation(ip)
         .then(location => {
             res.json({ ip, location });
         })
         .catch(err => {
-            console.error('Error fetching location:', err);
+            logger.error('Error fetching location:', err);
             res.status(500).json({ error: 'Unable to get location' });
         });
 });
 
-io.on('connection', (socket) => {
-    const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
+// ----------------------
+// Web Search Results via WebSocket
+// ----------------------
 
-    console.log(`New connection from IP: ${ip}`);
+// This is already handled in the Dialogflow route where 'webSearchResult' is emitted
 
-    getGeoLocation(ip).then(location => {
-        socket.emit('locationUpdate', {
-            ip,
-            city: location.city,
-            region: location.region,
-            country: location.country
-        });
-    }).catch(err => {
-        console.error('Error fetching location:', err);
-        socket.emit('locationUpdate', {
-            ip,
-            city: 'Unknown',
-            region: 'Unknown',
-            country: 'Unknown'
-        });
-    });
-});
+// ----------------------
+// Weather API Route (Duplicated Removed)
+// ----------------------
+// Note: The '/api/weather' route was already defined above. Ensure it's only defined once.
 
+// ----------------------
+// Final Cleanup
+// ----------------------
 
-
-
-
-
-
+// Ensure that all routes and functions are defined only once.
+// Remove any duplicate definitions if present.
 
 // ----------------------
 // Start the Server
