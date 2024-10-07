@@ -235,6 +235,7 @@ body {
     align-items: center;
     justify-content: center;
     overflow-y: auto;
+    opacity: 0;
     transition: opacity 0.5s ease;
 }
 
@@ -304,7 +305,7 @@ body.overlay-active {
     background: transparent; /* Removed background */
     border-radius: var(--border-radius);
     padding: 1rem; /* Further reduced padding for compactness */
-    max-width: 1000px; /* Reduced max-width */
+    max-width: 1200px; /* Increased max-width for better layout */
     width: 100%;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6); /* Retained shadow for depth */
     transition: box-shadow var(--transition-duration) ease;
@@ -351,15 +352,20 @@ body.overlay-active {
     align-items: center;
     gap: 0.3rem; /* Reduced gap */
     position: relative;
+    flex-wrap: nowrap; /* Prevent wrapping */
+}
+
+.sidebar-item.video-category span:last-child {
+    white-space: nowrap; /* Prevent text from wrapping */
 }
 
 /* Divider Between Channel Info and Clock */
-.sidebar-item.video-category::after {
+.now-playing-sidebar::after {
     content: "";
     width: 100%;
     height: 1px;
     background-color: rgba(255, 255, 255, 0.2);
-    margin-top: 1rem;
+    margin: 1rem 0;
     display: block;
 }
 
@@ -822,7 +828,8 @@ body.overlay-active {
 
 /* Description Modal */
 .modal {
-    display: none;
+    visibility: hidden;
+    opacity: 0;
     position: fixed;
     z-index: 2000;
     left: 0;
@@ -830,13 +837,15 @@ body.overlay-active {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.7);
-    animation: fadeIn 0.3s ease forwards;
-}
-
-.modal.active {
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal.active {
+    visibility: visible;
+    opacity: 1;
 }
 
 .modal-content {
@@ -850,9 +859,7 @@ body.overlay-active {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(10px);
     animation: slideDown 0.5s ease forwards;
-    margin: 0 auto;
-    opacity: 1;
-    transition: opacity 0.5s ease;
+    position: relative; /* Needed for close button positioning */
 }
 
 .close-button {
@@ -868,22 +875,6 @@ body.overlay-active {
 .close-button:hover,
 .close-button:focus {
     color: var(--secondary-color);
-}
-
-/* Fade-Out Animation for Description Modal */
-.modal-content.fade-out {
-    animation: fadeOut 0.5s forwards;
-}
-
-@keyframes fadeOut {
-    from {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    to {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
 }
 
 /* Keyframe Animations */
@@ -963,8 +954,7 @@ body.overlay-active {
     }
 
     .now-playing-sidebar,
-    .video-section,
-    .weather-section {
+    .video-section {
         width: 100%;
     }
 
