@@ -193,18 +193,14 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-session-secret',
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: process.env.MONGO_URL,
-        collectionName: 'sessions',
-        ttl: 14 * 24 * 60 * 60, // 14 days
-        autoRemove: 'native'
-    }),
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // secure cookies in production
+        secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 1 day
+        sameSite: 'strict', // Prevent CSRF
+        maxAge: 86400 * 1000 // 24 hours
     }
 }));
+
 
 // ----------------------
 // Rate Limiting Middleware
@@ -609,43 +605,56 @@ app.post('/login', loginLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
 
+        if (!username || !password) {
+            logger.warn(`Missing username or password in login attempt.`);
+            return res.status(400).json({ auth: false, message: 'Username and password are required.' });
+        }
+
         const adminUsername = process.env.ADMIN_USERNAME;
-        const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH; // Bcrypt hashed password
+        const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
 
         if (username !== adminUsername) {
             logger.warn(`Failed login attempt for username: ${username} from IP: ${req.ip}`);
-            return res.status(401).json({ auth: false, message: 'Invalid username or password' });
+            return res.status(401).json({ auth: false, message: 'Invalid username or password.' });
         }
 
-        // Use bcrypt to compare passwords
+        // Validate password using bcrypt
         const isPasswordValid = await bcrypt.compare(password, adminPasswordHash);
 
         if (!isPasswordValid) {
             logger.warn(`Failed login attempt for username: ${username} from IP: ${req.ip}`);
-            return res.status(401).json({ auth: false, message: 'Invalid username or password' });
+            return res.status(401).json({ auth: false, message: 'Invalid username or password.' });
         }
 
+        // Generate a JWT token for the admin user
         const token = jwt.sign({ id: adminUsername }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
             expiresIn: 86400 // 24 hours
         });
 
+        // Set the JWT as a cookie
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict', // Prevent CSRF
+            sameSite: 'strict',
             maxAge: 86400 * 1000 // 24 hours
         });
 
-        req.session.save((err) => {
-            if (err) {
-                logger.error(`Error saving session: ${err}`);
-                return res.status(500).json({ auth: false, message: 'Error saving session' });
-            }
-            res.status(200).json({ auth: true, redirect: '/admin-dashboard.html' });
-        });
+        // Check if req.session exists before calling save
+        if (req.session) {
+            req.session.save((err) => {
+                if (err) {
+                    logger.error(`Error saving session: ${err}`);
+                    return res.status(500).json({ auth: false, message: 'Error saving session.' });
+                }
+                res.status(200).json({ auth: true, redirect: '/admin-dashboard.html' });
+            });
+        } else {
+            logger.error(`Session object is undefined during login.`);
+            return res.status(500).json({ auth: false, message: 'Internal Server Error: Session not found.' });
+        }
     } catch (error) {
         logger.error(`Unexpected error during login: ${error}`);
-        res.status(500).json({ auth: false, message: 'Internal Server Error' });
+        res.status(500).json({ auth: false, message: 'Internal Server Error.' });
     }
 });
 
