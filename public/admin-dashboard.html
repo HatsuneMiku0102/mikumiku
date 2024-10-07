@@ -2,112 +2,87 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MikuMiku | Admin Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <style>
-        /* General Styles */
         body {
             font-family: 'Roboto', sans-serif;
-            margin: 0;
             background-color: #f0f2f5;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            color: #333;
-        }
-
-        /* Dashboard Header */
-        .dashboard-header {
-            background-color: #007BFF;
-            padding: 20px;
-            color: #fff;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .dashboard-header h1 {
             margin: 0;
-            font-size: 24px;
-        }
-
-        .dashboard-header .logout-btn {
-            background-color: #0056b3;
-            border: none;
-            padding: 10px 20px;
-            color: #fff;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        .dashboard-header .logout-btn:hover {
-            background-color: #003f7f;
-        }
-
-        /* Dashboard Content */
-        .dashboard-content {
-            flex-grow: 1;
-            padding: 40px;
+            padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
+            height: 100vh;
+        }
+
+        .admin-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            width: 100%;
             text-align: center;
         }
 
-        .dashboard-box {
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            width: 80%;
-            max-width: 800px;
-        }
-
-        .dashboard-box h2 {
+        h2 {
             color: #007BFF;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
         }
 
-        .dashboard-box p {
-            color: #555;
-            font-size: 18px;
+        .logout-button {
+            padding: 10px 20px;
+            background-color: #dc3545;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .logout-button:hover {
+            background-color: #c82333;
         }
     </style>
 </head>
 <body>
-    <!-- Dashboard Header -->
-    <div class="dashboard-header">
-        <h1>Admin Dashboard</h1>
-        <button id="logout" class="logout-btn">Logout</button>
-    </div>
-
-    <!-- Dashboard Content -->
-    <div class="dashboard-content">
-        <div class="dashboard-box">
-            <h2>Welcome to the Admin Dashboard!</h2>
-            <p>This is a blank dashboard page. You can start adding widgets or functionalities here after confirming the login process works properly.</p>
-        </div>
+    <div class="admin-container">
+        <h2>Welcome to the Admin Dashboard</h2>
+        <p>Here you will be able to manage all administrative tasks.</p>
+        <button id="logout" class="logout-button">Logout</button>
     </div>
 
     <script>
+        // Security check to ensure only authenticated users can access this page
         document.addEventListener('DOMContentLoaded', function() {
-            // Handle logout button click
-            const logoutButton = document.getElementById('logout');
-            logoutButton.addEventListener('click', function() {
-                fetch('/logout', { method: 'POST' })
-                    .then(() => {
-                        // Clear the authentication cookie
-                        document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                        window.location.href = '/admin-login.html';
-                    })
-                    .catch(error => {
-                        console.error('Logout failed:', error);
-                    });
-            });
+            // Extract the 'token' cookie if available
+            const token = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('token='))
+                ?.split('=')[1];
+            
+            if (!token) {
+                // If no token is found, redirect to the login page
+                window.location.href = '/admin-login.html';
+            }
+        });
+
+        // Logout logic
+        document.getElementById('logout').addEventListener('click', () => {
+            fetch('/logout', { method: 'POST', credentials: 'include' })
+                .then(() => {
+                    // Clear the JWT token by setting its expiration to the past
+                    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                    // Redirect the user to the login page
+                    window.location.href = '/admin-login.html';
+                })
+                .catch(error => {
+                    console.error('Logout failed:', error);
+                });
         });
     </script>
 </body>
