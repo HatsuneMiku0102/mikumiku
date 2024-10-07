@@ -1,77 +1,80 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const loginForm = document.getElementById('login-form');
-    const errorMessage = document.getElementById('error-message');
-    const successMessage = document.getElementById('success-message');
-    const loadingSpinner = document.getElementById('loading-spinner');
-    const loginButton = document.querySelector('.login-button');
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Admin dashboard script loaded.');
 
-    loginForm.addEventListener('submit', async (event) => {
-        event.preventDefault(); // Prevent the default form submission
+    // Extract the 'token' cookie if available
+    const cookieString = document.cookie;
+    console.log('Current cookies:', cookieString);
 
-        // Clear previous messages
-        if (errorMessage) {
-            errorMessage.style.display = 'none';
-            errorMessage.textContent = '';
-        }
-        if (successMessage) {
-            successMessage.style.display = 'none';
-            successMessage.textContent = '';
-        }
+    const token = cookieString
+        .split('; ')
+        .find(row => row.startsWith('token='))
+        ?.split('=')[1];
 
-        // Get form values
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value.trim();
+    if (!token) {
+        console.warn('No valid token found, redirecting to login page.');
+        window.location.href = '/admin-login.html';
+    } else {
+        console.log('Valid token detected:', token);
+    }
 
-        // Basic front-end validation
-        if (!username || !password) {
-            errorMessage.textContent = 'Please enter both username and password.';
-            errorMessage.style.display = 'block';
-            return;
-        }
+    // Setup the socket connection to get real-time data
+    const socket = io();
 
-        // Disable the login button and show loading spinner
-        loginButton.disabled = true;
-        if (loadingSpinner) loadingSpinner.style.display = 'block';
+    socket.on('connect', () => {
+        console.log('Socket connected successfully');
+    });
 
-        try {
-            // Send login request to server
-            const response = await fetch('/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include', // Include cookies in the request
-                body: JSON.stringify({ username, password })
+    socket.on('connect_error', (error) => {
+        console.error('Error connecting to socket:', error);
+    });
+
+    // Receive updated list of active users and display their IP information
+    socket.on('activeUsersUpdate', (data) => {
+        console.log('Active users data received:', data); // Log for debugging
+
+        if (data && data.users && Array.isArray(data.users)) {
+            const activeUsersCount = data.users.length;
+            document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
+
+            const ipList = document.getElementById('ip-list');
+            ipList.innerHTML = '';  // Clear previous content
+
+            // Create a set to keep track of unique IPs
+            const uniqueIps = new Set();
+
+            // Loop through the users array and display each user's IP info
+            data.users.forEach(user => {
+                // Check if the IP is already in the set
+                if (!uniqueIps.has(user.ip)) {
+                    uniqueIps.add(user.ip);
+                    const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
+                    const ipItem = document.createElement('li');
+                    ipItem.classList.add('ip-item');
+                    ipItem.innerText = locationInfo;
+                    ipList.appendChild(ipItem);
+                }
             });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            if (data.auth) {
-                // Display success message
-                successMessage.textContent = 'Login successful! Redirecting...';
-                successMessage.style.display = 'block';
-
-                // Redirect to the admin dashboard after a short delay
-                setTimeout(() => {
-                    window.location.href = data.redirect;
-                }, 1500);
-            } else {
-                // Display error message from server
-                errorMessage.textContent = data.message || 'Invalid username or password.';
-                errorMessage.style.display = 'block';
-            }
-        } catch (error) {
-            console.error('Error during login:', error);
-            errorMessage.textContent = 'An unexpected error occurred. Please try again later.';
-            errorMessage.style.display = 'block';
-        } finally {
-            // Re-enable the login button and hide loading spinner
-            loginButton.disabled = false;
-            if (loadingSpinner) loadingSpinner.style.display = 'none';
+        } else {
+            console.warn('No valid active users data found.');
+            document.getElementById('active-users-count').innerText = 'No active users found.';
+            document.getElementById('ip-list').innerHTML = '<li>No valid IP data available.</li>';
         }
+    });
+
+    // Logout logic
+    document.getElementById('logout').addEventListener('click', () => {
+        console.log('Logout initiated.');
+
+        fetch('/logout', { method: 'POST', credentials: 'include' })
+            .then(() => {
+                console.log('Logout request successful, clearing token cookie.');
+                // Clear the JWT token by setting its expiration to the past
+                document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                // Redirect the user to the login page
+                window.location.href = '/admin-login.html';
+            })
+            .catch(error => {
+                console.error('Logout failed:', error);
+            });
     });
 });
