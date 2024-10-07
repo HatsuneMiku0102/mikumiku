@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function() {
     console.log('Admin dashboard script loaded.');
 
     // Extract the 'token' cookie if available
@@ -15,49 +15,54 @@ document.addEventListener('DOMContentLoaded', function () {
         window.location.href = '/admin-login.html';
     } else {
         console.log('Valid token detected:', token);
-    }
 
-    // Connect to the socket server
-    const socket = io();
+        // Socket.io connection
+        const socket = io();
 
-    socket.on('connect', () => {
-        console.log('Connected to socket server.');
-    });
+        // Listen for active users update
+        socket.on('activeUsersUpdate', (data) => {
+            console.log('Active users data received:', data);  // Log the received data for debugging
+            document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`;
 
-    socket.on('connect_error', (error) => {
-        console.error('Error connecting to socket:', error);
-    });
+            const ipList = document.getElementById('ip-list');
+            ipList.innerHTML = '';  // Clear previous content
 
-    // Listen for location updates from the server
-    socket.on('locationUpdate', (data) => {
-        console.log('Location data received:', data);
-        
-        const locationDiv = document.getElementById('location');
-        if (locationDiv) {
-            // Ensure there's content to display
-            const locationInfo = `IP: ${data.ip}, City: ${data.city}, Region: ${data.region}, Country: ${data.country}`;
-            const locationElement = document.createElement('p');
-            locationElement.innerText = locationInfo;
-            locationDiv.appendChild(locationElement);
-        } else {
-            console.warn('Location container not found on page.');
-        }
-    });
-
-    // Logout logic
-    document.getElementById('logout').addEventListener('click', () => {
-        console.log('Logout initiated.');
-
-        fetch('/logout', { method: 'POST', credentials: 'include' })
-            .then(() => {
-                console.log('Logout request successful, clearing token cookie.');
-                // Clear the JWT token by setting its expiration to the past
-                document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                // Redirect the user to the login page
-                window.location.href = '/admin-login.html';
-            })
-            .catch(error => {
-                console.error('Logout failed:', error);
+            data.users.forEach(user => {
+                // Fetch location data from server using user IP
+                fetch(`/api/location/${user.ip}`)
+                    .then(response => response.json())
+                    .then(locationData => {
+                        if (locationData && !locationData.error) {
+                            const locationInfo = `IP: ${user.ip}, City: ${locationData.city}, Region: ${locationData.region}, Country: ${locationData.country}`;
+                            const ipItem = document.createElement('li');
+                            ipItem.classList.add('ip-item');
+                            ipItem.innerText = locationInfo;
+                            ipList.appendChild(ipItem);
+                        } else {
+                            console.warn('Location data not found for IP:', user.ip);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching location data:', error);
+                    });
             });
-    });
+        });
+
+        // Logout logic
+        document.getElementById('logout').addEventListener('click', () => {
+            console.log('Logout initiated.');
+
+            fetch('/logout', { method: 'POST', credentials: 'include' })
+                .then(() => {
+                    console.log('Logout request successful, clearing token cookie.');
+                    // Clear the JWT token by setting its expiration to the past
+                    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                    // Redirect the user to the login page
+                    window.location.href = '/admin-login.html';
+                })
+                .catch(error => {
+                    console.error('Logout failed:', error);
+                });
+        });
+    }
 });
