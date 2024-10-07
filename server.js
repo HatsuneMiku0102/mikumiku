@@ -285,11 +285,13 @@ function verifyToken(req, res, next) {
     const token = req.cookies.token; // Read the JWT from the cookie
 
     if (!token) {
+        logger.warn('Token not found. Redirecting to login page.');
         return res.redirect('/admin-login.html');
     }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
+            logger.error(`Token verification failed: ${err.message}. Redirecting to login.`);
             return res.redirect('/admin-login.html');
         }
         req.userId = decoded.id; // Add the user ID to the request object
@@ -720,6 +722,7 @@ app.delete('/api/comments/:id', verifyToken, async (req, res) => {
 
 // Admin Dashboard Route (Protected)
 app.get('/admin-dashboard.html', verifyToken, (req, res) => {
+    logger.info(`Access granted to user with ID: ${req.userId}`);
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 // ----------------------
