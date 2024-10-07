@@ -1192,8 +1192,6 @@ app.use((req, res, next) => {
 });
 
 
-const verifyToken = require('./middlewares/verifyToken');
-
 app.get('/admin-dashboard.html', verifyToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
