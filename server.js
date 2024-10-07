@@ -282,24 +282,21 @@ function convertISO8601ToSeconds(isoDuration) {
 // JWT Verification Middleware
 // ----------------------
 function verifyToken(req, res, next) {
-    const token = req.cookies.token;
-    console.log("Token received in request:", token);
+    const token = req.cookies.token; // Read the JWT from the cookie
 
     if (!token) {
-        console.log("No token found, redirecting to login.");
         return res.redirect('/admin-login.html');
     }
 
-    jwt.verify(token, process.env.JWT_SECRET || 'your-jwt-secret-key', (err, decoded) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
-            console.log("Token verification failed:", err.message);
             return res.redirect('/admin-login.html');
         }
-        console.log("Token verified successfully, user ID:", decoded.id);
-        req.userId = decoded.id;
+        req.userId = decoded.id; // Add the user ID to the request object
         next();
     });
 }
+
 
 
 // ----------------------
