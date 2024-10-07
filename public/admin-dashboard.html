@@ -2,67 +2,74 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MikuMiku | Admin Dashboard</title>
-    <link rel="stylesheet" href="/styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | MikuMiku</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="/styles.css">
     <style>
+        /* Styling for Admin Dashboard */
         body {
             font-family: 'Roboto', sans-serif;
-            background-color: #f0f2f5;
+            background-color: #1e1e1e;
+            color: #ffffff;
             margin: 0;
             padding: 0;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            height: 100vh;
         }
 
         .admin-container {
-            background-color: #ffffff;
+            max-width: 900px;
+            margin: 50px auto;
             padding: 40px;
+            background-color: #2c2c2c;
             border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            max-width: 800px;
-            width: 100%;
-            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
         }
 
         h2 {
-            color: #007BFF;
+            color: #00bcd4;
+            text-align: center;
             margin-bottom: 20px;
         }
 
-        .logout-button {
-            padding: 10px 20px;
-            background-color: #dc3545;
+        button {
+            background-color: #00bcd4;
             color: #ffffff;
             border: none;
+            padding: 12px 20px;
             border-radius: 5px;
-            font-size: 16px;
             cursor: pointer;
-            margin-top: 20px;
+            font-size: 16px;
         }
 
-        .logout-button:hover {
-            background-color: #c82333;
+        button:hover {
+            background-color: #0097a7;
+        }
+
+        #logout {
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
     <div class="admin-container">
-        <h2>Welcome to the Admin Dashboard</h2>
-        <p>Here you will be able to manage all administrative tasks.</p>
-        <button id="logout" class="logout-button">Logout</button>
+        <h2>Admin Dashboard</h2>
+        <p>Welcome to your secure admin dashboard. Manage your settings, view user data, and more.</p>
+        <button id="logout">Logout</button>
     </div>
 
     <script>
-        // Security check to ensure only authenticated users can access this page
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Admin dashboard script loaded.');
 
             // Extract the 'token' cookie if available
-            const token = document.cookie
+            const cookieString = document.cookie;
+            console.log('Current cookies:', cookieString);
+
+            const token = cookieString
                 .split('; ')
                 .find(row => row.startsWith('token='))
                 ?.split('=')[1];
@@ -71,7 +78,7 @@
                 console.warn('No valid token found, redirecting to login page.');
                 window.location.href = '/admin-login.html';
             } else {
-                console.log('Valid token detected.');
+                console.log('Valid token detected:', token);
             }
         });
 
