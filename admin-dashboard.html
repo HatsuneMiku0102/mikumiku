@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin | Dashboard</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         body {
             background-color: #1e1e1e;
@@ -43,6 +44,7 @@
         .api-status {
             padding: 10px;
             margin: 10px 0;
+            border-radius: 5px;
         }
 
         .api-status.working {
@@ -64,13 +66,13 @@
 <body>
     <div class="admin-container">
         <h2>Admin Dashboard</h2>
-        <button id="logout">Logout</button>
+        <button id="logout"><i class="fas fa-sign-out-alt"></i> Logout</button>
 
         <h3>Real-time Active Users</h3>
         <p id="active-users-count">Loading...</p>
 
         <div id="location-data">
-            <h3>Visitor Location</h3>
+            <h3>Visitor Locations</h3>
             <div id="location">Loading location data...</div>
         </div>
 
@@ -81,142 +83,150 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
-    
-        socket.on('connect', () => {
-            console.log('Socket connected successfully');
-        });
-    
-        socket.on('connect_error', (error) => {
-            console.error('Error connecting to socket:', error);
-        });
-    
-        // Receive updated list of active users from the server and display it
-        socket.on('activeUsersUpdate', (data) => {
-            console.log('Active users data received:', data);  // Log the received data for debugging
-        
-            if (data && data.users && Array.isArray(data.users)) {
-                const activeUsersCount = data.users.length;
-                document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
-                
-                const locationDiv = document.getElementById('location');
-                locationDiv.innerHTML = '';  // Clear previous content
-                
-                // Create a set to keep track of unique IPs
-                const uniqueIps = new Set();
-        
-                // Loop through the users array and display each user's location info
-                data.users.forEach(user => {
-                    // Check if the IP is already in the set
-                    if (!uniqueIps.has(user.ip)) {
-                        uniqueIps.add(user.ip);
-                        const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
-                        const locationElement = document.createElement('p');
-                        locationElement.innerText = locationInfo;
-                        locationDiv.appendChild(locationElement);
+        document.addEventListener('DOMContentLoaded', function() {
+            const socket = io();
+
+            socket.on('connect', () => {
+                console.log('Socket connected successfully');
+            });
+
+            socket.on('connect_error', (error) => {
+                console.error('Error connecting to socket:', error);
+            });
+
+            // Receive updated list of active users from the server and display it
+            socket.on('activeUsersUpdate', (data) => {
+                console.log('Active users data received:', data);  // Log the received data for debugging
+
+                const activeUsersCountElement = document.getElementById('active-users-count');
+                if (activeUsersCountElement) {
+                    if (data && data.users && Array.isArray(data.users)) {
+                        const activeUsersCount = data.users.length;
+                        activeUsersCountElement.innerText = `Currently Active Users: ${activeUsersCount}`;
+
+                        // Displaying user location data
+                        const locationDiv = document.getElementById('location');
+                        locationDiv.innerHTML = '';  // Clear previous content
+
+                        // Track unique IPs to avoid duplicates
+                        const uniqueIps = new Set();
+
+                        data.users.forEach(user => {
+                            if (!uniqueIps.has(user.ip)) {
+                                uniqueIps.add(user.ip);
+                                const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
+                                const locationElement = document.createElement('p');
+                                locationElement.className = 'user-location';
+                                locationElement.innerText = locationInfo;
+                                locationDiv.appendChild(locationElement);
+                            }
+                        });
+                    } else {
+                        console.warn('No valid active users data found.');
+                        activeUsersCountElement.innerText = 'No active users found.';
                     }
-                });
-            } else {
-                console.warn('No valid active users data found.');
-                document.getElementById('active-users-count').innerText = 'No active users found.';
-            }
-        });
-
-    
-        // Fetch location data from the backend
-        fetch('/api/location')
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                } else {
-                    throw new Error('Error fetching location data');
                 }
-            })
-            .then(data => {
-                const locationDiv = document.getElementById('location');
-                locationDiv.innerHTML = '';  // Clear previous content
-        
-                if (data && Array.isArray(data)) {
-                    data.forEach(user => {
-                        const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
-                        const locationElement = document.createElement('p');
-                        locationElement.innerText = locationInfo;
-                        locationDiv.appendChild(locationElement);
-                    });
-                } else {
-                    console.warn('No valid location data found.');
-                    document.getElementById('location').innerText = 'No valid location data found.';
-                }
-            })
-            .catch(error => {
-                document.getElementById('location').innerText = 'Error loading location data';
-                console.error(error);
             });
 
-    
-        // Logout logic
-        const logoutButton = document.getElementById('logout');
-        logoutButton.addEventListener('click', () => {
-            fetch('/logout', { method: 'POST' })
-                .then(() => {
-                    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                    window.location.href = '/admin-login.html';
+            // Fetch visitor location data from the backend
+            fetch('/api/location', { credentials: 'include' })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error('Error fetching location data');
+                    }
                 })
-                .catch(error => console.error('Error:', error));
-        });
-    
-        // Fetch YouTube API Status
-        fetch('/api/check-youtube')
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                } else if (response.status === 401) {
-                    return response.json().then(data => {
-                        if (data.redirect) {
-                            window.location.href = data.redirect;
-                        }
-                    });
-                } else {
-                    throw new Error('Error checking YouTube API');
-                }
-            })
-            .then(data => {
-                if (data) {
-                    const youtubeStatus = document.getElementById('youtube-status');
-                    youtubeStatus.innerText = data.status;
-                    youtubeStatus.classList.add(data.available ? 'working' : 'unavailable');
-                }
-            })
-            .catch(error => {
-                console.error('Error checking YouTube API:', error);
-            });
-    
-        // Fetch Bungie API Status
-        fetch('/api/check-bungie')
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                } else if (response.status === 401) {
-                    return response.json().then(data => {
-                        if (data.redirect) {
-                            window.location.href = data.redirect;
-                        }
-                    });
-                } else {
-                    throw new Error('Error checking Bungie API');
-                }
-            })
-            .then(data => {
-                if (data) {
-                    const bungieStatus = document.getElementById('bungie-status');
-                    bungieStatus.innerText = data.status;
-                    bungieStatus.classList.add(data.available ? 'working' : 'unavailable');
-                }
-            })
-            .catch(error => {
-                console.error('Error checking Bungie API:', error);
-            });
-    </script>
+                .then(data => {
+                    const locationDiv = document.getElementById('location');
+                    locationDiv.innerHTML = '';  // Clear previous content
 
+                    if (data && Array.isArray(data)) {
+                        data.forEach(user => {
+                            const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
+                            const locationElement = document.createElement('p');
+                            locationElement.className = 'user-location';
+                            locationElement.innerText = locationInfo;
+                            locationDiv.appendChild(locationElement);
+                        });
+                    } else {
+                        console.warn('No valid location data found.');
+                        document.getElementById('location').innerText = 'No valid location data found.';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('location').innerText = 'Error loading location data';
+                    console.error('Error fetching location data:', error);
+                });
+
+            // Logout logic
+            const logoutButton = document.getElementById('logout');
+            logoutButton.addEventListener('click', () => {
+                fetch('/logout', { method: 'POST', credentials: 'include' })
+                    .then(response => {
+                        if (response.ok) {
+                            // Clear token cookie and redirect to login page
+                            document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                            window.location.href = '/admin-login.html';
+                        } else {
+                            throw new Error('Error logging out');
+                        }
+                    })
+                    .catch(error => console.error('Error during logout:', error));
+            });
+
+            // Fetch YouTube API Status
+            fetch('/api/check-youtube', { credentials: 'include' })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else if (response.status === 401) {
+                        return response.json().then(data => {
+                            if (data.redirect) {
+                                window.location.href = data.redirect;
+                            }
+                        });
+                    } else {
+                        throw new Error('Error checking YouTube API');
+                    }
+                })
+                .then(data => {
+                    if (data) {
+                        const youtubeStatus = document.getElementById('youtube-status');
+                        youtubeStatus.innerText = data.status;
+                        youtubeStatus.classList.add(data.available ? 'working' : 'unavailable');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking YouTube API:', error);
+                });
+
+            // Fetch Bungie API Status
+            fetch('/api/check-bungie', { credentials: 'include' })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else if (response.status === 401) {
+                        return response.json().then(data => {
+                            if (data.redirect) {
+                                window.location.href = data.redirect;
+                            }
+                        });
+                    } else {
+                        throw new Error('Error checking Bungie API');
+                    }
+                })
+                .then(data => {
+                    if (data) {
+                        const bungieStatus = document.getElementById('bungie-status');
+                        bungieStatus.innerText = data.status;
+                        bungieStatus.classList.add(data.available ? 'working' : 'unavailable');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking Bungie API:', error);
+                });
+        });
+    </script>
 </body>
 </html>
