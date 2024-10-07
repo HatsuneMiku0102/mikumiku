@@ -120,24 +120,29 @@
                     const ipListElement = document.getElementById('ip-list');
                     ipListElement.innerHTML = ''; // Clear previous IP list
 
-                    // Create a set to keep track of unique IPs
-                    const uniqueIps = new Set();
-
                     // Loop through the users array and display each user's location info
                     data.users.forEach(user => {
-                        // Check if the IP is already in the set
-                        if (!uniqueIps.has(user.ip)) {
-                            uniqueIps.add(user.ip);
-                            const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
-                            const ipItem = document.createElement('li');
-                            ipItem.classList.add('ip-item');
-                            ipItem.innerText = locationInfo;
-                            ipListElement.appendChild(ipItem);
-                        }
+                        const ipItem = document.createElement('li');
+                        ipItem.classList.add('ip-item');
+                        ipItem.innerText = `IP: ${user.ip}, City: ${user.city || 'Unknown'}, Region: ${user.region || 'Unknown'}, Country: ${user.country || 'Unknown'}`;
+                        ipListElement.appendChild(ipItem);
                     });
                 } else {
                     console.warn('No valid active users data found.');
                     document.getElementById('active-users-count').innerText = 'No active users found.';
+                }
+            });
+
+            // Listen for individual location updates from the server
+            socket.on('locationUpdate', (data) => {
+                console.log('Location update received from server:', data);
+                // Update the IP list with the new location information
+                if (data && data.ip) {
+                    const ipListElement = document.getElementById('ip-list');
+                    const ipItem = document.createElement('li');
+                    ipItem.classList.add('ip-item');
+                    ipItem.innerText = `IP: ${data.ip}, City: ${data.city || 'Unknown'}, Region: ${data.region || 'Unknown'}, Country: ${data.country || 'Unknown'}`;
+                    ipListElement.appendChild(ipItem);
                 }
             });
 
