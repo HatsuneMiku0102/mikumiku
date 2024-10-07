@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('Admin dashboard script loaded.');
 
     // Extract the 'token' cookie if available
@@ -17,47 +17,30 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Valid token detected:', token);
     }
 
-    // Setup the socket connection to get real-time data
+    // Connect to the socket server
     const socket = io();
 
     socket.on('connect', () => {
-        console.log('Socket connected successfully');
+        console.log('Connected to socket server.');
     });
 
     socket.on('connect_error', (error) => {
         console.error('Error connecting to socket:', error);
     });
 
-    // Receive updated list of active users and display their IP information
-    socket.on('activeUsersUpdate', (data) => {
-        console.log('Active users data received:', data); // Log for debugging
-
-        if (data && data.users && Array.isArray(data.users)) {
-            const activeUsersCount = data.users.length;
-            document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
-
-            const ipList = document.getElementById('ip-list');
-            ipList.innerHTML = '';  // Clear previous content
-
-            // Create a set to keep track of unique IPs
-            const uniqueIps = new Set();
-
-            // Loop through the users array and display each user's IP info
-            data.users.forEach(user => {
-                // Check if the IP is already in the set
-                if (!uniqueIps.has(user.ip)) {
-                    uniqueIps.add(user.ip);
-                    const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
-                    const ipItem = document.createElement('li');
-                    ipItem.classList.add('ip-item');
-                    ipItem.innerText = locationInfo;
-                    ipList.appendChild(ipItem);
-                }
-            });
+    // Listen for location updates from the server
+    socket.on('locationUpdate', (data) => {
+        console.log('Location data received:', data);
+        
+        const locationDiv = document.getElementById('location');
+        if (locationDiv) {
+            // Ensure there's content to display
+            const locationInfo = `IP: ${data.ip}, City: ${data.city}, Region: ${data.region}, Country: ${data.country}`;
+            const locationElement = document.createElement('p');
+            locationElement.innerText = locationInfo;
+            locationDiv.appendChild(locationElement);
         } else {
-            console.warn('No valid active users data found.');
-            document.getElementById('active-users-count').innerText = 'No active users found.';
-            document.getElementById('ip-list').innerHTML = '<li>No valid IP data available.</li>';
+            console.warn('Location container not found on page.');
         }
     });
 
