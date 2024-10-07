@@ -1202,17 +1202,17 @@ app.post('/login', async (req, res) => {
         const { username, password } = req.body;
 
         const adminUsername = process.env.ADMIN_USERNAME;
-        const adminPasswordHash = process.env.ADMIN_PASSWORD; // Ensure this is hashed
-        const salt = 'random_salt';
+        const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH; // Updated environment variable
 
         if (username !== adminUsername) {
             logger.warn(`Failed login attempt for username: ${username} from IP: ${req.ip}`);
             return res.status(401).json({ auth: false, message: 'Invalid username or password' });
         }
 
-        const hashedInputPassword = hashPassword(password, salt);
+        // Use bcrypt to compare passwords
+        const isPasswordValid = await bcrypt.compare(password, adminPasswordHash);
 
-        if (hashedInputPassword !== adminPasswordHash) {
+        if (!isPasswordValid) {
             logger.warn(`Failed login attempt for username: ${username} from IP: ${req.ip}`);
             return res.status(401).json({ auth: false, message: 'Invalid username or password' });
         }
