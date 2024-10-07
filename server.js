@@ -1191,6 +1191,12 @@ app.use((req, res, next) => {
     next();
 });
 
+
+// Admin Dashboard Route
+app.get('/admin-dashboard.html', verifyToken, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
+});
+
 app.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -1234,10 +1240,7 @@ app.post('/login', async (req, res) => {
     }
 });
 
-// Admin Dashboard Route
-app.get('/admin-dashboard.html', verifyToken, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
-});
+
 
 
 // Logout Route
