@@ -1191,58 +1191,54 @@ app.use((req, res, next) => {
     next();
 });
 
-// Protected Admin Dashboard Route
-app.get('/admin-dashboard-:random.html', verifyToken, (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
-});
-
-// Login Route
 app.post('/login', async (req, res) => {
-    const { username, password } = req.body;
+    try {
+        const { username, password } = req.body;
 
-    const adminUsername = process.env.ADMIN_USERNAME;
-    const adminPasswordHash = process.env.ADMIN_PASSWORD; // Should be hashed
-    const salt = 'random_salt';
+        const adminUsername = process.env.ADMIN_USERNAME;
+        const adminPasswordHash = process.env.ADMIN_PASSWORD; // Ensure this is hashed
+        const salt = 'random_salt';
 
-    if (username !== adminUsername) {
-        logger.warn(`Failed login attempt for username: ${username} from IP: ${req.ip}`);
-        return res.status(401).json({ auth: false, message: 'Invalid username or password' });
-    }
-
-    const hashedInputPassword = hashPassword(password, salt);
-
-    if (hashedInputPassword !== adminPasswordHash) {
-        logger.warn(`Failed login attempt for username: ${username} from IP: ${req.ip}`);
-        return res.status(401).json({ auth: false, message: 'Invalid username or password' });
-    }
-
-    const token = jwt.sign({ id: adminUsername }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
-        expiresIn: 86400 // 24 hours
-    });
-
-    const dashboardURL = `/admin-dashboard-${generateRandomString()}.html`;
-
-    req.session.dashboardURL = dashboardURL;
-    logger.info(`Stored dashboardURL in session: ${req.session.dashboardURL}`);
-
-    res.cookie('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 86400 * 1000 // 24 hours
-    });
-
-    app.get(dashboardURL, verifyToken, (req, res) => {
-        res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
-    });
-
-    req.session.save((err) => {
-        if (err) {
-            logger.error(`Error saving session: ${err}`);
-            return res.status(500).json({ auth: false, message: 'Error saving session' });
+        if (username !== adminUsername) {
+            logger.warn(`Failed login attempt for username: ${username} from IP: ${req.ip}`);
+            return res.status(401).json({ auth: false, message: 'Invalid username or password' });
         }
-        res.status(200).json({ auth: true, redirect: dashboardURL });
-    });
+
+        const hashedInputPassword = hashPassword(password, salt);
+
+        if (hashedInputPassword !== adminPasswordHash) {
+            logger.warn(`Failed login attempt for username: ${username} from IP: ${req.ip}`);
+            return res.status(401).json({ auth: false, message: 'Invalid username or password' });
+        }
+
+        const token = jwt.sign({ id: adminUsername }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
+            expiresIn: 86400 // 24 hours
+        });
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 86400 * 1000 // 24 hours
+        });
+
+        req.session.save((err) => {
+            if (err) {
+                logger.error(`Error saving session: ${err}`);
+                return res.status(500).json({ auth: false, message: 'Error saving session' });
+            }
+            res.status(200).json({ auth: true, redirect: '/admin-dashboard.html' });
+        });
+    } catch (error) {
+        logger.error(`Unexpected error during login: ${error}`);
+        res.status(500).json({ auth: false, message: 'Internal Server Error' });
+    }
 });
+
+// Admin Dashboard Route
+app.get('/admin-dashboard.html', verifyToken, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
+});
+
 
 // Logout Route
 app.post('/logout', (req, res) => {
