@@ -7,53 +7,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginButton = document.querySelector('.login-button');
 
     loginForm.addEventListener('submit', async (event) => {
-        event.preventDefault(); // Prevent the default form submission
-
+        event.preventDefault();
+        console.log('Login form submitted'); // Debugging log
+    
         // Clear previous messages
         errorMessage.style.display = 'none';
         successMessage.style.display = 'none';
         errorMessage.textContent = '';
         successMessage.textContent = '';
-
-        // Get form values
+    
         const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value.trim();
-
-        // Basic front-end validation
+    
         if (!username || !password) {
+            console.log('Username or password missing'); // Debugging log
             errorMessage.textContent = 'Please enter both username and password.';
             errorMessage.style.display = 'block';
             return;
         }
-
-        // Disable the login button and show loading spinner
+    
         loginButton.disabled = true;
         loadingSpinner.style.display = 'block';
-
+    
         try {
-            // Send login request to server
+            console.log('Sending login request'); // Debugging log
             const response = await fetch('/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                credentials: 'include', // Include cookies in the request
+                credentials: 'include',
                 body: JSON.stringify({ username, password })
             });
-
+    
             const data = await response.json();
-
+            console.log('Response received', data); // Debugging log
+    
             if (response.ok && data.auth) {
-                // Display success message
                 successMessage.textContent = 'Login successful! Redirecting...';
                 successMessage.style.display = 'block';
-
-                // Redirect to the admin dashboard after a short delay
                 setTimeout(() => {
                     window.location.href = data.redirect;
                 }, 1500);
             } else {
-                // Display error message from server
                 errorMessage.textContent = data.message || 'Invalid username or password.';
                 errorMessage.style.display = 'block';
             }
@@ -62,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
             errorMessage.textContent = 'An unexpected error occurred. Please try again later.';
             errorMessage.style.display = 'block';
         } finally {
-            // Re-enable the login button and hide loading spinner
             loginButton.disabled = false;
             loadingSpinner.style.display = 'none';
         }
