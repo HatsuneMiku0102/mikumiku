@@ -630,12 +630,11 @@ app.post('/login', loginLimiter, async (req, res) => {
         });
 
         res.cookie('token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production', // Set to true in production for HTTPS
-            sameSite: 'strict', // Helps prevent CSRF
-            maxAge: 86400 * 1000, // 24 hours in milliseconds
-            path: '/', // Ensure it's accessible from the whole site
-            domain: process.env.NODE_ENV === 'production' ? '.mikumiku.dev' : null // Domain in production
+            httpOnly: false, // Make sure it's false so that JavaScript can access it
+            secure: process.env.NODE_ENV === 'production', // True for production environment over HTTPS
+            sameSite: 'Lax', // Set this to 'Lax' to prevent any issues with CSRF while keeping security reasonable
+            path: '/', // Set the path to the root to allow JavaScript access throughout the site
+            maxAge: 86400 * 1000 // Set an appropriate expiration time (e.g., 24 hours)
         });
 
         req.session.save((err) => {
