@@ -1193,22 +1193,8 @@ app.post('/api/dialogflow', async (req, res) => {
     }
 });
 
-// ----------------------
-// Additional Utility Functions
-// ----------------------
 
-// Function to Get Client IP (Utility)
-function getClientIp(req) {
-    const forwarded = req.headers['x-forwarded-for'];
-    let ip = forwarded ? forwarded.split(',')[0].trim() : req.connection.remoteAddress;
 
-    // Normalize IPv6-mapped IPv4 addresses
-    if (ip.includes("::ffff:")) {
-        ip = ip.split("::ffff:")[1];
-    }
-
-    return ip;
-}
 
 // ----------------------
 // Membership Mapping Functions
