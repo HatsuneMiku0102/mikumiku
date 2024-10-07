@@ -1,3 +1,4 @@
+/* CSS Variables */
 :root {
     --primary-color: #00e5ff;
     --secondary-color: #ff4081;
@@ -17,6 +18,7 @@
     --background-color-night: #2C3E50;
 }
 
+/* Reset and Base Styles */
 *, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
@@ -40,6 +42,7 @@ body {
     animation: fadeInBody 1s ease forwards;
 }
 
+/* Three.js Canvas */
 #techCanvas {
     position: fixed;
     top: 0;
@@ -51,13 +54,14 @@ body {
     background-color: transparent;
 }
 
+/* Title Bar */
 .title-bar {
     position: fixed;
     top: 0;
     width: 100%;
     background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(10px);
-    padding: 1rem 0;
+    padding: 1.5rem 0;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -141,6 +145,7 @@ body {
     left: 50%;
     transform: translateX(-50%);
     text-align: center;
+    font-family: 'Roboto', sans-serif;
     font-size: 1.2em;
     color: #ffffff;
     max-width: 300px;
@@ -237,13 +242,15 @@ body {
     transform: translateY(0);
 }
 
+/* Now Playing Container */
 .now-playing-container {
     width: 100%;
     max-width: 1200px;
-    margin: 10rem auto 0;
+    margin: 9rem auto;
     padding: 0 1rem;
 }
 
+/* Now Playing Section */
 .now-playing {
     display: flex;
     flex-direction: row;
@@ -332,6 +339,7 @@ body {
     margin-top: 1rem;
 }
 
+/* Progress Bar */
 .progress-bar-container {
     position: relative;
     width: 100%;
@@ -381,6 +389,15 @@ body {
     animation: pulseLight 2s infinite linear;
 }
 
+@keyframes pulseLight {
+    0% {
+        left: -20%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
 .time-elapsed {
     margin-top: 10px;
     font-size: 1rem;
@@ -388,6 +405,7 @@ body {
     text-align: center;
 }
 
+/* Toggle Description Button */
 .toggle-description {
     background: none;
     border: none;
@@ -402,6 +420,7 @@ body {
     color: var(--secondary-color);
 }
 
+/* Loading Spinner */
 .loading-spinner {
     display: none;
     width: 50px;
@@ -417,103 +436,119 @@ body {
     z-index: 100;
 }
 
-.merged-widget-container {
+/* Combined Time and Weather Widget */
+.widgets-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+    gap: 40px;
+    background-color: transparent; /* Changed from #f5f5f5 to transparent */
+}
+
+.time-weather-widget {
+    display: flex;
+    flex-direction: row;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 800px;
+    transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    gap: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+}
+
+.time-weather-widget:hover {
+    transform: scale(1.02);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+}
+
+.clock-section,
+.weather-section {
+    flex: 1 1 300px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     align-items: center;
-    background: rgba(0, 0, 0, 0.7);
-    border-radius: 1.5rem;
-    padding: 2rem;
-    max-width: 600px;
+    transition: transform var(--transition-duration) ease, background var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
+}
+
+.clock-section:hover,
+.weather-section:hover {
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+    transform: scale(1.05);
+}
+
+.clocks-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
     width: 100%;
-    margin: 2rem auto;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
-    animation: fadeInWidget 1s ease forwards;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.merged-widget-container:hover {
-    transform: scale(1.02);
-    box-shadow: 0 12px 50px rgba(0, 0, 0, 0.8);
+.digital-clock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
 }
 
-.merged-widget-header {
-    font-size: 1.8rem;
+.digital-clock .local-time {
+    font-size: var(--current-time-font-size);
     font-weight: 700;
     color: var(--primary-color);
-    text-shadow: 1px 1px 5px rgba(0, 229, 255, 0.5);
-    margin-bottom: 1.5rem;
+    animation: fadeIn 1s ease forwards;
+}
+
+.digital-clock .current-date,
+.digital-clock .day-of-week,
+.digital-clock .time-zone {
+    font-size: var(--content-font-size);
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    animation: fadeIn 1s ease forwards;
+}
+
+.analog-clock-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.analog-clock {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    background: transparent;
+    transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
+}
+
+.analog-clock:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+}
+
+.last-visit-message {
+    margin-top: 15px;
+    font-size: 1rem;
     text-align: center;
-    animation: fadeInTitle 1s ease forwards;
+    color: #cccccc;
+    animation: fadeIn 1s ease forwards;
 }
 
-.clock-weather-content {
-    display: flex;
-    align-items: center;
-    gap: 3rem;
-    width: 100%;
-}
-
-.digital-clock-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.digital-clock-info .local-time {
-    font-size: 2.2rem;
-    font-weight: bold;
-    color: var(--primary-color);
-}
-
-.digital-clock-info .current-date {
-    font-size: 1.2rem;
-    color: #ffffff;
-}
-
-.digital-clock-info .day-of-week {
-    font-size: 1.2rem;
-    color: #ffffff;
-}
-
-.weather-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.weather-info img {
-    width: 80px;
-    height: 80px;
-    margin-bottom: 0.5rem;
-    transition: transform 0.3s ease;
-}
-
-.weather-info img:hover {
-    transform: scale(1.1);
-}
-
-.weather-info .weather-description {
-    font-size: 1.2rem;
-    color: #ffffff;
-    text-align: center;
-}
-
-.weather-info .temperature {
-    font-size: 1.4rem;
-    color: var(--secondary-color);
-}
-
-.weather-info .humidity,
-.weather-info .wind-speed {
-    font-size: 1.1rem;
-    color: #ffffff;
-}
-
+/* Footer */
 .footer {
     background-color: rgba(0, 0, 0, 0.85);
     padding: 1.25rem 0;
@@ -549,6 +584,138 @@ body {
     color: #ffffff;
 }
 
+/* Chat Box */
+.chat-box {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 350px;
+    max-width: 100%;
+    background-color: #ffffff;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    overflow: hidden;
+    z-index: 1000;
+}
+
+.chat-header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.2rem;
+}
+
+.close-chat {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+.chat-content {
+    padding: 1rem;
+    max-height: 300px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.message {
+    padding: 10px 15px;
+    border-radius: 15px;
+    max-width: 75%;
+    word-wrap: break-word;
+    font-size: 1rem;
+    animation: fadeIn 0.5s ease forwards;
+}
+
+.user-message {
+    align-self: flex-end;
+    background-color: var(--primary-color);
+    color: white;
+    text-align: right;
+}
+
+.bot-message {
+    align-self: flex-start;
+    background-color: #f1f1f1;
+    color: #333333;
+}
+
+.chat-input-container {
+    display: flex;
+    padding: 0.5rem;
+    border-top: 1px solid #ddd;
+    background-color: #f9f9f9;
+}
+
+.chat-input {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 0.5rem;
+    font-size: 1rem;
+    transition: border-color var(--transition-duration) ease;
+}
+
+.chat-input:focus {
+    border-color: var(--primary-color);
+}
+
+.send-message {
+    background-color: var(--primary-color);
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    margin-left: 0.5rem;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color var(--transition-duration) ease;
+}
+
+.send-message:hover {
+    background-color: #008c9e;
+}
+
+/* Consent Modal */
+.consent-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.consent-button {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color var(--transition-duration) ease, transform 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0, 229, 255, 0.3);
+}
+
+.consent-button:hover {
+    background-color: var(--secondary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(255, 64, 129, 0.4);
+}
+
+.consent-button:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 10px rgba(255, 64, 129, 0.3);
+}
+
+/* Description Modal */
 .modal {
     display: none;
     position: fixed;
@@ -597,16 +764,7 @@ body {
     color: var(--secondary-color);
 }
 
-@keyframes fadeInWidget {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fadeInTitle {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
+/* Keyframe Animations */
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
@@ -630,8 +788,31 @@ body {
 }
 
 @keyframes slideDown {
-    from { transform: translateY(-20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInBody {
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes neonGlow {
@@ -643,16 +824,91 @@ body {
     }
 }
 
-@keyframes fadeInBody {
-    from { opacity: 0; }
-    to { opacity: 1; }
+@keyframes fadeInScale {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
 }
 
-@keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+@keyframes pulseLight {
+    0% {
+        left: -20%;
+    }
+    100% {
+        left: 100%;
+    }
 }
 
+/* Responsive Design */
+
+/* Large Screens (Desktop) */
+@media (min-width: 1201px) {
+    #analog-clock {
+        width: 200px;
+        height: 200px;
+    }
+
+    .clock-section {
+        padding: 20px;
+    }
+
+    .clock-section p, #last-visit-message, #greeting, #time-zone {
+        font-size: 1.2rem;
+    }
+
+    .now-playing-container {
+        margin: 9rem auto;
+    }
+}
+
+/* Medium Screens (Tablet) */
+@media (max-width: 1200px) and (min-width: 769px) {
+    .now-playing {
+        flex-direction: row;
+    }
+
+    .now-playing-sidebar, .video-section {
+        width: 100%;
+    }
+
+    .now-playing-sidebar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .video-thumbnail {
+        max-width: 90%;
+        height: 180px;
+    }
+
+    .progress-bar-container {
+        margin-top: -15px;
+    }
+
+    .time-weather-widget .clock-container .description-box.visible {
+        max-height: 150px;
+    }
+
+    #analog-clock {
+        width: 180px;
+        height: 180px;
+    }
+
+    .clock-section {
+        padding: 18px;
+    }
+
+    .clock-section p, #last-visit-message, #greeting, #time-zone {
+        font-size: 1.1rem;
+    }
+}
+
+/* Small Screens (Mobile) */
 @media (max-width: 768px) {
     .title-bar .container, .widgets-container {
         flex-direction: column;
@@ -754,6 +1010,7 @@ body {
     }
 }
 
+/* Extra Small Screens (Very Small Mobile) */
 @media (max-width: 480px) {
     .logo {
         width: 2rem;
@@ -811,4 +1068,64 @@ body {
     .clock-section p, #last-visit-message, #greeting, #time-zone {
         font-size: 0.9rem;
     }
+}
+
+/* Additional Responsive Adjustments for Time-Weather Widget */
+@media (max-width: 768px) {
+    .time-weather-widget {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+/* Enhanced Clock Container Styling for Modern Look */
+.clock-section {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all var(--transition-duration) ease;
+}
+
+.clock-section:hover {
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 60px rgba(0, 0, 0, 0.2);
+    transform: scale(1.02);
+}
+
+.weather-info {
+    position: relative;
+}
+
+.weather-info p {
+    font-size: var(--content-font-size);
+    color: #ffffff;
+    line-height: 1.5;
+    margin-top: 0.5rem;
+    transition: color var(--transition-duration) ease;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.weather-info p:hover {
+    color: var(--secondary-color);
+}
+
+.analog-clock {
+    pointer-events: none;
+}
+
+.weather-info img, .weather-info svg {
+    width: 100px;
+    height: 100px;
+    transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
+    cursor: pointer;
+}
+
+.weather-info img:hover, .weather-info svg:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px var(--shadow-color);
 }
