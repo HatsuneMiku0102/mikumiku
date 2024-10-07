@@ -65,49 +65,45 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Admin dashboard script loaded.');
     
-            // Extract the 'token' cookie if available
-            const cookieString = document.cookie;
-            console.log('Current cookies:', cookieString);
-    
-            let token = null;
-            try {
-                token = cookieString
-                    .split('; ')
-                    .find(row => row.startsWith('token='))
-                    ?.split('=')[1];
-            } catch (error) {
-                console.error('Error extracting token:', error);
+            // Function to get a cookie by name
+            function getCookie(name) {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+                return null;
             }
+    
+            // Extract the 'token' cookie
+            const token = getCookie('token');
+            
+            console.log('Extracted token:', token);  // Log the token to verify if it's retrieved correctly
     
             if (!token) {
                 console.warn('No valid token found, redirecting to login page.');
                 window.location.href = '/admin-login.html';
             } else {
                 console.log('Valid token detected:', token);
-                // Optionally, you can verify the token here (on the client-side) if needed
             }
         });
     
         // Logout logic
-        const logoutButton = document.getElementById('logout');
-        if (logoutButton) {
-            logoutButton.addEventListener('click', () => {
-                console.log('Logout initiated.');
+        document.getElementById('logout').addEventListener('click', () => {
+            console.log('Logout initiated.');
     
-                fetch('/logout', { method: 'POST', credentials: 'include' })
-                    .then(() => {
-                        console.log('Logout request successful, clearing token cookie.');
-                        // Clear the JWT token by setting its expiration to the past
-                        document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=mikumiku.dev;';
-                        // Redirect the user to the login page
-                        window.location.href = '/admin-login.html';
-                    })
-                    .catch(error => {
-                        console.error('Logout failed:', error);
-                    });
-            });
-        }
+            fetch('/logout', { method: 'POST', credentials: 'include' })
+                .then(() => {
+                    console.log('Logout request successful, clearing token cookie.');
+                    // Clear the JWT token by setting its expiration to the past
+                    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=mikumiku.dev;';
+                    // Redirect the user to the login page
+                    window.location.href = '/admin-login.html';
+                })
+                .catch(error => {
+                    console.error('Logout failed:', error);
+                });
+        });
     </script>
+
 
 </body>
 </html>
