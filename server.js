@@ -263,7 +263,8 @@ app.use(
             styleSrc: [
                 "'self'",
                 "'unsafe-inline'", // Consider replacing with nonces or hashes for better security
-                "https://fonts.googleapis.com"
+                "https://fonts.googleapis.com",
+                "https://cdnjs.cloudflare.com" // Allow stylesheets from cdnjs (e.g., Font Awesome)
             ],
             imgSrc: [
                 "'self'",
@@ -303,6 +304,7 @@ app.use(
         }
     })
 );
+
 
 
 
