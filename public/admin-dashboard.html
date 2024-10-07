@@ -15,6 +15,7 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
+            margin: 0;
         }
 
         .dashboard-container {
@@ -77,6 +78,86 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script src="/admin-dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('Admin dashboard script loaded.');
+
+            // Extract the 'token' cookie if available
+            const cookieString = document.cookie;
+            console.log('Current cookies:', cookieString);
+
+            const token = cookieString
+                .split('; ')
+                .find(row => row.startsWith('token='))
+                ?.split('=')[1];
+
+            if (!token) {
+                console.warn('No valid token found, redirecting to login page.');
+                window.location.href = '/admin-login.html';
+            } else {
+                console.log('Valid token detected:', token);
+            }
+
+            // Connect to the socket server
+            const socket = io();
+
+            socket.on('connect', () => {
+                console.log('Connected to socket server.');
+            });
+
+            socket.on('connect_error', (error) => {
+                console.error('Error connecting to socket:', error);
+            });
+
+            // Listen for active users update from the server
+            socket.on('activeUsersUpdate', (data) => {
+                console.log('Active users data received:', data);
+
+                if (data && data.users && Array.isArray(data.users)) {
+                    const activeUsersCount = data.users.length;
+                    document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
+
+                    const ipListElement = document.getElementById('ip-list');
+                    ipListElement.innerHTML = ''; // Clear previous IP list
+
+                    // Create a set to keep track of unique IPs
+                    const uniqueIps = new Set();
+
+                    // Loop through the users array and display each user's location info
+                    data.users.forEach(user => {
+                        // Check if the IP is already in the set
+                        if (!uniqueIps.has(user.ip)) {
+                            uniqueIps.add(user.ip);
+                            const locationInfo = `IP: ${user.ip}, City: ${user.city}, Region: ${user.region}, Country: ${user.country}`;
+                            const ipItem = document.createElement('li');
+                            ipItem.classList.add('ip-item');
+                            ipItem.innerText = locationInfo;
+                            ipListElement.appendChild(ipItem);
+                        }
+                    });
+                } else {
+                    console.warn('No valid active users data found.');
+                    document.getElementById('active-users-count').innerText = 'No active users found.';
+                }
+            });
+
+            // Logout logic
+            document.getElementById('logout').addEventListener('click', () => {
+                console.log('Logout initiated.');
+
+                fetch('/logout', { method: 'POST', credentials: 'include' })
+                    .then(() => {
+                        console.log('Logout request successful, clearing token cookie.');
+                        // Clear the JWT token by setting its expiration to the past
+                        document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                        // Redirect the user to the login page
+                        window.location.href = '/admin-login.html';
+                    })
+                    .catch(error => {
+                        console.error('Logout failed:', error);
+                    });
+            });
+        });
+    </script>
 </body>
 </html>
