@@ -2,12 +2,19 @@
 <html lang="en">
 
 <head>
+    <!-- Meta Tags and Title -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MikuMiku | Home</title>
+
+    <!-- Fonts and Stylesheets -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Include FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Main Stylesheet -->
     <link rel="stylesheet" href="/styles.css">
-    <!-- Add clockwork.js -->
+
+    <!-- JavaScript Files -->
     <script src="/clockwork.js" defer></script>
 </head>
 
@@ -17,7 +24,7 @@
 
     <div class="page-container">
         <!-- Title Bar -->
-        <div class="title-bar">
+        <div class="title-bar" id="titleBar">
             <div class="container">
                 <div class="left-section"></div>
                 <div class="center-section">
@@ -33,17 +40,28 @@
                             <div id="personalityPhrase" class="personality-text-wrapper">Your Personality Trait</div>
                         </div>
                     </div>
-                    <div class="dropdown">
-                        <button class="dropdown-button">Menu</button>
-                        <div class="dropdown-content">
-                            <a href="/admin-login.html">Admin Login</a>
-                            <!-- Add more menu items here if needed -->
-                        </div>
+                    <!-- Updated Menu Button -->
+                    <div class="menu-button" id="menuButton">
+                        <i class="fas fa-bars"></i>
                     </div>
                 </div>
             </div>
         </div>
         <!-- End of Title Bar -->
+
+        <!-- Fullscreen Overlay Menu -->
+        <div class="overlay-menu" id="overlayMenu">
+            <div class="overlay-content">
+                <a href="/admin-login.html">Admin Login</a>
+                <!-- Add more menu items here -->
+                <!-- Example -->
+                <a href="#aboutMe">About Me</a>
+                <a href="#contact">Contact</a>
+                <!-- Additional menu items can be added here -->
+            </div>
+            <button class="close-overlay" id="closeOverlay" aria-label="Close Menu">×</button>
+        </div>
+        <!-- End of Fullscreen Overlay Menu -->
 
         <!-- Now Playing Section -->
         <div class="now-playing-container">
@@ -201,14 +219,50 @@
                 </div>
             </div>
         </div>
+        <!-- End of Consent Modal -->
 
         <!-- Socket.io Client Library -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
-
         <!-- Import Haru AI script -->
         <script src="haru.js"></script>
+
+        <!-- Custom Scripts -->
+        <script>
+            // Title Bar Scroll Effect
+            const titleBar = document.getElementById('titleBar');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    titleBar.classList.add('scrolled');
+                } else {
+                    titleBar.classList.remove('scrolled');
+                }
+            });
+
+            // Overlay Menu Functionality
+            const menuButton = document.getElementById('menuButton');
+            const overlayMenu = document.getElementById('overlayMenu');
+            const closeOverlay = document.getElementById('closeOverlay');
+
+            menuButton.addEventListener('click', () => {
+                overlayMenu.classList.add('active');
+                document.body.classList.add('overlay-active');
+            });
+
+            closeOverlay.addEventListener('click', () => {
+                overlayMenu.classList.remove('active');
+                document.body.classList.remove('overlay-active');
+            });
+
+            // Close menu when clicking outside of it
+            window.addEventListener('click', (event) => {
+                if (event.target === overlayMenu) {
+                    overlayMenu.classList.remove('active');
+                    document.body.classList.remove('overlay-active');
+                }
+            });
+        </script>
             
         <script>
             // [Cookie Consent Script]
