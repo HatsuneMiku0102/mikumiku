@@ -1333,7 +1333,7 @@ function updateMembershipMapping(discordId, userInfo) {
 const IPINFO_API_KEY = process.env.IPINFO_API_KEY; // Pulls from Heroku environment
 
 app.get('/fetch-location', async (req, res) => {
-    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress;
+    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.connection.remoteAddress;
 
     try {
         const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
@@ -1370,10 +1370,12 @@ app.get('/api/location/:ip', async (req, res) => {
 });
 
 app.post('/track', (req, res) => {
-    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress;
+    // Extracting client IP address
+    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.connection.remoteAddress;
 
     console.log(`Extracted IP: ${ip}`);
 
+    // Send IP to IPinfo or any geolocation service
     getGeoLocation(ip)
         .then(location => {
             res.json({ ip, location });
@@ -1399,7 +1401,8 @@ async function getGeoLocation(ip) {
 }
 
 io.on('connection', (socket) => {
-    const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0] || socket.handshake.address;
+    // Extract IP from socket handshake headers
+    const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
 
     console.log(`New connection from IP: ${ip}`);
 
@@ -1420,6 +1423,7 @@ io.on('connection', (socket) => {
         });
     });
 });
+
 
 
 
