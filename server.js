@@ -252,19 +252,19 @@ app.use(
             defaultSrc: ["'self'"],
             scriptSrc: [
                 "'self'",
-                "'unsafe-inline'", // Note: Consider removing 'unsafe-inline' for better security and replacing it with nonces or hashes
+                "'unsafe-inline'", // Consider removing 'unsafe-inline' for better security and replacing it with nonces or hashes
                 "https://fonts.googleapis.com",
                 "https://cdnjs.cloudflare.com",
                 "https://www.youtube.com",
                 "https://unpkg.com",
                 "https://cdn.jsdelivr.net",
-                "https://cdn.skypack.dev" // Add Skypack to the scriptSrc directive
+                "https://cdn.skypack.dev"
             ],
             styleSrc: [
                 "'self'",
                 "'unsafe-inline'", // Consider replacing with nonces or hashes for better security
                 "https://fonts.googleapis.com",
-                "https://cdnjs.cloudflare.com" // Allow stylesheets from cdnjs (e.g., Font Awesome)
+                "https://cdnjs.cloudflare.com"
             ],
             imgSrc: [
                 "'self'",
@@ -278,7 +278,8 @@ app.use(
             ],
             fontSrc: [
                 "'self'",
-                "https://fonts.gstatic.com"
+                "https://fonts.gstatic.com",
+                "https://cdnjs.cloudflare.com" // Add cdnjs to allow Font Awesome webfonts
             ],
             connectSrc: [
                 "'self'",
@@ -304,6 +305,7 @@ app.use(
         }
     })
 );
+
 
 
 
