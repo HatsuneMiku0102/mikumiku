@@ -12,10 +12,6 @@
     --border-radius: 15px;
     --box-shadow-default: 0 4px 10px rgba(0, 0, 0, 0.4);
     --box-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.7);
-    --background-color-morning: #FFFAE5;
-    --background-color-afternoon: #FFF1C9;
-    --background-color-evening: #FFD1DC;
-    --background-color-night: #2C3E50;
 }
 
 /* Reset and Base Styles */
@@ -62,7 +58,7 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 1000;
-    transition: background-color 0.3s ease, backdrop-filter 0.3s ease, box-shadow 0.3s ease;
+    transition: background-color var(--transition-duration) ease, backdrop-filter var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
     background: transparent;
     backdrop-filter: none;
     box-shadow: none;
@@ -74,22 +70,44 @@ body {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
 }
 
-.title-bar .site-title {
+.title-bar .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 1200px;
+    padding: 0 2rem;
+    gap: 1rem;
+}
+
+/* Logo and Site Title */
+.logo {
+    width: 3rem;
+    cursor: pointer;
+    filter: brightness(0) invert(1);
+    transition: filter var(--transition-duration) ease;
+}
+
+.title-bar.scrolled .logo {
+    filter: none;
+}
+
+.site-title {
+    font-size: 1.8rem;
     color: #ffffff;
-    transition: color 0.3s ease;
+    text-shadow: 2px 2px 5px var(--shadow-color);
+    cursor: pointer;
+    animation: neonGlow 2s infinite alternate;
+    transition: color var(--transition-duration) ease, transform 0.3s ease;
 }
 
 .title-bar.scrolled .site-title {
     color: var(--primary-color);
 }
 
-.title-bar .logo {
-    filter: brightness(0) invert(1);
-    transition: filter 0.3s ease;
-}
-
-.title-bar.scrolled .logo {
-    filter: none;
+.site-title:hover {
+    color: var(--secondary-color);
+    transform: scale(1.05);
 }
 
 /* Menu Button Styles */
@@ -106,7 +124,7 @@ body {
 .menu-button i {
     font-size: 1.5rem;
     color: #ffffff;
-    transition: color 0.3s ease;
+    transition: color var(--transition-duration) ease;
 }
 
 .title-bar.scrolled .menu-button i {
@@ -151,7 +169,7 @@ body {
     color: #ffffff;
     font-size: 2rem;
     text-decoration: none;
-    transition: color 0.3s ease, transform 0.3s ease;
+    transition: color var(--transition-duration) ease, transform 0.3s ease;
 }
 
 .overlay-menu .overlay-content a:hover {
@@ -169,7 +187,7 @@ body {
     font-size: 3rem;
     color: #ffffff;
     cursor: pointer;
-    transition: transform 0.3s ease, color 0.3s ease;
+    transition: transform 0.3s ease, color var(--transition-duration) ease;
 }
 
 .close-overlay:hover {
@@ -182,65 +200,7 @@ body.overlay-active {
     overflow: hidden;
 }
 
-/* Adjustments for the personality circle when title bar is scrolled */
-.title-bar.scrolled .personality-circle {
-    background-color: var(--secondary-color);
-    box-shadow: 0 0 10px rgba(255, 64, 129, 0.7);
-}
-
-.title-bar.scrolled .personality-text-box {
-    background: linear-gradient(135deg, rgba(255, 64, 129, 0.6), rgba(255, 0, 255, 0.8));
-}
-
-
-.title-bar .container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    max-width: 1200px;
-    padding: 0 2rem;
-    gap: 1rem;
-}
-
-.center-section {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.logo-title-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.logo {
-    width: 3rem;
-    cursor: pointer;
-}
-
-.site-title {
-    font-size: 1.8rem;
-    color: var(--primary-color);
-    text-shadow: 2px 2px 5px rgba(0, 229, 255, 0.7);
-    cursor: pointer;
-    animation: neonGlow 2s infinite alternate;
-    transition: color var(--transition-duration) ease, transform 0.3s ease;
-}
-
-.site-title:hover {
-    color: var(--secondary-color);
-    transform: scale(1.05);
-}
-
-.right-section {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
+/* Personality Section */
 .personality-section {
     display: flex;
     align-items: center;
@@ -253,9 +213,14 @@ body.overlay-active {
     height: 50px;
     border-radius: 50%;
     background-color: var(--primary-color);
-    box-shadow: 0 0 10px rgba(0, 229, 255, 0.7);
+    box-shadow: 0 0 10px var(--shadow-color);
     transition: transform 0.4s ease, background-color 0.3s ease;
     cursor: pointer;
+}
+
+.title-bar.scrolled .personality-circle {
+    background-color: var(--secondary-color);
+    box-shadow: 0 0 10px var(--hover-shadow-color);
 }
 
 .personality-circle:hover {
@@ -268,12 +233,11 @@ body.overlay-active {
     left: 50%;
     transform: translateX(-50%);
     text-align: center;
-    font-family: 'Roboto', sans-serif;
     font-size: 1.2em;
     color: #ffffff;
     max-width: 300px;
     padding: 15px 20px;
-    border-radius: 15px;
+    border-radius: var(--border-radius);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
     background: linear-gradient(135deg, rgba(0, 229, 255, 0.6), rgba(0, 0, 255, 0.8));
     backdrop-filter: blur(8px);
@@ -288,6 +252,12 @@ body.overlay-active {
     opacity: 1;
     pointer-events: auto;
     animation: fadeInScale 0.4s ease forwards;
+}
+
+.personality-text-box:hover {
+    transform: translateX(-50%) translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.6);
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.8), rgba(0, 0, 255, 0.9));
 }
 
 .personality-text-box::after {
@@ -307,12 +277,7 @@ body.overlay-active {
     opacity: 1;
 }
 
-.personality-text-box:hover {
-    transform: translateX(-50%) translateY(-5px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.6);
-    background: linear-gradient(135deg, rgba(0, 229, 255, 0.8), rgba(0, 0, 255, 0.9));
-}
-
+/* Dropdown */
 .dropdown {
     position: relative;
 }
@@ -365,7 +330,7 @@ body.overlay-active {
     transform: translateY(0);
 }
 
-/* Now Playing Container */
+/* Now Playing Section */
 .now-playing-container {
     width: 100%;
     max-width: 1200px;
@@ -373,16 +338,15 @@ body.overlay-active {
     padding: 0 1rem;
 }
 
-/* Now Playing Section */
 .now-playing {
     display: flex;
     flex-direction: row;
     background: rgba(0, 0, 0, 0.6);
-    border-radius: 1.5rem;
+    border-radius: var(--border-radius);
     padding: 1rem 2rem;
     width: 100%;
+    box-shadow: var(--box-shadow-default);
     transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
     align-items: flex-start;
 }
 
@@ -401,7 +365,6 @@ body.overlay-active {
 
 .sidebar-item {
     color: #ffffff;
-    margin-bottom: 1rem;
     font-size: 1.2rem;
     padding: 0.5rem 1rem;
     background: rgba(255, 255, 255, 0.1);
@@ -455,6 +418,8 @@ body.overlay-active {
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
 }
 
+
+/* Offline Indicator */
 .offline-indicator {
     font-size: 1.5rem;
     color: var(--secondary-color);
@@ -512,15 +477,7 @@ body.overlay-active {
     animation: pulseLight 2s infinite linear;
 }
 
-@keyframes pulseLight {
-    0% {
-        left: -20%;
-    }
-    100% {
-        left: 100%;
-    }
-}
-
+/* Time Elapsed */
 .time-elapsed {
     margin-top: 10px;
     font-size: 1rem;
@@ -566,7 +523,7 @@ body.overlay-active {
     align-items: flex-start;
     padding: 20px;
     gap: 40px;
-    background-color: transparent; /* Changed from #f5f5f5 to transparent */
+    background-color: transparent;
 }
 
 .time-weather-widget {
@@ -578,17 +535,14 @@ body.overlay-active {
     width: 100%;
     max-width: 800px;
     transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
-    box-shadow: none; /* Removed box-shadow */
     gap: 2rem;
     flex-wrap: wrap;
     justify-content: center;
     align-items: center;
+    box-shadow: none;
 }
 
-.time-weather-widget:hover {
-    /* Removed hover effect from widget container */
-}
-
+/* Clock Section */
 .clock-section {
     flex: 1 1 300px;
     background: rgba(255, 255, 255, 0.05);
@@ -636,10 +590,11 @@ body.overlay-active {
 .digital-clock .time-zone {
     font-size: var(--content-font-size);
     color: #ffffff;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     animation: fadeIn 1s ease forwards;
 }
 
+/* Analog Clock Section */
 .analog-clock-container {
     display: flex;
     justify-content: center;
@@ -660,6 +615,7 @@ body.overlay-active {
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
 }
 
+/* Last Visit Message */
 .last-visit-message {
     margin-top: 15px;
     font-size: 1rem;
@@ -668,6 +624,7 @@ body.overlay-active {
     animation: fadeIn 1s ease forwards;
 }
 
+/* Weather Section */
 .weather-section {
     flex: 1 1 300px;
     background: rgba(255, 255, 255, 0.05);
@@ -703,7 +660,7 @@ body.overlay-active {
     line-height: 1.5;
     margin-top: 0.5rem;
     transition: color var(--transition-duration) ease;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     animation: fadeIn 1s ease forwards;
 }
 
@@ -739,7 +696,7 @@ body.overlay-active {
     line-height: 1.8;
 }
 
-/* Footer */
+/* Footer Section */
 .footer {
     background-color: rgba(0, 0, 0, 0.85);
     padding: 1.25rem 0;
@@ -774,7 +731,7 @@ body.overlay-active {
     color: #ffffff;
 }
 
-/* Chat Box */
+/* Chat Box Section */
 .chat-box {
     display: flex;
     flex-direction: column;
@@ -808,6 +765,7 @@ body.overlay-active {
     cursor: pointer;
 }
 
+/* Chat Messages */
 .chat-content {
     padding: 1rem;
     max-height: 300px;
@@ -839,6 +797,7 @@ body.overlay-active {
     color: #333333;
 }
 
+/* Chat Input */
 .chat-input-container {
     display: flex;
     padding: 0.5rem;
@@ -938,6 +897,8 @@ body.overlay-active {
     margin: 0;
 }
 
+
+/* Close Button */
 .close-button {
     color: #ffffff;
     position: absolute;
@@ -961,14 +922,11 @@ body.overlay-active {
 }
 
 @keyframes pulse {
-    0% {
+    0%, 100% {
         box-shadow: 0 0 15px 10px rgba(255, 64, 129, 0.3);
     }
     50% {
         box-shadow: 0 0 15px 15px rgba(255, 64, 129, 0.5);
-    }
-    100% {
-        box-shadow: 0 0 15px 10px rgba(255, 64, 129, 0.3);
     }
 }
 
@@ -1039,7 +997,8 @@ body.overlay-active {
         flex-direction: row;
     }
 
-    .now-playing-sidebar, .video-section {
+    .now-playing-sidebar,
+    .video-section {
         width: 100%;
     }
 
@@ -1055,10 +1014,6 @@ body.overlay-active {
 
     .progress-bar-container {
         margin-top: -15px;
-    }
-
-    .time-weather-widget .clock-container .description-box.visible {
-        max-height: 150px;
     }
 
     #analog-clock {
@@ -1077,12 +1032,15 @@ body.overlay-active {
 
 /* Small Screens (Mobile) */
 @media (max-width: 768px) {
-    .title-bar .container, .widgets-container {
+    .title-bar .container,
+    .widgets-container {
         flex-direction: column;
         align-items: center;
     }
 
-    .now-playing, .about, .widgets-container {
+    .now-playing,
+    .about,
+    .widgets-container {
         width: 95%;
         padding: 1.5rem;
     }
@@ -1095,7 +1053,7 @@ body.overlay-active {
         max-width: 800px;
     }
 
-    .time-weather-widget .clock-section, 
+    .time-weather-widget .clock-section,
     .time-weather-widget .weather-section {
         flex: 1 1 100%;
         max-width: 100%;
@@ -1121,10 +1079,6 @@ body.overlay-active {
 
     .progress-bar-container {
         margin-top: -20px;
-    }
-
-    .time-weather-widget .clock-section .description-box.visible {
-        max-height: 100px;
     }
 
     #analog-clock {
@@ -1157,23 +1111,6 @@ body.overlay-active {
 
     .video-title-container p {
         font-size: 1.2rem;
-    }
-
-    .clock-section .description-box.visible {
-        max-height: 100px;
-    }
-
-    #analog-clock {
-        width: 120px;
-        height: 120px;
-    }
-
-    .clock-section {
-        padding: 12px;
-    }
-
-    .clock-section p, #last-visit-message, #greeting, #time-zone {
-        font-size: 0.9rem;
     }
 }
 
@@ -1219,10 +1156,6 @@ body.overlay-active {
         font-size: 1.2rem;
     }
 
-    .clock-section .description-box.visible {
-        max-height: 100px;
-    }
-
     #analog-clock {
         width: 120px;
         height: 120px;
@@ -1264,6 +1197,7 @@ body.overlay-active {
     transform: scale(1.02);
 }
 
+/* Weather Info Styling */
 .weather-info {
     position: relative;
 }
@@ -1274,25 +1208,28 @@ body.overlay-active {
     line-height: 1.5;
     margin-top: 0.5rem;
     transition: color var(--transition-duration) ease;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .weather-info p:hover {
     color: var(--secondary-color);
 }
 
-.analog-clock {
-    pointer-events: none;
-}
-
-.weather-info img, .weather-info svg {
+.weather-info img,
+.weather-info svg {
     width: 100px;
     height: 100px;
     transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
     cursor: pointer;
 }
 
-.weather-info img:hover, .weather-info svg:hover {
+.weather-info img:hover,
+.weather-info svg:hover {
     transform: scale(1.1);
     box-shadow: 0 0 10px var(--shadow-color);
+}
+
+/* Analog Clock Styling (Disabled Pointer Events) */
+.analog-clock {
+    pointer-events: none;
 }
