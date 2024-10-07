@@ -2,6 +2,9 @@
 
 'use strict';
 
+// ----------------------
+// Import Dependencies
+// ----------------------
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -26,15 +29,21 @@ const { body, validationResult } = require('express-validator');
 const dialogflow = require('@google-cloud/dialogflow');
 const uuid = require('uuid');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 
+// ----------------------
+// Load Environment Variables
+// ----------------------
 dotenv.config();
 
-
+// ----------------------
+// Initialize Express App and Server
+// ----------------------
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: "*", // Temporarily allow all origins
+        origin: "*", // Adjust in production for specific origins
         methods: ["GET", "POST"],
         allowedHeaders: ["my-custom-header"],
         credentials: true
@@ -43,7 +52,9 @@ const io = socketIo(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// Configure logging using winston
+// ----------------------
+// Configure Logging with Winston
+// ----------------------
 const logger = winston.createLogger({
     level: 'info',
     format: winston.format.combine(
@@ -58,165 +69,24 @@ const logger = winston.createLogger({
     ]
 });
 
-app.get('/api/keys', (req, res) => {
-  res.json({
-    YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY,
-    OPENWEATHER_API_KEY: process.env.OPENWEATHER_API_KEY,
-  });
-});
-
-app.set('trust proxy', 1);
-
-// Middleware
-app.use(bodyParser.json());
-app.use(cookieParser());
-app.use(cors());
-
-
-
-
-// Update Video or Browsing Presence Data
-const categoryMappings = {
-    "1": "Film & Animation",
-    "2": "Autos & Vehicles",
-    "10": "Music",
-    "15": "Pets & Animals",
-    "17": "Sports",
-    "19": "Travel & Events",
-    "20": "Gaming",
-    "21": "Videoblogging",
-    "22": "People & Blogs",
-    "23": "Comedy",
-    "24": "Entertainment",
-    "25": "News & Politics",
-    "26": "Howto & Style",
-    "27": "Education",
-    "28": "Science & Technology",
-    "29": "Nonprofits & Activism",
-    // Add more mappings as necessary
-};
-
-// Update Video or Browsing Presence Data
-app.post('/updatePresenceData', async (req, res) => {
-    const { presenceType, videoId, title, description, currentTime, isPaused, isOffline } = req.body;
-
-    if (!presenceType) {
-        logger.error('Invalid presence type received');
-        return res.status(400).send('Invalid presence type');
-    }
-
-    try {
-        let presenceData = {};
-
-        if (presenceType === 'video') {
-            if (!videoId) {
-                logger.error('Invalid video ID received for video presence');
-                return res.status(400).send('Invalid video ID for video presence');
-            }
-
-            // Fetch video details from YouTube API
-            const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,statistics,contentDetails`;
-            const response = await axios.get(apiUrl);
-            const videoData = response.data.items[0];
-
-            if (!videoData) {
-                logger.error('No video data found');
-                return res.status(404).send('Video not found');
-            }
-
-            const thumbnail = videoData.snippet.thumbnails.default.url;
-            const categoryId = videoData.snippet.categoryId;
-            const channelTitle = videoData.snippet.channelTitle;
-            const viewCount = videoData.statistics.viewCount;
-            const publishedAt = videoData.snippet.publishedAt;
-
-            // Convert the ISO 8601 duration format to seconds
-            const durationISO = videoData.contentDetails.duration;
-            const duration = convertISO8601ToSeconds(durationISO);
-
-            const category = categoryMappings[categoryId] || 'Unknown Category';
-
-            logger.info(`[Socket.IO] Video Data: Video ID: ${videoId}, Title: ${title}, Description: ${description}, Thumbnail: ${thumbnail}, Category: ${category}, Channel: ${channelTitle}, Views: ${viewCount}, Uploaded: ${publishedAt}, Duration: ${duration}`);
-
-            presenceData = {
-                presenceType: 'video',
-                videoId,
-                title: title || videoData.snippet.title, // Use the fetched title if not provided
-                description: description || videoData.snippet.description, // Use the fetched description if not provided
-                thumbnail: thumbnail,
-                category: category,
-                channelTitle: channelTitle,
-                viewCount: viewCount,
-                publishedAt: publishedAt,
-                currentTime: currentTime || 0,
-                isPaused: isPaused,
-                isOffline: !!isOffline,
-                duration: duration
-            };
-
-        } else if (presenceType === 'browsing') {
-            // Handle browsing presence
-            const thumbnail = "https://www.youtube.com/img/desktop/yt_1200.png"; // Default YouTube thumbnail for browsing
-            presenceData = {
-                presenceType: 'browsing',
-                title: title || "Browsing YouTube",
-                description: description || "Currently browsing videos on YouTube.",
-                thumbnail,
-                currentTime: currentTime || 0,
-                isPaused: true,
-                isOffline: !!isOffline
-            };
-
-            logger.info(`[Socket.IO] Browsing Data: Title="${presenceData.title}", Description="${presenceData.description}", Thumbnail="${thumbnail}"`);
-        } else {
-            logger.error('Invalid presence type received');
-            return res.status(400).send('Invalid presence type');
-        }
-
-        // Update current state and notify all clients
-        currentPresenceData = presenceData;
-        io.emit('nowPlayingUpdate', currentPresenceData);
-        logger.info(`[Socket.IO] Emitted "nowPlayingUpdate" to all clients: ${JSON.stringify(currentPresenceData)}`);
-
-        res.status(200).send('Presence data updated successfully');
-    } catch (error) {
-        logger.error(`[Socket.IO] Error fetching video data: ${error.message}`);
-        res.status(500).send('Error fetching video data');
-    }
-});
-
-// Helper function to convert ISO 8601 duration to seconds
-function convertISO8601ToSeconds(isoDuration) {
-    const matches = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-    const hours = parseInt(matches[1] || 0, 10);
-    const minutes = parseInt(matches[2] || 0, 10);
-    const seconds = parseInt(matches[3] || 0, 10);
-    return hours * 3600 + minutes * 60 + seconds;
-}
-
-
-
-
-
-
-
-
-
-
-// MongoDB Connection
+// ----------------------
+// Connect to MongoDB
+// ----------------------
 const mongoUrl = process.env.MONGO_URL;
 
 mongoose.connect(mongoUrl, {
     useNewUrlParser: true,
-    useUnifiedTopology: true,
-    useFindAndModify: false
+    useUnifiedTopology: true
 }).then(() => {
     logger.info('Connected to MongoDB');
 }).catch((err) => {
     logger.error(`Error connecting to MongoDB: ${err}`);
+    process.exit(1); // Exit if unable to connect
 });
 
-// Session Store
+// ----------------------
+// Configure Session Store
+// ----------------------
 const sessionStore = MongoStore.create({
     mongoUrl: mongoUrl,
     collectionName: 'sessions',
@@ -232,27 +102,29 @@ sessionStore.on('error', (error) => {
     logger.error(`Session store error: ${error}`);
 });
 
-// Session Middleware
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-session-secret',
-    resave: false,
-    saveUninitialized: false,
-    store: sessionStore,
-    cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 1 day
-    }
-}));
+// ----------------------
+// Configure Express Middlewares
+// ----------------------
 
-// Set Content Security Policy using helmet
+// Body Parser Middleware
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Cookie Parser Middleware
+app.use(cookieParser());
+
+// CORS Middleware
+app.use(cors());
+
+// Helmet for Security Headers
 app.use(
     helmet.contentSecurityPolicy({
         directives: {
             defaultSrc: ["'self'"],
             scriptSrc: [
                 "'self'",
-                "'unsafe-inline'", // Consider removing 'unsafe-inline' for better security and replacing it with nonces or hashes
+                // Remove 'unsafe-inline' in production and use nonces or hashes
+                "'unsafe-inline'",
                 "https://fonts.googleapis.com",
                 "https://cdnjs.cloudflare.com",
                 "https://www.youtube.com",
@@ -262,13 +134,13 @@ app.use(
             ],
             styleSrc: [
                 "'self'",
-                "'unsafe-inline'", // Consider replacing with nonces or hashes for better security
+                "'unsafe-inline'",
                 "https://fonts.googleapis.com",
                 "https://cdnjs.cloudflare.com"
             ],
             imgSrc: [
                 "'self'",
-                "'blob:'", // Allow blob images
+                "'blob:'",
                 "data:",
                 "https://i.ytimg.com",
                 "https://img.youtube.com",
@@ -279,11 +151,11 @@ app.use(
             fontSrc: [
                 "'self'",
                 "https://fonts.gstatic.com",
-                "https://cdnjs.cloudflare.com" // Add cdnjs to allow Font Awesome webfonts
+                "https://cdnjs.cloudflare.com"
             ],
             connectSrc: [
                 "'self'",
-                "'blob:'", // Allow blob URLs for connections
+                "'blob:'",
                 "https://www.googleapis.com",
                 "https://*.youtube.com",
                 "https://api.openweathermap.org"
@@ -306,281 +178,25 @@ app.use(
     })
 );
 
-
-
-
-
-
-
-// Serve static files from 'public'
+// Serve Static Files
 app.use(express.static(path.join(__dirname, 'public'), {
     etag: false,
     maxAge: 0,
     lastModified: false
 }));
 
-
-
-
-console.log("Loading credentials from environment variable...");
-let credentials;
-
-try {
-    credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
-    console.log("Credentials loaded successfully.");
-} catch (error) {
-    console.error("Error parsing credentials JSON from environment variable:", error);
-    process.exit(1);
-}
-
-// Create a new Dialogflow session client with credentials
-let sessionClient;
-
-try {
-    sessionClient = new dialogflow.SessionsClient({
-        credentials: {
-            client_email: credentials.client_email,
-            private_key: credentials.private_key,
-        },
-    });
-    console.log("Dialogflow session client initialized successfully.");
-} catch (error) {
-    console.error("Error initializing Dialogflow session client:", error);
-    process.exit(1);
-}
-
-// Set the project ID explicitly to ensure we're using the correct Dialogflow agent
-const projectId = 'haru-ai-sxjr'; // Set the project ID explicitly here
-console.log(`Using project ID: ${projectId}`);
-
-
-
-async function performWebSearch(query) {
-    const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
-    const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
-    const SEARCH_ENDPOINT = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}`;
-
-    try {
-        console.log(`Performing Google Custom Search for query: "${query}"`);
-        const response = await fetch(SEARCH_ENDPOINT);
-        const data = await response.json();
-
-        if (data.items && data.items.length > 0) {
-            // Format the top search results
-            const formattedResults = data.items.slice(0, 3).map((item, index) => {
-                return `**${index + 1}. [${item.title}](${item.link})**\n${item.snippet}`;
-            }).join("\n\n");
-            
-            return `Here are the top results I found for "${query}":\n\n${formattedResults}`;
-        } else {
-            return `Sorry, I couldn’t find anything relevant for "${query}".`;
-        }
-    } catch (error) {
-        console.error('Error fetching web search results:', error);
-        return 'Sorry, something went wrong while searching the web.';
-    }
-}
-
-
-// Define the web search function
-async function getWebSearchResults(query) {
-    const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
-    const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
-
-    if (!GOOGLE_API_KEY || !GOOGLE_CSE_ID) {
-        console.error("Missing Google API Key or CSE ID.");
-        return 'Configuration error: Missing Google API Key or CSE ID.';
-    }
-
-    const SEARCH_ENDPOINT = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}`;
-
-    try {
-        console.log(`Fetching web search results for query: "${query}"`);
-        const response = await fetch(SEARCH_ENDPOINT);
-
-        if (!response.ok) {
-            console.error(`Error fetching web search results: ${response.status} - ${response.statusText}`);
-            return handleFetchError(response.status);
-        }
-
-        const data = await response.json();
-        console.log("Received web search data:", data);
-
-        if (data.items && data.items.length > 0) {
-            const lowerCaseQuery = query.toLowerCase();
-            const keyWords = ["who", "what", "when", "where", "why", "how"];
-            const questionType = keyWords.find(word => lowerCaseQuery.startsWith(word));
-
-            const topResults = data.items.slice(0, 3).map((item, index) => {
-                let responseSnippet = item.snippet;
-                let focusText = '';
-
-                // Advanced context extraction based on question type
-                if (questionType === "who" || questionType === "what") {
-                    // Provide a direct answer by focusing on the first sentence
-                    responseSnippet = item.snippet.split('. ')[0];
-                } else if (questionType === "when") {
-                    // Look for dates or time-related keywords
-                    const datePattern = /\b(?:\d{1,2}(?:st|nd|rd|th)?\s\w+|\w+\s\d{1,2},\s\d{4}|\d{4})\b/;
-                    const dateMatch = item.snippet.match(datePattern);
-                    if (dateMatch) {
-                        focusText = `<br><i>Related Time/Date:</i> ${dateMatch[0]}`;
-                    }
-                } else if (questionType === "where") {
-                    // Look for location keywords in the snippet
-                    const locationKeywords = ["city", "country", "location", "place"];
-                    const location = locationKeywords.find(keyword => item.snippet.toLowerCase().includes(keyword));
-                    if (location) {
-                        focusText = `<br><i>Location Reference:</i> ${location}`;
-                    }
-                }
-
-                // Format the response for better readability
-                return `<b>${index + 1}. <a href="${item.link}" target="_blank">${item.title}</a></b><br>${responseSnippet}${focusText}`;
-            }).join("<br><br>");
-
-            return `Here are the top results I found for "<b>${query}</b>":<br><br>${topResults}`;
-        } else {
-            return `Sorry, I couldn’t find anything relevant for "<b>${query}</b>".`;
-        }
-    } catch (error) {
-        console.error('Error fetching web search results:', error);
-        return 'Sorry, something went wrong while searching the web.';
-    }
-}
-
-// Handle fetch errors and provide specific messages for different error codes
-function handleFetchError(status) {
-    switch (status) {
-        case 400:
-            return 'Bad Request: Please check your query and try again.';
-        case 403:
-            return 'Access Forbidden: This might be due to an API key issue or quota limits being exceeded.';
-        case 404:
-            return 'No results found. Please check your query and try again.';
-        default:
-            return 'An unexpected error occurred. Please try again later.';
-    }
-}
-
-
-
-// Handle incoming Dialogflow requests
-app.post('/api/dialogflow', async (req, res) => {
-    const userMessage = req.body.message;
-    console.log(`Received user message: ${userMessage}`);
-
-    if (!userMessage) {
-        console.error("No user message provided in request.");
-        res.status(400).json({ response: 'No message provided.' });
-        return;
-    }
-
-    const sessionId = uuid.v4();
-    const sessionPath = sessionClient.projectAgentSessionPath(projectId, sessionId);
-    console.log(`Generated session path: ${sessionPath}`);
-
-    const request = {
-        session: sessionPath,
-        queryInput: {
-            text: {
-                text: userMessage,
-                languageCode: 'en-US',
-            },
-        },
-    };
-
-    console.log("Sending request to Dialogflow...");
-    try {
-        const responses = await sessionClient.detectIntent(request);
-        console.log("Received response from Dialogflow.");
-
-        const result = responses[0].queryResult;
-        console.log("Query Result:", JSON.stringify(result, null, 2));
-
-        if (result && result.fulfillmentText) {
-            console.log("Sending fulfillment text back to client:", result.fulfillmentText);
-            // Send the interim response back while search is being performed
-            res.json({ response: result.fulfillmentText });
-
-            // If the action is web.search, initiate the search
-            if (result.action === 'web.search') {
-                console.log("Handling web search action...");
-                const parameters = result.parameters.fields;
-
-                if (parameters && parameters.q && parameters.q.stringValue) {
-                    const searchQuery = parameters.q.stringValue;
-                    console.log(`Performing web search for query: "${searchQuery}"`);
-
-                    // Perform web search using Google Custom Search API
-                    const webSearchResponse = await getWebSearchResults(searchQuery);
-                    console.log("Received web search data:", webSearchResponse);
-
-                    // After obtaining the search result, notify the client via a WebSocket or another POST request to update the response.
-                    // Assuming you're using WebSockets to maintain real-time updates:
-                    io.emit('webSearchResult', { userMessage, response: webSearchResponse });
-                } else {
-                    console.error("Missing search query parameter.");
-                }
-            }
-        } else {
-            console.warn("Dialogflow response did not contain fulfillment text or actionable intent.");
-            res.json({ response: 'Sorry, I couldn’t understand that.' });
-        }
-    } catch (error) {
-        console.error('Dialogflow API error:', error);
-        res.status(500).json({ response: 'Sorry, something went wrong.' });
-    }
+// ----------------------
+// Rate Limiting Middleware
+// ----------------------
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // Limit each IP to 10 login requests per window
+    message: 'Too many login attempts from this IP, please try again after 15 minutes'
 });
 
-
-// Web search function
-async function getWebSearchResults(query) {
-    const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
-    const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
-
-    if (!GOOGLE_API_KEY || !GOOGLE_CSE_ID) {
-        console.error("Missing Google API Key or CSE ID.");
-        return 'Configuration error: Missing Google API Key or CSE ID.';
-    }
-
-    const SEARCH_ENDPOINT = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}`;
-
-    try {
-        console.log(`Fetching web search results for query: "${query}"`);
-        const response = await fetch(SEARCH_ENDPOINT);
-
-        if (!response.ok) {
-            console.error(`Error fetching web search results: ${response.status} - ${response.statusText}`);
-            return `Error: Received status code ${response.status}. Please check the request or try again later.`;
-        }
-
-        const data = await response.json();
-        console.log("Received web search data:", data);
-
-        if (data.items && data.items.length > 0) {
-            const topResults = data.items.slice(0, 3).map((item, index) => {
-                return `<b>${index + 1}. <a href="${item.link}" target="_blank">${item.title}</a></b><br>${item.snippet}`;
-            }).join("<br><br>");
-
-            return `Here are the top results I found for "${query}":<br><br>${topResults}`;
-        } else {
-            return 'Sorry, I couldn’t find anything relevant.';
-        }
-    } catch (error) {
-        console.error('Error fetching web search results:', error);
-        return 'Sorry, something went wrong while searching the web.';
-    }
-}
-
-
-
-
-
-
-
-
-// MongoDB Schemas and Models
+// ----------------------
+// Define Mongoose Schemas and Models
+// ----------------------
 const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
     bungie_name: { type: String, required: true },
@@ -623,24 +239,27 @@ const commentSchema = new mongoose.Schema({
 
 const Comment = mongoose.model('Comment', commentSchema);
 
+// ----------------------
 // Helper Functions
+// ----------------------
+
+// Generate Random String (for state parameter in OAuth)
 function generateRandomString(size = 16) {
     return crypto.randomBytes(size).toString('hex');
 }
 
-function hashPassword(password, salt) {
-    return crypto.createHmac('sha256', salt)
-        .update(password)
-        .digest('hex');
+// Convert ISO 8601 Duration to Seconds
+function convertISO8601ToSeconds(isoDuration) {
+    const matches = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    const hours = parseInt(matches[1] || 0, 10);
+    const minutes = parseInt(matches[2] || 0, 10);
+    const seconds = parseInt(matches[3] || 0, 10);
+    return hours * 3600 + minutes * 60 + seconds;
 }
 
-// Example: Hashing a plain password (for demonstration purposes)
-const plainPassword = 'Aria';
-const salt = 'random_salt';
-const hashedPassword = hashPassword(plainPassword, salt);
-logger.info(`Hashed Password: ${hashedPassword}`);
-
+// ----------------------
 // JWT Verification Middleware
+// ----------------------
 function verifyToken(req, res, next) {
     const token = req.cookies.token;
     logger.info(`Token from cookie: ${token}`);
@@ -661,133 +280,112 @@ function verifyToken(req, res, next) {
     });
 }
 
-
-
-
-
-app.get('/api/youtube', async (req, res) => {
-    const videoId = req.query.videoId;
-
-    if (!videoId) {
-        return res.status(400).json({ error: 'videoId parameter is required.' });
-    }
-
-    const apiKey = process.env.YOUTUBE_API_KEY;
-    if (!apiKey) {
-        console.error('YOUTUBE_API_KEY is not set in environment variables.');
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
-
-    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${encodeURIComponent(videoId)}&part=snippet,statistics,contentDetails&key=${apiKey}`;
+// ----------------------
+// OAuth Helper Functions
+// ----------------------
+async function getBungieToken(code) {
+    const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
+    const payload = new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code,
+        client_id: process.env.CLIENT_ID,
+        client_secret: process.env.CLIENT_SECRET,
+        redirect_uri: process.env.REDIRECT_URI || 'https://mikumiku.dev/callback'
+    });
+    const headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-API-Key': process.env.X_API_KEY
+    };
 
     try {
-        const data = await retry(
-            async (bail, attempt) => {
-                try {
-                    const response = await axios.get(apiUrl);
-                    
-                    // Handle the response
-                    if (response.status === 200) {
-                        const responseData = response.data;
-
-                        // Validate the response structure
-                        if (
-                            !responseData.items ||
-                            responseData.items.length === 0 ||
-                            !responseData.items[0].snippet
-                        ) {
-                            throw new Error('Unexpected response structure from YouTube API.');
-                        }
-
-                        return responseData;
-                    } else if (response.status === 403) {
-                        // If the error is related to a forbidden request or quota limit, bail and do not retry
-                        bail(new Error('YouTube API quota exceeded or access forbidden.'));
-                    } else {
-                        throw new Error(`Failed to fetch data from YouTube API. Status: ${response.status}`);
-                    }
-                } catch (err) {
-                    if (err.response) {
-                        // Handle HTTP response errors
-                        if (err.response.status === 404) {
-                            bail(new Error('Video not found.'));
-                        } else if (err.response.status >= 500) {
-                            // Retry if YouTube's servers are having issues
-                            console.warn(`Attempt ${attempt}: YouTube API returned a server error. Retrying...`);
-                            throw err; // Retry this error
-                        } else {
-                            // For other client-side errors, do not retry
-                            bail(err);
-                        }
-                    } else {
-                        // Handle network errors or other unknown errors
-                        console.warn(`Attempt ${attempt}: Network error or unknown issue occurred. Retrying...`);
-                        throw err; // Retry on network errors
-                    }
-                }
-            },
-            {
-                retries: 3,
-                factor: 2,
-                minTimeout: 1000,
-                maxTimeout: 5000,
-            }
-        );
-
-        // Extract the required details, including the duration
-        const videoData = data.items[0];
-        const durationISO = videoData.contentDetails.duration;
-        const duration = convertISO8601ToSeconds(durationISO);
-
-        // Formatted response with all required fields
-        const responsePayload = {
-            videoId: videoData.id,
-            title: videoData.snippet.title,
-            description: videoData.snippet.description,
-            channelTitle: videoData.snippet.channelTitle,
-            viewCount: videoData.statistics.viewCount,
-            publishedAt: videoData.snippet.publishedAt,
-            thumbnail: videoData.snippet.thumbnails.default.url,
-            categoryId: videoData.snippet.categoryId,
-            duration: duration // Duration in seconds
-        };
-
-        // Successfully fetched data
-        res.status(200).json(responsePayload);
+        const response = await axios.post(url, payload.toString(), { headers });
+        logger.info(`Token Response: ${JSON.stringify(response.data)}`);
+        return response.data;
     } catch (error) {
-        console.error(`Error fetching YouTube video data for videoId ${videoId}: ${error.message}`);
-
-        // Differentiate error types for better client handling
-        if (error.message.includes('quota')) {
-            return res.status(403).json({ error: 'YouTube API quota exceeded. Please try again later.' });
-        } else if (error.message.includes('not found')) {
-            return res.status(404).json({ error: 'The requested video was not found.' });
-        } else if (error.message.includes('forbidden')) {
-            return res.status(403).json({ error: 'YouTube API access forbidden. Please check your API key.' });
+        logger.error(`Error fetching Bungie token: ${error}`);
+        if (error.response) {
+            logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
+            logger.error(`Response status: ${error.response.status}`);
+            logger.error(`Response headers: ${JSON.stringify(error.response.headers)}`);
+        } else if (error.request) {
+            logger.error(`Request made but no response received: ${error.request}`);
         } else {
-            return res.status(500).json({ error: 'Internal Server Error' });
+            logger.error(`Error setting up request: ${error.message}`);
         }
+        throw new Error('Failed to fetch Bungie token');
     }
-});
-
-// Helper function to convert ISO 8601 duration to seconds
-function convertISO8601ToSeconds(isoDuration) {
-    const matches = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-    const hours = parseInt(matches[1] || 0, 10);
-    const minutes = parseInt(matches[2] || 0, 10);
-    const seconds = parseInt(matches[3] || 0, 10);
-    return hours * 3600 + minutes * 60 + seconds;
 }
 
+async function refreshBungieToken(refreshToken) {
+    const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
+    const payload = new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        client_id: process.env.CLIENT_ID,
+        client_secret: process.env.CLIENT_SECRET
+    });
+    const headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-API-Key': process.env.X_API_KEY
+    };
 
+    try {
+        const response = await axios.post(url, payload.toString(), { headers });
+        logger.info(`Refresh Token Response: ${JSON.stringify(response.data)}`);
+        return response.data;
+    } catch (error) {
+        logger.error(`Error refreshing Bungie token: ${error}`);
+        if (error.response) {
+            logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
+            logger.error(`Response status: ${error.response.status}`);
+            logger.error(`Response headers: ${JSON.stringify(error.response.headers)}`);
+        } else if (error.request) {
+            logger.error(`Request made but no response received: ${error.request}`);
+        } else {
+            logger.error(`Error setting up request: ${error.message}`);
+        }
+        throw new Error('Failed to refresh Bungie token');
+    }
+}
 
+async function getBungieUserInfo(accessToken) {
+    const url = 'https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/';
+    const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-API-Key': process.env.X_API_KEY,
+        'User-Agent': 'axios/0.21.4'
+    };
+
+    try {
+        const response = await axios.get(url, { headers });
+        logger.info(`User Info Response: ${JSON.stringify(response.data)}`);
+        return response.data;
+    } catch (error) {
+        logger.error(`Error fetching Bungie user info: ${error}`);
+        if (error.response) {
+            logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
+            logger.error(`Response status: ${error.response.status}`);
+            logger.error(`Response headers: ${JSON.stringify(error.response.headers)}`);
+        } else if (error.request) {
+            logger.error(`Request made but no response received: ${error.request}`);
+        } else {
+            logger.error(`Error setting up request: ${error.message}`);
+        }
+        throw new Error('Failed to fetch Bungie user info');
+    }
+}
+
+// ----------------------
 // OAuth Configuration
+// ----------------------
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = 'https://mikumiku.dev/callback';
+const REDIRECT_URI = process.env.REDIRECT_URI || 'https://mikumiku.dev/callback';
 
+// Membership Mapping File Path
 const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
 
+// Update Membership Mapping Function
 function updateMembershipMapping(discordId, userInfo) {
     let membershipMapping = {};
 
@@ -827,12 +425,17 @@ function updateMembershipMapping(discordId, userInfo) {
     }
 }
 
+// Send User Info to Discord Bot (Implementation Needed)
 async function sendUserInfoToDiscordBot(discordId, userInfo) {
     logger.info(`User info ready to be sent to Discord bot: ${JSON.stringify(userInfo)}`);
     // Implement the logic to send user info to your Discord bot here
 }
 
-// OAuth Routes
+// ----------------------
+// Define OAuth Routes
+// ----------------------
+
+// Login Route
 app.get('/login', async (req, res) => {
     const state = generateRandomString(16);
     const user_id = req.query.user_id;
@@ -851,7 +454,7 @@ app.get('/login', async (req, res) => {
         await sessionData.save();
         logger.info(`Generated state: ${state}`);
         logger.info(`Inserted session: ${JSON.stringify(sessionData)}`);
-        const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${REDIRECT_URI}`;
+        const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
         res.redirect(authorizeUrl);
     } catch (err) {
         logger.error(`Error saving session to DB: ${err}`);
@@ -859,6 +462,7 @@ app.get('/login', async (req, res) => {
     }
 });
 
+// Callback Route
 app.get('/callback', async (req, res) => {
     const state = req.query.state;
     const code = req.query.code;
@@ -888,10 +492,10 @@ app.get('/callback', async (req, res) => {
         const tokenExpiry = DateTime.now().plus({ seconds: expiresIn }).toJSDate();
 
         const userInfo = await getBungieUserInfo(accessToken);
-        logger.info('User Info Response:', JSON.stringify(userInfo));
+        logger.info(`User Info Response: ${JSON.stringify(userInfo)}`);
 
         if (!userInfo.Response || !userInfo.Response.destinyMemberships) {
-            logger.error('Incomplete user info response:', JSON.stringify(userInfo));
+            logger.error(`Incomplete user info response: ${JSON.stringify(userInfo)}`);
             throw new Error('Failed to obtain user information');
         }
 
@@ -955,10 +559,12 @@ app.get('/callback', async (req, res) => {
     }
 });
 
+// Confirmation Route
 app.get('/confirmation.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'confirmation.html'));
 });
 
+// Get Bungie Name Route
 app.get('/api/bungie-name', async (req, res) => {
     const token = req.query.token;
 
@@ -975,233 +581,15 @@ app.get('/api/bungie-name', async (req, res) => {
     }
 });
 
-// Comment Routes
-app.post('/api/comments', async (req, res) => {
-    try {
-        const { username, comment } = req.body;
-        const newComment = new Comment({ username, comment });
-        await newComment.save();
-        res.status(201).send(newComment);
-    } catch (error) {
-        logger.error(`Error saving comment: ${error}`);
-        res.status(500).send({ error: 'Error saving comment' });
-    }
-});
-
-app.get('/api/comments', async (req, res) => {
-    try {
-        const comments = await Comment.find({ approved: true });
-        res.json(comments);
-    } catch (error) {
-        logger.error(`Error fetching comments: ${error}`);
-        res.status(500).send({ error: 'Error fetching comments' });
-    }
-});
-
-app.delete('/api/comments/:id', verifyToken, async (req, res) => {
-    try {
-        const { id } = req.params;
-        await Comment.findByIdAndDelete(id);
-        res.status(200).send({ message: 'Comment deleted' });
-    } catch (error) {
-        logger.error(`Error deleting comment: ${error}`);
-        res.status(500).send({ error: 'Error deleting comment' });
-    }
-});
-
-// Utility Functions
-async function getBungieToken(code) {
-    const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
-    const payload = new URLSearchParams({
-        grant_type: 'authorization_code',
-        code: code,
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
-        redirect_uri: REDIRECT_URI
-    });
-    const headers = {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-API-Key': process.env.X_API_KEY
-    };
-
-    try {
-        const response = await axios.post(url, payload.toString(), { headers });
-        logger.info(`Token Response: ${JSON.stringify(response.data)}`);
-        return response.data;
-    } catch (error) {
-        logger.error(`Error fetching Bungie token: ${error}`);
-        if (error.response) {
-            logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
-            logger.error(`Response status: ${error.response.status}`);
-            logger.error(`Response headers: ${JSON.stringify(error.response.headers)}`);
-        } else if (error.request) {
-            logger.error(`Request made but no response received: ${error.request}`);
-        } else {
-            logger.error(`Error setting up request: ${error.message}`);
-        }
-        throw new Error('Failed to fetch Bungie token');
-    }
-}
-
-async function refreshBungieToken(refreshToken) {
-    const url = 'https://www.bungie.net/Platform/App/OAuth/Token/';
-    const payload = new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken,
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET
-    });
-    const headers = {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-API-Key': process.env.X_API_KEY
-    };
-
-    try {
-        const response = await axios.post(url, payload.toString(), { headers });
-        logger.info(`Refresh Token Response: ${JSON.stringify(response.data)}`);
-        return response.data;
-    } catch (error) {
-        logger.error(`Error refreshing Bungie token: ${error}`);
-        if (error.response) {
-            logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
-            logger.error(`Response status: ${error.response.status}`);
-            logger.error(`Response headers: ${JSON.stringify(error.response.headers)}`);
-        } else if (error.request) {
-            logger.error(`Request made but no response received: ${error.request}`);
-        } else {
-            logger.error(`Error setting up request: ${error.message}`);
-        }
-        throw new Error('Failed to refresh Bungie token');
-    }
-}
-
-async function getBungieUserInfo(accessToken) {
-    const url = 'https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/';
-    const headers = {
-        'Authorization': `Bearer ${accessToken}`,
-        'X-API-Key': process.env.X_API_KEY,
-        'User-Agent': 'axios/0.21.4'
-    };
-
-    try {
-        const response = await axios.get(url, { headers });
-        logger.info(`User Info Response: ${JSON.stringify(response.data)}`);
-        return response.data;
-    } catch (error) {
-        logger.error(`Error fetching Bungie user info: ${error}`);
-        if (error.response) {
-            logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
-            logger.error(`Response status: ${error.response.status}`);
-            logger.error(`Response headers: ${JSON.stringify(error.response.headers)}`);
-        } else if (error.request) {
-            logger.error(`Request made but no response received: ${error.request}`);
-        } else {
-            logger.error(`Error setting up request: ${error.message}`);
-        }
-        throw new Error('Failed to fetch Bungie user info');
-    }
-}
-
-async function getAccessTokenForUser(user) {
-    const now = DateTime.now();
-    const tokenExpiry = DateTime.fromJSDate(user.token_expiry);
-
-    if (now >= tokenExpiry) {
-        const newTokenData = await refreshBungieToken(user.refresh_token);
-        user.access_token = newTokenData.access_token;
-        user.refresh_token = newTokenData.refresh_token;
-        user.token_expiry = DateTime.now().plus({ seconds: newTokenData.expires_in }).toJSDate();
-        await user.save();
-        logger.info(`Refreshed access token for user ${user.discord_id}`);
-    }
-
-    return user.access_token;
-}
-
-async function getPendingClanMembers(accessToken, groupId) {
-    const url = `https://www.bungie.net/Platform/GroupV2/${groupId}/Members/Pending/`;
-    const headers = {
-        'Authorization': `Bearer ${accessToken}`,
-        'X-API-Key': process.env.X_API_KEY
-    };
-
-    try {
-        const response = await axios.get(url, { headers });
-        logger.info(`Pending Clan Members Response: ${JSON.stringify(response.data)}`);
-        return response.data.Response.results;
-    } catch (error) {
-        logger.error(`Error fetching pending clan members: ${error}`);
-        if (error.response) {
-            logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
-            logger.error(`Response status: ${error.response.status}`);
-            logger.error(`Response headers: ${JSON.stringify(error.response.headers)}`);
-        } else if (error.request) {
-            logger.error(`Request made but no response received: ${error.request}`);
-        } else {
-            logger.error(`Error setting up request: ${error.message}`);
-        }
-        throw new Error('Failed to fetch pending clan members');
-    }
-}
-
-app.get('/api/clan/pending', verifyToken, async (req, res) => {
-    const userId = req.userId;
-
-    try {
-        const user = await User.findOne({ discord_id: userId });
-        if (!user) {
-            return res.status(400).send({ error: 'User not found' });
-        }
-
-        const accessToken = await getAccessTokenForUser(user);
-        const pendingMembers = await getPendingClanMembers(accessToken, '5236471');
-
-        await PendingMember.deleteMany();
-        const pendingMemberDocs = pendingMembers.map(member => ({
-            membershipId: member.destinyUserInfo.membershipId,
-            displayName: member.destinyUserInfo.displayName,
-            joinDate: new Date(member.joinDate)
-        }));
-        await PendingMember.insertMany(pendingMemberDocs);
-
-        res.send({ pending_members: pendingMembers });
-    } catch (err) {
-        logger.error(`Error fetching pending clan members: ${err}`);
-        res.status(500).send({ error: 'Internal Server Error' });
-    }
-});
-
-app.get('/api/clan/pending/fromdb', verifyToken, async (req, res) => {
-    try {
-        const pendingMembers = await PendingMember.find();
-        res.send({ pending_members: pendingMembers });
-    } catch (err) {
-        logger.error(`Error retrieving pending clan members from DB: ${err}`);
-        res.status(500).send({ error: 'Internal Server Error' });
-    }
-});
-
-// Additional Security Configurations
-app.use((req, res, next) => {
-    if (process.env.NODE_ENV === 'production') {
-        if (req.headers['x-forwarded-proto'] !== 'https') {
-            return res.redirect(`https://${req.headers.host}${req.url}`);
-        }
-    }
-    next();
-});
-
-
-app.get('/admin-dashboard.html', verifyToken, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
-});
-
-app.post('/login', async (req, res) => {
+// ----------------------
+// Admin Login Route
+// ----------------------
+app.post('/login', loginLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
 
         const adminUsername = process.env.ADMIN_USERNAME;
-        const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH; // Updated environment variable
+        const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH; // Bcrypt hashed password
 
         if (username !== adminUsername) {
             logger.warn(`Failed login attempt for username: ${username} from IP: ${req.ip}`);
@@ -1223,6 +611,7 @@ app.post('/login', async (req, res) => {
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict', // Prevent CSRF
             maxAge: 86400 * 1000 // 24 hours
         });
 
@@ -1239,31 +628,257 @@ app.post('/login', async (req, res) => {
     }
 });
 
-
-
-
-
+// ----------------------
 // Logout Route
+// ----------------------
 app.post('/logout', (req, res) => {
     res.clearCookie('token');
-    req.session.destroy();
-    res.redirect('/admin-login.html');
+    req.session.destroy((err) => {
+        if (err) {
+            logger.error(`Error destroying session: ${err}`);
+            return res.status(500).json({ message: 'Error logging out' });
+        }
+        res.redirect('/admin-login.html');
+    });
 });
 
+// ----------------------
+// Comment Routes
+// ----------------------
 
+// Create a New Comment
+app.post('/api/comments', async (req, res) => {
+    try {
+        const { username, comment } = req.body;
+        const newComment = new Comment({ username, comment });
+        await newComment.save();
+        res.status(201).send(newComment);
+    } catch (error) {
+        logger.error(`Error saving comment: ${error}`);
+        res.status(500).send({ error: 'Error saving comment' });
+    }
+});
 
-const HEARTBEAT_TIMEOUT = 60000;
-const BROWSING_UPDATE_INTERVAL = 30000; // 30 seconds interval for browsing updates to limit log spam
+// Get Approved Comments
+app.get('/api/comments', async (req, res) => {
+    try {
+        const comments = await Comment.find({ approved: true });
+        res.json(comments);
+    } catch (error) {
+        logger.error(`Error fetching comments: ${error}`);
+        res.status(500).send({ error: 'Error fetching comments' });
+    }
+});
+
+// Delete a Comment
+app.delete('/api/comments/:id', verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        await Comment.findByIdAndDelete(id);
+        res.status(200).send({ message: 'Comment deleted' });
+    } catch (error) {
+        logger.error(`Error deleting comment: ${error}`);
+        res.status(500).send({ error: 'Error deleting comment' });
+    }
+});
+
+// ----------------------
+// OAuth Routes Continued
+// ----------------------
+
+// Admin Dashboard Route (Protected)
+app.get('/admin-dashboard.html', verifyToken, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
+});
+
+// ----------------------
+// Additional Routes
+// ----------------------
+
+// Check YouTube API Status
+app.get('/api/check-youtube', async (req, res) => {
+    try {
+        const youtubeApiStatus = true; // Implement actual check if necessary
+        res.json({
+            available: youtubeApiStatus,
+            status: youtubeApiStatus ? 'YouTube API is working' : 'YouTube API is unavailable'
+        });
+    } catch (error) {
+        logger.error(`Error checking YouTube API: ${error}`);
+        res.status(500).json({
+            available: false,
+            status: 'Error checking YouTube API'
+        });
+    }
+});
+
+// Check Bungie API Status
+app.get('/api/check-bungie', async (req, res) => {
+    const bungieApiKey = process.env.X_API_KEY;
+    const url = 'https://www.bungie.net/Platform/Destiny2/Manifest/';
+
+    try {
+        const response = await axios.get(url, {
+            headers: { 'X-API-Key': bungieApiKey }
+        });
+        if (response.status === 200) {
+            return res.json({ status: 'Bungie API is working', available: true });
+        }
+    } catch (error) {
+        logger.error(`Error checking Bungie API: ${error}`);
+        return res.json({ status: 'Bungie API is unavailable', available: false });
+    }
+});
+
+// Weather Route
+app.get('/api/weather', async (req, res) => {
+    const city = req.query.city || 'Leeds';
+    const units = 'metric'; // or 'imperial' for Fahrenheit
+    const apiKey = process.env.OPENWEATHER_API_KEY;
+
+    if (!apiKey) {
+        logger.error('OPENWEATHER_API_KEY is not set in environment variables.');
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+
+    const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=${units}&appid=${apiKey}`;
+
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            // Attempt to parse error message from response
+            let errorMsg = 'Failed to fetch weather data';
+            try {
+                const errorData = await response.json();
+                errorMsg = errorData.message || errorMsg;
+            } catch (e) {
+                logger.error('Error parsing error response:', e);
+            }
+            return res.status(response.status).json({ error: errorMsg });
+        }
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        logger.error(`Error fetching weather data for city ${city}:`, error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// ----------------------
+// Active Users Tracking
+// ----------------------
+
+// Set to store unique IPs
+const processedIPs = new Set();
+
+// Function to get Valid IP Address
+function getValidIpAddress(req) {
+    let ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+    if (ipAddress.includes(',')) {
+        // Extract first valid IP from the list
+        ipAddress = ipAddress.split(',').map(ip => ip.trim())[0];
+    }
+
+    // Normalize IPv6-mapped IPv4 addresses
+    if (ipAddress.startsWith('::ffff:')) {
+        ipAddress = ipAddress.replace('::ffff:', '');
+    }
+
+    // Check for duplicates
+    if (processedIPs.has(ipAddress)) {
+        logger.warn(`Duplicate IP detected: ${ipAddress}, skipping processing.`);
+        return null; // Indicate duplicate IP
+    }
+
+    // Add to processed IPs
+    processedIPs.add(ipAddress);
+    return ipAddress;
+}
+
+// Function to Fetch Location Data from IPInfo API
+async function fetchLocationData(ip) {
+    try {
+        const response = await axios.get(`https://ipinfo.io/${ip}?token=${process.env.IPINFO_API_KEY}`);
+        const { ip: userIP, city, region, country } = response.data;
+
+        return {
+            ip: userIP,
+            city: city || 'Unknown',
+            region: region || 'Unknown',
+            country: country || 'Unknown'
+        };
+    } catch (error) {
+        logger.error(`Error fetching location data for IP ${ip}: ${error}`);
+        return {
+            ip,
+            city: 'Unknown',
+            region: 'Unknown',
+            country: 'Unknown'
+        };
+    }
+}
+
+// Function to Attach Location Data Middleware (Unused in Current Routes)
+async function attachLocationData(req, res, next) {
+    const clientIp = getClientIp(req);
+
+    if (clientIp) {
+        logger.info(`Client IP detected: ${clientIp}`);
+
+        const locationData = await fetchLocationData(clientIp);
+        req.location = locationData; // Attach location data to the request object
+    } else {
+        logger.info('No valid public IP detected.');
+    }
+
+    next();
+}
+
+// Normalize IP Address Function
+function normalizeIp(ip) {
+    if (ip.startsWith('::ffff:')) {
+        return ip.replace('::ffff:', '');
+    }
+    return ip;
+}
+
+// ----------------------
+// WebSocket (Socket.IO) Configuration
+// ----------------------
+let activeUsers = []; // Initialize an empty array to track active users
+
+// Heartbeat Configuration
+const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
+const BROWSING_UPDATE_INTERVAL = 30000; // 30 seconds
 
 let currentVideo = null;
 let currentBrowsing = null;
 const videoHeartbeat = {};
-let lastBrowsingUpdateTime = 0; // Initialize with 0 to track the last browsing presence update time
+let lastBrowsingUpdateTime = 0;
 
-io.on('connection', (socket) => {
+// Socket.IO Connection Handling
+io.on('connection', async (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
-    // Emit current state to newly connected client
+    // Fetch client IP and location data
+    const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
+    const locationData = await fetchLocationData(ip);
+    logger.info(`[Socket.IO] Location data fetched: ${JSON.stringify(locationData)}`);
+
+    // Add the user with location data to active users list
+    const user = {
+        id: socket.id,
+        ip: locationData.ip,
+        city: locationData.city,
+        region: locationData.region,
+        country: locationData.country
+    };
+
+    activeUsers.push(user);
+    io.emit('activeUsersUpdate', { users: activeUsers });
+
+    // Emit current presence state to the newly connected client
     if (currentVideo) {
         socket.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
     } else if (currentBrowsing) {
@@ -1272,11 +887,11 @@ io.on('connection', (socket) => {
         socket.emit('presenceUpdate', { presenceType: 'offline' });
     }
 
-    // Update browsing presence
+    // Update Browsing Presence
     socket.on('updateBrowsingPresence', (data) => {
         const now = Date.now();
 
-        // Only update if there's no video currently playing or if we want to override with browsing after an interval
+        // Only update if no video is playing or after a certain interval
         if (data.presenceType === 'browsing' && (now - lastBrowsingUpdateTime > BROWSING_UPDATE_INTERVAL)) {
             logger.info(`[Socket.IO] Browsing presence detected.`);
 
@@ -1303,15 +918,15 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Update video progress or mark a new video presence
+    // Update Video Progress or Mark New Video Presence
     socket.on('updateVideoProgress', (data) => {
         logger.info(`[Socket.IO] Video update received: ${JSON.stringify(data)}`);
     
         const { videoId, title, description, channelTitle, viewCount, likeCount, publishedAt, category, thumbnail, currentTime, duration, isPaused } = data;
 
-        // Check if we already have a video being played
+        // Check if the video is already being tracked
         if (currentVideo && currentVideo.videoId === videoId) {
-            // Update current video's progress and other details
+            // Update existing video details
             currentVideo.currentTime = currentTime;
             currentVideo.duration = duration;
             currentVideo.isPaused = isPaused;
@@ -1356,7 +971,7 @@ io.on('connection', (socket) => {
         io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
     });
 
-    // Handle heartbeat signals
+    // Handle Heartbeat Signals
     socket.on('heartbeat', (data, callback) => {
         const { videoId } = data;
         if (videoId && currentVideo && currentVideo.videoId === videoId) {
@@ -1369,13 +984,16 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Disconnect handling
+    // Handle Client Disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
+        // Remove user from active list
+        activeUsers = activeUsers.filter(u => u.id !== socket.id);
+        io.emit('activeUsersUpdate', { users: activeUsers });
     });
 });
 
-// Handle video heartbeat expiration
+// Handle Video Heartbeat Expiration
 setInterval(() => {
     const now = Date.now();
     for (const [videoId, lastHeartbeat] of Object.entries(videoHeartbeat)) {
@@ -1383,7 +1001,7 @@ setInterval(() => {
             logger.warn(`[Heartbeat] No heartbeat received for video ID ${videoId} within timeout. Marking as offline.`);
             if (currentVideo && currentVideo.videoId === videoId) {
                 currentVideo = null;
-                currentBrowsing = null; // Clear browsing as well to fully reset state
+                currentBrowsing = null; // Clear browsing to fully reset state
                 io.emit('presenceUpdate', { presenceType: 'offline' });
                 logger.info(`[Heartbeat] Emitted "presenceUpdate" with offline status to all clients.`);
             }
@@ -1392,23 +1010,20 @@ setInterval(() => {
     }
 }, HEARTBEAT_TIMEOUT / 2);
 
-
-
-
-
-
-
-
-
-
+// ----------------------
 // Real-time Data Endpoint
+// ----------------------
 app.post('/api/update', (req, res) => {
     const data = req.body;
     io.emit('updateData', data);
     res.status(200).send({ message: 'Data sent to clients' });
 });
 
-// Video Routes (You can expand these based on your requirements)
+// ----------------------
+// Video Routes
+// ----------------------
+
+// Get Public Videos (Implementation Needed)
 app.get('/api/videos/public', async (req, res) => {
     try {
         // Implement logic to retrieve public videos
@@ -1419,6 +1034,7 @@ app.get('/api/videos/public', async (req, res) => {
     }
 });
 
+// Add a New Video (Protected)
 app.post('/api/videos',
     verifyToken,
     [
@@ -1447,7 +1063,7 @@ app.post('/api/videos',
         };
 
         try {
-            // Logic to save video metadata to the database
+            // Implement logic to save video metadata to the database
             res.status(201).json({ message: 'Video added successfully', video: videoMetadata });
         } catch (err) {
             logger.error(`Error saving video metadata: ${err.message}`);
@@ -1456,109 +1072,16 @@ app.post('/api/videos',
     }
 );
 
-// Active Users Tracking Helper Functions
-const IPINFO_API_KEY = process.env.IPINFO_API_KEY; // Using your environment variable
-
-// Function to fetch location data from IPInfo API
-async function fetchLocationData(ip) {
-    try {
-        // Split IPs in case multiple are forwarded
-        const ipList = ip.split(',');
-        const validIp = ipList[0].trim(); // Take the first valid IP address
-
-        const response = await axios.get(`https://ipinfo.io/${validIp}?token=${IPINFO_API_KEY}`);
-        const { ip: userIP, city, region, country } = response.data;
-
-        return {
-            ip: userIP,
-            city: city || 'Unknown',
-            region: region || 'Unknown',
-            country: country || 'Unknown'
-        };
-    } catch (error) {
-        console.error(`Error fetching location data for IP ${ip}:`, error);
-        return {
-            ip,
-            city: 'Unknown',
-            region: 'Unknown',
-            country: 'Unknown'
-        };
-    }
-}
-
-
-
-async function attachLocationData(req, res, next) {
-    const clientIp = getClientIp(req);
-
-    if (clientIp) {
-        console.log(`Client IP detected: ${clientIp}`);
-
-        const locationData = await fetchLocationData(clientIp);
-        req.location = locationData; // Attach location data to the request object
-    } else {
-        console.log('No valid public IP detected.');
-    }
-
-    next();
-}
-
-module.exports = { attachLocationData };
-
-// Function to normalize IP address (remove "::ffff:" prefix if present)
-function normalizeIp(ip) {
-    if (ip.startsWith('::ffff:')) {
-        return ip.replace('::ffff:', '');
-    }
-    return ip;
-}
-
-
-// Additional Routes
-app.get('/admin-dashboard', verifyToken, (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
-});
-
-app.get('/api/check-youtube', async (req, res) => {
-    try {
-        const youtubeApiStatus = true;
-        res.json({
-            available: youtubeApiStatus,
-            status: youtubeApiStatus ? 'YouTube API is working' : 'YouTube API is unavailable'
-        });
-    } catch (error) {
-        logger.error(`Error checking YouTube API: ${error}`);
-        res.status(500).json({
-            available: false,
-            status: 'Error checking YouTube API'
-        });
-    }
-});
-
-app.get('/api/check-bungie', async (req, res) => {
-    const bungieApiKey = process.env.X_API_KEY;
-    const url = 'https://www.bungie.net/Platform/Destiny2/Manifest/';
-
-    try {
-        const response = await axios.get(url, {
-            headers: { 'X-API-Key': bungieApiKey }
-        });
-        if (response.status === 200) {
-            return res.json({ status: 'Bungie API is working', available: true });
-        }
-    } catch (error) {
-        logger.error(`Error checking Bungie API: ${error}`);
-        return res.json({ status: 'Bungie API is unavailable', available: false });
-    }
-});
-
+// ----------------------
+// Weather API Route
+// ----------------------
 app.get('/api/weather', async (req, res) => {
     const city = req.query.city || 'Leeds';
     const units = 'metric'; // or 'imperial' for Fahrenheit
     const apiKey = process.env.OPENWEATHER_API_KEY;
 
     if (!apiKey) {
-        console.error('OPENWEATHER_API_KEY is not set in environment variables.');
+        logger.error('OPENWEATHER_API_KEY is not set in environment variables.');
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 
@@ -1573,135 +1096,226 @@ app.get('/api/weather', async (req, res) => {
                 const errorData = await response.json();
                 errorMsg = errorData.message || errorMsg;
             } catch (e) {
-                console.error('Error parsing error response:', e);
+                logger.error('Error parsing error response:', e);
             }
             return res.status(response.status).json({ error: errorMsg });
         }
         const data = await response.json();
         res.json(data);
     } catch (error) {
-        console.error(`Error fetching weather data for city ${city}:`, error);
+        logger.error(`Error fetching weather data for city ${city}:`, error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
 
+// ----------------------
+// Web Search Functionality with Dialogflow Integration
+// ----------------------
 
-const processedIPs = new Set(); // Set to store unique IPs
+// Initialize Dialogflow Session Client
+let credentials;
 
-function getValidIpAddress(req) {
-    let ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-
-    if (ipAddress.includes(',')) {
-        // Extract first valid IP from the list (ignoring local/internal IPs if present)
-        ipAddress = ipAddress.split(',').map(ip => ip.trim())[0];
-    }
-
-    // If IP starts with "::ffff:", it is an IPv6 representation of IPv4, clean it up
-    if (ipAddress.startsWith('::ffff:')) {
-        ipAddress = ipAddress.replace('::ffff:', '');
-    }
-
-    // Check if the IP has already been processed to avoid duplicates
-    if (processedIPs.has(ipAddress)) {
-        console.log(`Duplicate IP detected: ${ipAddress}, skipping processing.`);
-        return null; // Return null to indicate a duplicate IP
-    }
-
-    // Add the new IP to the set of processed IPs
-    processedIPs.add(ipAddress);
-    return ipAddress;
+try {
+    credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+    logger.info("Credentials loaded successfully.");
+} catch (error) {
+    logger.error("Error parsing credentials JSON from environment variable:", error);
+    process.exit(1);
 }
 
-module.exports = { fetchLocationData, getValidIpAddress };
+let sessionClient;
 
+try {
+    sessionClient = new dialogflow.SessionsClient({
+        credentials: {
+            client_email: credentials.client_email,
+            private_key: credentials.private_key,
+        },
+    });
+    logger.info("Dialogflow session client initialized successfully.");
+} catch (error) {
+    logger.error("Error initializing Dialogflow session client:", error);
+    process.exit(1);
+}
 
-app.get('/api/location', async (req, res) => {
-    const clientIp = getValidIpAddress(req);
+const projectId = 'haru-ai-sxjr'; // Ensure this matches your Dialogflow project ID
+logger.info(`Using project ID: ${projectId}`);
 
-    if (!clientIp) {
-        return res.status(400).send('Duplicate IP detected, location not processed.');
+// Web Search Function using Google Custom Search API
+async function getWebSearchResults(query) {
+    const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+    const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
+
+    if (!GOOGLE_API_KEY || !GOOGLE_CSE_ID) {
+        logger.error("Missing Google API Key or CSE ID.");
+        return 'Configuration error: Missing Google API Key or CSE ID.';
     }
 
+    const SEARCH_ENDPOINT = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}`;
+
     try {
-        const locationData = await fetchLocationData(clientIp); // Fetch the location using the public IP
-        res.json(locationData);
+        logger.info(`Fetching web search results for query: "${query}"`);
+        const response = await fetch(SEARCH_ENDPOINT);
+
+        if (!response.ok) {
+            logger.error(`Error fetching web search results: ${response.status} - ${response.statusText}`);
+            return `Error: Received status code ${response.status}. Please check the request or try again later.`;
+        }
+
+        const data = await response.json();
+        logger.info("Received web search data.");
+
+        if (data.items && data.items.length > 0) {
+            const topResults = data.items.slice(0, 3).map((item, index) => {
+                return `<b>${index + 1}. <a href="${item.link}" target="_blank">${item.title}</a></b><br>${item.snippet}`;
+            }).join("<br><br>");
+
+            return `Here are the top results I found for "<b>${query}</b>":<br><br>${topResults}`;
+        } else {
+            return 'Sorry, I couldn’t find anything relevant.';
+        }
     } catch (error) {
-        console.error(`Error fetching location for IP ${clientIp}:`, error);
-        res.status(500).send('Error fetching location data');
+        logger.error('Error fetching web search results:', error);
+        return 'Sorry, something went wrong while searching the web.';
+    }
+}
+
+// Handle Incoming Dialogflow Requests
+app.post('/api/dialogflow', async (req, res) => {
+    const userMessage = req.body.message;
+    logger.info(`Received user message: ${userMessage}`);
+
+    if (!userMessage) {
+        logger.error("No user message provided in request.");
+        return res.status(400).json({ response: 'No message provided.' });
+    }
+
+    const sessionId = uuid.v4();
+    const sessionPath = sessionClient.projectAgentSessionPath(projectId, sessionId);
+    logger.info(`Generated session path: ${sessionPath}`);
+
+    const request = {
+        session: sessionPath,
+        queryInput: {
+            text: {
+                text: userMessage,
+                languageCode: 'en-US',
+            },
+        },
+    };
+
+    try {
+        logger.info("Sending request to Dialogflow...");
+        const responses = await sessionClient.detectIntent(request);
+        logger.info("Received response from Dialogflow.");
+
+        const result = responses[0].queryResult;
+        logger.info(`Query Result: ${JSON.stringify(result, null, 2)}`);
+
+        if (result && result.fulfillmentText) {
+            logger.info(`Sending fulfillment text back to client: ${result.fulfillmentText}`);
+            // Send the interim response back while search is being performed
+            res.json({ response: result.fulfillmentText });
+
+            // If the action is web.search, initiate the search
+            if (result.action === 'web.search') {
+                logger.info("Handling web search action...");
+                const parameters = result.parameters.fields;
+
+                if (parameters && parameters.q && parameters.q.stringValue) {
+                    const searchQuery = parameters.q.stringValue;
+                    logger.info(`Performing web search for query: "${searchQuery}"`);
+
+                    // Perform web search using Google Custom Search API
+                    const webSearchResponse = await getWebSearchResults(searchQuery);
+                    logger.info("Received web search data.");
+
+                    // Notify the client via WebSocket with the search results
+                    io.emit('webSearchResult', { userMessage, response: webSearchResponse });
+                } else {
+                    logger.error("Missing search query parameter.");
+                }
+            }
+        } else {
+            logger.warn("Dialogflow response did not contain fulfillment text or actionable intent.");
+            res.json({ response: 'Sorry, I couldn’t understand that.' });
+        }
+    } catch (error) {
+        logger.error('Dialogflow API error:', error);
+        res.status(500).json({ response: 'Sorry, something went wrong.' });
     }
 });
 
+// ----------------------
+// Additional Utility Functions
+// ----------------------
 
+// Function to Get Client IP (Utility)
 function getClientIp(req) {
     const forwarded = req.headers['x-forwarded-for'];
-    let ip = forwarded ? forwarded.split(',')[0] : req.connection.remoteAddress;
-    
-    // Strip the ::ffff: IPv6 prefix if present
+    let ip = forwarded ? forwarded.split(',')[0].trim() : req.connection.remoteAddress;
+
+    // Normalize IPv6-mapped IPv4 addresses
     if (ip.includes("::ffff:")) {
         ip = ip.split("::ffff:")[1];
     }
-    
+
     return ip;
 }
 
+// ----------------------
+// Membership Mapping Functions
+// ----------------------
 
-async function fetchUserLocation(ip) {
+// Read, Update, and Write Membership Mapping
+function updateMembershipMapping(discordId, userInfo) {
+    let membershipMapping = {};
+
+    if (fs.existsSync(membershipFilePath)) {
+        const data = fs.readFileSync(membershipFilePath, 'utf8');
+        logger.info(`Read existing membership mapping file: ${data}`);
+        try {
+            membershipMapping = JSON.parse(data);
+        } catch (err) {
+            logger.error(`Error parsing membership mapping file: ${err}`);
+            membershipMapping = {};
+        }
+    } else {
+        logger.info('Membership mapping file does not exist. A new one will be created.');
+    }
+
+    membershipMapping[discordId] = {
+        "membership_id": userInfo.membershipId,
+        "platform_type": userInfo.platformType,
+        "bungie_name": userInfo.bungieName,
+        "registration_date": new Date(),
+        "clan_id": "4900827"
+    };
+
     try {
-        const response = await axios.get(`https://ipinfo.io/${ip}/geo?token=${process.env.IPINFO_API_KEY}`);
-        const { city, region, country } = response.data;
-        return { ip, city, region, country };
-    } catch (error) {
-        console.error(`Error fetching location data for IP ${ip}:`, error);
-        return { ip, city: 'Unknown', region: 'Unknown', country: 'Unknown' };
+        fs.writeFileSync(membershipFilePath, JSON.stringify(membershipMapping, null, 2), 'utf8');
+        logger.info(`Updated membership mapping file: ${JSON.stringify(membershipMapping, null, 2)}`);
+    } catch (err) {
+        logger.error(`Error writing to membership mapping file: ${err}`);
+    }
+
+    try {
+        const updatedData = fs.readFileSync(membershipFilePath, 'utf8');
+        logger.info(`Verified membership mapping file content: ${updatedData}`);
+    } catch (err) {
+        logger.error(`Error reading membership mapping file after update: ${err}`);
     }
 }
 
-// Function to get all active users with their locations
-async function getActiveUsersWithLocations() {
-    // Fetch all active users' location data asynchronously
-    const userPromises = activeUsers.map(user => fetchUserLocation(user.ip));
-    return await Promise.all(userPromises);
-}
+// ----------------------
+// Import and Use External Routes (If Any)
+// ----------------------
+// const authRoutes = require('./routes/auth');
+// app.use('/auth', authRoutes);
 
-
-
-
-
-let activeUsers = []; // Initialize an empty array to track active users
-
-// Socket.IO Connection Handling
-io.on('connection', async (socket) => {
-    logger.info(`[Socket.IO] New client connected: ${socket.id}`);
-
-    // Fetch client IP and location data
-    const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
-    const locationData = await fetchLocationData(ip);
-    logger.info(`[Socket.IO] Location data fetched: ${JSON.stringify(locationData)}`);
-
-    // Add the user with location data to active users list
-    const user = {
-        id: socket.id,
-        ip: locationData.ip,
-        city: locationData.city,
-        region: locationData.region,
-        country: locationData.country
-    };
-
-    // Ensure `activeUsers` is accessible here
-    activeUsers.push(user);
-    io.emit('activeUsersUpdate', { users: activeUsers });
-
-    // Handle user disconnection
-    socket.on('disconnect', () => {
-        logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
-        // Remove user from active list
-        activeUsers = activeUsers.filter(u => u.id !== socket.id);
-        io.emit('activeUsersUpdate', { users: activeUsers });
-    });
-});
-
-// Start the server
+// ----------------------
+// Start the Server
+// ----------------------
 server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
-
