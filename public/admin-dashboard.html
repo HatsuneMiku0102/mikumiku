@@ -59,22 +59,29 @@
     <script>
         // Security check to ensure only authenticated users can access this page
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Admin dashboard script loaded.');
+
             // Extract the 'token' cookie if available
             const token = document.cookie
                 .split('; ')
                 .find(row => row.startsWith('token='))
                 ?.split('=')[1];
-            
+
             if (!token) {
-                // If no token is found, redirect to the login page
+                console.warn('No valid token found, redirecting to login page.');
                 window.location.href = '/admin-login.html';
+            } else {
+                console.log('Valid token detected.');
             }
         });
 
         // Logout logic
         document.getElementById('logout').addEventListener('click', () => {
+            console.log('Logout initiated.');
+
             fetch('/logout', { method: 'POST', credentials: 'include' })
                 .then(() => {
+                    console.log('Logout request successful, clearing token cookie.');
                     // Clear the JWT token by setting its expiration to the past
                     document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
                     // Redirect the user to the login page
