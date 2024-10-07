@@ -793,7 +793,6 @@ app.get('/api/weather', async (req, res) => {
 // ----------------------
 // WebSocket (Socket.IO) Configuration
 // ----------------------
-let activeUsers = []; // Initialize an empty array to track active users
 
 // Heartbeat Configuration
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
@@ -808,19 +807,7 @@ let lastBrowsingUpdateTime = 0;
 io.on('connection', async (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
-    // Fetch client IP and location data
-    const ip = socket.request.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
-    const locationData = await fetchLocationData(ip);
-    logger.info(`[Socket.IO] Location data fetched: ${JSON.stringify(locationData)}`);
 
-    // Add the user with location data to active users list
-    const user = {
-        id: socket.id,
-        ip: locationData.ip,
-        city: locationData.city,
-        region: locationData.region,
-        country: locationData.country
-    };
 
     activeUsers.push(user);
     io.emit('activeUsersUpdate', { users: activeUsers });
