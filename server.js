@@ -1240,6 +1240,18 @@ function updateMembershipMapping(discordId, userInfo) {
     }
 }
 
+
+
+
+// Ensure IPINFO_API_KEY is defined globally
+const IPINFO_API_KEY = process.env.IPINFO_API_KEY;
+
+if (!IPINFO_API_KEY) {
+    console.error("IPINFO_API_KEY environment variable is not set.");
+    process.exit(1); // Exit if the key isn't available
+}
+
+// Moved getClientIp function to the top for global use
 const getClientIp = (req) => {
     const forwardedFor = req.headers['x-forwarded-for'];
     if (forwardedFor) {
@@ -1248,12 +1260,28 @@ const getClientIp = (req) => {
     return req.connection.remoteAddress;
 };
 
+// Reused the getGeoLocation function
+async function getGeoLocation(ip) {
+    try {
+        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
+        return response.data; // This contains city, region, country, etc.
+    } catch (error) {
+        console.error('Error fetching geolocation from IPinfo:', error);
+        return {
+            city: 'Unknown',
+            region: 'Unknown',
+            country: 'Unknown'
+        };
+    }
+}
+
+// Updating all occurrences where `fetchLocationData` was mistakenly used
 app.get('/fetch-location', async (req, res) => {
     const ip = getClientIp(req);
 
     try {
-        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
-        res.json(response.data);
+        const locationData = await getGeoLocation(ip);
+        res.json(locationData);
     } catch (error) {
         console.error('Error fetching location data:', error.message);
         res.status(500).json({ error: 'Failed to fetch location data' });
@@ -1263,14 +1291,8 @@ app.get('/fetch-location', async (req, res) => {
 app.get('/api/location/:ip', async (req, res) => {
     try {
         const ip = req.params.ip;
-        if (!IPINFO_API_KEY) {
-            console.error("IPINFO_API_KEY is not set");
-            return res.status(500).json({ error: 'IPinfo API key is missing' });
-        }
 
-        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
-        const locationData = response.data;
-
+        const locationData = await getGeoLocation(ip);
         res.json({
             ip: ip,
             city: locationData.city,
@@ -1298,20 +1320,6 @@ app.post('/track', (req, res) => {
         });
 });
 
-async function getGeoLocation(ip) {
-    try {
-        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
-        return response.data; // This contains city, region, country, etc.
-    } catch (error) {
-        console.error('Error fetching geolocation from IPinfo:', error);
-        return {
-            city: 'Unknown',
-            region: 'Unknown',
-            country: 'Unknown'
-        };
-    }
-}
-
 io.on('connection', (socket) => {
     const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
 
@@ -1334,6 +1342,7 @@ io.on('connection', (socket) => {
         });
     });
 });
+
 
 
 
