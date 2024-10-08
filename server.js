@@ -901,14 +901,26 @@ io.on('connection', async (socket) => {
     logger.info(`New connection from IP: ${ip}`);
 
     // Emit initial location update
-    getGeoLocation(ip).then(location => {
+    try {
+        let location = await GeoData.findOne({ ip });
+        if (!location) {
+            location = await getGeoLocation(ip);
+            // Save to GeoData if not already present
+            await GeoData.updateOne(
+                { ip },
+                { city: location.city, region: location.region, country: location.country, ip },
+                { upsert: true }
+            );
+        }
+
+        // Emit location to the connected client
         socket.emit('locationUpdate', {
             ip,
-            city: location.city,
-            region: location.region,
-            country: location.country
+            city: location.city || 'Unknown',
+            region: location.region || 'Unknown',
+            country: location.country || 'Unknown'
         });
-    }).catch(err => {
+    } catch (err) {
         logger.error('Error fetching location:', err);
         socket.emit('locationUpdate', {
             ip,
@@ -916,7 +928,7 @@ io.on('connection', async (socket) => {
             region: 'Unknown',
             country: 'Unknown'
         });
-    });
+    }
 
     // Check if the IP is already in the activeUsers map
     if (!activeUsers.has(ip)) {
@@ -1000,7 +1012,7 @@ io.on('connection', async (socket) => {
     // Handle Client Disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
-        activeUsers.delete(ip);
+        activeUsers.delete(ip); // Remove user from active users map
         io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
     });
 });
@@ -1017,6 +1029,7 @@ setInterval(() => {
         }
     }
 }, HEARTBEAT_TIMEOUT / 2);
+
 
 
 // ----------------------
