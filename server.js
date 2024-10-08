@@ -184,20 +184,28 @@ app.use(express.static(path.join(__dirname, 'public'), {
     lastModified: false
 }));
 
-// Session Middleware
+
+const adminSessionStore = MongoStore.create({
+    mongoUrl: process.env.MONGO_URL,
+    collectionName: 'admin_sessions', // Separate collection for admin sessions
+    ttl: 14 * 24 * 60 * 60 // 14 days
+});
+
+// Then, use it in the admin panel session
 app.use(session({
-    name: 'admin_session_cookie', // Different cookie name
-    secret: process.env.SESSION_SECRET,
+    name: 'admin_session_cookie', // Different cookie name for admin
+    secret: process.env.SESSION_SECRET || 'your-session-secret',
     resave: false,
     saveUninitialized: false,
-    store: adminSessionStore,
+    store: adminSessionStore, // Use the defined admin session store
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production', // Set this according to your environment
         httpOnly: true,
         sameSite: 'strict',
-        maxAge: 24 * 60 * 60 * 1000
+        maxAge: 24 * 60 * 60 * 1000 // 1 day
     }
 }));
+
 
 
 
@@ -206,7 +214,7 @@ app.use(session({
 // ----------------------
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // Limit each IP to 10 login requests per window
+    max: 5, // Limit each IP to 10 login requests per window
     message: 'Too many login attempts from this IP, please try again after 15 minutes'
 });
 
