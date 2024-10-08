@@ -27,7 +27,7 @@ const dialogflow = require('@google-cloud/dialogflow');
 const uuid = require('uuid');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const GeoData = require('./models/GeoData'); // Import GeoData model
+
 
 // ----------------------
 // Load Environment Variables
