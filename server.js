@@ -209,12 +209,13 @@ app.use(session({
 
 
 const geoDataSchema = new mongoose.Schema({
-    ip: { type: String, required: true },
+    ip: { type: String, required: true, unique: true },
     city: { type: String, required: true },
     region: { type: String, required: true },
     country: { type: String, required: true },
     timestamp: { type: Date, default: Date.now }
 });
+
 
 const GeoData = mongoose.model('GeoData', geoDataSchema);
 module.exports = GeoData;
@@ -1315,15 +1316,31 @@ app.post('/track', async (req, res) => {
     try {
         const location = await getAccurateGeoLocation(ip);
 
-        // Save the location data in the GeoData MongoDB collection
-        const geoEntry = new GeoData({
-            ip: location.ip,
-            city: location.city,
-            region: location.region,
-            country: location.country,
-            timestamp: new Date()
-        });
-        await geoEntry.save();
+        // Check if the IP already exists in the GeoData collection
+        const existingEntry = await GeoData.findOne({ ip: location.ip });
+
+        if (existingEntry) {
+            // If the IP exists, update the timestamp and any other relevant fields
+            existingEntry.city = location.city;
+            existingEntry.region = location.region;
+            existingEntry.country = location.country;
+            existingEntry.timestamp = new Date();
+            await existingEntry.save();
+
+            logger.info(`Updated existing entry for IP: ${location.ip}`);
+        } else {
+            // If the IP doesn't exist, create a new entry
+            const geoEntry = new GeoData({
+                ip: location.ip,
+                city: location.city,
+                region: location.region,
+                country: location.country,
+                timestamp: new Date()
+            });
+            await geoEntry.save();
+
+            logger.info(`Added new entry for IP: ${location.ip}`);
+        }
 
         res.json({ ip, location });
     } catch (err) {
@@ -1331,7 +1348,6 @@ app.post('/track', async (req, res) => {
         res.status(500).json({ error: 'Unable to get or save location' });
     }
 });
-
 // ----------------------
 // Web Search Results via WebSocket
 // ----------------------
