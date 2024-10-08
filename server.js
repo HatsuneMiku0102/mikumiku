@@ -1003,9 +1003,11 @@ io.on('connection', async (socket) => {
             // New video detected
             currentVideo = { videoId, title, description, channelTitle, viewCount, likeCount, publishedAt, category, thumbnail, currentTime, duration, isPaused, presenceType: 'video' };
             currentBrowsing = null;
-            io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
             logger.info(`[Socket.IO] New video detected: ${videoId}`);
         }
+
+        // Emit updated video presence to all clients in real-time
+        io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
     });
 
     // Handle Heartbeat Signals for YouTube Videos
