@@ -1253,6 +1253,19 @@ app.post('/api/dialogflow', async (req, res) => {
 // ----------------------
 // Geolocation Routes
 // ----------------------
+app.get('/api/geo-data', async (req, res) => {
+    try {
+        const countryData = await GeoData.aggregate([
+            { $group: { _id: "$country", count: { $sum: 1 } } },
+            { $sort: { count: -1 } }
+        ]);
+
+        res.json(countryData);
+    } catch (error) {
+        console.error('Error fetching geo data:', error);
+        res.status(500).json({ error: 'Error fetching geo data' });
+    }
+});
 
 // Fetch Location Route
 app.get('/fetch-location', async (req, res) => {
