@@ -693,32 +693,26 @@ app.post('/login', loginLimiter, async (req, res) => {
 // Logout Route
 // ----------------------
 app.post('/logout', (req, res) => {
-    // Get the session ID
-    const sessionId = req.sessionID; // Use req.sessionID to ensure we are using the correct session ID
-
-    // Destroy the session in MongoDB session store
-    req.session.destroy(err => {
+    // Destroy the session from MongoDB
+    req.session.destroy((err) => {
         if (err) {
             logger.error(`Error destroying session: ${err}`);
             return res.status(500).json({ message: 'Error logging out' });
         }
-
-        // Explicitly remove the session from MongoDB sessions collection
-        sessionStore.destroy(sessionId, (err) => {
-            if (err) {
-                logger.error(`Error removing session from MongoDB: ${err}`);
-                return res.status(500).json({ message: 'Error removing session from store' });
-            }
-
-            // Clear the JWT token from the client side by setting its expiration in the past
-            res.clearCookie('token');
-            logger.info(`Session and token removed for session ID: ${sessionId}`);
-
-            // Respond with success or redirect to the login page
-            res.status(200).json({ message: 'Logged out successfully and session removed from DB' });
+        
+        // Clear the admin session cookie from the browser
+        res.clearCookie('admin_session_cookie', {
+            path: '/', 
+            httpOnly: true, 
+            secure: process.env.NODE_ENV === 'production', 
+            sameSite: 'strict'
         });
+
+        // Optionally redirect to login page after logout
+        res.redirect('/admin-login.html');
     });
 });
+
 
 // ----------------------
 // Comment Routes
