@@ -686,16 +686,16 @@ app.post('/login', loginLimiter, async (req, res) => {
 // ----------------------
 app.post('/logout', (req, res) => {
     // Get the session ID
-    const sessionId = req.session.id;
+    const sessionId = req.sessionID; // Use req.sessionID to ensure we are using the correct session ID
 
-    // Destroy the session in the MongoDB session store
+    // Destroy the session in MongoDB session store
     req.session.destroy(err => {
         if (err) {
             logger.error(`Error destroying session: ${err}`);
             return res.status(500).json({ message: 'Error logging out' });
         }
 
-        // Explicitly remove the session from MongoDB session store
+        // Explicitly remove the session from MongoDB sessions collection
         sessionStore.destroy(sessionId, (err) => {
             if (err) {
                 logger.error(`Error removing session from MongoDB: ${err}`);
@@ -706,8 +706,8 @@ app.post('/logout', (req, res) => {
             res.clearCookie('token');
             logger.info(`Session and token removed for session ID: ${sessionId}`);
 
-            // Redirect to login page or send a successful response
-            res.status(200).json({ message: 'Logged out successfully' });
+            // Respond with success or redirect to the login page
+            res.status(200).json({ message: 'Logged out successfully and session removed from DB' });
         });
     });
 });
