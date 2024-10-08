@@ -27,6 +27,7 @@ const dialogflow = require('@google-cloud/dialogflow');
 const uuid = require('uuid');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
+const GeoData = require('./models/GeoData'); // Import GeoData model
 
 // ----------------------
 // Load Environment Variables
@@ -209,13 +210,14 @@ app.use(session({
 
 const geoDataSchema = new mongoose.Schema({
     ip: { type: String, required: true },
-    city: { type: String },
-    region: { type: String },
+    city: { type: String, required: true },
+    region: { type: String, required: true },
     country: { type: String, required: true },
-    date: { type: Date, default: Date.now }
+    timestamp: { type: Date, default: Date.now }
 });
 
 const GeoData = mongoose.model('GeoData', geoDataSchema);
+module.exports = GeoData;
 
 async function getGeoLocation(ip) {
     try {
@@ -511,17 +513,26 @@ const getClientIp = (req) => {
 };
 
 // Get Geolocation Data
-async function getGeoLocation(ip) {
+async function getAccurateGeoLocation(ip) {
     try {
-        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
-        return response.data; // This contains city, region, country, etc.
-    } catch (error) {
-        logger.error('Error fetching geolocation from IPinfo:', error);
+        // IPinfo as the primary source
+        const ipInfoResponse = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
+        const ipInfoData = ipInfoResponse.data;
+
+        // Optionally, you can add MaxMind or another API for more robust location or VPN detection
+        const maxMindApiResponse = await axios.get(`https://geoip.maxmind.com/geoip/v2.1/city/${ip}?apikey=${process.env.MAXMIND_API_KEY}`);
+        const maxMindData = maxMindApiResponse.data;
+
+        // Merge data or cross-check between services if needed
         return {
-            city: 'Unknown',
-            region: 'Unknown',
-            country: 'Unknown'
+            city: ipInfoData.city || maxMindData.city.names.en || 'Unknown',
+            region: ipInfoData.region || maxMindData.subdivisions[0].names.en || 'Unknown',
+            country: ipInfoData.country || maxMindData.country.names.en || 'Unknown',
+            ip: ip
         };
+    } catch (error) {
+        console.error('Error fetching location from IP services:', error);
+        return { city: 'Unknown', region: 'Unknown', country: 'Unknown' };
     }
 }
 
@@ -1297,17 +1308,28 @@ app.get('/api/location/:ip', async (req, res) => {
 });
 
 // Track IP Route
-app.post('/track', (req, res) => {
+app.post('/track', async (req, res) => {
     const ip = getClientIp(req);
     logger.info(`Extracted IP: ${ip}`);
-    getGeoLocation(ip)
-        .then(location => {
-            res.json({ ip, location });
-        })
-        .catch(err => {
-            logger.error('Error fetching location:', err);
-            res.status(500).json({ error: 'Unable to get location' });
+
+    try {
+        const location = await getAccurateGeoLocation(ip);
+
+        // Save the location data in the GeoData MongoDB collection
+        const geoEntry = new GeoData({
+            ip: location.ip,
+            city: location.city,
+            region: location.region,
+            country: location.country,
+            timestamp: new Date()
         });
+        await geoEntry.save();
+
+        res.json({ ip, location });
+    } catch (err) {
+        logger.error('Error fetching location or saving to MongoDB:', err);
+        res.status(500).json({ error: 'Unable to get or save location' });
+    }
 });
 
 // ----------------------
