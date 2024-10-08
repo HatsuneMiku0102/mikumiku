@@ -186,22 +186,6 @@ app.use(express.static(path.join(__dirname, 'public'), {
 
 // Session Middleware
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-session-secret',
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: process.env.MONGO_URL,
-        ttl: 14 * 24 * 60 * 60, // 14 days
-    }),
-    cookie: {
-        secure: process.env.NODE_ENV === 'production', // Ensure this matches your environment
-        httpOnly: true,
-        sameSite: 'strict',
-        maxAge: 24 * 60 * 60 * 1000 // 1 day
-    }
-}));
-
-app.use(session({
     name: 'admin_session_cookie', // Different cookie name
     secret: process.env.SESSION_SECRET,
     resave: false,
@@ -214,6 +198,21 @@ app.use(session({
         maxAge: 24 * 60 * 60 * 1000
     }
 }));
+
+app.use('/destiny-oauth', session({
+    name: 'destiny_oauth_session', // Different cookie name
+    secret: process.env.DESTINY_SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    store: destinyOAuthSessionStore,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 1000
+    }
+}));
+
 
 // ----------------------
 // Rate Limiting Middleware
