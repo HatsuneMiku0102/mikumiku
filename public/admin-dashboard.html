@@ -6,6 +6,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Include Chart.js -->
     <style>
         body {
             font-family: 'Roboto', sans-serif;
@@ -63,6 +64,16 @@
             margin: 5px 0;
             border-radius: 4px;
         }
+
+        .chart-container {
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        canvas {
+            margin: 0 auto;
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -74,6 +85,12 @@
             <h3>Real-time Active Users and IP Information</h3>
             <p id="active-users-count">Loading active user count...</p>
             <ul id="ip-list" class="ip-list">Loading IP data...</ul>
+        </div>
+
+        <!-- Chart section -->
+        <div class="chart-container">
+            <h3>Visitors by Country</h3>
+            <canvas id="locationChart" width="400" height="200"></canvas>
         </div>
     </div>
 
@@ -132,11 +149,9 @@
                 console.log('Location update received from server:', data);
                 if (data && data.ip) {
                     if (ipElements.has(data.ip)) {
-                        // Update existing list item
                         const ipItem = ipElements.get(data.ip);
                         ipItem.innerText = `IP: ${data.ip}, City: ${data.city || 'Unknown'}, Region: ${data.region || 'Unknown'}, Country: ${data.country || 'Unknown'}`;
                     } else {
-                        // Add new list item if not already present
                         const ipItem = document.createElement('li');
                         ipItem.classList.add('ip-item');
                         ipItem.innerText = `IP: ${data.ip}, City: ${data.city || 'Unknown'}, Region: ${data.region || 'Unknown'}, Country: ${data.country || 'Unknown'}`;
@@ -146,6 +161,7 @@
                 }
             });
 
+            // Logout logic
             document.getElementById('logout').addEventListener('click', () => {
                 console.log('Logout initiated.');
                 fetch('/logout', { method: 'POST', credentials: 'include' })
@@ -158,6 +174,39 @@
                         console.error('Logout failed:', error);
                     });
             });
+
+            // Fetch country data for the chart
+            fetch('/api/geo-data')
+                .then(response => response.json())
+                .then(data => {
+                    const countries = data.map(item => item._id || 'Unknown');
+                    const visitCounts = data.map(item => item.count);
+
+                    // Display the chart using Chart.js
+                    const ctx = document.getElementById('locationChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: countries,
+                            datasets: [{
+                                label: 'Visitors by Country',
+                                data: visitCounts,
+                                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(error => console.error('Error fetching geo data:', error));
         });
     </script>
 </body>
