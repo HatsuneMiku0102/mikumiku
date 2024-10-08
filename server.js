@@ -1316,7 +1316,24 @@ app.post('/track', async (req, res) => {
     try {
         const location = await getAccurateGeoLocation(ip);
 
-        // Check if the IP already exists, and if so, update it
+        // Fetch existing entry for this IP
+        const existingEntry = await GeoData.findOne({ ip: location.ip });
+
+        // Check if the location data has changed before updating
+        if (existingEntry) {
+            const hasChanged = (
+                existingEntry.city !== location.city ||
+                existingEntry.region !== location.region ||
+                existingEntry.country !== location.country
+            );
+
+            if (!hasChanged) {
+                logger.info(`No changes detected for IP: ${ip}, skipping update.`);
+                return res.json({ message: 'No changes detected, update skipped.', ip, location });
+            }
+        }
+
+        // If no existing entry, or if the data has changed, perform an upsert
         const updatedEntry = await GeoData.findOneAndUpdate(
             { ip: location.ip },  // Query to find the existing IP
             {  // Fields to update
@@ -1328,13 +1345,15 @@ app.post('/track', async (req, res) => {
             { upsert: true, new: true } // Create if doesn't exist, return updated document
         );
 
-        logger.info(`Upserted location data for IP: ${ip}`);
+        logger.info(`Location data updated or inserted for IP: ${ip}`);
         res.json({ ip, location });
+
     } catch (err) {
         logger.error('Error fetching location or saving to MongoDB:', err);
         res.status(500).json({ error: 'Unable to get or save location' });
     }
 });
+
 
 // ----------------------
 // Web Search Results via WebSocket
