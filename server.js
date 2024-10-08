@@ -207,6 +207,40 @@ app.use(session({
 }));
 
 
+const geoDataSchema = new mongoose.Schema({
+    ip: { type: String, required: true },
+    city: { type: String },
+    region: { type: String },
+    country: { type: String, required: true },
+    date: { type: Date, default: Date.now }
+});
+
+const GeoData = mongoose.model('GeoData', geoDataSchema);
+
+async function getGeoLocation(ip) {
+    try {
+        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
+        const locationData = response.data;
+
+        // Save the location data to the GeoData collection
+        const geoEntry = new GeoData({
+            ip: ip,
+            city: locationData.city,
+            region: locationData.region,
+            country: locationData.country
+        });
+
+        await geoEntry.save();
+        return locationData;
+    } catch (error) {
+        console.error('Error fetching geolocation from IPinfo:', error);
+        return {
+            city: 'Unknown',
+            region: 'Unknown',
+            country: 'Unknown'
+        };
+    }
+}
 
 
 // ----------------------
