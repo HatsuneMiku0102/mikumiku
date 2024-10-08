@@ -199,19 +199,6 @@ app.use(session({
     }
 }));
 
-app.use('/destiny-oauth', session({
-    name: 'destiny_oauth_session', // Different cookie name
-    secret: process.env.DESTINY_SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    store: destinyOAuthSessionStore,
-    cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: true,
-        sameSite: 'strict',
-        maxAge: 60 * 60 * 1000
-    }
-}));
 
 
 // ----------------------
