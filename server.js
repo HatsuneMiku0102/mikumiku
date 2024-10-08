@@ -201,6 +201,20 @@ app.use(session({
     }
 }));
 
+app.use(session({
+    name: 'admin_session_cookie', // Different cookie name
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    store: adminSessionStore,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000
+    }
+}));
+
 // ----------------------
 // Rate Limiting Middleware
 // ----------------------
