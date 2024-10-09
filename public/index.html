@@ -462,13 +462,12 @@
         </script>
 
         <script>
-            const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY; // YouTube API Key from Heroku environment variable
-            
             const socket = io("https://mikumiku.dev");
             let lastHeartbeatReceived = Date.now();
             let isSessionExpired = false;
             let browsingStartTime = null;
             let browsingInterval = null;
+            let YOUTUBE_API_KEY = null; // Initialize API key variable
             
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
@@ -483,67 +482,27 @@
             const videoCategoryElement = document.getElementById("videoCategory");
             const videoDescriptionElement = document.getElementById("descriptionModalDescription");
             const timeElapsedElement = document.getElementById("timeElapsed");
-            const liveIconElement = document.getElementById("liveIcon");
+            const liveIconElement = document.getElementById("liveIcon"); // Added for Live Indicator
             
-            // Helper functions
-            function formatNumber(number) {
-                if (typeof number === 'string') {
-                    number = number.replace(/,/g, '');
-                }
-                const num = Number(number);
-                return isNaN(num) ? "N/A" : num.toLocaleString();
-            }
-            
-            function clearDisplay() {
-                nowPlayingBox.classList.add("offline");
-                offlineIndicatorElement.style.display = "block";
-                videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
-                videoThumbnailImage.src = "";
-                videoThumbnailImage.style.display = "none";
-                videoThumbnailElement.src = "";
-                videoThumbnailElement.style.display = "none";
-                channelNameElement.textContent = "";
-                viewCountElement.textContent = "";
-                likeCountElement.textContent = "";
-                publishedDateElement.textContent = "";
-                videoCategoryElement.textContent = "";
-                progressBarElement.style.width = "0%";
-                videoDescriptionElement.textContent = "";
-                timeElapsedElement.style.display = "none";
-                liveIconElement.style.display = "none"; // Hide Live Icon
-            }
-            
-            function clearVideoPresence() {
-                videoTitleElement.textContent = "";
-                videoThumbnailImage.src = "";
-                videoThumbnailImage.style.display = "none";
-                videoThumbnailElement.src = "";
-                videoThumbnailElement.style.display = "none";
-                channelNameElement.textContent = "";
-                viewCountElement.textContent = "";
-                likeCountElement.textContent = "";
-                publishedDateElement.textContent = "";
-                videoCategoryElement.textContent = "";
-                progressBarElement.style.width = "0%";
-                videoDescriptionElement.textContent = "";
-                liveIconElement.style.display = "none"; // Hide Live Icon
-            }
-            
-            function formatTimeElapsed(seconds) {
-                const hours = Math.floor(seconds / 3600);
-                const minutes = Math.floor((seconds % 3600) / 60);
-                const remainingSeconds = seconds % 60;
-            
-                if (hours > 0) {
-                    return `${hours}h ${minutes}m ${remainingSeconds}s`;
-                } else if (minutes > 0) {
-                    return `${minutes}m ${remainingSeconds}s`;
-                } else {
-                    return `${remainingSeconds}s`;
+            // Fetch API Key from the server-side endpoint
+            async function fetchApiKey() {
+                try {
+                    const response = await fetch('/api/youtube-key');
+                    const data = await response.json();
+                    YOUTUBE_API_KEY = data.apiKey;
+                    fetchLiveStatus(); // Call the live status function after retrieving the API key
+                } catch (error) {
+                    console.error('Error fetching API key:', error);
                 }
             }
             
+            // Fetch live status from YouTube API
             async function fetchLiveStatus() {
+                if (!YOUTUBE_API_KEY) {
+                    console.warn('API key not available');
+                    return;
+                }
+            
                 try {
                     // Fetch channel ID
                     const response = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id&mine=true&key=${YOUTUBE_API_KEY}`);
@@ -578,6 +537,25 @@
                 }
             }
             
+            function clearDisplay() {
+                nowPlayingBox.classList.add("offline");
+                offlineIndicatorElement.style.display = "block";
+                videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
+                videoThumbnailImage.src = "";
+                videoThumbnailImage.style.display = "none";
+                videoThumbnailElement.src = "";
+                videoThumbnailElement.style.display = "none";
+                channelNameElement.textContent = "";
+                viewCountElement.textContent = "";
+                likeCountElement.textContent = "";
+                publishedDateElement.textContent = "";
+                videoCategoryElement.textContent = "";
+                progressBarElement.style.width = "0%";
+                videoDescriptionElement.textContent = "";
+                timeElapsedElement.style.display = "none";
+                liveIconElement.style.display = "none"; // Hide Live Icon
+            }
+            
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
@@ -595,49 +573,41 @@
                 }
             
                 channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-                liveIconElement.style.display = data.isLive ? "block" : "none"; // Show Live Icon if live
             
-                handleRealTimeProgress(data);
+                // Handle Live Status
+                console.log("Live status:", data.isLive);
+                if (data.isLive) {
+                    liveIconElement.style.display = "block";
+                } else {
+                    liveIconElement.style.display = "none";
+                }
             }
             
-            function handleRealTimeProgress(data) {
-                // No real-time progress handling here for live streams
-            }
+            // Fetch API key initially
+            fetchApiKey();
             
             // Fetch live status periodically
             setInterval(fetchLiveStatus, 30000); // Check every 30 seconds
-            fetchLiveStatus(); // Initial call
             
-            // Socket.IO Integration (already implemented in your original code)
+            // Socket.io and browsing presence handling remain unchanged
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
                 isSessionExpired = false;
                 socket.emit('requestLatestData');
             });
             
-            socket.on("presenceUpdate", (data) => {
-                if (isSessionExpired) {
-                    console.warn("[Client] Ignoring presenceUpdate due to expired session.");
-                    return;
-                }
-            
-                console.log("[Socket.IO] Received presenceUpdate:", data);
-                lastHeartbeatReceived = Date.now();
-            
-                if (data.presenceType === 'video') {
-                    displayVideoPresence(data);
-                } else {
-                    clearDisplay();
-                }
+            socket.on("disconnect", () => {
+                console.warn("[Socket.IO] Disconnected from server.");
+                clearDisplay();
             });
             
-            // Heartbeat check
             setInterval(() => {
                 if (Date.now() - lastHeartbeatReceived > 60000) {
                     console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
                     clearDisplay();
                 }
             }, 5000);
+            
 
             // Modal Toggle Logic
             const descriptionModal = document.getElementById("descriptionModal");
