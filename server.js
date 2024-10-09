@@ -896,28 +896,7 @@ app.get('/api/weather', async (req, res) => {
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
 
 
-// Function to fetch geolocation data based on IP.
-async function getGeoLocation(ip) {
-    // Implement your geolocation fetching logic here
-    // For example, using a third-party API like ipgeolocation.io
-    return {
-        city: 'Sample City',
-        region: 'Sample Region',
-        country: 'Sample Country'
-    };
-}
 
-// Mock GeoData model.
-// Replace with your actual database model.
-const GeoData = {
-    findOne: async (query) => {
-        // Implement your database query here
-        return null;
-    },
-    updateOne: async (filter, update, options) => {
-        // Implement your database update here
-    }
-};
 
 // State management
 const tabPresence = new Map(); // Map<tabId, presenceData>
