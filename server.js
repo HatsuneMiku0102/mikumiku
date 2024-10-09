@@ -121,7 +121,6 @@ app.use(
             defaultSrc: ["'self'"],
             scriptSrc: [
                 "'self'",
-                // Remove 'unsafe-inline' in production and use nonces or hashes
                 "'unsafe-inline'",
                 "https://fonts.googleapis.com",
                 "https://cdnjs.cloudflare.com",
@@ -144,7 +143,8 @@ app.use(
                 "https://img.youtube.com",
                 "https://openweathermap.org",
                 "https://i.postimg.cc",
-                "https://threejs.org"
+                "https://threejs.org",
+                "https://www.youtube.com"
             ],
             fontSrc: [
                 "'self'",
@@ -175,6 +175,7 @@ app.use(
         }
     })
 );
+
 
 app.set('trust proxy', true);
 
