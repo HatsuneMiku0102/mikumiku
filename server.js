@@ -999,7 +999,12 @@ io.on('connection', async (socket) => {
             currentVideo = null;
         }
 
-
+        currentBrowsing = {
+            title: data.title || 'YouTube',
+            description: data.description || 'Browsing videos',
+            timeElapsed: data.timeElapsed || 0,
+            presenceType: 'browsing'
+        };
 
 
         // Emit browsing presence to all clients
