@@ -889,6 +889,8 @@ app.get('/api/weather', async (req, res) => {
 // server.js
 
 
+// background.js
+
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
 
 let currentVideo = null;
@@ -896,6 +898,10 @@ let currentBrowsing = null;
 const videoHeartbeat = {};
 const activeUsers = new Map(); // Use a Map to track unique IPs
 
+// Initialize Socket.IO
+const io = require('socket.io')(/* your server port or options */);
+
+// Event: New client connection
 io.on('connection', async (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
@@ -965,23 +971,29 @@ io.on('connection', async (socket) => {
             currentVideo = null; // Clear video presence if browsing
             logger.info(`[Socket.IO] Browsing presence updated: ${currentBrowsing.title}`);
         } else if (data.presenceType === 'video') {
-            currentVideo = {
-                videoId: data.videoId,
-                title: data.title,
-                description: data.description,
-                channelTitle: data.channelTitle,
-                viewCount: data.viewCount,
-                likeCount: data.likeCount,
-                publishedAt: data.publishedAt,
-                category: data.category,
-                thumbnail: data.thumbnail,
-                currentTime: data.currentTime,
-                duration: data.duration,
-                isPaused: data.isPaused,
-                presenceType: 'video'
-            };
-            currentBrowsing = null; // Clear browsing presence if video is playing
-            logger.info(`[Socket.IO] Video presence updated: ${currentVideo.title}`);
+            // Validate video presence data
+            if (isValidVideoPresence(data)) {
+                currentVideo = {
+                    videoId: data.videoId,
+                    title: data.title,
+                    description: data.description,
+                    channelTitle: data.channelTitle,
+                    viewCount: data.viewCount,
+                    likeCount: data.likeCount,
+                    publishedAt: data.publishedAt,
+                    category: data.category,
+                    thumbnail: data.thumbnail,
+                    currentTime: data.currentTime,
+                    duration: data.duration,
+                    isPaused: data.isPaused,
+                    presenceType: 'video'
+                };
+                currentBrowsing = null; // Clear browsing presence if video is playing
+                logger.info(`[Socket.IO] Video presence updated: ${currentVideo.title}`);
+            } else {
+                logger.warn(`[Socket.IO] Invalid video presence data received from ${socket.id}. Skipping update.`);
+                return; // Do not emit invalid data
+            }
         } else if (data.presenceType === 'offline') {
             currentVideo = null;
             currentBrowsing = null;
@@ -1065,7 +1077,11 @@ io.on('connection', async (socket) => {
     // Handle Client Disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
-        activeUsers.delete(ip); // Remove user from active users map
+        activeUsers.forEach((user, key) => {
+            if (user.id === socket.id) {
+                activeUsers.delete(key);
+            }
+        });
         io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
 
         // Mark the user as offline upon disconnection
@@ -1074,6 +1090,33 @@ io.on('connection', async (socket) => {
         currentBrowsing = null;
     });
 });
+
+// Function to validate video presence data
+function isValidVideoPresence(data) {
+    // Ensure all required fields are present and valid
+    const requiredFields = ['videoId', 'title', 'description', 'channelTitle', 'viewCount', 'likeCount', 'publishedAt', 'category', 'thumbnail', 'currentTime', 'duration', 'isPaused'];
+    for (let field of requiredFields) {
+        if (!(field in data)) {
+            logger.warn(`[Validation] Missing field: ${field}`);
+            return false;
+        }
+    }
+
+    // Additional validation can be added here (e.g., data types, value ranges)
+    if (typeof data.videoId !== 'string' || data.videoId.trim() === '') {
+        logger.warn(`[Validation] Invalid videoId: ${data.videoId}`);
+        return false;
+    }
+
+    if (typeof data.title !== 'string' || data.title.trim() === '') {
+        logger.warn(`[Validation] Invalid title: ${data.title}`);
+        return false;
+    }
+
+    // Add more validations as needed
+
+    return true;
+}
 
 // Handle Video Heartbeat Expiration
 setInterval(() => {
@@ -1088,6 +1131,7 @@ setInterval(() => {
         }
     }
 }, HEARTBEAT_TIMEOUT / 2);
+
 
 
 
