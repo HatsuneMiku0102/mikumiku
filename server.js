@@ -947,14 +947,7 @@ io.on('connection', async (socket) => {
     }
 
     // Handle Presence Updates (Video, Browsing, Offline)
-    socket.on('presenceUpdate', (data) => {
-        if (data.presenceType === 'browsing') {
-            currentBrowsing = {
-                title: data.title || 'YouTube',
-                description: data.description || 'Browsing videos',
-                timeElapsed: data.timeElapsed || 0,
-                presenceType: 'browsing'
-            };
+
             currentVideo = null; // Clear video presence if browsing
             logger.info(`[Socket.IO] Browsing presence updated: ${currentBrowsing.title}`);
         } else if (data.presenceType === 'video') {
