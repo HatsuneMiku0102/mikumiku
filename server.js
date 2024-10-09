@@ -895,14 +895,15 @@ app.get('/api/weather', async (req, res) => {
 
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
 
-
-
-
-// State management
-const tabPresence = new Map(); // Map<tabId, presenceData>
-const videoHeartbeat = {}; // Object to track heartbeats per videoId
+let currentVideo = null;
+let currentBrowsing = null;
+const videoHeartbeat = {};
 const activeUsers = new Map(); // Map<ip, { id: socket.id, ip }>
 
+// Utility function to relay presence updates to all connected clients except the sender
+function relayPresenceUpdate(socket, data) {
+    socket.broadcast.emit('presenceUpdate', data);
+}
 
 // Function to validate video presence data
 function isValidVideoPresence(data) {
@@ -931,12 +932,20 @@ function isValidVideoPresence(data) {
     return true;
 }
 
-// Event: New client connection
+// Socket.IO connection handling
 io.on('connection', async (socket) => {
-    logger.log(`[Socket.IO] New client connected: ${socket.id}`);
+    logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
     const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
-    logger.log(`New connection from IP: ${ip}`);
+    logger.info(`New connection from IP: ${ip}`);
+
+    // Add to activeUsers if not already present
+    if (!activeUsers.has(ip)) {
+        activeUsers.set(ip, { id: socket.id, ip });
+        io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
+    } else {
+        logger.info(`IP ${ip} is already connected.`);
+    }
 
     // Emit initial location update
     try {
@@ -968,85 +977,68 @@ io.on('connection', async (socket) => {
         });
     }
 
-    // Check if the IP is already in the activeUsers map
-    if (!activeUsers.has(ip)) {
-        activeUsers.set(ip, { id: socket.id, ip });
-        io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
+    // Emit current presence state to the newly connected client
+    if (currentVideo) {
+        socket.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
+    } else if (currentBrowsing) {
+        socket.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
     } else {
-        logger.log(`IP ${ip} is already connected.`);
+        socket.emit('presenceUpdate', { presenceType: 'offline' });
     }
 
     // Handle Presence Updates (Video, Browsing, Offline)
     socket.on('presenceUpdate', (data) => {
-        logger.log(`[Socket.IO] Received presenceUpdate from ${socket.id}:`, data);
+        logger.info(`[Socket.IO] Received presenceUpdate from ${socket.id}:`, data);
 
-        const { tabId, presenceType, ...rest } = data;
-
-        if (!tabId) {
-            logger.warn(`[Socket.IO] Missing tabId in presenceUpdate from ${socket.id}. Ignoring.`);
-            return;
-        }
-
-        if (presenceType === 'browsing') {
-            // Update browsing presence for the tab
-            tabPresence.set(tabId, {
+        if (data.presenceType === 'browsing') {
+            currentBrowsing = {
+                title: data.title || 'YouTube',
+                description: data.description || 'Browsing videos',
+                timeElapsed: data.timeElapsed || 0,
                 presenceType: 'browsing',
-                title: rest.title || 'YouTube',
-                description: rest.description || 'Browsing videos',
-                thumbnail: rest.thumbnail || 'https://www.youtube.com/img/desktop/yt_1200.png',
-                timeElapsed: rest.timeElapsed || 0
-            });
-            logger.log(`[Socket.IO] Browsing presence updated for tab ${tabId}: ${rest.title}`);
-        } else if (presenceType === 'video') {
-            // Validate presence data
-            if (isValidVideoPresence(rest)) {
-                // Update video presence for the tab
-                tabPresence.set(tabId, {
-                    presenceType: 'video',
-                    videoId: rest.videoId,
-                    title: rest.title,
-                    description: rest.description,
-                    channelTitle: rest.channelTitle,
-                    viewCount: rest.viewCount,
-                    likeCount: rest.likeCount,
-                    publishedAt: rest.publishedAt,
-                    category: rest.category,
-                    thumbnail: rest.thumbnail,
-                    currentTime: rest.currentTime,
-                    duration: rest.duration,
-                    isPaused: rest.isPaused,
-                    timeElapsed: rest.timeElapsed
-                });
-                logger.log(`[Socket.IO] Video presence updated for tab ${tabId}: ${rest.title}`);
+                thumbnail: data.thumbnail || 'https://www.youtube.com/img/desktop/yt_1200.png'
+            };
+
+            currentVideo = null; // Clear video presence if browsing
+            logger.info(`[Socket.IO] Browsing presence updated: ${currentBrowsing.title}`);
+        } else if (data.presenceType === 'video') {
+            // Validate video presence data
+            if (isValidVideoPresence(data)) {
+                currentVideo = {
+                    videoId: data.videoId,
+                    title: data.title,
+                    description: data.description,
+                    channelTitle: data.channelTitle,
+                    viewCount: data.viewCount,
+                    likeCount: data.likeCount,
+                    publishedAt: data.publishedAt,
+                    category: data.category,
+                    thumbnail: data.thumbnail,
+                    currentTime: data.currentTime,
+                    duration: data.duration,
+                    isPaused: data.isPaused,
+                    presenceType: 'video'
+                };
+                currentBrowsing = null; // Clear browsing presence if video is playing
+                logger.info(`[Socket.IO] Video presence updated: ${currentVideo.title}`);
             } else {
                 logger.warn(`[Socket.IO] Invalid video presence data received from ${socket.id}. Skipping update.`);
                 return; // Do not emit invalid data
             }
-        } else if (presenceType === 'offline') {
-            // Remove presence data for the tab
-            tabPresence.delete(tabId);
-            logger.log(`[Socket.IO] Tab ${tabId} marked as offline.`);
-        } else {
-            logger.warn(`[Socket.IO] Unknown presenceType '${presenceType}' from tab ${tabId}. Ignoring.`);
-            return;
+        } else if (data.presenceType === 'offline') {
+            currentVideo = null;
+            currentBrowsing = null;
+            logger.info(`[Socket.IO] User marked as offline.`);
         }
 
-        // Emit updated presence to all clients except the sender
-        socket.broadcast.emit('presenceUpdate', { tabId, presenceType, ...rest });
+        // Emit updated presence to all other clients except the sender
+        socket.broadcast.emit('presenceUpdate', data);
     });
 
     // Handle Video Progress Updates
     socket.on('updateVideoProgress', (data) => {
-        logger.log(`[Socket.IO] Video update received: ${JSON.stringify(data)}`);
-        const { tabId, videoId, title, description, channelTitle, viewCount, likeCount, publishedAt, category, thumbnail, currentTime, duration, isPaused } = data;
-
-        if (!tabId) {
-            logger.warn(`[Socket.IO] Missing tabId in updateVideoProgress from ${socket.id}. Ignoring.`);
-            return;
-        }
-
-        const presenceData = {
-            presenceType: 'video',
+        logger.info(`[Socket.IO] Video update received: ${JSON.stringify(data)}`);
+        const {
             videoId,
             title,
             description,
@@ -1058,73 +1050,118 @@ io.on('connection', async (socket) => {
             thumbnail,
             currentTime,
             duration,
-            isPaused,
-            timeElapsed: Math.floor(currentTime)
-        };
+            isPaused
+        } = data;
 
-        // Validate video presence data
-        if (isValidVideoPresence(presenceData)) {
+        if (currentVideo && currentVideo.videoId === videoId) {
             // Update existing video details
-            tabPresence.set(tabId, presenceData);
-            logger.log(`[Socket.IO] Updated video progress for tab ${tabId}: ${title}`);
+            Object.assign(currentVideo, {
+                currentTime,
+                duration,
+                isPaused,
+                title,
+                description,
+                channelTitle,
+                viewCount,
+                likeCount,
+                publishedAt,
+                category,
+                thumbnail
+            });
+            logger.info(`[Socket.IO] Updated video: ${title}, Channel: ${channelTitle}`);
         } else {
-            logger.warn(`[Socket.IO] Invalid video progress data received from tab ${tabId}. Skipping update.`);
-            return;
+            // New video detected
+            currentVideo = {
+                videoId,
+                title,
+                description,
+                channelTitle,
+                viewCount,
+                likeCount,
+                publishedAt,
+                category,
+                thumbnail,
+                currentTime,
+                duration,
+                isPaused,
+                presenceType: 'video'
+            };
+            currentBrowsing = null;
+            logger.info(`[Socket.IO] New video detected: ${videoId}`);
         }
 
-        // Emit updated video presence to all clients except the sender
-        socket.broadcast.emit('presenceUpdate', { tabId, ...presenceData });
+        // Emit updated video presence to all other clients except the sender
+        socket.broadcast.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
     });
 
     // Handle Heartbeat Signals for YouTube Videos
     socket.on('heartbeat', (data, callback) => {
-        const { tabId, videoId } = data;
-        if (tabId && videoId && tabPresence.has(tabId) && tabPresence.get(tabId).videoId === videoId) {
-            // Update last heartbeat timestamp for the video
+        const { videoId } = data;
+        if (videoId && currentVideo && currentVideo.videoId === videoId) {
             videoHeartbeat[videoId] = Date.now();
             if (callback) callback({ status: "ok" });
         } else {
-            if (callback) callback({ status: "error", message: "Unknown tab ID or video ID" });
+            if (callback) callback({ status: "error", message: "Unknown video ID" });
         }
     });
 
     // Handle Client Disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
-        // Find and remove user from activeUsers
-        for (const [ipKey, userData] of activeUsers.entries()) {
-            if (userData.id === socket.id) {
-                activeUsers.delete(ipKey);
-                break;
+        activeUsers.forEach((user, key) => {
+            if (user.id === socket.id) {
+                activeUsers.delete(key);
             }
-        }
+        });
         io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
 
-        // Mark all tabs from this client as offline
-        for (const [tabId, presenceData] of tabPresence.entries()) {
-            io.emit('presenceUpdate', { tabId, presenceType: 'offline' });
-            tabPresence.delete(tabId);
-        }
+        // Mark the user as offline upon disconnection
+        io.emit('presenceUpdate', { presenceType: 'offline' });
+        currentVideo = null;
+        currentBrowsing = null;
     });
 });
 
-// Function to handle heartbeat expiration
+// Function to validate video presence data
+function isValidVideoPresence(data) {
+    // Ensure all required fields are present and valid
+    const requiredFields = ['videoId', 'title', 'description', 'channelTitle', 'viewCount', 'likeCount', 'publishedAt', 'category', 'thumbnail', 'currentTime', 'duration', 'isPaused'];
+    for (let field of requiredFields) {
+        if (!(field in data)) {
+            logger.warn(`[Validation] Missing field: ${field}`);
+            return false;
+        }
+    }
+
+    // Additional validation can be added here (e.g., data types, value ranges)
+    if (typeof data.videoId !== 'string' || data.videoId.trim() === '') {
+        logger.warn(`[Validation] Invalid videoId: ${data.videoId}`);
+        return false;
+    }
+
+    if (typeof data.title !== 'string' || data.title.trim() === '') {
+        logger.warn(`[Validation] Invalid title: ${data.title}`);
+        return false;
+    }
+
+    // Add more validations as needed
+
+    return true;
+}
+
+// Handle Video Heartbeat Expiration
 setInterval(() => {
     const now = Date.now();
     for (const [videoId, lastHeartbeat] of Object.entries(videoHeartbeat)) {
-        if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
-            // Heartbeat timeout: mark the video as offline
-            for (const [tabId, presenceData] of tabPresence.entries()) {
-                if (presenceData.presenceType === 'video' && presenceData.videoId === videoId) {
-                    tabPresence.delete(tabId);
-                    io.emit('presenceUpdate', { tabId, presenceType: 'offline' });
-                    logger.info(`[Socket.IO] Heartbeat timeout for video ID: ${videoId}. Marked as offline.`);
-                }
-            }
+        if (now - lastHeartbeat > CONFIG.HEARTBEAT_TIMEOUT) {
+            currentVideo = null;
+            currentBrowsing = null; // Clear browsing to fully reset state
+            io.emit('presenceUpdate', { presenceType: 'offline' });
             delete videoHeartbeat[videoId];
+            logger.info(`[Socket.IO] Heartbeat timeout for video ID: ${videoId}. Marked as offline.`);
         }
     }
-}, HEARTBEAT_TIMEOUT / 2);
+}, CONFIG.HEARTBEAT_TIMEOUT / 2);
 
 
 
