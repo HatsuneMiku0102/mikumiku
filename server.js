@@ -999,14 +999,8 @@ io.on('connection', async (socket) => {
             currentVideo = null;
         }
 
-        // Set current browsing presence
-        currentBrowsing = {
-            title: data.title || 'YouTube',
-            description: data.description || 'Browsing videos',
-            thumbnail: 'https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png',
-            timeElapsed: data.timeElapsed || 0,
-            presenceType: 'browsing'
-        };
+
+
 
         // Emit browsing presence to all clients
         io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
