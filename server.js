@@ -888,14 +888,6 @@ app.get('/api/weather', async (req, res) => {
 
 // server.js
 
-const io = require('socket.io')(PORT, {
-    cors: {
-        origin: '*', // Adjust this for security in production
-    }
-});
-const GeoData = require('./models/GeoData'); // Your GeoData model
-const getGeoLocation = require('./utils/getGeoLocation'); // Utility to fetch geolocation based on IP
-const logger = require('./utils/logger'); // Your custom logger
 
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
 
