@@ -464,7 +464,7 @@
             let isSessionExpired = false;
             let browsingStartTime = null;
             let browsingInterval = null;
-
+        
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
             const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -478,7 +478,7 @@
             const videoCategoryElement = document.getElementById("videoCategory");
             const videoDescriptionElement = document.getElementById("descriptionModalDescription");
             const timeElapsedElement = document.getElementById("timeElapsed");
-
+        
             function formatNumber(number) {
                 if (typeof number === 'string') {
                     number = number.replace(/,/g, '');
@@ -486,7 +486,7 @@
                 const num = Number(number);
                 return isNaN(num) ? "N/A" : num.toLocaleString();
             }
-
+        
             function clearDisplay() {
                 nowPlayingBox.classList.add("offline");
                 offlineIndicatorElement.style.display = "block";
@@ -504,7 +504,7 @@
                 videoDescriptionElement.textContent = "";
                 timeElapsedElement.style.display = "none";
             }
-
+        
             function clearVideoPresence() {
                 videoTitleElement.textContent = "";
                 videoThumbnailImage.src = "";
@@ -519,18 +519,18 @@
                 progressBarElement.style.width = "0%";
                 videoDescriptionElement.textContent = "";
             }
-
+        
             function reinitializeSession() {
                 console.warn("[Client] Reinitializing session due to mismatch or timeout.");
                 clearDisplay();
                 isSessionExpired = true;
             }
-
+        
             function formatTimeElapsed(seconds) {
                 const hours = Math.floor(seconds / 3600);
                 const minutes = Math.floor((seconds % 3600) / 60);
                 const remainingSeconds = seconds % 60;
-
+        
                 if (hours > 0) {
                     return `${hours}h ${minutes}m ${remainingSeconds}s`;
                 } else if (minutes > 0) {
@@ -539,39 +539,42 @@
                     return `${remainingSeconds}s`;
                 }
             }
-
+        
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
-
+        
                 videoTitleElement.textContent = data.title || "Unknown Title";
-
+        
+                // **Modified Thumbnail Handling:**
                 if (data.thumbnail) {
                     videoThumbnailImage.src = data.thumbnail;
                     videoThumbnailImage.style.display = "block";
                     videoThumbnailElement.style.display = "none";
                 } else {
+                    // **Hide thumbnail image if no thumbnail is provided**
                     videoThumbnailImage.src = "";
+                    videoThumbnailImage.style.display = "none";
                     videoThumbnailElement.style.display = "none";
                 }
-
+        
                 channelNameElement.textContent = data.channelTitle || "Unknown Channel";
                 viewCountElement.textContent = `${formatNumber(data.viewCount)}` || "N/A";
                 likeCountElement.textContent = `${formatNumber(data.likeCount)}` || "N/A";
-
+        
                 if (data.publishedAt) {
                     const publishedDate = new Date(data.publishedAt);
                     publishedDateElement.textContent = ` ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
                 } else {
                     publishedDateElement.textContent = "Published on: N/A";
                 }
-
+        
                 videoCategoryElement.textContent = `${data.category}` || "N/A";
                 videoDescriptionElement.textContent = data.description || "No description available.";
                 handleRealTimeProgress(data);
                 timeElapsedElement.style.display = "none";
-
+        
                 if (data.videoSrc) {
                     videoThumbnailElement.src = data.videoSrc;
                     videoThumbnailElement.style.display = "block";
@@ -581,7 +584,7 @@
                     videoThumbnailImage.style.display = "block";
                 }
             }
-
+        
             function handleRealTimeProgress(data) {
                 if (data.duration && data.currentTime) {
                     const progressPercentage = (data.currentTime / data.duration) * 100;
@@ -590,45 +593,54 @@
                     progressBarElement.style.width = "0%";
                 }
             }
-
+        
             function displayBrowsingPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
-
+        
                 clearVideoPresence();
-
+        
                 videoTitleElement.textContent = data.title || "Browsing YouTube";
-                videoThumbnailImage.src = data.thumbnail || "";
-                videoThumbnailImage.style.display = "block";
+        
+                // **Modified Thumbnail Handling:**
+                if (data.thumbnail) {
+                    videoThumbnailImage.src = data.thumbnail;
+                    videoThumbnailImage.style.display = "block";
+                } else {
+                    // **Hide thumbnail image if no thumbnail is provided**
+                    videoThumbnailImage.src = "";
+                    videoThumbnailImage.style.display = "none";
+                }
                 videoThumbnailElement.style.display = "none";
+        
                 channelNameElement.textContent = "Browsing...";
                 videoDescriptionElement.textContent = data.description || "Browsing videos on YouTube";
                 progressBarElement.style.width = "0%";
-
+        
                 if (data.timeElapsed !== undefined) {
                     timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(data.timeElapsed)}`;
                     timeElapsedElement.style.display = "block";
                 }
             }
-
+        
             function updateBrowsingPresence() {
                 if (browsingStartTime !== null) {
                     const timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
                     timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(timeElapsed)}`;
                     timeElapsedElement.style.display = "block";
-
+        
                     const browsingData = {
                         title: 'YouTube',
                         description: 'Browsing videos',
-                        thumbnail: '',
+                        thumbnail: '', // **Removed custom thumbnail URL**
                         timeElapsed: timeElapsed,
                         presenceType: 'browsing'
                     };
                     socket.emit('updateBrowsingPresence', browsingData);
                 }
             }
-
+        
             function startBrowsingPresence() {
                 if (browsingStartTime === null) {
                     browsingStartTime = Date.now();
@@ -637,7 +649,7 @@
                     browsingInterval = setInterval(updateBrowsingPresence, 5000);
                 }
             }
-
+        
             function stopBrowsingPresence() {
                 if (browsingInterval) {
                     clearInterval(browsingInterval);
@@ -645,22 +657,22 @@
                 }
                 browsingStartTime = null;
             }
-
+        
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
                 isSessionExpired = false;
                 socket.emit('requestLatestData');
             });
-
+        
             socket.on("presenceUpdate", (data) => {
                 if (isSessionExpired) {
                     console.warn("[Client] Ignoring presenceUpdate due to expired session.");
                     return;
                 }
-
+        
                 console.log("[Socket.IO] Received presenceUpdate:", data);
                 lastHeartbeatReceived = Date.now();
-
+        
                 if (data.presenceType === 'video') {
                     stopBrowsingPresence();
                     displayVideoPresence(data);
@@ -671,35 +683,35 @@
                     clearDisplay();
                 }
             });
-
+        
             socket.on("reinitializeSession", (data) => {
                 console.warn(`[Socket.IO] Received reinitializeSession: ${JSON.stringify(data)}`);
                 reinitializeSession();
             });
-
+        
             socket.on("sessionExpired", (data) => {
                 console.warn(`[Socket.IO] Session expired for video ID: ${data.videoId}`);
                 reinitializeSession();
             });
-
+        
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
                 stopBrowsingPresence();
                 clearDisplay();
             });
-
+        
             setInterval(() => {
                 if (Date.now() - lastHeartbeatReceived > 60000) {
                     console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
                     clearDisplay();
                 }
             }, 5000);
-
+        
             // Modal Toggle Logic
             const descriptionModal = document.getElementById("descriptionModal");
             const closeDescriptionButton = document.getElementById("closeDescriptionButton");
             const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
-
+        
             toggleDescriptionButton.addEventListener("click", function () {
                 if (descriptionModal.style.display === "block") {
                     descriptionModal.style.display = "none";
@@ -716,7 +728,7 @@
                 descriptionModal.classList.remove('active');
                 toggleDescriptionButton.textContent = "Show Description";
             });
-
+        
             window.addEventListener("click", function (event) {
                 if (event.target === descriptionModal) {
                     descriptionModal.style.display = "none";
