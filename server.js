@@ -903,12 +903,6 @@ const tabPresence = new Map(); // Map<tabId, presenceData>
 const videoHeartbeat = {}; // Object to track heartbeats per videoId
 const activeUsers = new Map(); // Map<ip, { id: socket.id, ip }>
 
-// Utility logger
-const logger = {
-    log: (message, ...args) => console.log(`[Server] ${message}`, ...args),
-    warn: (message, ...args) => console.warn(`[Server] ${message}`, ...args),
-    error: (message, ...args) => console.error(`[Server] ${message}`, ...args),
-};
 
 // Function to validate video presence data
 function isValidVideoPresence(data) {
