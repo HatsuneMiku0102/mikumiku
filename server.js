@@ -885,7 +885,7 @@ app.get('/api/weather', async (req, res) => {
 // WebSocket (Socket.IO) Configuration
 // ----------------------
 
-const HEARTBEAT_TIMEOUT = 30000; // 60 seconds
+const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
 const BROWSING_UPDATE_INTERVAL = 30000; // 30 seconds
 
 let currentVideo = null;
@@ -893,21 +893,6 @@ let currentBrowsing = null;
 const videoHeartbeat = {};
 let lastBrowsingUpdateTime = 0;
 const activeUsers = new Map(); // Use a Map to track unique IPs
-
-
-
-    findOne: async (query) => { /* ... */ },
-    updateOne: async (query, update, options) => { /* ... */ },
-};
-
-const getGeoLocation = async (ip) => {
-    // Implement your geo-location fetching logic here
-    return {
-        city: 'Sample City',
-        region: 'Sample Region',
-        country: 'Sample Country',
-    };
-};
 
 io.on('connection', async (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
@@ -1036,57 +1021,6 @@ io.on('connection', async (socket) => {
         }
     });
 
-    // Handle Clear Previous Video Data (Mark as Offline)
-    socket.on('clearPreviousVideoData', (data, callback) => {
-        logger.info(`[Socket.IO] Received clearPreviousVideoData from client: ${socket.id}`);
-
-        // Clear current video and browsing presence
-        currentVideo = null;
-        currentBrowsing = null;
-
-        // Emit presenceUpdate as offline to all clients
-        io.emit('presenceUpdate', { presenceType: 'offline' });
-
-        // Optionally, clear any heartbeats associated with the video
-        if (data && data.videoId) {
-            delete videoHeartbeat[data.videoId];
-            logger.info(`[Socket.IO] Cleared heartbeat for videoId: ${data.videoId}`);
-        }
-
-        if (callback) callback({ status: "success" });
-    });
-
-    // Handle Mark Video Offline (Alternative Event)
-    socket.on('markVideoOffline', (data, callback) => {
-        const { videoId, presenceType } = data;
-        logger.info(`[Socket.IO] Received markVideoOffline for videoId: ${videoId} from client: ${socket.id}`);
-
-        if (presenceType === 'video' && currentVideo && currentVideo.videoId === videoId) {
-            currentVideo = null;
-            logger.info(`[Socket.IO] Marked videoId ${videoId} as offline.`);
-
-            // Emit presenceUpdate as offline to all clients
-            io.emit('presenceUpdate', { presenceType: 'offline' });
-
-            // Optionally, clear any heartbeats associated with the video
-            delete videoHeartbeat[videoId];
-            logger.info(`[Socket.IO] Cleared heartbeat for videoId: ${videoId}`);
-
-            if (callback) callback({ status: "success" });
-        } else if (presenceType === 'browsing' && currentBrowsing) {
-            currentBrowsing = null;
-            logger.info(`[Socket.IO] Marked browsing as offline.`);
-
-            // Emit presenceUpdate as offline to all clients
-            io.emit('presenceUpdate', { presenceType: 'offline' });
-
-            if (callback) callback({ status: "success" });
-        } else {
-            logger.warn(`[Socket.IO] Invalid markVideoOffline request for videoId: ${videoId}`);
-            if (callback) callback({ status: "error", message: "Invalid video ID or presence type" });
-        }
-    });
-
     // Handle Client Disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
@@ -1100,16 +1034,13 @@ setInterval(() => {
     const now = Date.now();
     for (const [videoId, lastHeartbeat] of Object.entries(videoHeartbeat)) {
         if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
-            logger.info(`[Socket.IO] Heartbeat timeout for videoId: ${videoId}. Marking as offline.`);
             currentVideo = null;
             currentBrowsing = null; // Clear browsing to fully reset state
             io.emit('presenceUpdate', { presenceType: 'offline' });
             delete videoHeartbeat[videoId];
         }
     }
-}, HEARTBEAT_TIMEOUT / 1);
-
-
+}, HEARTBEAT_TIMEOUT / 2);
 
 
 // ----------------------
