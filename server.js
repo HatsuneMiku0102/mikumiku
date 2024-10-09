@@ -895,7 +895,7 @@ let lastBrowsingUpdateTime = 0;
 const activeUsers = new Map(); // Use a Map to track unique IPs
 
 
-const GeoData = {
+
     findOne: async (query) => { /* ... */ },
     updateOne: async (query, update, options) => { /* ... */ },
 };
