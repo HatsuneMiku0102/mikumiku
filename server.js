@@ -898,8 +898,7 @@ let currentBrowsing = null;
 const videoHeartbeat = {};
 const activeUsers = new Map(); // Use a Map to track unique IPs
 
-// Initialize Socket.IO
-const io = require('socket.io')(/* your server port or options */);
+
 
 // Event: New client connection
 io.on('connection', async (socket) => {
