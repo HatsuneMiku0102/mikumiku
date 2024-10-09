@@ -947,6 +947,46 @@ io.on('connection', async (socket) => {
         socket.emit('presenceUpdate', { presenceType: 'offline' });
     }
 
+    // Handle Presence Updates (Video, Browsing, Offline)
+    socket.on('presenceUpdate', (data) => {
+        if (data.presenceType === 'browsing') {
+            currentBrowsing = {
+                title: data.title || 'YouTube',
+                description: data.description || 'Browsing videos',
+                thumbnail: data.thumbnail || 'https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png',
+                timeElapsed: data.timeElapsed || 0,
+                presenceType: 'browsing'
+            };
+            currentVideo = null; // Clear video presence if browsing
+            logger.info(`[Socket.IO] Browsing presence updated: ${currentBrowsing.title}`);
+        } else if (data.presenceType === 'video') {
+            currentVideo = {
+                videoId: data.videoId,
+                title: data.title,
+                description: data.description,
+                channelTitle: data.channelTitle,
+                viewCount: data.viewCount,
+                likeCount: data.likeCount,
+                publishedAt: data.publishedAt,
+                category: data.category,
+                thumbnail: data.thumbnail,
+                currentTime: data.currentTime,
+                duration: data.duration,
+                isPaused: data.isPaused,
+                presenceType: 'video'
+            };
+            currentBrowsing = null; // Clear browsing presence if video is playing
+            logger.info(`[Socket.IO] Video presence updated: ${currentVideo.title}`);
+        } else if (data.presenceType === 'offline') {
+            currentVideo = null;
+            currentBrowsing = null;
+            logger.info(`[Socket.IO] User marked as offline.`);
+        }
+
+        // Emit updated presence to all clients
+        io.emit('presenceUpdate', data);
+    });
+
     // YouTube Browsing Presence: Update Browsing Presence
     socket.on('updateBrowsingPresence', (data) => {
         const now = Date.now();
@@ -1026,6 +1066,12 @@ io.on('connection', async (socket) => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
         activeUsers.delete(ip); // Remove user from active users map
         io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
+
+        // Optionally, mark the user as offline on disconnect
+        // This is useful in case 'offline' event wasn't emitted properly
+        io.emit('presenceUpdate', { presenceType: 'offline' });
+        currentVideo = null;
+        currentBrowsing = null;
     });
 });
 
@@ -1038,6 +1084,7 @@ setInterval(() => {
             currentBrowsing = null; // Clear browsing to fully reset state
             io.emit('presenceUpdate', { presenceType: 'offline' });
             delete videoHeartbeat[videoId];
+            logger.info(`[Socket.IO] Heartbeat timeout for video ID: ${videoId}. Marked as offline.`);
         }
     }
 }, HEARTBEAT_TIMEOUT / 2);
