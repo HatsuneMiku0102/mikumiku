@@ -887,12 +887,10 @@ app.get('/api/weather', async (req, res) => {
 // ----------------------
 
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
-const BROWSING_UPDATE_INTERVAL = 30000; // 30 seconds
 
 let currentVideo = null;
 let currentBrowsing = null;
 const videoHeartbeat = {};
-let lastBrowsingUpdateTime = 0;
 const activeUsers = new Map(); // Use a Map to track unique IPs
 
 io.on('connection', async (socket) => {
@@ -990,33 +988,25 @@ io.on('connection', async (socket) => {
 
     // YouTube Browsing Presence: Update Browsing Presence
     socket.on('updateBrowsingPresence', (data) => {
-        const now = Date.now();
+        logger.info(`[Socket.IO] Browsing presence detected.`);
 
-        // Only update if no video is playing or after a certain interval
-        if (data.presenceType === 'browsing' && (now - lastBrowsingUpdateTime > BROWSING_UPDATE_INTERVAL)) {
-            logger.info(`[Socket.IO] Browsing presence detected.`);
-
-            // Clear current video presence if any
-            if (currentVideo) {
-                logger.info(`[Socket.IO] Clearing current video presence to switch to browsing.`);
-                currentVideo = null;
-            }
-
-            // Set current browsing presence
-            currentBrowsing = {
-                title: data.title || 'YouTube',
-                description: data.description || 'Browsing videos',
-                thumbnail: 'https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png',
-                timeElapsed: data.timeElapsed || 0,
-                presenceType: 'browsing'
-            };
-
-            // Emit browsing presence to all clients
-            io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
-
-            // Update the last browsing update time
-            lastBrowsingUpdateTime = now;
+        // Clear current video presence if any
+        if (currentVideo) {
+            logger.info(`[Socket.IO] Clearing current video presence to switch to browsing.`);
+            currentVideo = null;
         }
+
+        // Set current browsing presence
+        currentBrowsing = {
+            title: data.title || 'YouTube',
+            description: data.description || 'Browsing videos',
+            thumbnail: 'https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png',
+            timeElapsed: data.timeElapsed || 0,
+            presenceType: 'browsing'
+        };
+
+        // Emit browsing presence to all clients
+        io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
     });
 
     // YouTube Video Progress: Update Video Progress or Mark New Video Presence
