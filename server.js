@@ -954,7 +954,7 @@ io.on('connection', async (socket) => {
             currentBrowsing = {
                 title: data.title || 'YouTube',
                 description: data.description || 'Browsing videos',
-                thumbnail: data.thumbnail || 'https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png',
+                thumbnail: data.thumbnail || '',
                 timeElapsed: data.timeElapsed || 0,
                 presenceType: 'browsing'
             };
