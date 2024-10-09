@@ -885,7 +885,7 @@ app.get('/api/weather', async (req, res) => {
 // WebSocket (Socket.IO) Configuration
 // ----------------------
 
-const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
+const HEARTBEAT_TIMEOUT = 30000; // 60 seconds
 const BROWSING_UPDATE_INTERVAL = 30000; // 30 seconds
 
 let currentVideo = null;
