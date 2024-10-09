@@ -48,6 +48,10 @@ const io = socketIo(server, {
     }
 });
 
+app.get('/api/youtube-key', (req, res) => {
+    res.json({ apiKey: process.env.YOUTUBE_API_KEY });
+});
+
 const PORT = process.env.PORT || 3000;
 
 // ----------------------
