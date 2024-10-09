@@ -894,18 +894,7 @@ const videoHeartbeat = {};
 let lastBrowsingUpdateTime = 0;
 const activeUsers = new Map(); // Use a Map to track unique IPs
 
-// Assuming you have already set up your Socket.IO server as 'io'
-// const io = require('socket.io')(server);
 
-// Utility logger (replace with your actual logger)
-const logger = {
-    info: console.log,
-    warn: console.warn,
-    error: console.error,
-};
-
-// Placeholder for GeoData and getGeoLocation
-// Replace these with your actual implementations
 const GeoData = {
     findOne: async (query) => { /* ... */ },
     updateOne: async (query, update, options) => { /* ... */ },
@@ -1118,7 +1107,7 @@ setInterval(() => {
             delete videoHeartbeat[videoId];
         }
     }
-}, HEARTBEAT_TIMEOUT / 2);
+}, HEARTBEAT_TIMEOUT / 1);
 
 
 
