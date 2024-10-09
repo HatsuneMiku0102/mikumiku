@@ -992,32 +992,7 @@ io.on('connection', async (socket) => {
         io.emit('presenceUpdate', data);
     });
 
-    // YouTube Browsing Presence: Update Browsing Presence (Throttling Removed)
-    socket.on('updateBrowsingPresence', (data) => {
-        if (data.presenceType === 'browsing') {
-            logger.info(`[Socket.IO] Browsing presence detected.`);
 
-            // Clear current video presence if any
-            if (currentVideo) {
-                logger.info(`[Socket.IO] Clearing current video presence to switch to browsing.`);
-                currentVideo = null;
-            }
-
-            // Set current browsing presence
-            currentBrowsing = {
-                title: data.title || 'YouTube',
-                description: data.description || 'Browsing videos',
-                thumbnail: 'https://i.postimg.cc/GpgNPv0R/custom-browsing-thumbnail.png',
-                timeElapsed: data.timeElapsed || 0,
-                presenceType: 'browsing'
-            };
-
-            // Emit browsing presence to all clients
-            io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
-
-            // Removed lastBrowsingUpdateTime update as throttling is no longer applied
-        }
-    });
 
     // YouTube Video Progress: Update Video Progress or Mark New Video Presence
     socket.on('updateVideoProgress', (data) => {
