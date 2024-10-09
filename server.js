@@ -895,8 +895,6 @@ app.get('/api/weather', async (req, res) => {
 
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
 
-const io = require('socket.io')(/* Your Socket.IO Server Configuration */);
-const logger = console; // Replace with your preferred logging mechanism
 
 // Function to fetch geolocation data based on IP.
 async function getGeoLocation(ip) {
