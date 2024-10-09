@@ -462,13 +462,14 @@
         </script>
 
         <script>
-            // Now Playing Elements and Socket.IO Integration
+            const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY; // YouTube API Key from Heroku environment variable
+            
             const socket = io("https://mikumiku.dev");
             let lastHeartbeatReceived = Date.now();
             let isSessionExpired = false;
             let browsingStartTime = null;
             let browsingInterval = null;
-
+            
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
             const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -482,8 +483,9 @@
             const videoCategoryElement = document.getElementById("videoCategory");
             const videoDescriptionElement = document.getElementById("descriptionModalDescription");
             const timeElapsedElement = document.getElementById("timeElapsed");
-            const liveIconElement = document.getElementById("liveIcon"); // Added for Live Indicator
-
+            const liveIconElement = document.getElementById("liveIcon");
+            
+            // Helper functions
             function formatNumber(number) {
                 if (typeof number === 'string') {
                     number = number.replace(/,/g, '');
@@ -491,7 +493,7 @@
                 const num = Number(number);
                 return isNaN(num) ? "N/A" : num.toLocaleString();
             }
-
+            
             function clearDisplay() {
                 nowPlayingBox.classList.add("offline");
                 offlineIndicatorElement.style.display = "block";
@@ -510,7 +512,7 @@
                 timeElapsedElement.style.display = "none";
                 liveIconElement.style.display = "none"; // Hide Live Icon
             }
-
+            
             function clearVideoPresence() {
                 videoTitleElement.textContent = "";
                 videoThumbnailImage.src = "";
@@ -526,18 +528,12 @@
                 videoDescriptionElement.textContent = "";
                 liveIconElement.style.display = "none"; // Hide Live Icon
             }
-
-            function reinitializeSession() {
-                console.warn("[Client] Reinitializing session due to mismatch or timeout.");
-                clearDisplay();
-                isSessionExpired = true;
-            }
-
+            
             function formatTimeElapsed(seconds) {
                 const hours = Math.floor(seconds / 3600);
                 const minutes = Math.floor((seconds % 3600) / 60);
                 const remainingSeconds = seconds % 60;
-
+            
                 if (hours > 0) {
                     return `${hours}h ${minutes}m ${remainingSeconds}s`;
                 } else if (minutes > 0) {
@@ -546,14 +542,49 @@
                     return `${remainingSeconds}s`;
                 }
             }
-
+            
+            async function fetchLiveStatus() {
+                try {
+                    // Fetch channel ID
+                    const response = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id&mine=true&key=${YOUTUBE_API_KEY}`);
+                    const channelData = await response.json();
+            
+                    if (!channelData.items || channelData.items.length === 0) {
+                        console.warn('No channel found.');
+                        clearDisplay();
+                        return;
+                    }
+            
+                    const channelId = channelData.items[0].id;
+            
+                    // Fetch live video data
+                    const liveResponse = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video&key=${YOUTUBE_API_KEY}`);
+                    const liveData = await liveResponse.json();
+            
+                    if (liveData.items && liveData.items.length > 0) {
+                        const liveVideo = liveData.items[0];
+                        displayVideoPresence({
+                            title: liveVideo.snippet.title,
+                            channelTitle: liveVideo.snippet.channelTitle,
+                            thumbnail: liveVideo.snippet.thumbnails.high.url,
+                            isLive: true,
+                            videoId: liveVideo.id.videoId
+                        });
+                    } else {
+                        clearDisplay();
+                    }
+                } catch (error) {
+                    console.error('Error fetching live status:', error);
+                }
+            }
+            
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
-
+            
                 videoTitleElement.textContent = data.title || "Unknown Title";
-
+            
                 if (data.thumbnail) {
                     videoThumbnailImage.src = data.thumbnail;
                     videoThumbnailImage.style.display = "block";
@@ -562,147 +593,45 @@
                     videoThumbnailImage.src = "";
                     videoThumbnailElement.style.display = "none";
                 }
-
+            
                 channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-                viewCountElement.textContent = `${formatNumber(data.viewCount)}` || "N/A";
-                likeCountElement.textContent = `${formatNumber(data.likeCount)}` || "N/A";
-
-                if (data.publishedAt) {
-                    const publishedDate = new Date(data.publishedAt);
-                    publishedDateElement.textContent = ` ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
-                } else {
-                    publishedDateElement.textContent = "Published on: N/A";
-                }
-
-                videoCategoryElement.textContent = `${data.category}` || "N/A";
-                videoDescriptionElement.textContent = data.description || "No description available.";
+                liveIconElement.style.display = data.isLive ? "block" : "none"; // Show Live Icon if live
+            
                 handleRealTimeProgress(data);
-                timeElapsedElement.style.display = "none";
-
-                if (data.videoSrc) {
-                    videoThumbnailElement.src = data.videoSrc;
-                    videoThumbnailElement.style.display = "block";
-                    videoThumbnailImage.style.display = "none";
-                } else {
-                    videoThumbnailElement.style.display = "none";
-                    videoThumbnailImage.style.display = "block";
-                }
-
-                // Handle Live Status
-                console.log("Live status:", data.isLive);
-                if (data.isLive) {
-                    liveIconElement.style.display = "block";
-                } else {
-                    liveIconElement.style.display = "none";
-                }
             }
-
+            
             function handleRealTimeProgress(data) {
-                if (data.duration && data.currentTime) {
-                    const progressPercentage = (data.currentTime / data.duration) * 100;
-                    progressBarElement.style.width = `${progressPercentage}%`;
-                } else {
-                    progressBarElement.style.width = "0%";
-                }
+                // No real-time progress handling here for live streams
             }
-
-            function displayBrowsingPresence(data) {
-                lastHeartbeatReceived = Date.now();
-                nowPlayingBox.classList.remove("offline");
-                offlineIndicatorElement.style.display = "none";
-
-                clearVideoPresence();
-
-                videoTitleElement.textContent = data.title || "Browsing YouTube";
-                videoThumbnailImage.src = data.thumbnail || "";
-                videoThumbnailImage.style.display = "block";
-                videoThumbnailElement.style.display = "none";
-                channelNameElement.textContent = "Browsing...";
-                videoDescriptionElement.textContent = data.description || "Browsing videos on YouTube";
-                progressBarElement.style.width = "0%";
-
-                if (data.timeElapsed !== undefined) {
-                    timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(data.timeElapsed)}`;
-                    timeElapsedElement.style.display = "block";
-                }
-            }
-
-            function updateBrowsingPresence() {
-                if (browsingStartTime !== null) {
-                    const timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
-                    timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(timeElapsed)}`;
-                    timeElapsedElement.style.display = "block";
-
-                    const browsingData = {
-                        title: 'YouTube',
-                        description: 'Browsing videos',
-                        thumbnail: '',
-                        timeElapsed: timeElapsed,
-                        presenceType: 'browsing'
-                    };
-                    socket.emit('updateBrowsingPresence', browsingData);
-                }
-            }
-
-            function startBrowsingPresence() {
-                if (browsingStartTime === null) {
-                    browsingStartTime = Date.now();
-                }
-                if (!browsingInterval) {
-                    browsingInterval = setInterval(updateBrowsingPresence, 5000);
-                }
-            }
-
-            function stopBrowsingPresence() {
-                if (browsingInterval) {
-                    clearInterval(browsingInterval);
-                    browsingInterval = null;
-                }
-                browsingStartTime = null;
-            }
-
+            
+            // Fetch live status periodically
+            setInterval(fetchLiveStatus, 30000); // Check every 30 seconds
+            fetchLiveStatus(); // Initial call
+            
+            // Socket.IO Integration (already implemented in your original code)
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
                 isSessionExpired = false;
                 socket.emit('requestLatestData');
             });
-
+            
             socket.on("presenceUpdate", (data) => {
                 if (isSessionExpired) {
                     console.warn("[Client] Ignoring presenceUpdate due to expired session.");
                     return;
                 }
-
+            
                 console.log("[Socket.IO] Received presenceUpdate:", data);
                 lastHeartbeatReceived = Date.now();
-
+            
                 if (data.presenceType === 'video') {
-                    stopBrowsingPresence();
                     displayVideoPresence(data);
-                } else if (data.presenceType === 'browsing') {
-                    displayBrowsingPresence(data);
-                    startBrowsingPresence();
                 } else {
                     clearDisplay();
                 }
             });
-
-            socket.on("reinitializeSession", (data) => {
-                console.warn(`[Socket.IO] Received reinitializeSession: ${JSON.stringify(data)}`);
-                reinitializeSession();
-            });
-
-            socket.on("sessionExpired", (data) => {
-                console.warn(`[Socket.IO] Session expired for video ID: ${data.videoId}`);
-                reinitializeSession();
-            });
-
-            socket.on("disconnect", () => {
-                console.warn("[Socket.IO] Disconnected from server.");
-                stopBrowsingPresence();
-                clearDisplay();
-            });
-
+            
+            // Heartbeat check
             setInterval(() => {
                 if (Date.now() - lastHeartbeatReceived > 60000) {
                     console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
