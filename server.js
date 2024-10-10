@@ -896,7 +896,6 @@ app.get('/api/weather', async (req, res) => {
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
 const YOUTUBE_API_URL = "https://www.googleapis.com/youtube/v3";
 const LIVE_CHAT_POLL_INTERVAL = 5000; // Poll every 5 seconds
-const PORT = process.env.SOCKET_PORT || 3000;
 const API_KEY = process.env.API_KEY;
 
 // Validate Configuration
