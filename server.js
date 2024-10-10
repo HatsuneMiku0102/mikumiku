@@ -901,7 +901,6 @@ const LIVE_CHAT_POLL_INTERVAL = 5000; // Poll every 5 seconds
 // State Management
 let currentVideo = null;
 let currentBrowsing = null;
-const videoHeartbeat = {};
 const activeUsers = new Map(); // Tracks active users by IP
 let liveChatId = null;
 let liveChatPollingInterval = null;
