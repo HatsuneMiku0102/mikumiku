@@ -926,44 +926,7 @@ const CATEGORY_MAPPINGS = {
 const videoStates = new Map(); // Map<videoId, { liveChatId, pollingInterval, clients: Set<socket.id>, videoData, lastHeartbeat }>
 const activeUsers = new Map(); // Tracks active users by IP
 
-// Function to fetch video details using YouTube API
-async function fetchVideoDetails(videoId) {
-    try {
-        const response = await axios.get(`${YOUTUBE_API_URL}/videos`, {
-            params: {
-                part: 'snippet,statistics,contentDetails',
-                id: videoId,
-                key: YOUTUBE_API_KEY,
-            },
-        });
 
-        if (response.data.items && response.data.items.length > 0) {
-            const item = response.data.items[0];
-            const isoDuration = item.contentDetails.duration;
-            const categoryId = item.snippet.categoryId;
-
-            return {
-                videoId: videoId,
-                title: item.snippet.title || "Unknown Title",
-                description: item.snippet.description || "No description available",
-                channelTitle: item.snippet.channelTitle || "Unknown Channel",
-                viewCount: item.statistics.viewCount || "N/A",
-                likeCount: item.statistics.likeCount || "N/A",
-                publishedAt: item.snippet.publishedAt || "N/A",
-                category: CATEGORY_MAPPINGS[categoryId] || 'Unknown Category',
-                thumbnail: item.snippet.thumbnails.high?.url || "No thumbnail available",
-                duration: convertISO8601ToSeconds(isoDuration),
-                isLive: item.snippet.liveBroadcastContent === 'live' || false
-            };
-        } else {
-            logger.warn(`No video data found for videoId: ${videoId}`);
-            return null;
-        }
-    } catch (error) {
-        logger.error(`Error fetching video details for videoId ${videoId}:`, error);
-        return null;
-    }
-}
 
 // Utility function to convert ISO8601 duration to seconds
 function convertISO8601ToSeconds(isoDuration) {
