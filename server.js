@@ -899,7 +899,7 @@ const LIVE_CHAT_POLL_INTERVAL = 5000; // Poll every 5 seconds
 const API_KEY = process.env.API_KEY;
 
 // Validate Configuration
-if (!API_KEY) {
+if (!YOUTUBE_API_KEY) {
     console.error("Error: YOUTUBE_API_KEY is not set in environment variables.");
     process.exit(1);
 }
