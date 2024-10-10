@@ -927,7 +927,6 @@ const videoStates = new Map(); // Map<videoId, { liveChatId, pollingInterval, cl
 const activeUsers = new Map(); // Tracks active users by IP
 
 
-
 // Utility function to convert ISO8601 duration to seconds
 function convertISO8601ToSeconds(isoDuration) {
     if (!isoDuration) {
@@ -961,6 +960,7 @@ io.on('connection', (socket) => {
     if (!activeUsers.has(ip)) {
         activeUsers.set(ip, { id: socket.id, ip });
         io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
+        logger.info(`Added IP ${ip} to active users.`);
     } else {
         logger.info(`IP ${ip} is already connected.`);
     }
@@ -968,6 +968,8 @@ io.on('connection', (socket) => {
     // Handle 'presenceUpdate' event
     socket.on('presenceUpdate', async (data, callback) => {
         try {
+            logger.debug(`[Socket.IO] Received presenceUpdate from ${socket.id}:`, data);
+
             if (!data || !data.presenceType) {
                 logger.warn(`Invalid presenceUpdate data from ${socket.id}:`, data);
                 return callback({ status: "error", message: "Invalid presenceUpdate data." });
@@ -1121,6 +1123,7 @@ async function handleVideoPresence(socket, data) {
 
     // Join the Socket.IO Room for the Video
     socket.join(videoId);
+    logger.debug(`[Socket.IO] Socket ${socket.id} joined room: ${videoId}`);
 }
 
 /**
@@ -1128,6 +1131,8 @@ async function handleVideoPresence(socket, data) {
  */
 function handleVideoProgress(socket, data, callback) {
     try {
+        logger.debug(`[Socket.IO] Received updateVideoProgress from ${socket.id}:`, data);
+
         const { videoId, currentTime, duration, isPaused } = data;
 
         if (!videoId || typeof videoId !== 'string') {
@@ -1160,6 +1165,7 @@ function handleVideoProgress(socket, data, callback) {
 
         // Emit updated video data to clients in the video room
         io.to(videoId).emit('presenceUpdate', { presenceType: 'video', ...state.videoData });
+        logger.debug(`[Socket.IO] Emitted updated presenceUpdate to room: ${videoId}`);
 
         if (callback) callback({ status: "ok" });
     } catch (error) {
@@ -1220,6 +1226,7 @@ function handleHeartbeat(socket, data, callback) {
 function handleDisconnect(socket, ip) {
     activeUsers.delete(ip);
     io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
+    logger.info(`Removed IP ${ip} from active users.`);
 
     // Remove the client from all video states they're part of
     videoStates.forEach((state, videoId) => {
