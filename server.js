@@ -890,87 +890,36 @@ app.get('/api/weather', async (req, res) => {
 // WebSocket (Socket.IO) Configuration
 // ----------------------
 
-const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
-const YOUTUBE_API_URL = "https://www.googleapis.com/youtube/v3";
-const LIVE_CHAT_POLL_INTERVAL = 5000; // Poll every 5 seconds
+// Global Variables
+const videoStates = new Map(); // videoId => state
+const activeUsers = new Set(); // IP addresses
 
-// Access the YouTube API key from environment variables
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+// Configuration Constants
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY; // Securely stored
+const YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3';
+const LIVE_CHAT_POLL_INTERVAL = 5000; // 5 seconds
+const HEARTBEAT_TIMEOUT = 60000; // 1 minute
 
-if (!YOUTUBE_API_KEY) {
-    logger.error("YOUTUBE_API_KEY is not set in environment variables.");
-    process.exit(1); // Exit the process if API key is missing
-}
-
-// YouTube Category Mappings (Same as in background.js)
-const CATEGORY_MAPPINGS = {
-    "1": "Film & Animation",
-    "2": "Autos & Vehicles",
-    "10": "Music",
-    "15": "Pets & Animals",
-    "17": "Sports",
-    "19": "Travel & Events",
-    "20": "Gaming",
-    "21": "Videoblogging",
-    "22": "People & Blogs",
-    "23": "Comedy",
-    "24": "Entertainment",
-    "25": "News & Politics",
-    "26": "Howto & Style",
-    "27": "Education",
-    "28": "Science & Technology",
-    "29": "Nonprofits & Activism",
+// Function to extract IP from socket
+const getIP = (socket) => {
+    return socket.handshake.headers['x-forwarded-for'] || socket.conn.remoteAddress;
 };
 
-// State Management
-const videoStates = new Map(); // Map<videoId, { liveChatId, pollingInterval, clients: Set<socket.id>, videoData, lastHeartbeat }>
-const activeUsers = new Map(); // Tracks active users by IP
-
-
-// Utility function to convert ISO8601 duration to seconds
-function convertISO8601ToSeconds(isoDuration) {
-    if (!isoDuration) {
-        logger.warn('ISO Duration is undefined or null.');
-        return 0; // Default duration
-    }
-
-    const regex = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/;
-    const matches = isoDuration.match(regex);
-
-    if (!matches) {
-        logger.warn(`Unable to parse ISO8601 duration: "${isoDuration}"`);
-        return 0; // Default duration or handle as needed
-    }
-
-    const hours = parseInt(matches[1] || '0', 10);
-    const minutes = parseInt(matches[2] || '0', 10);
-    const seconds = parseInt(matches[3] || '0', 10);
-
-    return hours * 3600 + minutes * 60 + seconds;
-}
-
-// Socket.IO Connection Handling
+// Handle Socket.IO Connections
 io.on('connection', (socket) => {
+    const ip = getIP(socket);
+    activeUsers.add(ip);
+    io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
     logger.info(`New client connected: ${socket.id}`);
-
-    const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
     logger.info(`New connection from IP: ${ip}`);
-
-    // Add to active users
-    if (!activeUsers.has(ip)) {
-        activeUsers.set(ip, { id: socket.id, ip });
-        io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
-        logger.info(`Added IP ${ip} to active users.`);
-    } else {
-        logger.info(`IP ${ip} is already connected.`);
-    }
+    logger.info(`Added IP ${ip} to active users.`);
 
     // Handle 'presenceUpdate' event
     socket.on('presenceUpdate', async (data, callback) => {
         try {
             logger.debug(`[Socket.IO] Received presenceUpdate from ${socket.id}:`, data);
 
-            if (!data || !data.presenceType) {
+            if (!data || !data.presenceType || !data.videoId) {
                 logger.warn(`Invalid presenceUpdate data from ${socket.id}:`, data);
                 return callback({ status: "error", message: "Invalid presenceUpdate data." });
             }
@@ -996,12 +945,49 @@ io.on('connection', (socket) => {
 
     // Handle 'updateVideoProgress' event
     socket.on('updateVideoProgress', (data, callback) => {
-        handleVideoProgress(socket, data, callback);
-    });
+        try {
+            logger.debug(`[Socket.IO] Received updateVideoProgress from ${socket.id}:`, data);
 
-    // Handle 'heartbeat' event
-    socket.on('heartbeat', (data, callback) => {
-        handleHeartbeat(socket, data, callback);
+            const { videoId, currentTime, duration, isPaused } = data;
+
+            if (!videoId || typeof videoId !== 'string') {
+                logger.warn("[Socket.IO] Invalid or missing Video ID in updateVideoProgress.");
+                if (callback) callback({ status: "error", message: "Invalid or missing Video ID." });
+                return;
+            }
+
+            const trimmedVideoId = videoId.trim();
+            const state = videoStates.get(trimmedVideoId);
+            if (!state) {
+                logger.warn(`[Socket.IO] No current video to update progress for videoId: ${trimmedVideoId}.`);
+                if (callback) callback({ status: "error", message: "Video session not recognized." });
+                return;
+            }
+
+            // Validate other data fields if necessary
+            if (typeof currentTime !== 'number' || typeof duration !== 'number' || typeof isPaused !== 'boolean') {
+                logger.warn(`[Socket.IO] Invalid data types in updateVideoProgress from ${socket.id}:`, data);
+                if (callback) callback({ status: "error", message: "Invalid data types in updateVideoProgress." });
+                return;
+            }
+
+            // Update video progress data
+            state.videoData.currentTime = currentTime;
+            state.videoData.duration = duration;
+            state.videoData.isPaused = isPaused;
+            state.lastHeartbeat = Date.now(); // Update heartbeat on progress update
+
+            logger.info(`[Socket.IO] Updated video progress for "${state.videoData.title}" (videoId: ${trimmedVideoId}): Current Time: ${currentTime}`);
+
+            // Emit updated video data to clients in the video room
+            io.to(trimmedVideoId).emit('presenceUpdate', { presenceType: 'video', ...state.videoData });
+            logger.debug(`[Socket.IO] Emitted updated presenceUpdate to room: ${trimmedVideoId}`);
+
+            if (callback) callback({ status: "ok" });
+        } catch (error) {
+            logger.error(`[Socket.IO] Exception in handleVideoProgress for socket ${socket.id}:`, error);
+            if (callback) callback({ status: "error", message: "Server encountered an error processing the update." });
+        }
     });
 
     // Handle disconnection
@@ -1047,7 +1033,6 @@ async function handleVideoPresence(socket, data) {
         publishedAt,
         category,
         thumbnail,
-        currentTime,
         duration,
         isPaused,
         isLive
@@ -1078,7 +1063,6 @@ async function handleVideoPresence(socket, data) {
             publishedAt,
             category,
             thumbnail,
-            currentTime,
             duration,
             isPaused,
             isLive,
@@ -1102,7 +1086,6 @@ async function handleVideoPresence(socket, data) {
                 publishedAt,
                 category,
                 thumbnail,
-                currentTime,
                 duration,
                 isPaused,
                 isLive,
@@ -1124,100 +1107,6 @@ async function handleVideoPresence(socket, data) {
     // Join the Socket.IO Room for the Video
     socket.join(videoId);
     logger.debug(`[Socket.IO] Socket ${socket.id} joined room: ${videoId}`);
-}
-
-/**
- * Handle 'updateVideoProgress' events
- */
-function handleVideoProgress(socket, data, callback) {
-    try {
-        logger.debug(`[Socket.IO] Received updateVideoProgress from ${socket.id}:`, data);
-
-        const { videoId, currentTime, duration, isPaused } = data;
-
-        if (!videoId || typeof videoId !== 'string') {
-            logger.warn("[Socket.IO] Invalid or missing Video ID in updateVideoProgress.");
-            if (callback) callback({ status: "error", message: "Invalid or missing Video ID." });
-            return;
-        }
-
-        const state = videoStates.get(videoId);
-        if (!state) {
-            logger.warn(`[Socket.IO] No current video to update progress for videoId: ${videoId}.`);
-            if (callback) callback({ status: "error", message: "Video session not recognized." });
-            return;
-        }
-
-        // Validate other data fields if necessary
-        if (typeof currentTime !== 'number' || typeof duration !== 'number' || typeof isPaused !== 'boolean') {
-            logger.warn(`[Socket.IO] Invalid data types in updateVideoProgress from ${socket.id}:`, data);
-            if (callback) callback({ status: "error", message: "Invalid data types in updateVideoProgress." });
-            return;
-        }
-
-        // Update video progress data
-        state.videoData.currentTime = currentTime;
-        state.videoData.duration = duration;
-        state.videoData.isPaused = isPaused;
-        state.lastHeartbeat = Date.now(); // Update heartbeat on progress update
-
-        logger.info(`[Socket.IO] Updated video progress for "${state.videoData.title}" (videoId: ${videoId}): Current Time: ${currentTime}`);
-
-        // Emit updated video data to clients in the video room
-        io.to(videoId).emit('presenceUpdate', { presenceType: 'video', ...state.videoData });
-        logger.debug(`[Socket.IO] Emitted updated presenceUpdate to room: ${videoId}`);
-
-        if (callback) callback({ status: "ok" });
-    } catch (error) {
-        logger.error(`[Socket.IO] Exception in handleVideoProgress for socket ${socket.id}:`, error);
-        if (callback) callback({ status: "error", message: "Server encountered an error processing the update." });
-    }
-}
-
-/**
- * Handle 'offline' presence updates
- */
-function handleOfflinePresence(socket, data) {
-    const { videoId } = data;
-
-    if (videoId && typeof videoId === 'string' && videoStates.has(videoId)) {
-        const state = videoStates.get(videoId);
-        if (state.clients.has(socket.id)) {
-            state.clients.delete(socket.id);
-            logger.log(`Removed client ${socket.id} from videoId: ${videoId}`);
-
-            // If no clients remain for the video, stop polling and remove the video session
-            if (state.clients.size === 0) {
-                stopLiveChatPolling(videoId);
-                videoStates.delete(videoId);
-                logger.info(`No more clients for videoId: ${videoId}. Video session removed.`);
-            }
-        }
-    }
-
-    logger.info(`[Socket.IO] User marked as offline: ${socket.id}`);
-}
-
-/**
- * Handle heartbeat signals for video presence
- */
-function handleHeartbeat(socket, data, callback) {
-    const { videoId } = data;
-    if (!videoId || typeof videoId !== 'string') {
-        logger.warn(`[Socket.IO] Heartbeat received with invalid or missing videoId from client ${socket.id}: ${videoId}`);
-        if (callback) callback({ status: "error", message: "Invalid or missing videoId." });
-        return;
-    }
-
-    const state = videoStates.get(videoId);
-    if (state && state.clients.has(socket.id)) {
-        state.lastHeartbeat = Date.now();
-        logger.log(`Heartbeat received for videoId: ${videoId} from client ${socket.id}`);
-        if (callback) callback({ status: "ok" });
-    } else {
-        logger.warn(`[Socket.IO] Heartbeat received for unknown or unassociated videoId: ${videoId} from client ${socket.id}`);
-        if (callback) callback({ status: "error", message: "Unknown video ID or client not associated with this video." });
-    }
 }
 
 /**
@@ -1245,136 +1134,6 @@ function handleDisconnect(socket, ip) {
 
     logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
 }
-
-/**
- * Fetch live chat ID for the given video
- */
-async function fetchLiveChatId(videoId) {
-    try {
-        const response = await axios.get(`${YOUTUBE_API_URL}/videos`, {
-            params: {
-                part: 'liveStreamingDetails',
-                id: videoId,
-                key: YOUTUBE_API_KEY,
-            },
-        });
-
-        if (response.data.items && response.data.items.length > 0) {
-            const liveChatId = response.data.items[0].liveStreamingDetails?.activeLiveChatId;
-            if (liveChatId) {
-                logger.info(`[YouTube API] Fetched live chat ID: ${liveChatId} for videoId: ${videoId}`);
-                return liveChatId;
-            } else {
-                logger.warn(`[YouTube API] No live chat found for videoId: ${videoId}`);
-                return null;
-            }
-        } else {
-            logger.warn(`[YouTube API] No video found for videoId: ${videoId}`);
-            return null;
-        }
-    } catch (error) {
-        logger.error(`[YouTube API] Error fetching live chat ID for videoId ${videoId}:`, error);
-        return null;
-    }
-}
-
-/**
- * Fetch live chat messages from YouTube API
- */
-async function fetchLiveChatMessages(videoId) {
-    const state = videoStates.get(videoId);
-    if (!state || !state.liveChatId) {
-        logger.warn(`[YouTube API] Live chat ID is not set for videoId: ${videoId}`);
-        return;
-    }
-
-    try {
-        const response = await axios.get(`${YOUTUBE_API_URL}/liveChat/messages`, {
-            params: {
-                part: 'snippet,authorDetails',
-                liveChatId: state.liveChatId,
-                key: YOUTUBE_API_KEY,
-            },
-        });
-
-        if (response.data.items) {
-            const messages = response.data.items.map((item) => ({
-                authorName: item.authorDetails.displayName,
-                message: item.snippet.displayMessage,
-                timestamp: item.snippet.publishedAt,
-            }));
-
-            // Emit live chat messages to clients in the specific video room
-            io.to(videoId).emit('liveChatMessages', messages);
-            logger.info(`[YouTube API] Fetched ${messages.length} live chat messages for videoId: ${videoId}`);
-        }
-    } catch (error) {
-        logger.error(`[YouTube API] Error fetching live chat messages for videoId ${videoId}:`, error);
-    }
-}
-
-/**
- * Start polling live chat messages for a specific video
- */
-async function startLiveChatPolling(videoId) {
-    if (videoStates.has(videoId) && videoStates.get(videoId).pollingInterval) {
-        logger.warn(`Live chat polling already active for videoId: ${videoId}`);
-        return;
-    }
-
-    const liveChatId = await fetchLiveChatId(videoId);
-    if (liveChatId) {
-        const pollingInterval = setInterval(() => {
-            fetchLiveChatMessages(videoId);
-        }, LIVE_CHAT_POLL_INTERVAL);
-
-        const state = videoStates.get(videoId);
-        if (state) {
-            state.liveChatId = liveChatId;
-            state.pollingInterval = pollingInterval;
-            state.lastHeartbeat = Date.now();
-            logger.info(`Started live chat polling for videoId: ${videoId}`);
-        }
-    }
-}
-
-/**
- * Stop polling live chat messages for a specific video
- */
-function stopLiveChatPolling(videoId) {
-    const state = videoStates.get(videoId);
-    if (state && state.pollingInterval) {
-        clearInterval(state.pollingInterval);
-        state.pollingInterval = null;
-        state.liveChatId = null;
-        logger.log(`Stopped live chat polling for videoId: ${videoId}`);
-    } else {
-        logger.warn(`No live chat polling found for videoId: ${videoId}`);
-    }
-}
-
-/**
- * Periodically check for heartbeat timeouts to mark videos as offline
- */
-setInterval(() => {
-    const now = Date.now();
-    videoStates.forEach((state, videoId) => {
-        if (now - state.lastHeartbeat > HEARTBEAT_TIMEOUT) {
-            logger.warn(`Heartbeat timeout for video ID: ${videoId}. Removing all associated clients.`);
-            state.clients.forEach((socketId) => {
-                const socket = io.sockets.sockets.get(socketId);
-                if (socket) {
-                    socket.emit('presenceUpdate', { presenceType: 'offline', videoId });
-                    socket.leave(videoId); // Leave the room
-                }
-            });
-            stopLiveChatPolling(videoId);
-            videoStates.delete(videoId);
-            logger.info(`Video session for videoId: ${videoId} has been removed due to heartbeat timeout.`);
-        }
-    });
-}, HEARTBEAT_TIMEOUT / 2);
-
 
 
 // ----------------------
