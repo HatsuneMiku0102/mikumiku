@@ -904,32 +904,6 @@ if (!API_KEY) {
     process.exit(1);
 }
 
-// Initialize Logger using Winston
-const logger = winston.createLogger({
-    level: 'info',
-    format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.printf(
-            ({ timestamp, level, message, ...meta }) =>
-                `${timestamp} [${level.toUpperCase()}]: ${message} ${Object.keys(meta).length ? JSON.stringify(meta) : ''
-                }`
-        )
-    ),
-    transports: [
-        new winston.transports.Console(),
-        // Add more transports like File if needed
-    ],
-});
-
-// Initialize Socket.IO Server
-const io = new Server(PORT, {
-    cors: {
-        origin: "*", // Adjust as needed for security
-        methods: ["GET", "POST"]
-    }
-});
-
-logger.info(`Socket.IO server is running on port ${PORT}`);
 
 // State Management
 const videoStates = new Map(); // Map<videoId, { liveChatId, pollingInterval, clients: Set<socket.id>, videoData, lastHeartbeat } >
