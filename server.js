@@ -899,9 +899,9 @@ const CLEANUP_INTERVAL = HEARTBEAT_TIMEOUT / 2; // Interval to check for heartbe
 // Initialize Server State
 const activeUsers = new Map(); // Tracks active users by IP
 const userPresence = new Map(); // Tracks presence data per IP
-const videoHeartbeat = {}; // Tracks last heartbeat timestamp per IP-videoId
+const videoHeartbeat = new Map(); // Tracks last heartbeat timestamp per IP-videoId
 
-// Logger Utility for Consistent Logging
+
 
 // Connect to MongoDB (Ensure you have MongoDB running and replace the URI accordingly)
 mongoose.connect('mongodb://localhost:27017/geoDataDB', {
@@ -1002,7 +1002,7 @@ io.on('connection', async (socket) => {
             logger.info(`Updated video presence for IP ${ip}:`, videoData);
 
             // Initialize or Update Heartbeat Timestamp
-            videoHeartbeat[`${ip}-${data.videoId}`] = Date.now();
+            videoHeartbeat.set(`${ip}-${data.videoId}`, Date.now());
             logger.info(`Initialized heartbeat for IP ${ip}, Video ID ${data.videoId}.`);
 
             // Emit Updated Presence to All Clients
@@ -1022,9 +1022,9 @@ io.on('connection', async (socket) => {
             logger.info(`Updated browsing presence for IP ${ip}:`, browsingData);
 
             // Remove any existing heartbeat for this IP (since user is browsing)
-            for (const key in videoHeartbeat) {
+            for (const key of videoHeartbeat.keys()) {
                 if (key.startsWith(`${ip}-`)) {
-                    delete videoHeartbeat[key];
+                    videoHeartbeat.delete(key);
                     logger.info(`Removed heartbeat for IP ${ip} as user is browsing.`);
                 }
             }
@@ -1038,9 +1038,9 @@ io.on('connection', async (socket) => {
             logger.info(`Updated presence to offline for IP ${ip}.`);
 
             // Remove any existing heartbeat for this IP
-            for (const key in videoHeartbeat) {
+            for (const key of videoHeartbeat.keys()) {
                 if (key.startsWith(`${ip}-`)) {
-                    delete videoHeartbeat[key];
+                    videoHeartbeat.delete(key);
                     logger.info(`Removed heartbeat for IP ${ip} as user went offline.`);
                 }
             }
@@ -1083,7 +1083,7 @@ io.on('connection', async (socket) => {
 
         if (existingPresence && existingPresence.presenceType === 'video' && existingPresence.videoId === videoId) {
             // Record Heartbeat Timestamp
-            videoHeartbeat[`${ip}-${videoId}`] = Date.now();
+            videoHeartbeat.set(`${ip}-${videoId}`, Date.now());
             logger.info(`Heartbeat received for IP ${ip}, Video ID ${videoId}.`);
 
             if (callback) callback({ status: "ok" });
@@ -1110,9 +1110,9 @@ io.on('connection', async (socket) => {
                 userPresence.set(ip, { presenceType: 'offline' });
 
                 // Remove any existing heartbeat for this IP
-                for (const key in videoHeartbeat) {
+                for (const key of videoHeartbeat.keys()) {
                     if (key.startsWith(`${ip}-`)) {
-                        delete videoHeartbeat[key];
+                        videoHeartbeat.delete(key);
                         logger.info(`Removed heartbeat for IP ${ip} as user went offline.`);
                     }
                 }
@@ -1143,7 +1143,7 @@ function emitActiveUsersUpdate() {
 // Heartbeat Timeout Checker
 setInterval(() => {
     const now = Date.now();
-    for (const [key, lastHeartbeat] of Object.entries(videoHeartbeat)) {
+    for (const [key, lastHeartbeat] of videoHeartbeat.entries()) {
         if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
             // Extract IP and Video ID from key
             const [ip, videoId] = key.split('-');
@@ -1156,7 +1156,7 @@ setInterval(() => {
                 logger.info(`Heartbeat timeout for IP ${ip}, Video ID ${videoId}. Marked as offline.`);
 
                 // Remove Heartbeat Record
-                delete videoHeartbeat[key];
+                videoHeartbeat.delete(key);
 
                 // Emit Offline Presence to All Clients
                 io.emit('presenceUpdate', { presenceType: 'offline' });
@@ -1164,7 +1164,6 @@ setInterval(() => {
         }
     }
 }, CLEANUP_INTERVAL);
-
 
 
 
