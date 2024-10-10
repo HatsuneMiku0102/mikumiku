@@ -902,11 +902,6 @@ const userPresence = new Map(); // Tracks presence data per IP
 const videoHeartbeat = {}; // Tracks last heartbeat timestamp per IP-videoId
 
 // Logger Utility for Consistent Logging
-const logger = {
-    info: (msg, ...args) => console.log(`[INFO] ${msg}`, ...args),
-    warn: (msg, ...args) => console.warn(`[WARN] ${msg}`, ...args),
-    error: (msg, ...args) => console.error(`[ERROR] ${msg}`, ...args),
-};
 
 // Connect to MongoDB (Ensure you have MongoDB running and replace the URI accordingly)
 mongoose.connect('mongodb://localhost:27017/geoDataDB', {
