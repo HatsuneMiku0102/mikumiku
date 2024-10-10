@@ -1141,6 +1141,30 @@ function handleVideoPresence(data) {
 }
 
 /**
+ * Handle video progress updates
+ */
+function handleVideoProgress(data) {
+    if (!currentVideo) {
+        logger.warn("[Socket.IO] No current video to update progress for.");
+        return;
+    }
+
+    const {
+        currentTime,
+        duration,
+        isPaused
+    } = data;
+
+    Object.assign(currentVideo, {
+        currentTime,
+        duration,
+        isPaused
+    });
+
+    logger.info(`[Socket.IO] Updated video progress: ${currentVideo.title}, Current Time: ${currentTime}`);
+}
+
+/**
  * Handle offline presence updates and stop live chat polling
  */
 function handleOfflinePresence() {
@@ -1205,7 +1229,6 @@ setInterval(() => {
         }
     }
 }, HEARTBEAT_TIMEOUT / 2);
-
 
 
 
