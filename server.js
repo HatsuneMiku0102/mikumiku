@@ -895,54 +895,37 @@ app.get('/api/weather', async (req, res) => {
 
 // Configuration Constants
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
-const CLEANUP_INTERVAL = HEARTBEAT_TIMEOUT / 2; // Interval to check for heartbeat timeouts
 
-// Initialize Server State
+// State Management
+let currentVideo = null;
+let currentBrowsing = null;
+const videoHeartbeat = {};
 const activeUsers = new Map(); // Tracks active users by IP
-const userPresence = new Map(); // Tracks presence data per IP
-const videoHeartbeat = {}; // Tracks last heartbeat timestamp per IP-videoId
 
-
-
-// Connect to MongoDB (Ensure you have MongoDB running and replace the URI accordingly)
-mongoose.connect('mongodb://localhost:27017/geoDataDB', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
-.then(() => logger.info('Connected to MongoDB.'))
-.catch(err => logger.error('MongoDB connection error:', err));
-
-// Socket.IO Connection Handler
+/**
+ * Handle new client connections
+ */
 io.on('connection', async (socket) => {
-    logger.info(`New client connected: ${socket.id}`);
+    logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
-    // Extract IP Address
+    // Extract IP address from the socket
     const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
-    logger.info(`Client IP: ${ip}`);
+    logger.info(`New connection from IP: ${ip}`);
 
-    // Fetch Geolocation Data
-    let location;
     try {
-        location = await GeoData.findOne({ ip });
+        // Fetch geolocation data for the IP
+        let location = await GeoData.findOne({ ip });
         if (!location) {
             location = await getGeoLocation(ip);
             // Save to GeoData if not already present
             await GeoData.updateOne(
                 { ip },
-                { 
-                    city: location.city || 'Unknown',
-                    region: location.region || 'Unknown',
-                    country: location.country || 'Unknown',
-                    ip 
-                },
+                { city: location.city, region: location.region, country: location.country, ip },
                 { upsert: true }
             );
-            logger.info(`Geolocation data saved for IP: ${ip}`);
-        } else {
-            logger.info(`Geolocation data retrieved for IP: ${ip}`);
         }
 
-        // Emit Location Update to Client
+        // Emit location data to the connected client
         socket.emit('locationUpdate', {
             ip,
             city: location.city || 'Unknown',
@@ -950,8 +933,7 @@ io.on('connection', async (socket) => {
             country: location.country || 'Unknown'
         });
     } catch (err) {
-        logger.error('Error fetching geolocation data:', err);
-        // Emit Unknown Location if fetching fails
+        logger.error('Error fetching location:', err);
         socket.emit('locationUpdate', {
             ip,
             city: 'Unknown',
@@ -960,211 +942,269 @@ io.on('connection', async (socket) => {
         });
     }
 
-    // Manage Active Users Map
+    // Manage active users based on IP
     if (!activeUsers.has(ip)) {
-        activeUsers.set(ip, { sockets: new Set([socket.id]) });
-        logger.info(`IP ${ip} added to activeUsers.`);
+        activeUsers.set(ip, { id: socket.id, ip });
+        io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
     } else {
-        activeUsers.get(ip).sockets.add(socket.id);
-        logger.info(`Socket ${socket.id} added to IP ${ip} in activeUsers.`);
+        logger.info(`IP ${ip} is already connected.`);
     }
 
-    // Emit Active Users Update to All Clients
-    emitActiveUsersUpdate();
+    // Emit current presence state to the newly connected client
+    if (currentVideo) {
+        socket.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
+    } else if (currentBrowsing) {
+        socket.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
+    } else {
+        socket.emit('presenceUpdate', { presenceType: 'offline' });
+    }
 
-    // Emit Current Presence State to Newly Connected Client
-    const presenceData = userPresence.get(ip) || { presenceType: 'offline' };
-    socket.emit('presenceUpdate', presenceData);
-
-    // Handle Presence Updates from Client
+    /**
+     * Handle Presence Updates (Video, Browsing, Offline)
+     */
     socket.on('presenceUpdate', (data) => {
-        logger.info(`Received presenceUpdate from IP ${ip}:`, data);
-
-        if (data.presenceType === 'video') {
-            // Update User Presence for Video
-            const videoData = {
-                presenceType: 'video',
-                videoId: data.videoId,
-                title: data.title,
-                description: data.description,
-                channelTitle: data.channelTitle,
-                viewCount: data.viewCount,
-                likeCount: data.likeCount,
-                publishedAt: data.publishedAt,
-                category: data.category,
-                thumbnail: data.thumbnail,
-                currentTime: data.currentTime,
-                duration: data.duration,
-                isPaused: data.isPaused,
-                isLive: data.isLive // Critical flag for LIVE indicator
-            };
-
-            userPresence.set(ip, videoData);
-            logger.info(`Updated video presence for IP ${ip}:`, videoData);
-
-            // Initialize or Update Heartbeat Timestamp
-            videoHeartbeat[`${ip}-${data.videoId}`] = Date.now();
-            logger.info(`Initialized heartbeat for IP ${ip}, Video ID ${data.videoId}.`);
-
-            // Emit Updated Presence to All Clients
-            io.emit('presenceUpdate', videoData);
+        if (data.presenceType === 'browsing') {
+            handleBrowsingPresence(data);
+        } else if (data.presenceType === 'video') {
+            handleVideoPresence(data);
+        } else if (data.presenceType === 'offline') {
+            handleOfflinePresence();
+        } else {
+            logger.warn(`Unknown presenceType received: ${data.presenceType}`);
         }
-        else if (data.presenceType === 'browsing') {
-            // Update User Presence for Browsing
-            const browsingData = {
-                presenceType: 'browsing',
-                title: data.title || 'YouTube',
-                description: data.description || 'Browsing videos',
-                thumbnail: data.thumbnail || 'https://www.youtube.com/img/desktop/yt_1200.png',
-                timeElapsed: data.timeElapsed || 0
-            };
 
-            userPresence.set(ip, browsingData);
-            logger.info(`Updated browsing presence for IP ${ip}:`, browsingData);
-
-            // Remove any existing heartbeat for this IP (since user is browsing)
-            for (const key in videoHeartbeat) {
-                if (key.startsWith(`${ip}-`)) {
-                    delete videoHeartbeat[key];
-                    logger.info(`Removed heartbeat for IP ${ip} as user is browsing.`);
-                }
-            }
-
-            // Emit Updated Presence to All Clients
-            io.emit('presenceUpdate', browsingData);
-        }
-        else if (data.presenceType === 'offline') {
-            // Update User Presence to Offline
-            userPresence.set(ip, { presenceType: 'offline' });
-            logger.info(`Updated presence to offline for IP ${ip}.`);
-
-            // Remove any existing heartbeat for this IP
-            for (const key in videoHeartbeat) {
-                if (key.startsWith(`${ip}-`)) {
-                    delete videoHeartbeat[key];
-                    logger.info(`Removed heartbeat for IP ${ip} as user went offline.`);
-                }
-            }
-
-            // Emit Updated Presence to All Clients
-            io.emit('presenceUpdate', { presenceType: 'offline' });
-        }
-        else {
-            logger.warn(`Unknown presenceType received from IP ${ip}:`, data.presenceType);
-        }
+        // Emit updated presence to all connected clients
+        io.emit('presenceUpdate', data);
     });
 
-    // Handle Video Progress Updates from Client
+    /**
+     * Handle Browsing Presence Updates
+     * @param {Object} data - Browsing presence data
+     */
+    function handleBrowsingPresence(data) {
+        logger.info(`[Socket.IO] Browsing presence detected.`);
+
+        // Clear current video presence if any
+        if (currentVideo) {
+            logger.info(`[Socket.IO] Clearing current video presence to switch to browsing.`);
+            currentVideo = null;
+        }
+
+        currentBrowsing = {
+            title: data.title || 'YouTube',
+            description: data.description || 'Browsing videos',
+            thumbnail: 'https://www.youtube.com/img/desktop/yt_1200.png',
+            timeElapsed: data.timeElapsed || 0,
+            presenceType: 'browsing'
+        };
+    }
+
+    /**
+     * Handle Video Presence Updates
+     * @param {Object} data - Video presence data
+     */
+    function handleVideoPresence(data) {
+        const {
+            videoId,
+            title,
+            description,
+            channelTitle,
+            viewCount,
+            likeCount,
+            publishedAt,
+            category,
+            thumbnail,
+            currentTime,
+            duration,
+            isPaused,
+            isLive
+        } = data;
+
+        if (currentVideo && currentVideo.videoId === videoId) {
+            // Update existing video details
+            Object.assign(currentVideo, {
+                currentTime,
+                duration,
+                isPaused,
+                title,
+                description,
+                channelTitle,
+                viewCount,
+                likeCount,
+                publishedAt,
+                category,
+                thumbnail,
+                isLive // Update isLive flag
+            });
+            logger.info(`[Socket.IO] Updated video: "${title}" (Live: ${isLive})`);
+        } else {
+            // New video detected
+            currentVideo = {
+                videoId,
+                title,
+                description,
+                channelTitle,
+                viewCount,
+                likeCount,
+                publishedAt,
+                category,
+                thumbnail,
+                currentTime,
+                duration,
+                isPaused,
+                isLive, // Set isLive flag
+                presenceType: 'video'
+            };
+            currentBrowsing = null; // Clear browsing presence if video is playing
+            logger.info(`[Socket.IO] New video detected: "${title}" (Live: ${isLive})`);
+        }
+    }
+
+    /**
+     * Handle Offline Presence Updates
+     */
+    function handleOfflinePresence() {
+        currentVideo = null;
+        currentBrowsing = null;
+        logger.info(`[Socket.IO] User marked as offline.`);
+    }
+
+    /**
+     * Handle YouTube Browsing Presence Updates
+     */
+    socket.on('updateBrowsingPresence', (data) => {
+        logger.info(`[Socket.IO] Browsing presence update received.`);
+
+        // Clear current video presence if any
+        if (currentVideo) {
+            logger.info(`[Socket.IO] Clearing current video presence to switch to browsing.`);
+            currentVideo = null;
+        }
+
+        currentBrowsing = {
+            title: data.title || 'YouTube',
+            description: data.description || 'Browsing videos',
+            thumbnail: 'https://www.youtube.com/img/desktop/yt_1200.png',
+            timeElapsed: data.timeElapsed || 0,
+            presenceType: 'browsing'
+        };
+
+        // Emit browsing presence to all connected clients
+        io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
+    });
+
+    /**
+     * Handle YouTube Video Progress Updates
+     */
     socket.on('updateVideoProgress', (data) => {
-        logger.info(`Received updateVideoProgress from IP ${ip}:`, data);
+        logger.info(`[Socket.IO] Video progress update received: ${JSON.stringify(data)}`);
+        const {
+            videoId,
+            title,
+            description,
+            channelTitle,
+            viewCount,
+            likeCount,
+            publishedAt,
+            category,
+            thumbnail,
+            currentTime,
+            duration,
+            isPaused,
+            isLive
+        } = data;
 
-        const existingPresence = userPresence.get(ip);
-
-        if (existingPresence && existingPresence.presenceType === 'video' && existingPresence.videoId === data.videoId) {
-            // Update Video Progress
-            existingPresence.currentTime = data.currentTime;
-            existingPresence.isPaused = data.isPaused;
-
-            userPresence.set(ip, existingPresence);
-            logger.info(`Updated video progress for IP ${ip}:`, existingPresence);
-
-            // Emit Updated Presence to All Clients
-            io.emit('presenceUpdate', existingPresence);
+        if (currentVideo && currentVideo.videoId === videoId) {
+            // Update existing video details
+            Object.assign(currentVideo, {
+                currentTime,
+                duration,
+                isPaused,
+                title,
+                description,
+                channelTitle,
+                viewCount,
+                likeCount,
+                publishedAt,
+                category,
+                thumbnail,
+                isLive // Update isLive flag
+            });
+            logger.info(`[Socket.IO] Updated video: "${title}" (Live: ${isLive})`);
+        } else {
+            // New video detected
+            currentVideo = {
+                videoId,
+                title,
+                description,
+                channelTitle,
+                viewCount,
+                likeCount,
+                publishedAt,
+                category,
+                thumbnail,
+                currentTime,
+                duration,
+                isPaused,
+                isLive, // Set isLive flag
+                presenceType: 'video'
+            };
+            currentBrowsing = null; // Clear browsing presence if video is playing
+            logger.info(`[Socket.IO] New video detected: "${title}" (Live: ${isLive})`);
         }
-        else {
-            logger.warn(`No matching video presence found for IP ${ip}. Ignoring updateVideoProgress.`);
-        }
+
+        // Emit updated video presence to all connected clients
+        io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
     });
 
-    // Handle Heartbeat Signals from Client
+    /**
+     * Handle Heartbeat Signals for YouTube Videos
+     */
     socket.on('heartbeat', (data, callback) => {
         const { videoId } = data;
-
-        const existingPresence = userPresence.get(ip);
-
-        if (existingPresence && existingPresence.presenceType === 'video' && existingPresence.videoId === videoId) {
-            // Record Heartbeat Timestamp
-            videoHeartbeat[`${ip}-${videoId}`] = Date.now();
-            logger.info(`Heartbeat received for IP ${ip}, Video ID ${videoId}.`);
-
+        if (videoId && currentVideo && currentVideo.videoId === videoId) {
+            videoHeartbeat[videoId] = Date.now();
             if (callback) callback({ status: "ok" });
-        }
-        else {
-            logger.warn(`Invalid heartbeat received from IP ${ip} for Video ID ${videoId}.`);
-            if (callback) callback({ status: "error", message: "Unknown video ID or offline." });
+        } else {
+            if (callback) callback({ status: "error", message: "Unknown video ID" });
         }
     });
 
-    // Handle Client Disconnection
+    /**
+     * Handle Client Disconnection
+     */
     socket.on('disconnect', () => {
-        logger.info(`Client disconnected: ${socket.id}`);
+        logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
 
-        if (activeUsers.has(ip)) {
-            activeUsers.get(ip).sockets.delete(socket.id);
-            logger.info(`Removed socket ${socket.id} from IP ${ip} in activeUsers.`);
+        // Remove user from active users map based on IP
+        activeUsers.delete(ip);
+        io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
 
-            if (activeUsers.get(ip).sockets.size === 0) {
-                activeUsers.delete(ip);
-                logger.info(`No more sockets for IP ${ip}. Removed from activeUsers.`);
-
-                // Optionally, mark user as offline upon all sockets disconnecting
-                userPresence.set(ip, { presenceType: 'offline' });
-
-                // Remove any existing heartbeat for this IP
-                for (const key in videoHeartbeat) {
-                    if (key.startsWith(`${ip}-`)) {
-                        delete videoHeartbeat[key];
-                        logger.info(`Removed heartbeat for IP ${ip} as user went offline.`);
-                    }
-                }
-
-                // Emit Offline Presence to All Clients
-                io.emit('presenceUpdate', { presenceType: 'offline' });
-            }
-
-            // Emit Active Users Update to All Clients
-            emitActiveUsersUpdate();
-        }
-        else {
-            logger.warn(`IP ${ip} not found in activeUsers upon disconnection.`);
+        // Emit offline presence if necessary
+        if (currentVideo || currentBrowsing) {
+            currentVideo = null;
+            currentBrowsing = null;
+            io.emit('presenceUpdate', { presenceType: 'offline' });
+            logger.info(`[Socket.IO] Emitted offline presence due to disconnection.`);
         }
     });
 });
 
-// Function to Emit Active Users to All Clients
-function emitActiveUsersUpdate() {
-    const users = [];
-    activeUsers.forEach((value, key) => {
-        users.push({ ip: key, socketIds: Array.from(value.sockets) });
-    });
-    io.emit('activeUsersUpdate', { users });
-    logger.info(`Emitted activeUsersUpdate with ${users.length} users.`);
-}
-
-// Heartbeat Timeout Checker
+/**
+ * Periodically check for heartbeat timeouts to mark videos as offline
+ */
 setInterval(() => {
     const now = Date.now();
-    for (const [key, lastHeartbeat] of Object.entries(videoHeartbeat)) {
+    for (const [videoId, lastHeartbeat] of Object.entries(videoHeartbeat)) {
         if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
-            // Extract IP and Video ID from key
-            const [ip, videoId] = key.split('-');
-
-            const existingPresence = userPresence.get(ip);
-
-            if (existingPresence && existingPresence.presenceType === 'video' && existingPresence.videoId === videoId) {
-                // Mark User as Offline Due to Heartbeat Timeout
-                userPresence.set(ip, { presenceType: 'offline' });
-                logger.info(`Heartbeat timeout for IP ${ip}, Video ID ${videoId}. Marked as offline.`);
-
-                // Remove Heartbeat Record
-                delete videoHeartbeat[key];
-
-                // Emit Offline Presence to All Clients
-                io.emit('presenceUpdate', { presenceType: 'offline' });
-            }
+            currentVideo = null;
+            currentBrowsing = null; // Clear browsing to fully reset state
+            io.emit('presenceUpdate', { presenceType: 'offline' });
+            delete videoHeartbeat[videoId];
+            logger.info(`[Socket.IO] Heartbeat timeout for video ID: ${videoId}. Marked as offline.`);
         }
     }
-}, CLEANUP_INTERVAL);
+}, HEARTBEAT_TIMEOUT / 2);
 
 
 
