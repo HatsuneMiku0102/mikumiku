@@ -892,117 +892,49 @@ app.get('/api/weather', async (req, res) => {
 
 // server.js
 
-
-// server.js
-
-// server.js
-
+// Configuration Constants
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
 const YOUTUBE_API_URL = "https://www.googleapis.com/youtube/v3";
 const LIVE_CHAT_POLL_INTERVAL = 5000; // Poll every 5 seconds
+const PORT = process.env.SOCKET_PORT || 3000;
+const API_KEY = process.env.API_KEY;
+
+// Validate Configuration
+if (!API_KEY) {
+    console.error("Error: YOUTUBE_API_KEY is not set in environment variables.");
+    process.exit(1);
+}
+
+// Initialize Logger using Winston
+const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.printf(
+            ({ timestamp, level, message, ...meta }) =>
+                `${timestamp} [${level.toUpperCase()}]: ${message} ${Object.keys(meta).length ? JSON.stringify(meta) : ''
+                }`
+        )
+    ),
+    transports: [
+        new winston.transports.Console(),
+        // Add more transports like File if needed
+    ],
+});
+
+// Initialize Socket.IO Server
+const io = new Server(PORT, {
+    cors: {
+        origin: "*", // Adjust as needed for security
+        methods: ["GET", "POST"]
+    }
+});
+
+logger.info(`Socket.IO server is running on port ${PORT}`);
 
 // State Management
 const videoStates = new Map(); // Map<videoId, { liveChatId, pollingInterval, clients: Set<socket.id>, videoData, lastHeartbeat } >
-const activeUsers = new Map(); // Tracks active users by IP
-
-/**
- * Handle new client connections
- */
-io.on('connection', async (socket) => {
-    logger.info(`[Socket.IO] New client connected: ${socket.id}`);
-
-    const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
-    logger.info(`New connection from IP: ${ip}`);
-
-    try {
-        let location = await GeoData.findOne({ ip });
-        if (!location) {
-            location = await getGeoLocation(ip);
-            await GeoData.updateOne(
-                { ip },
-                { city: location.city, region: location.region, country: location.country, ip },
-                { upsert: true }
-            );
-        }
-
-        socket.emit('locationUpdate', {
-            ip,
-            city: location.city || 'Unknown',
-            region: location.region || 'Unknown',
-            country: location.country || 'Unknown'
-        });
-    } catch (err) {
-        logger.error('Error fetching location:', err);
-        socket.emit('locationUpdate', {
-            ip,
-            city: 'Unknown',
-            region: 'Unknown',
-            country: 'Unknown'
-        });
-    }
-
-    if (!activeUsers.has(ip)) {
-        activeUsers.set(ip, { id: socket.id, ip });
-        io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
-    } else {
-        logger.info(`IP ${ip} is already connected.`);
-        // Optionally, you might want to update the socket ID if necessary
-    }
-
-    /**
-     * Emit current presence statuses to the newly connected client
-     * (e.g., all active video sessions)
-     */
-    videoStates.forEach((state, videoId) => {
-        socket.emit('presenceUpdate', { presenceType: 'video', ...state.videoData });
-    });
-
-    /**
-     * Handle presence updates from clients
-     */
-    socket.on('presenceUpdate', (data, callback) => {
-        if (!data || !data.presenceType) {
-            logger.warn(`Invalid presenceUpdate data from ${socket.id}:`, data);
-            if (callback) callback({ status: "error", message: "Invalid presenceUpdate data." });
-            return;
-        }
-
-        if (data.presenceType === 'browsing') {
-            handleBrowsingPresence(socket, data);
-            if (callback) callback({ status: "ok" });
-        } else if (data.presenceType === 'video') {
-            handleVideoPresence(socket, data);
-            if (callback) callback({ status: "ok" });
-        } else if (data.presenceType === 'offline') {
-            handleOfflinePresence(socket, data);
-            if (callback) callback({ status: "ok" });
-        } else {
-            logger.warn(`Unknown presenceType received: ${data.presenceType}`);
-            if (callback) callback({ status: "error", message: "Unknown presenceType." });
-        }
-    });
-
-    /**
-     * Handle video progress updates
-     */
-    socket.on('updateVideoProgress', (data, callback) => {
-        handleVideoProgress(socket, data, callback);
-    });
-
-    /**
-     * Handle heartbeat signals
-     */
-    socket.on('heartbeat', (data, callback) => {
-        handleHeartbeat(socket, data, callback);
-    });
-
-    /**
-     * Handle client disconnection
-     */
-    socket.on('disconnect', () => {
-        handleDisconnect(socket, ip);
-    });
-});
+const activeUsers = new Map(); // Tracks active users by IP or socket.id
 
 /**
  * Validate YouTube Video ID
@@ -1022,7 +954,7 @@ async function fetchLiveChatId(videoId) {
             params: {
                 part: 'liveStreamingDetails',
                 id: videoId,
-                key: CONFIG.API_KEY,
+                key: API_KEY,
             },
         });
 
@@ -1040,7 +972,7 @@ async function fetchLiveChatId(videoId) {
             return null;
         }
     } catch (error) {
-        logger.error(`[YouTube API] Error fetching live chat ID for videoId ${videoId}:`, error);
+        logger.error(`[YouTube API] Error fetching live chat ID for videoId ${videoId}:`, error.message);
         return null;
     }
 }
@@ -1060,7 +992,7 @@ async function fetchLiveChatMessages(videoId) {
             params: {
                 part: 'snippet,authorDetails',
                 liveChatId: state.liveChatId,
-                key: CONFIG.API_KEY,
+                key: API_KEY,
             },
         });
 
@@ -1076,7 +1008,7 @@ async function fetchLiveChatMessages(videoId) {
             logger.info(`[YouTube API] Fetched ${messages.length} live chat messages for videoId: ${videoId}`);
         }
     } catch (error) {
-        logger.error(`[YouTube API] Error fetching live chat messages for videoId ${videoId}:`, error);
+        logger.error(`[YouTube API] Error fetching live chat messages for videoId ${videoId}:`, error.message);
     }
 }
 
@@ -1084,7 +1016,8 @@ async function fetchLiveChatMessages(videoId) {
  * Start polling live chat messages for a specific video
  */
 async function startLiveChatPolling(videoId) {
-    if (videoStates.has(videoId) && videoStates.get(videoId).pollingInterval) {
+    const state = videoStates.get(videoId);
+    if (state && state.pollingInterval) {
         logger.warn(`Live chat polling already active for videoId: ${videoId}`);
         return;
     }
@@ -1095,13 +1028,13 @@ async function startLiveChatPolling(videoId) {
             fetchLiveChatMessages(videoId);
         }, LIVE_CHAT_POLL_INTERVAL);
 
-        const state = videoStates.get(videoId);
         if (state) {
             state.liveChatId = liveChatId;
             state.pollingInterval = pollingInterval;
             state.lastHeartbeat = Date.now();
-            logger.info(`Started live chat polling for videoId: ${videoId}`);
         }
+
+        logger.info(`Started live chat polling for videoId: ${videoId}`);
     }
 }
 
@@ -1114,7 +1047,7 @@ function stopLiveChatPolling(videoId) {
         clearInterval(state.pollingInterval);
         state.pollingInterval = null;
         state.liveChatId = null;
-        logger.log(`Stopped live chat polling for videoId: ${videoId}`);
+        logger.info(`Stopped live chat polling for videoId: ${videoId}`);
     } else {
         logger.warn(`No live chat polling found for videoId: ${videoId}`);
     }
@@ -1123,33 +1056,9 @@ function stopLiveChatPolling(videoId) {
 /**
  * Handle video presence updates and start/stop live chat polling based on live status
  */
-function handleVideoPresence(socket, data) {
-    const {
-        videoId,
-        title,
-        description,
-        channelTitle,
-        viewCount,
-        likeCount,
-        publishedAt,
-        category,
-        thumbnail,
-        currentTime,
-        duration,
-        isPaused,
-        isLive
-    } = data;
-
-    if (!videoId || !isValidVideoId(videoId)) {
-        logger.warn(`[Socket.IO] Invalid or missing videoId in presenceUpdate from ${socket.id}: ${videoId}`);
-        socket.emit('error', { message: 'Invalid or missing videoId.' });
-        return;
-    }
-
-    let state = videoStates.get(videoId);
-    if (state) {
-        // Update existing video data
-        state.videoData = {
+function handleVideoPresence(socket, data, callback) {
+    try {
+        const {
             videoId,
             title,
             description,
@@ -1162,18 +1071,19 @@ function handleVideoPresence(socket, data) {
             currentTime,
             duration,
             isPaused,
-            isLive,
-            presenceType: 'video'
-        };
-        state.clients.add(socket.id);
-        logger.info(`[Socket.IO] Updated existing video session: "${title}" (Live: ${isLive}) for videoId: ${videoId}`);
-    } else {
-        // Initialize new video data
-        state = {
-            liveChatId: null,
-            pollingInterval: null,
-            clients: new Set([socket.id]),
-            videoData: {
+            isLive
+        } = data;
+
+        if (!videoId || !isValidVideoId(videoId)) {
+            logger.warn(`[Socket.IO] Invalid or missing videoId in presenceUpdate from socket ${socket.id}: ${videoId}`);
+            if (callback) callback({ status: "error", message: "Invalid or missing videoId." });
+            return;
+        }
+
+        let state = videoStates.get(videoId);
+        if (state) {
+            // Update existing video data
+            state.videoData = {
                 videoId,
                 title,
                 description,
@@ -1188,139 +1098,174 @@ function handleVideoPresence(socket, data) {
                 isPaused,
                 isLive,
                 presenceType: 'video'
-            },
-            lastHeartbeat: Date.now()
-        };
-        videoStates.set(videoId, state);
-        logger.info(`[Socket.IO] Registered new video session: "${title}" (Live: ${isLive}) for videoId: ${videoId}`);
-    }
+            };
+            state.clients.add(socket.id);
+            state.lastHeartbeat = Date.now();
+            logger.info(`[Socket.IO] Updated existing video session: "${title}" (Live: ${isLive}) for videoId: ${videoId}`);
+        } else {
+            // Initialize new video data
+            state = {
+                liveChatId: null,
+                pollingInterval: null,
+                clients: new Set([socket.id]),
+                videoData: {
+                    videoId,
+                    title,
+                    description,
+                    channelTitle,
+                    viewCount,
+                    likeCount,
+                    publishedAt,
+                    category,
+                    thumbnail,
+                    currentTime,
+                    duration,
+                    isPaused,
+                    isLive,
+                    presenceType: 'video'
+                },
+                lastHeartbeat: Date.now()
+            };
+            videoStates.set(videoId, state);
+            logger.info(`[Socket.IO] Registered new video session: "${title}" (Live: ${isLive}) for videoId: ${videoId}`);
+        }
 
-    // Start or Stop Live Chat Polling Based on Live Status
-    if (isLive) {
-        startLiveChatPolling(videoId);
-    } else {
-        stopLiveChatPolling(videoId);
-    }
+        // Start or Stop Live Chat Polling Based on Live Status
+        if (isLive) {
+            startLiveChatPolling(videoId);
+        } else {
+            stopLiveChatPolling(videoId);
+        }
 
-    // Join the Socket.IO Room for the Video
-    socket.join(videoId);
+        // Join the Socket.IO Room for the Video
+        socket.join(videoId);
+
+        // Acknowledge the presence update
+        if (callback) callback({ status: "ok" });
+
+    } catch (error) {
+        logger.error(`[Socket.IO] Exception in handleVideoPresence for socket ${socket.id}:`, error.message);
+        if (callback) callback({ status: "error", message: "Server encountered an error processing the presence update." });
+    }
 }
 
 /**
  * Handle video progress updates
  */
 function handleVideoProgress(socket, data, callback) {
-    const { videoId, currentTime, duration, isPaused } = data;
+    try {
+        const { videoId, currentTime, duration, isPaused, title, description, channelTitle, viewCount, likeCount, publishedAt, category, thumbnail, isLive } = data;
 
-    if (!videoId || !isValidVideoId(videoId)) {
-        logger.warn(`[Socket.IO] Invalid or missing videoId in updateVideoProgress from ${socket.id}: ${videoId}`);
-        if (callback) callback({ status: "error", message: "Invalid or missing videoId." });
-        return;
+        if (!videoId || !isValidVideoId(videoId)) {
+            logger.warn(`[Socket.IO] Invalid or missing videoId in updateVideoProgress from socket ${socket.id}: ${videoId}`);
+            if (callback) callback({ status: "error", message: "Invalid or missing videoId." });
+            return;
+        }
+
+        const state = videoStates.get(videoId);
+        if (!state) {
+            logger.warn(`[Socket.IO] No current video to update progress for videoId: ${videoId}.`);
+            if (callback) callback({ status: "error", message: "Video session not recognized." });
+            return;
+        }
+
+        // Validate other data fields
+        if (typeof currentTime !== 'number' || typeof duration !== 'number' || typeof isPaused !== 'boolean') {
+            logger.warn(`[Socket.IO] Invalid data types in updateVideoProgress from socket ${socket.id}:`, data);
+            if (callback) callback({ status: "error", message: "Invalid data types in updateVideoProgress." });
+            return;
+        }
+
+        // Update video progress data
+        state.videoData.currentTime = currentTime;
+        state.videoData.duration = duration;
+        state.videoData.isPaused = isPaused;
+        state.videoData.isLive = isLive; // Update live status if necessary
+        state.lastHeartbeat = Date.now();
+
+        logger.info(`[Socket.IO] Updated video progress for "${state.videoData.title}" (videoId: ${videoId}): Current Time: ${currentTime}`);
+
+        // Emit updated video data to clients in the video room
+        io.to(videoId).emit('presenceUpdate', { presenceType: 'video', ...state.videoData });
+
+        // Acknowledge the video progress update
+        if (callback) callback({ status: "ok" });
+
+    } catch (error) {
+        logger.error(`[Socket.IO] Exception in handleVideoProgress for socket ${socket.id}:`, error.message);
+        if (callback) callback({ status: "error", message: "Server encountered an error processing the video progress update." });
     }
-
-    const state = videoStates.get(videoId);
-    if (!state) {
-        logger.warn(`[Socket.IO] No current video to update progress for videoId: ${videoId}.`);
-        if (callback) callback({ status: "error", message: "Video session not recognized." });
-        return;
-    }
-
-    // Update video progress data
-    state.videoData.currentTime = currentTime;
-    state.videoData.duration = duration;
-    state.videoData.isPaused = isPaused;
-    state.lastHeartbeat = Date.now(); // Update heartbeat on progress update
-
-    logger.info(`[Socket.IO] Updated video progress for "${state.videoData.title}" (videoId: ${videoId}): Current Time: ${currentTime}`);
-
-    // Emit updated video data to clients in the video room
-    io.to(videoId).emit('presenceUpdate', { presenceType: 'video', ...state.videoData });
-
-    if (callback) callback({ status: "ok" });
 }
 
 /**
  * Handle offline presence updates and stop live chat polling if necessary
  */
-function handleOfflinePresence(socket, data) {
-    const { videoId } = data;
+function handleOfflinePresence(socket, data, callback) {
+    try {
+        const { videoId } = data;
 
-    if (videoId && isValidVideoId(videoId) && videoStates.has(videoId)) {
-        const state = videoStates.get(videoId);
-        if (state.clients.has(socket.id)) {
-            state.clients.delete(socket.id);
-            logger.log(`Removed client ${socket.id} from videoId: ${videoId}`);
+        if (videoId && isValidVideoId(videoId) && videoStates.has(videoId)) {
+            const state = videoStates.get(videoId);
+            if (state.clients.has(socket.id)) {
+                state.clients.delete(socket.id);
+                logger.info(`Removed client ${socket.id} from videoId: ${videoId}`);
 
-            // If no clients remain for the video, stop polling
-            if (state.clients.size === 0) {
-                stopLiveChatPolling(videoId);
-                videoStates.delete(videoId);
-                logger.info(`No more clients for videoId: ${videoId}. Video session removed.`);
+                // If no clients remain for the video, stop polling and remove the video session
+                if (state.clients.size === 0) {
+                    stopLiveChatPolling(videoId);
+                    videoStates.delete(videoId);
+                    logger.info(`No more clients for videoId: ${videoId}. Video session removed.`);
+                }
             }
         }
+
+        // Acknowledge the offline presence update
+        if (callback) callback({ status: "ok" });
+
+    } catch (error) {
+        logger.error(`[Socket.IO] Exception in handleOfflinePresence for socket ${socket.id}:`, error.message);
+        if (callback) callback({ status: "error", message: "Server encountered an error processing the offline presence update." });
     }
-
-    // Optionally, you can handle global offline states if necessary
-    // For now, we're focusing on per-video states
-    logger.info(`[Socket.IO] User marked as offline for videoId: ${videoId || 'N/A'}.`);
 }
 
 /**
- * Handle browsing presence updates
- * (Assuming browsing is a global state, which might not be ideal in multi-user scenarios)
- * For better scalability, consider handling browsing states per user/socket if necessary
- */
-function handleBrowsingPresence(socket, data) {
-    // If browsing is meant to be a per-user state, consider removing global currentBrowsing and tracking per socket
-    // For now, we'll log the browsing state and emit to all clients
-    const browsingData = {
-        title: data.title || 'YouTube',
-        description: data.description || 'Browsing videos',
-        thumbnail: 'https://www.youtube.com/img/desktop/yt_1200.png',
-        timeElapsed: data.timeElapsed || 0,
-        presenceType: 'browsing',
-        userId: socket.id // Include user identifier if needed
-    };
-
-    // Emit browsing presence to all clients
-    io.emit('presenceUpdate', browsingData);
-    logger.info(`[Socket.IO] Browsing presence detected from ${socket.id}.`);
-}
-
-/**
- * Handle heartbeat signals for video presence
+ * Handle heartbeat signals for video presence (if implemented)
  */
 function handleHeartbeat(socket, data, callback) {
-    const { videoId } = data;
-    if (!videoId || !isValidVideoId(videoId)) {
-        logger.warn(`[Socket.IO] Heartbeat received with invalid or missing videoId from client ${socket.id}: ${videoId}`);
-        if (callback) callback({ status: "error", message: "Invalid or missing videoId." });
-        return;
-    }
+    try {
+        const { videoId } = data;
+        if (!videoId || !isValidVideoId(videoId)) {
+            logger.warn(`[Socket.IO] Heartbeat received with invalid or missing videoId from socket ${socket.id}: ${videoId}`);
+            if (callback) callback({ status: "error", message: "Invalid or missing videoId." });
+            return;
+        }
 
-    const state = videoStates.get(videoId);
-    if (state && state.clients.has(socket.id)) {
-        state.lastHeartbeat = Date.now();
-        logger.log(`Heartbeat received for videoId: ${videoId} from client ${socket.id}`);
-        if (callback) callback({ status: "ok" });
-    } else {
-        logger.warn(`[Socket.IO] Heartbeat received for unknown or unassociated videoId: ${videoId} from client ${socket.id}`);
-        if (callback) callback({ status: "error", message: "Unknown video ID or client not associated with this video." });
+        const state = videoStates.get(videoId);
+        if (state && state.clients.has(socket.id)) {
+            state.lastHeartbeat = Date.now();
+            logger.info(`Heartbeat received for videoId: ${videoId} from socket ${socket.id}`);
+            if (callback) callback({ status: "ok" });
+        } else {
+            logger.warn(`[Socket.IO] Heartbeat received for unknown or unassociated videoId: ${videoId} from socket ${socket.id}`);
+            if (callback) callback({ status: "error", message: "Unknown video ID or client not associated with this video." });
+        }
+    } catch (error) {
+        logger.error(`[Socket.IO] Exception in handleHeartbeat for socket ${socket.id}:`, error.message);
+        if (callback) callback({ status: "error", message: "Server encountered an error processing the heartbeat." });
     }
 }
 
 /**
  * Handle client disconnection
  */
-function handleDisconnect(socket, ip) {
-    activeUsers.delete(ip);
-    io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
+function handleDisconnect(socket) {
+    logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
 
-    // Remove the client from all video states they're part of
+    // Remove the client from all video sessions they are part of
     videoStates.forEach((state, videoId) => {
         if (state.clients.has(socket.id)) {
             state.clients.delete(socket.id);
-            logger.log(`Removed client ${socket.id} from videoId: ${videoId}`);
+            logger.info(`Removed client ${socket.id} from videoId: ${videoId}`);
 
             // If no clients remain for the video, stop polling and remove the video session
             if (state.clients.size === 0) {
@@ -1331,8 +1276,7 @@ function handleDisconnect(socket, ip) {
         }
     });
 
-    // Optionally, handle global offline presence if necessary
-    logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
+    // Optionally, manage activeUsers if tracked by IP or other identifiers
 }
 
 /**
@@ -1355,7 +1299,7 @@ setInterval(() => {
             logger.info(`Video session for videoId: ${videoId} has been removed due to heartbeat timeout.`);
         }
     });
-}, HEARTBEAT_TIMEOUT / 2);
+}, HEARTBEAT_TIMEOUT / 2); // Check twice within the timeout period
 
 
 
