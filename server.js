@@ -901,14 +901,7 @@ const CONFIG = {
     API_KEY: "AIzaSyD1Ynnja0uEDyVB16rcuGnhQKhx0I_vhH4", // Replace with your actual YouTube API key
 };
 
-// Import necessary modules
-const axios = require('axios');
-const io = require('socket.io')(3000, {
-    cors: {
-        origin: "*", // Adjust as needed for security
-    }
-});
-const mongoose = require('mongoose');
+
 
 // Connect to MongoDB (Ensure MongoDB is running and replace the URI as needed)
 mongoose.connect('mongodb://localhost:27017/youtube_extension', {
