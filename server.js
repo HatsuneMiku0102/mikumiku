@@ -900,12 +900,7 @@ const CLEANUP_INTERVAL = HEARTBEAT_TIMEOUT / 2; // Interval to check for heartbe
 const activeUsers = new Map(); // Tracks active users by IP
 const userPresence = new Map(); // Tracks presence data per IP
 
-// Logger Utility
-const logger = {
-    info: (msg, ...args) => console.log(`[INFO] ${msg}`, ...args),
-    warn: (msg, ...args) => console.warn(`[WARN] ${msg}`, ...args),
-    error: (msg, ...args) => console.error(`[ERROR] ${msg}`, ...args),
-};
+
 
 // Connect to MongoDB (Ensure you have MongoDB running and replace the URI accordingly)
 mongoose.connect('mongodb://localhost:27017/geoDataDB', {
