@@ -893,14 +893,14 @@ app.get('/api/weather', async (req, res) => {
 // server.js
 
 
+// Configuration Constants
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
 const CLEANUP_INTERVAL = HEARTBEAT_TIMEOUT / 2; // Interval to check for heartbeat timeouts
 
 // Initialize Server State
 const activeUsers = new Map(); // Tracks active users by IP
-const userPresence = new Map(); // Tracks presence data per IP
-const videoHeartbeat = new Map(); // Tracks last heartbeat timestamp per IP-videoId
-
+const userPresence = new Map(); // Tracks presence data per socket ID
+const videoHeartbeat = new Map(); // Tracks last heartbeat timestamp per socket ID
 
 
 // Connect to MongoDB (Ensure you have MongoDB running and replace the URI accordingly)
@@ -961,10 +961,10 @@ io.on('connection', async (socket) => {
 
     // Manage Active Users Map
     if (!activeUsers.has(ip)) {
-        activeUsers.set(ip, { sockets: new Set([socket.id]) });
+        activeUsers.set(ip, new Set([socket.id]));
         logger.info(`IP ${ip} added to activeUsers.`);
     } else {
-        activeUsers.get(ip).sockets.add(socket.id);
+        activeUsers.get(ip).add(socket.id);
         logger.info(`Socket ${socket.id} added to IP ${ip} in activeUsers.`);
     }
 
@@ -972,12 +972,12 @@ io.on('connection', async (socket) => {
     emitActiveUsersUpdate();
 
     // Emit Current Presence State to Newly Connected Client
-    const presenceData = userPresence.get(ip) || { presenceType: 'offline' };
+    const presenceData = userPresence.get(socket.id) || { presenceType: 'offline' };
     socket.emit('presenceUpdate', presenceData);
 
     // Handle Presence Updates from Client
     socket.on('presenceUpdate', (data) => {
-        logger.info(`Received presenceUpdate from IP ${ip}:`, data);
+        logger.info(`Received presenceUpdate from socket ${socket.id} (IP: ${ip}):`, data);
 
         if (data.presenceType === 'video') {
             // Update User Presence for Video
@@ -998,15 +998,15 @@ io.on('connection', async (socket) => {
                 isLive: data.isLive // Critical flag for LIVE indicator
             };
 
-            userPresence.set(ip, videoData);
-            logger.info(`Updated video presence for IP ${ip}:`, videoData);
+            userPresence.set(socket.id, videoData);
+            logger.info(`Updated video presence for socket ${socket.id} (IP: ${ip}):`, videoData);
 
             // Initialize or Update Heartbeat Timestamp
-            videoHeartbeat.set(`${ip}-${data.videoId}`, Date.now());
-            logger.info(`Initialized heartbeat for IP ${ip}, Video ID ${data.videoId}.`);
+            videoHeartbeat.set(socket.id, Date.now());
+            logger.info(`Initialized heartbeat for socket ${socket.id}, Video ID ${data.videoId}.`);
 
             // Emit Updated Presence to All Clients
-            io.emit('presenceUpdate', videoData);
+            io.emit('presenceUpdate', { socketId: socket.id, ...videoData });
         }
         else if (data.presenceType === 'browsing') {
             // Update User Presence for Browsing
@@ -1018,60 +1018,56 @@ io.on('connection', async (socket) => {
                 timeElapsed: data.timeElapsed || 0
             };
 
-            userPresence.set(ip, browsingData);
-            logger.info(`Updated browsing presence for IP ${ip}:`, browsingData);
+            userPresence.set(socket.id, browsingData);
+            logger.info(`Updated browsing presence for socket ${socket.id} (IP: ${ip}):`, browsingData);
 
-            // Remove any existing heartbeat for this IP (since user is browsing)
-            for (const key of videoHeartbeat.keys()) {
-                if (key.startsWith(`${ip}-`)) {
-                    videoHeartbeat.delete(key);
-                    logger.info(`Removed heartbeat for IP ${ip} as user is browsing.`);
-                }
+            // Remove any existing heartbeat for this socket (since user is browsing)
+            if (videoHeartbeat.has(socket.id)) {
+                videoHeartbeat.delete(socket.id);
+                logger.info(`Removed heartbeat for socket ${socket.id} as user is browsing.`);
             }
 
             // Emit Updated Presence to All Clients
-            io.emit('presenceUpdate', browsingData);
+            io.emit('presenceUpdate', { socketId: socket.id, ...browsingData });
         }
         else if (data.presenceType === 'offline') {
             // Update User Presence to Offline
-            userPresence.set(ip, { presenceType: 'offline' });
-            logger.info(`Updated presence to offline for IP ${ip}.`);
+            userPresence.set(socket.id, { presenceType: 'offline' });
+            logger.info(`Updated presence to offline for socket ${socket.id} (IP: ${ip}).`);
 
-            // Remove any existing heartbeat for this IP
-            for (const key of videoHeartbeat.keys()) {
-                if (key.startsWith(`${ip}-`)) {
-                    videoHeartbeat.delete(key);
-                    logger.info(`Removed heartbeat for IP ${ip} as user went offline.`);
-                }
+            // Remove any existing heartbeat for this socket
+            if (videoHeartbeat.has(socket.id)) {
+                videoHeartbeat.delete(socket.id);
+                logger.info(`Removed heartbeat for socket ${socket.id} as user went offline.`);
             }
 
             // Emit Updated Presence to All Clients
-            io.emit('presenceUpdate', { presenceType: 'offline' });
+            io.emit('presenceUpdate', { socketId: socket.id, presenceType: 'offline' });
         }
         else {
-            logger.warn(`Unknown presenceType received from IP ${ip}:`, data.presenceType);
+            logger.warn(`Unknown presenceType received from socket ${socket.id} (IP: ${ip}):`, data.presenceType);
         }
     });
 
     // Handle Video Progress Updates from Client
     socket.on('updateVideoProgress', (data) => {
-        logger.info(`Received updateVideoProgress from IP ${ip}:`, data);
+        logger.info(`Received updateVideoProgress from socket ${socket.id} (IP: ${ip}):`, data);
 
-        const existingPresence = userPresence.get(ip);
+        const existingPresence = userPresence.get(socket.id);
 
         if (existingPresence && existingPresence.presenceType === 'video' && existingPresence.videoId === data.videoId) {
             // Update Video Progress
             existingPresence.currentTime = data.currentTime;
             existingPresence.isPaused = data.isPaused;
 
-            userPresence.set(ip, existingPresence);
-            logger.info(`Updated video progress for IP ${ip}:`, existingPresence);
+            userPresence.set(socket.id, existingPresence);
+            logger.info(`Updated video progress for socket ${socket.id} (IP: ${ip}):`, existingPresence);
 
             // Emit Updated Presence to All Clients
-            io.emit('presenceUpdate', existingPresence);
+            io.emit('presenceUpdate', { socketId: socket.id, ...existingPresence });
         }
         else {
-            logger.warn(`No matching video presence found for IP ${ip}. Ignoring updateVideoProgress.`);
+            logger.warn(`No matching video presence found for socket ${socket.id} (IP: ${ip}). Ignoring updateVideoProgress.`);
         }
     });
 
@@ -1079,46 +1075,44 @@ io.on('connection', async (socket) => {
     socket.on('heartbeat', (data, callback) => {
         const { videoId } = data;
 
-        const existingPresence = userPresence.get(ip);
+        const existingPresence = userPresence.get(socket.id);
 
         if (existingPresence && existingPresence.presenceType === 'video' && existingPresence.videoId === videoId) {
             // Record Heartbeat Timestamp
-            videoHeartbeat.set(`${ip}-${videoId}`, Date.now());
-            logger.info(`Heartbeat received for IP ${ip}, Video ID ${videoId}.`);
+            videoHeartbeat.set(socket.id, Date.now());
+            logger.info(`Heartbeat received for socket ${socket.id} (IP: ${ip}), Video ID ${videoId}.`);
 
             if (callback) callback({ status: "ok" });
         }
         else {
-            logger.warn(`Invalid heartbeat received from IP ${ip} for Video ID ${videoId}.`);
+            logger.warn(`Invalid heartbeat received from socket ${socket.id} (IP: ${ip}) for Video ID ${videoId}.`);
             if (callback) callback({ status: "error", message: "Unknown video ID or offline." });
         }
     });
 
     // Handle Client Disconnection
     socket.on('disconnect', () => {
-        logger.info(`Client disconnected: ${socket.id}`);
+        logger.info(`Client disconnected: ${socket.id} (IP: ${ip})`);
 
         if (activeUsers.has(ip)) {
-            activeUsers.get(ip).sockets.delete(socket.id);
+            activeUsers.get(ip).delete(socket.id);
             logger.info(`Removed socket ${socket.id} from IP ${ip} in activeUsers.`);
 
-            if (activeUsers.get(ip).sockets.size === 0) {
+            if (activeUsers.get(ip).size === 0) {
                 activeUsers.delete(ip);
                 logger.info(`No more sockets for IP ${ip}. Removed from activeUsers.`);
 
                 // Optionally, mark user as offline upon all sockets disconnecting
-                userPresence.set(ip, { presenceType: 'offline' });
+                userPresence.set(socket.id, { presenceType: 'offline' });
 
-                // Remove any existing heartbeat for this IP
-                for (const key of videoHeartbeat.keys()) {
-                    if (key.startsWith(`${ip}-`)) {
-                        videoHeartbeat.delete(key);
-                        logger.info(`Removed heartbeat for IP ${ip} as user went offline.`);
-                    }
+                // Remove any existing heartbeat for this socket
+                if (videoHeartbeat.has(socket.id)) {
+                    videoHeartbeat.delete(socket.id);
+                    logger.info(`Removed heartbeat for socket ${socket.id} as user went offline.`);
                 }
 
                 // Emit Offline Presence to All Clients
-                io.emit('presenceUpdate', { presenceType: 'offline' });
+                io.emit('presenceUpdate', { socketId: socket.id, presenceType: 'offline' });
             }
 
             // Emit Active Users Update to All Clients
@@ -1127,14 +1121,21 @@ io.on('connection', async (socket) => {
         else {
             logger.warn(`IP ${ip} not found in activeUsers upon disconnection.`);
         }
+
+        // Clean up presence and heartbeat data
+        userPresence.delete(socket.id);
+        if (videoHeartbeat.has(socket.id)) {
+            videoHeartbeat.delete(socket.id);
+            logger.info(`Removed heartbeat for socket ${socket.id} upon disconnection.`);
+        }
     });
 });
 
 // Function to Emit Active Users to All Clients
 function emitActiveUsersUpdate() {
     const users = [];
-    activeUsers.forEach((value, key) => {
-        users.push({ ip: key, socketIds: Array.from(value.sockets) });
+    activeUsers.forEach((sockets, ip) => {
+        users.push({ ip, socketIds: Array.from(sockets) });
     });
     io.emit('activeUsersUpdate', { users });
     logger.info(`Emitted activeUsersUpdate with ${users.length} users.`);
@@ -1143,26 +1144,23 @@ function emitActiveUsersUpdate() {
 // Heartbeat Timeout Checker
 setInterval(() => {
     const now = Date.now();
-    for (const [key, lastHeartbeat] of videoHeartbeat.entries()) {
+    videoHeartbeat.forEach((lastHeartbeat, socketId) => {
         if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
-            // Extract IP and Video ID from key
-            const [ip, videoId] = key.split('-');
+            const existingPresence = userPresence.get(socketId);
 
-            const existingPresence = userPresence.get(ip);
-
-            if (existingPresence && existingPresence.presenceType === 'video' && existingPresence.videoId === videoId) {
+            if (existingPresence && existingPresence.presenceType === 'video') {
                 // Mark User as Offline Due to Heartbeat Timeout
-                userPresence.set(ip, { presenceType: 'offline' });
-                logger.info(`Heartbeat timeout for IP ${ip}, Video ID ${videoId}. Marked as offline.`);
-
-                // Remove Heartbeat Record
-                videoHeartbeat.delete(key);
+                userPresence.set(socketId, { presenceType: 'offline' });
+                logger.info(`Heartbeat timeout for socket ${socketId}. Marked as offline.`);
 
                 // Emit Offline Presence to All Clients
-                io.emit('presenceUpdate', { presenceType: 'offline' });
+                io.emit('presenceUpdate', { socketId, presenceType: 'offline' });
+
+                // Remove Heartbeat Record
+                videoHeartbeat.delete(socketId);
             }
         }
-    }
+    });
 }, CLEANUP_INTERVAL);
 
 
