@@ -909,31 +909,6 @@ mongoose.connect('mongodb://localhost:27017/youtube_extension', {
     useUnifiedTopology: true
 });
 
-// Define GeoData Schema
-const geoDataSchema = new mongoose.Schema({
-    ip: String,
-    city: String,
-    region: String,
-    country: String,
-});
-const GeoData = mongoose.model('GeoData', geoDataSchema);
-
-// Dummy GeoLocation function (Replace with actual implementation)
-async function getGeoLocation(ip) {
-    // Implement actual geolocation logic or use a third-party service
-    return {
-        city: 'Unknown',
-        region: 'Unknown',
-        country: 'Unknown',
-    };
-}
-
-// Utility Logger for Consistent Logging
-const logger = {
-    log: (message, ...args) => console.log(`[Server] ${message}`, ...args),
-    warn: (message, ...args) => console.warn(`[Server] ${message}`, ...args),
-    error: (message, ...args) => console.error(`[Server] ${message}`, ...args),
-};
 
 // Convert ISO 8601 Duration to Seconds
 const convertISO8601ToSeconds = (isoDuration) => {
