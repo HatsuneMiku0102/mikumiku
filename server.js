@@ -903,6 +903,7 @@ const userPresence = new Map(); // Tracks presence data per IP
 const videoHeartbeat = {}; // Tracks last heartbeat timestamp per IP-videoId
 
 
+
 // Connect to MongoDB (Ensure you have MongoDB running and replace the URI accordingly)
 mongoose.connect('mongodb://localhost:27017/geoDataDB', {
     useNewUrlParser: true,
