@@ -128,8 +128,9 @@
                     </div>
 
                     <!-- Live Indicator SVG -->
-                    <svg id="liveIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" aria-label="Live Stream Indicator">
-                        <circle cx="12" cy="12" r="10" fill="#FF0000" opacity="0.8" />
+                    <svg id="liveIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="60" height="60" aria-label="Live Stream Indicator" class="live-icon" role="img" aria-labelledby="liveTitle">
+                        <title id="liveTitle">Live Stream Indicator</title>
+                        <circle cx="12" cy="12" r="10" fill="#FF0000" opacity="0.9" />
                         <text x="12" y="16" text-anchor="middle" fill="#FFFFFF" font-size="6" font-family="Arial" dy=".3em">LIVE</text>
                     </svg>
 
@@ -482,7 +483,7 @@
             const videoCategoryElement = document.getElementById("videoCategory");
             const videoDescriptionElement = document.getElementById("descriptionModalDescription");
             const timeElapsedElement = document.getElementById("timeElapsed");
-            const liveIconElement = document.getElementById("liveIcon"); // Added for Live Indicator
+            const liveIconElement = document.getElementById("liveIcon"); // LIVE Indicator
 
             function formatNumber(number) {
                 if (typeof number === 'string') {
@@ -508,7 +509,7 @@
                 progressBarElement.style.width = "0%";
                 videoDescriptionElement.textContent = "";
                 timeElapsedElement.style.display = "none";
-                liveIconElement.style.display = "none"; // Hide Live Icon
+                liveIconElement.style.display = "none"; // Hide LIVE Icon
             }
 
             function clearVideoPresence() {
@@ -524,7 +525,7 @@
                 videoCategoryElement.textContent = "";
                 progressBarElement.style.width = "0%";
                 videoDescriptionElement.textContent = "";
-                liveIconElement.style.display = "none"; // Hide Live Icon
+                liveIconElement.style.display = "none"; // Hide LIVE Icon
             }
 
             function reinitializeSession() {
@@ -590,9 +591,9 @@
             
                 // Handle Live Status
                 if (data.isLive) {
-                    liveIconElement.style.display = "block"; // Show the live icon when live
+                    liveIconElement.style.display = "flex"; // Use 'flex' to utilize CSS flex properties
                 } else {
-                    liveIconElement.style.display = "none"; // Hide the live icon when not live
+                    liveIconElement.style.display = "none";
                 }
             }
 
@@ -674,7 +675,6 @@
                 }
 
                 console.log("[Socket.IO] Received presenceUpdate:", data);
-                lastHeartbeatReceived = Date.now();
 
                 if (data.presenceType === 'video') {
                     stopBrowsingPresence();
