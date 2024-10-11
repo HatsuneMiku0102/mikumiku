@@ -335,13 +335,13 @@ function verifyToken(req, res, next) {
 
     if (!token) {
         logger.warn('Token not found. Redirecting to login page.');
-        return res.redirect('/admin-login.html');
+        return res.redirect('/auth');
     }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
             logger.error(`Token verification failed: ${err.message}. Redirecting to login.`);
-            return res.redirect('/admin-login.html');
+            return res.redirect('/auth');
         }
         req.userId = decoded.id; // Add the user ID to the request object
         next();
@@ -768,7 +768,7 @@ app.post('/logout', (req, res) => {
         });
 
         // Optionally redirect to login page after logout
-        res.redirect('/admin-login.html');
+        res.redirect('/auth');
     });
 });
 
