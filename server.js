@@ -896,14 +896,10 @@ app.get('/api/weather', async (req, res) => {
 // WebSocket (Socket.IO) Configuration
 // ----------------------
 
-// Configuration Constants
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
-
-// State Management
-let currentVideo = null;
-let currentBrowsing = null;
+const blockedUsers = new Set(); // Store blocked user IPs
 const videoHeartbeat = {};
-const activeUsers = new Map(); // Tracks active users by IP and connection types
+const activeUsers = new Map(); // Tracks active users by IP and connection type
 
 /**
  * Handle new client connections
@@ -915,6 +911,13 @@ io.on('connection', async (socket) => {
     const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
     const connectionType = socket.handshake.query.connectionType || 'website'; // 'website' or 'extension'
     logger.info(`New connection from IP: ${ip}, Type: ${connectionType}`);
+
+    // Check if the user is blocked
+    if (blockedUsers.has(ip)) {
+        logger.warn(`Blocked user tried to connect: ${ip}`);
+        socket.disconnect(); // Disconnect blocked user
+        return;
+    }
 
     try {
         // Fetch geolocation data for the IP
@@ -948,18 +951,11 @@ io.on('connection', async (socket) => {
 
     // Manage active users based on IP and connection type
     if (!activeUsers.has(ip)) {
-        activeUsers.set(ip, { id: socket.id, ip, connectionTypes: [connectionType] });
-        logger.info(`New user added: ${ip}, connection type: ${connectionType}.`);
+        activeUsers.set(ip, { id: socket.id, ip, connectionType });
+        io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
     } else {
-        const user = activeUsers.get(ip);
-        if (!user.connectionTypes.includes(connectionType)) {
-            user.connectionTypes.push(connectionType); // Add new connection type
-            logger.info(`User ${ip} connected via ${connectionType}.`);
-        }
+        logger.info(`IP ${ip} is already connected.`);
     }
-
-    // Emit updated active users list
-    io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
 
     // Emit current presence state to the newly connected client
     emitCurrentPresence(socket);
@@ -1020,18 +1016,7 @@ io.on('connection', async (socket) => {
      */
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
-        
-        // Remove the user from active users
-        const user = activeUsers.get(ip);
-        if (user) {
-            // Remove the connection type
-            user.connectionTypes = user.connectionTypes.filter(type => type !== connectionType);
-            if (user.connectionTypes.length === 0) {
-                activeUsers.delete(ip); // Remove user if no connection types are left
-            }
-        }
-
-        // Emit updated active users list
+        activeUsers.delete(ip);
         io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
 
         if (currentVideo || currentBrowsing) {
@@ -1148,6 +1133,28 @@ function handleOfflinePresence() {
     currentBrowsing = null;
     logger.info(`[Socket.IO] User marked as offline.`);
 }
+
+// Function to block a user by IP
+function blockUser(ip) {
+    blockedUsers.add(ip);
+}
+
+// Function to unblock a user by IP
+function unblockUser(ip) {
+    blockedUsers.delete(ip);
+}
+
+// API endpoint to block users
+app.post('/api/block-user', (req, res) => {
+    const { ip } = req.body;
+
+    if (!ip) {
+        return res.status(400).json({ success: false, message: 'IP address is required.' });
+    }
+
+    blockUser(ip); // Call the function to block the user
+    return res.json({ success: true, message: `User with IP ${ip} has been blocked.` });
+});
 
 
 
