@@ -3,7 +3,8 @@
 document.addEventListener('DOMContentLoaded', function () {
     console.log('Admin dashboard script loaded.');
 
-    const socket = io();
+    // Establish Socket.IO connection
+    const socket = io('https://your-server-domain.com'); // Replace with your server URL
 
     const activeUsersCountElement = document.getElementById('active-users-count');
     const userTableBody = document.getElementById('user-table-body');
@@ -23,12 +24,15 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     });
 
-    // Join the admin room upon connection
+    // Handle successful connection
     socket.on('connect', () => {
         console.log('Connected to Socket.IO server.');
+
+        // Optionally, register as admin (if required by the server)
         socket.emit('register', { role: 'admin' });
     });
 
+    // Handle connection errors
     socket.on('connect_error', (error) => {
         console.error('Connection error:', error);
     });
