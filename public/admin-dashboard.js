@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log('Admin dashboard script loaded.');
 
     // Establish Socket.IO connection
-    const socket = io('https://your-server-domain.com'); // Replace with your server URL
+    const socket = io('https://mikumiku.dev'); // Replace with your server URL
 
     const activeUsersCountElement = document.getElementById('active-users-count');
     const userTableBody = document.getElementById('user-table-body');
