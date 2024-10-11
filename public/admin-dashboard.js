@@ -21,32 +21,63 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Listen for active users update
         socket.on('activeUsersUpdate', (data) => {
-            console.log('Active users data received:', data);  // Log the received data for debugging
+            console.log('Active users data received:', data);
             document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`;
 
-            const ipList = document.getElementById('ip-list');
+            const ipList = document.getElementById('active-ip-list'); // Ensure you use the correct ID
             ipList.innerHTML = '';  // Clear previous content
 
             data.users.forEach(user => {
-                // Fetch location data from server using user IP
-                fetch(`/api/location/${user.ip}`)
-                    .then(response => response.json())
-                    .then(locationData => {
-                        if (locationData && !locationData.error) {
-                            const locationInfo = `IP: ${user.ip}, City: ${locationData.city}, Region: ${locationData.region}, Country: ${locationData.country}`;
-                            const ipItem = document.createElement('li');
-                            ipItem.classList.add('ip-item');
-                            ipItem.innerText = locationInfo;
-                            ipList.appendChild(ipItem);
-                        } else {
-                            console.warn('Location data not found for IP:', user.ip);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching location data:', error);
-                    });
+                const ipItem = createIpItem(user);
+                ipList.appendChild(ipItem);
             });
         });
+
+        // Helper function to create an IP list item
+        function createIpItem(user) {
+            const ipItem = document.createElement('li');
+            ipItem.classList.add('ip-item');
+
+            // Join connection types correctly
+            const connectionTypes = Array.from(user.connectionTypes).join(', ');
+            ipItem.innerText = `IP: ${user.ip}, Connection Types: ${connectionTypes}`;
+
+            // Add block and unblock buttons
+            const blockButton = document.createElement('button');
+            blockButton.innerText = 'Block';
+            blockButton.onclick = () => blockUser(user.ip);
+
+            const unblockButton = document.createElement('button');
+            unblockButton.innerText = 'Unblock';
+            unblockButton.onclick = () => unblockUser(user.ip);
+
+            ipItem.appendChild(blockButton);
+            ipItem.appendChild(unblockButton);
+
+            return ipItem;
+        }
+
+        function blockUser(ip) {
+            socket.emit('blockUser', { ip }, (response) => {
+                if (response.status === 'success') {
+                    console.log(`User with IP ${ip} has been blocked.`);
+                    alert(`User with IP ${ip} has been blocked.`);
+                } else {
+                    alert(`Failed to block user: ${response.message}`);
+                }
+            });
+        }
+
+        function unblockUser(ip) {
+            socket.emit('unblockUser', { ip }, (response) => {
+                if (response.status === 'success') {
+                    console.log(`User with IP ${ip} has been unblocked.`);
+                    alert(`User with IP ${ip} has been unblocked.`);
+                } else {
+                    alert(`Failed to unblock user: ${response.message}`);
+                }
+            });
+        }
 
         // Logout logic
         document.getElementById('logout').addEventListener('click', () => {
@@ -55,9 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch('/logout', { method: 'POST', credentials: 'include' })
                 .then(() => {
                     console.log('Logout request successful, clearing token cookie.');
-                    // Clear the JWT token by setting its expiration to the past
                     document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                    // Redirect the user to the login page
                     window.location.href = '/admin-login.html';
                 })
                 .catch(error => {
