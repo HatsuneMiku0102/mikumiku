@@ -1517,7 +1517,7 @@ app.get('/api/weather', async (req, res) => {
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 
-    const apiUrl = https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=${units}&appid=${apiKey};
+    const apiUrl = https:api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=${units}&appid=${apiKey};
 
     try {
         const response = await fetch(apiUrl);
