@@ -924,7 +924,8 @@ app.post('/api/block-user', async (req, res) => {
         // Save to MongoDB IPbans collection
         await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
 
-        io.emit('ipBlocked', { ip }); // Notify all clients about the blocked IP
+        // Notify all clients about the blocked IP
+        io.emit('ipBlocked', { ip });
 
         res.status(200).send({ status: 'success', message: `User with IP ${ip} has been blocked.` });
     } else {
@@ -942,7 +943,8 @@ app.post('/api/unblock-user', async (req, res) => {
         // Remove from MongoDB IPbans collection
         await IPbans.deleteOne({ ip });
 
-        io.emit('ipUnblocked', { ip }); // Notify all clients about the unblocked IP
+        // Notify all clients about the unblocked IP
+        io.emit('ipUnblocked', { ip });
 
         res.status(200).send({ status: 'success', message: `User with IP ${ip} has been unblocked.` });
     } else {
