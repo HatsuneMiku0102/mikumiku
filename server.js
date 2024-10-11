@@ -751,15 +751,18 @@ app.post('/login', loginLimiter, async (req, res) => {
 // ----------------------
 // Logout Route
 // ----------------------
+app.get('/auth', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin-login.html'));
+});
+
+// Logout Route
 app.post('/logout', (req, res) => {
-    // Destroy the session from MongoDB
     req.session.destroy((err) => {
         if (err) {
             logger.error(`Error destroying session: ${err}`);
             return res.status(500).json({ message: 'Error logging out' });
         }
         
-        // Clear the admin session cookie from the browser
         res.clearCookie('admin_session_cookie', {
             path: '/', 
             httpOnly: true, 
@@ -767,8 +770,7 @@ app.post('/logout', (req, res) => {
             sameSite: 'strict'
         });
 
-        // Optionally redirect to login page after logout
-        res.redirect('/auth');
+        res.redirect('/auth'); // Redirect to /auth after logout
     });
 });
 
