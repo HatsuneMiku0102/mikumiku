@@ -108,6 +108,7 @@ const GeoDataSchema = new mongoose.Schema({
     },
 });
 
+// Explicitly set the collection name to 'geodatas'
 const GeoData = mongoose.model('GeoData', GeoDataSchema, 'geodatas');
 
 const userSchema = new mongoose.Schema({
