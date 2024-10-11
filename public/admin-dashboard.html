@@ -132,21 +132,11 @@
 
                     activeIpListElement.innerHTML = '';
 
-                    // Group users by IP address
-                    const groupedUsers = {};
-                    activeUsers.forEach(user => {
-                        if (!groupedUsers[user.ip]) {
-                            groupedUsers[user.ip] = [];
-                        }
-                        groupedUsers[user.ip].push(user);
-                    });
-
                     // Display active users
-                    for (const ip in groupedUsers) {
-                        const userEntries = groupedUsers[ip];
-                        const ipItem = createIpItem(ip, userEntries);
+                    activeUsers.forEach(user => {
+                        const ipItem = createIpItem(user);
                         activeIpListElement.appendChild(ipItem);
-                    }
+                    });
                 } else {
                     console.warn('No valid active users data found.');
                     document.getElementById('active-users-count').innerText = 'No active users found.';
@@ -154,20 +144,19 @@
             });
 
             // Helper function to create an IP list item
-            function createIpItem(ip, userEntries) {
+            function createIpItem(user) {
                 const ipItem = document.createElement('li');
                 ipItem.classList.add('ip-item');
-                const connectionTypes = userEntries.map(user => user.connectionType).join(', ');
-                ipItem.innerText = `IP: ${ip}, Connection Type: ${connectionTypes}`;
-                
+                ipItem.innerText = `IP: ${user.ip}, Connection Types: ${Array.from(user.connectionTypes).join(', ')}`;
+
                 // Add block and unblock buttons
                 const blockButton = document.createElement('button');
                 blockButton.innerText = 'Block';
-                blockButton.onclick = () => blockUser(ip);
+                blockButton.onclick = () => blockUser(user.ip);
 
                 const unblockButton = document.createElement('button');
                 unblockButton.innerText = 'Unblock';
-                unblockButton.onclick = () => unblockUser(ip);
+                unblockButton.onclick = () => unblockUser(user.ip);
 
                 ipItem.appendChild(blockButton);
                 ipItem.appendChild(unblockButton);
