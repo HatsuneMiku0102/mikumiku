@@ -738,13 +738,15 @@ app.post('/login', loginLimiter, async (req, res) => {
                 logger.error(`Error saving session: ${err}`);
                 return res.status(500).json({ auth: false, message: 'Error saving session' });
             }
-            res.status(200).json({ auth: true, redirect: '/admin-dashboard.html' });
+            // Redirect to the /admin route instead of /admin-dashboard.html
+            res.status(200).json({ auth: true, redirect: '/admin' });
         });
     } catch (error) {
         logger.error(`Unexpected error during login: ${error}`);
         res.status(500).json({ auth: false, message: 'Internal Server Error' });
     }
 });
+
 
 // ----------------------
 // Logout Route
