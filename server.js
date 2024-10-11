@@ -895,12 +895,14 @@ app.get('/api/weather', async (req, res) => {
 // ----------------------
 // WebSocket (Socket.IO) Configuration
 // ----------------------
-let currentVideo = null;
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
-const blockedUsers = new Set(); // Store blocked user IPs
+
+// State Management
+let currentVideo = null;
+let currentBrowsing = null;
 const videoHeartbeat = {};
 const activeUsers = new Map(); // Tracks active users by IP and connection type
-let currentBrowsing = null;
+const blockedUsers = new Set(); // Store blocked users' IPs
 
 /**
  * Handle new client connections
@@ -915,8 +917,8 @@ io.on('connection', async (socket) => {
 
     // Check if the user is blocked
     if (blockedUsers.has(ip)) {
-        logger.warn(`Blocked user tried to connect: ${ip}`);
-        socket.disconnect(); // Disconnect blocked user
+        socket.emit('blocked', { message: 'You are blocked from accessing this service.' });
+        socket.disconnect();
         return;
     }
 
@@ -1030,6 +1032,20 @@ io.on('connection', async (socket) => {
 });
 
 /**
+ * Block a user by IP
+ */
+app.post('/api/block-user', (req, res) => {
+    const { ip } = req.body;
+    if (ip) {
+        blockedUsers.add(ip);
+        logger.info(`User with IP ${ip} has been blocked.`);
+        res.status(200).send({ message: 'User blocked successfully' });
+    } else {
+        res.status(400).send({ message: 'IP address is required' });
+    }
+});
+
+/**
  * Periodically check for heartbeat timeouts to mark videos as offline
  */
 setInterval(() => {
@@ -1135,27 +1151,6 @@ function handleOfflinePresence() {
     logger.info(`[Socket.IO] User marked as offline.`);
 }
 
-// Function to block a user by IP
-function blockUser(ip) {
-    blockedUsers.add(ip);
-}
-
-// Function to unblock a user by IP
-function unblockUser(ip) {
-    blockedUsers.delete(ip);
-}
-
-// API endpoint to block users
-app.post('/api/block-user', (req, res) => {
-    const { ip } = req.body;
-
-    if (!ip) {
-        return res.status(400).json({ success: false, message: 'IP address is required.' });
-    }
-
-    blockUser(ip); // Call the function to block the user
-    return res.json({ success: true, message: `User with IP ${ip} has been blocked.` });
-});
 
 
 
