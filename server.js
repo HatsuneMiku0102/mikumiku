@@ -1,3 +1,5 @@
+// server.js
+
 'use strict';
 
 // ----------------------
@@ -86,60 +88,14 @@ mongoose.connect(mongoUrl, {
 });
 
 // ----------------------
-// Define Mongoose Schemas and Models
+// Import Mongoose Models
 // ----------------------
-const geoDataSchema = new mongoose.Schema({
-    ip: { type: String, required: true, unique: true },
-    city: { type: String, required: true },
-    region: { type: String, required: true },
-    country: { type: String, required: true },
-    timestamp: { type: Date, default: Date.now }
-});
-
-const GeoData = mongoose.model('GeoData', geoDataSchema);
-
-// Define other schemas...
-const userSchema = new mongoose.Schema({
-    discord_id: { type: String, required: true },
-    bungie_name: { type: String, required: true },
-    membership_id: { type: String, unique: true, required: true },
-    platform_type: { type: Number, required: true },
-    token: { type: String, unique: true },
-    registration_date: { type: Date, default: Date.now },
-    access_token: { type: String, required: true },
-    refresh_token: { type: String, required: true },
-    token_expiry: { type: Date, required: true }
-});
-
-const User = mongoose.model('User', userSchema);
-
-const pendingMemberSchema = new mongoose.Schema({
-    membershipId: { type: String, required: true },
-    displayName: { type: String, required: true },
-    joinDate: { type: Date, required: true }
-});
-
-const PendingMember = mongoose.model('PendingMember', pendingMemberSchema);
-
-const sessionSchema = new mongoose.Schema({
-    state: { type: String, required: true, unique: true },
-    user_id: { type: String, required: true },
-    session_id: { type: String, required: true },
-    created_at: { type: Date, default: Date.now, expires: 86400 }, // Expires after 1 day
-    ip_address: { type: String },
-    user_agent: { type: String }
-});
-
-const Session = mongoose.model('Session', sessionSchema, 'sessions');
-
-const commentSchema = new mongoose.Schema({
-    username: { type: String, required: true },
-    comment: { type: String, required: true },
-    timestamp: { type: Date, default: Date.now },
-    approved: { type: Boolean, default: true }
-});
-
-const Comment = mongoose.model('Comment', commentSchema);
+const GeoData = require('./models/GeoData');
+const User = require('./models/User');
+const PendingMember = require('./models/PendingMember');
+const Session = require('./models/Session');
+const Comment = require('./models/Comment');
+// Import other models as needed
 
 // ----------------------
 // Configure Session Store
@@ -247,6 +203,9 @@ app.use(express.static(path.join(__dirname, 'public'), {
     lastModified: false
 }));
 
+// ----------------------
+// Configure Admin Session Store
+// ----------------------
 const adminSessionStore = MongoStore.create({
     mongoUrl: process.env.MONGO_URL,
     collectionName: 'admin_sessions', // Separate collection for admin sessions
@@ -282,8 +241,9 @@ function convertISO8601ToSeconds(isoDuration) {
     const matches = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
     const hours = parseInt(matches[1] || 0, 10);
     const minutes = parseInt(matches[2] || 0, 10);
-    const seconds = parseInt(matches[3] || 0, 10);
-    return hours * 3600 + minutes * 60 + seconds;
+    const remainingSeconds = parseInt(matches[3] || 0, 10);
+
+    return hours * 3600 + minutes * 60 + remainingSeconds;
 }
 
 // JWT Verification Middleware
@@ -401,21 +361,12 @@ async function getBungieUserInfo(accessToken) {
 }
 
 // ----------------------
-// OAuth Configuration
-// ----------------------
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI || 'https://mikumiku.dev/callback';
-
-// Membership Mapping File Path
-const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
-
-// ----------------------
 // Membership Mapping Functions
 // ----------------------
 
 // Update Membership Mapping Function
 function updateMembershipMapping(discordId, userInfo) {
+    const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
     let membershipMapping = {};
 
     if (fs.existsSync(membershipFilePath)) {
@@ -874,7 +825,7 @@ app.get('/api/location/:ip', async (req, res) => {
     }
 });
 
-// Track IP Route
+
 // Track IP Route
 app.post('/track', async (req, res) => {
     const ip = getClientIp(req);
@@ -931,6 +882,46 @@ app.post('/track', async (req, res) => {
     }
 });
 
+router.post('/', async (req, res) => {
+    const ip = getClientIp(req);
+    logger.info(`Received /track request from IP: ${ip}`);
+
+    try {
+        const location = await getAccurateGeoLocation(ip);
+        logger.info(`Geolocation data for IP ${ip}: ${JSON.stringify(location)}`);
+
+        // Upsert geolocation data
+        const updatedEntry = await GeoData.findOneAndUpdate(
+            { ip: location.ip }, // Query by IP
+            {
+                city: location.city,
+                region: location.region,
+                country: location.country,
+                timestamp: new Date(),
+            },
+            { upsert: true, new: true, runValidators: true }
+        );
+
+        logger.info(`GeoData saved for IP ${ip}: ${JSON.stringify(updatedEntry)}`);
+
+        // Aggregate data by country
+        const countryData = await GeoData.aggregate([
+            { $group: { _id: "$country", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+        ]);
+
+        // Emit the aggregated data to all connected admin dashboards
+        req.app.get('io').emit('geoDataUpdate', countryData);
+        logger.info('Emitted geoDataUpdate event to all connected clients.');
+
+        res.json({ message: 'Geolocation data tracked successfully.', ip, location });
+    } catch (error) {
+        logger.error(`Error in /track route for IP ${ip}: ${error.message}`);
+        res.status(500).json({ error: 'Unable to track geolocation data.' });
+    }
+});
+
+module.exports = router;
 // ----------------------
 // Geolocation Helper Function
 // ----------------------
