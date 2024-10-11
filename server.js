@@ -895,7 +895,7 @@ app.get('/api/weather', async (req, res) => {
 // ----------------------
 // WebSocket (Socket.IO) Configuration
 // ----------------------
-
+let currentVideo = null;
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
 const blockedUsers = new Set(); // Store blocked user IPs
 const videoHeartbeat = {};
