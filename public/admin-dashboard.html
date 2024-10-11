@@ -7,7 +7,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Include Chart.js -->
+    <script src="/admin-dashboard.js" defer></script> <!-- Separate JS file -->
     <style>
+        /* (Your existing styles here) */
         body {
             font-family: 'Roboto', sans-serif;
             background-color: #f5f5f5;
@@ -24,9 +26,11 @@
             padding: 40px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            width: 80%;
-            max-width: 800px;
+            width: 90%;
+            max-width: 1000px;
             margin: auto;
+            overflow-y: auto;
+            max-height: 90vh;
         }
 
         h2 {
@@ -48,7 +52,7 @@
             background-color: #0056b3;
         }
 
-        .real-time-info {
+        .real-time-info, .user-details, .charts {
             margin-top: 20px;
         }
 
@@ -63,6 +67,13 @@
             padding: 10px;
             margin: 5px 0;
             border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ip-item span {
+            margin-right: 10px;
         }
 
         .chart-container {
@@ -74,6 +85,40 @@
             margin: 0 auto;
             display: block;
         }
+
+        /* Add styles for the user details table */
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .user-table th, .user-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .user-table th {
+            background-color: #007BFF;
+            color: white;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 20px;
+            }
+
+            .ip-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .ip-item span {
+                margin-bottom: 5px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -82,133 +127,37 @@
         <button id="logout">Logout</button>
 
         <div class="real-time-info">
-            <h3>Real-time Active Users and IP Information</h3>
+            <h3>Real-time Active Users</h3>
             <p id="active-users-count">Loading active user count...</p>
-            <ul id="ip-list" class="ip-list">Loading IP data...</ul>
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>Socket ID</th>
+                        <th>IP Address</th>
+                        <th>Location</th>
+                        <th>User Agent</th>
+                        <th>Connected At</th>
+                    </tr>
+                </thead>
+                <tbody id="user-table-body">
+                    <tr><td colspan="5">Loading user data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Additional Sections for Detailed User Info (Optional) -->
+        <div class="user-details">
+            <h3>Selected User Details</h3>
+            <div id="selected-user-details">
+                <p>Select a user from the table to view more details.</p>
+            </div>
         </div>
 
         <!-- Chart section -->
-        <div class="chart-container">
+        <div class="charts">
             <h3>Visitors by Country</h3>
             <canvas id="locationChart" width="400" height="200"></canvas>
         </div>
     </div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            console.log('Admin dashboard script loaded.');
-    
-            const cookieString = document.cookie;
-            const token = cookieString.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-    
-            if (!token) {
-                console.warn('No valid token found, redirecting to login page.');
-                window.location.href = '/admin-login.html';
-            } else {
-                console.log('Valid token detected:', token);
-            }
-    
-            const socket = io();
-            const ipListElement = document.getElementById('ip-list');
-            const ipElements = new Map();
-    
-            socket.on('connect', () => {
-                console.log('Connected to socket server.');
-            });
-    
-            socket.on('connect_error', (error) => {
-                console.error('Error connecting to socket:', error);
-            });
-    
-            socket.on('activeUsersUpdate', (data) => {
-                console.log('Active users data received:', data);
-    
-                if (data && data.users && Array.isArray(data.users)) {
-                    const activeUsersCount = data.users.length;
-                    document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsersCount}`;
-    
-                    ipListElement.innerHTML = '';
-    
-                    data.users.forEach(user => {
-                        if (!ipElements.has(user.ip)) {
-                            const ipItem = document.createElement('li');
-                            ipItem.classList.add('ip-item');
-                            ipItem.innerText = `IP: ${user.ip}, City: ${user.city || 'Unknown'}, Region: ${user.region || 'Unknown'}, Country: ${user.country || 'Unknown'}`;
-                            ipListElement.appendChild(ipItem);
-                            ipElements.set(user.ip, ipItem);
-                        }
-                    });
-                } else {
-                    console.warn('No valid active users data found.');
-                    document.getElementById('active-users-count').innerText = 'No active users found.';
-                }
-            });
-    
-            socket.on('locationUpdate', (data) => {
-                console.log('Location update received from server:', data); // Check the data from the server
-                if (data && data.ip) {
-                    if (ipElements.has(data.ip)) {
-                        const ipItem = ipElements.get(data.ip);
-                        ipItem.innerText = `IP: ${data.ip}, City: ${data.city || 'Unknown'}, Region: ${data.region || 'Unknown'}, Country: ${data.country || 'Unknown'}`;
-                    } else {
-                        const ipItem = document.createElement('li');
-                        ipItem.classList.add('ip-item');
-                        ipItem.innerText = `IP: ${data.ip}, City: ${data.city || 'Unknown'}, Region: ${data.region || 'Unknown'}, Country: ${data.country || 'Unknown'}`;
-                        ipListElement.appendChild(ipItem);
-                        ipElements.set(data.ip, ipItem);
-                    }
-                }
-            });
-    
-            // Logout logic
-            document.getElementById('logout').addEventListener('click', () => {
-                console.log('Logout initiated.');
-                fetch('/logout', { method: 'POST', credentials: 'include' })
-                    .then(() => {
-                        console.log('Logout request successful, clearing token cookie.');
-                        document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                        window.location.href = '/admin-login.html';
-                    })
-                    .catch(error => {
-                        console.error('Logout failed:', error);
-                    });
-            });
-    
-            // Fetch country data for the chart
-            fetch('/api/geo-data')
-                .then(response => response.json())
-                .then(data => {
-                    const countries = data.map(item => item._id || 'Unknown');
-                    const visitCounts = data.map(item => item.count);
-    
-                    // Display the chart using Chart.js
-                    const ctx = document.getElementById('locationChart').getContext('2d');
-                    new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: countries,
-                            datasets: [{
-                                label: 'Visitors by Country',
-                                data: visitCounts,
-                                backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                                borderColor: 'rgba(54, 162, 235, 1)',
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            scales: {
-                                y: {
-                                    beginAtZero: true
-                                }
-                            }
-                        }
-                    });
-                })
-                .catch(error => console.error('Error fetching geo data:', error));
-        });
-    </script>
-
 </body>
 </html>
