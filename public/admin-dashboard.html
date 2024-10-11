@@ -42,6 +42,7 @@
             padding: 10px 20px;
             border-radius: 4px;
             cursor: pointer;
+            margin-left: 10px;
         }
 
         button:hover {
@@ -54,11 +55,6 @@
 
         .user-list {
             margin-top: 20px;
-        }
-
-        .user-group h3 {
-            color: #333333;
-            margin-bottom: 10px;
         }
 
         .ip-list {
@@ -76,6 +72,9 @@
             padding: 10px;
             margin: 5px 0;
             border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .chart-container {
@@ -133,11 +132,21 @@
 
                     activeIpListElement.innerHTML = '';
 
-                    // Display active users
+                    // Group users by IP address
+                    const groupedUsers = {};
                     activeUsers.forEach(user => {
-                        const ipItem = createIpItem(user);
-                        activeIpListElement.appendChild(ipItem);
+                        if (!groupedUsers[user.ip]) {
+                            groupedUsers[user.ip] = [];
+                        }
+                        groupedUsers[user.ip].push(user);
                     });
+
+                    // Display active users
+                    for (const ip in groupedUsers) {
+                        const userEntries = groupedUsers[ip];
+                        const ipItem = createIpItem(ip, userEntries);
+                        activeIpListElement.appendChild(ipItem);
+                    }
                 } else {
                     console.warn('No valid active users data found.');
                     document.getElementById('active-users-count').innerText = 'No active users found.';
@@ -145,11 +154,47 @@
             });
 
             // Helper function to create an IP list item
-            function createIpItem(user) {
+            function createIpItem(ip, userEntries) {
                 const ipItem = document.createElement('li');
                 ipItem.classList.add('ip-item');
-                ipItem.innerText = `IP: ${user.ip}, Connection Type: ${user.connectionType}`;
+                const connectionTypes = userEntries.map(user => user.connectionType).join(', ');
+                ipItem.innerText = `IP: ${ip}, Connection Type: ${connectionTypes}`;
+                
+                // Add block and unblock buttons
+                const blockButton = document.createElement('button');
+                blockButton.innerText = 'Block';
+                blockButton.onclick = () => blockUser(ip);
+
+                const unblockButton = document.createElement('button');
+                unblockButton.innerText = 'Unblock';
+                unblockButton.onclick = () => unblockUser(ip);
+
+                ipItem.appendChild(blockButton);
+                ipItem.appendChild(unblockButton);
+
                 return ipItem;
+            }
+
+            function blockUser(ip) {
+                socket.emit('blockUser', { ip }, (response) => {
+                    if (response.status === 'success') {
+                        console.log(`User with IP ${ip} has been blocked.`);
+                        alert(`User with IP ${ip} has been blocked.`);
+                    } else {
+                        alert(`Failed to block user: ${response.message}`);
+                    }
+                });
+            }
+
+            function unblockUser(ip) {
+                socket.emit('unblockUser', { ip }, (response) => {
+                    if (response.status === 'success') {
+                        console.log(`User with IP ${ip} has been unblocked.`);
+                        alert(`User with IP ${ip} has been unblocked.`);
+                    } else {
+                        alert(`Failed to unblock user: ${response.message}`);
+                    }
+                });
             }
 
             // Logout logic
