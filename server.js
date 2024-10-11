@@ -131,7 +131,8 @@ app.use(
                 "https://www.youtube.com",
                 "https://unpkg.com",
                 "https://cdn.jsdelivr.net",
-                "https://cdn.skypack.dev"
+                "https://cdn.skypack.dev",
+                "https://cdn.socket.io" // Add this line
             ],
             styleSrc: [
                 "'self'",
@@ -160,7 +161,8 @@ app.use(
                 "'blob:'",
                 "https://www.googleapis.com",
                 "https://*.youtube.com",
-                "https://api.openweathermap.org"
+                "https://api.openweathermap.org",
+                "https://cdn.socket.io" // Add this line if you use WebSockets over HTTPS
             ],
             frameSrc: [
                 "'self'",
@@ -179,6 +181,7 @@ app.use(
         }
     })
 );
+
 
 
 app.set('trust proxy', true);
