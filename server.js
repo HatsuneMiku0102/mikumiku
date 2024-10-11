@@ -975,15 +975,13 @@ io.on('connection', async (socket) => {
         }
     });
 
-    // Handle presence updates
+    // Handle presence updates (only send to admin dashboard)
     socket.on('presenceUpdate', (data) => {
-        // Ensure that data is not null or undefined
         if (!data || !data.presenceType) {
             logger.warn(`Invalid presenceUpdate from ${socket.id}: No presenceType specified`);
             return;
         }
 
-        // Update per-socket state based on presence type
         if (data.presenceType === 'video') {
             socket.currentVideo = data;
             socket.currentBrowsing = null;
@@ -993,12 +991,12 @@ io.on('connection', async (socket) => {
         }
 
         logger.info(`PresenceUpdate from ${socket.id}:`, data);
+        // Only emit presence updates to the admin room
         io.to('admin').emit('presenceUpdate', { socketId: socket.id, ...data });
     });
 
-    // Handle video progress updates
+    // Handle video progress updates (send to the specific extension)
     socket.on('updateVideoProgress', (data) => {
-        // Validate that data and videoId are present
         if (!data || !data.videoId) {
             logger.warn(`Invalid updateVideoProgress from ${socket.id}: Missing videoId`);
             return;
@@ -1008,7 +1006,8 @@ io.on('connection', async (socket) => {
             socket.videoHeartbeat[data.videoId] = Date.now();
         }
         logger.info(`Received video progress update from ${socket.id}:`, data);
-        io.to('admin').emit('updateVideoProgress', { socketId: socket.id, ...data });
+        // Send the video progress update only to the extension
+        socket.to('extension').emit('updateVideoProgress', { socketId: socket.id, ...data });
     });
 
     // Handle heartbeat
