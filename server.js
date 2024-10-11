@@ -935,11 +935,11 @@ io.on('connection', async (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
     const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
-    const connectionType = socket.handshake.query.connectionType || 'website';
+    const connectionType = socket.handshake.query.connectionType || 'website'; // 'website' or 'extension'
 
     if (blockedIps.has(ip)) {
         logger.warn(`Blocked connection attempt from IP: ${ip}`);
-        socket.disconnect();
+        socket.disconnect(); // Disconnect if IP is blocked
         return;
     }
 
@@ -949,7 +949,7 @@ io.on('connection', async (socket) => {
     if (!activeUsers.has(ip)) {
         activeUsers.set(ip, { id: socket.id, ip, connectionTypes: new Set() });
     }
-    activeUsers.get(ip).connectionTypes.add(connectionType); // Add the connection type to the Set
+    activeUsers.get(ip).connectionTypes.add(connectionType); // Add connection type to the Set
 
     // Emit updated active users
     io.emit('activeUsersUpdate', {
