@@ -924,6 +924,8 @@ app.post('/api/block-user', async (req, res) => {
         // Save to MongoDB IPbans collection
         await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
 
+        io.emit('ipBlocked', { ip }); // Notify all clients about the blocked IP
+
         res.status(200).send({ status: 'success', message: `User with IP ${ip} has been blocked.` });
     } else {
         res.status(400).send({ status: 'error', message: 'IP address is required.' });
@@ -939,6 +941,8 @@ app.post('/api/unblock-user', async (req, res) => {
 
         // Remove from MongoDB IPbans collection
         await IPbans.deleteOne({ ip });
+
+        io.emit('ipUnblocked', { ip }); // Notify all clients about the unblocked IP
 
         res.status(200).send({ status: 'success', message: `User with IP ${ip} has been unblocked.` });
     } else {
@@ -978,55 +982,6 @@ io.on('connection', async (socket) => {
     // Emit current presence state to the newly connected client
     emitCurrentPresence(socket);
 
-    // Handle block user request
-    socket.on('blockUser', async (data) => {
-        const { ip } = data;
-        if (ip) {
-            if (!blockedIps.has(ip)) {
-                blockedIps.add(ip);
-                logger.info(`Blocking user with IP: ${ip}`);
-    
-                // Save to MongoDB IPbans collection
-                await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
-    
-                // Notify all clients about the blocked IP
-                io.emit('ipBlocked', { ip });
-    
-                // Acknowledge the block
-                socket.emit('blockUserResponse', { status: 'success', message: `User with IP ${ip} has been blocked.` });
-            } else {
-                socket.emit('blockUserResponse', { status: 'error', message: `User with IP ${ip} is already blocked.` });
-            }
-        } else {
-            socket.emit('blockUserResponse', { status: 'error', message: 'IP address is required.' });
-        }
-    });
-    
-    // Notify all connected clients when an IP is unblocked
-    socket.on('unblockUser', async (data) => {
-        const { ip } = data;
-        if (ip) {
-            if (blockedIps.has(ip)) {
-                blockedIps.delete(ip);
-                logger.info(`Unblocking user with IP: ${ip}`);
-    
-                // Remove from MongoDB IPbans collection
-                await IPbans.deleteOne({ ip });
-    
-                // Notify all clients about the unblocked IP
-                io.emit('ipUnblocked', { ip });
-    
-                // Acknowledge the unblock
-                socket.emit('unblockUserResponse', { status: 'success', message: `User with IP ${ip} has been unblocked.` });
-            } else {
-                socket.emit('unblockUserResponse', { status: 'error', message: `User with IP ${ip} is not blocked.` });
-            }
-        } else {
-            socket.emit('unblockUserResponse', { status: 'error', message: 'IP address is required.' });
-        }
-    });
-
-
     // Handle Presence Updates (Video, Browsing, Offline)
     socket.on('presenceUpdate', (data) => {
         switch (data.presenceType) {
@@ -1047,18 +1002,6 @@ io.on('connection', async (socket) => {
         io.emit('presenceUpdate', data);
     });
 
-    // Handle YouTube Browsing Presence Updates
-    socket.on('updateBrowsingPresence', (data) => {
-        handleBrowsingPresence(data);
-        io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
-    });
-
-    // Handle YouTube Video Progress Updates
-    socket.on('updateVideoProgress', (data) => {
-        handleVideoPresence(data);
-        io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
-    });
-
     // Handle Heartbeat Signals for YouTube Videos
     socket.on('heartbeat', (data, callback) => {
         const { videoId } = data;
@@ -1073,7 +1016,7 @@ io.on('connection', async (socket) => {
     // Handle Client Disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
-        
+
         if (activeUsers.has(ip)) {
             const user = activeUsers.get(ip);
             user.connectionTypes.delete(connectionType);
@@ -1202,7 +1145,6 @@ function handleOfflinePresence() {
     currentBrowsing = null;
     logger.info(`[Socket.IO] User marked as offline.`);
 }
-
 
 
 
