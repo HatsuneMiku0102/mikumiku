@@ -1,68 +1,168 @@
-document.addEventListener('DOMContentLoaded', function() {
+// admin-dashboard.js
+
+document.addEventListener('DOMContentLoaded', function () {
     console.log('Admin dashboard script loaded.');
 
-    // Extract the 'token' cookie if available
-    const cookieString = document.cookie;
-    console.log('Current cookies:', cookieString);
+    const socket = io();
 
-    const token = cookieString
-        .split('; ')
-        .find(row => row.startsWith('token='))
-        ?.split('=')[1];
+    const activeUsersCountElement = document.getElementById('active-users-count');
+    const userTableBody = document.getElementById('user-table-body');
+    const selectedUserDetails = document.getElementById('selected-user-details');
+    const logoutButton = document.getElementById('logout');
 
-    if (!token) {
-        console.warn('No valid token found, redirecting to login page.');
-        window.location.href = '/admin-login.html';
-    } else {
-        console.log('Valid token detected:', token);
-
-        // Socket.io connection
-        const socket = io();
-
-        // Listen for active users update
-        socket.on('activeUsersUpdate', (data) => {
-            console.log('Active users data received:', data);  // Log the received data for debugging
-            document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`;
-
-            const ipList = document.getElementById('ip-list');
-            ipList.innerHTML = '';  // Clear previous content
-
-            data.users.forEach(user => {
-                // Fetch location data from server using user IP
-                fetch(`/api/location/${user.ip}`)
-                    .then(response => response.json())
-                    .then(locationData => {
-                        if (locationData && !locationData.error) {
-                            const locationInfo = `IP: ${user.ip}, City: ${locationData.city}, Region: ${locationData.region}, Country: ${locationData.country}`;
-                            const ipItem = document.createElement('li');
-                            ipItem.classList.add('ip-item');
-                            ipItem.innerText = locationInfo;
-                            ipList.appendChild(ipItem);
-                        } else {
-                            console.warn('Location data not found for IP:', user.ip);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching location data:', error);
-                    });
+    // Handle Logout
+    logoutButton.addEventListener('click', () => {
+        console.log('Logout initiated.');
+        fetch('/logout', { method: 'POST', credentials: 'include' })
+            .then(() => {
+                console.log('Logout successful. Redirecting to login page.');
+                window.location.href = '/admin-login.html';
+            })
+            .catch(error => {
+                console.error('Logout failed:', error);
             });
+    });
+
+    // Join the admin room upon connection
+    socket.on('connect', () => {
+        console.log('Connected to Socket.IO server.');
+        socket.emit('register', { role: 'admin' });
+    });
+
+    socket.on('connect_error', (error) => {
+        console.error('Connection error:', error);
+    });
+
+    // Listen for activeUsersUpdate event
+    socket.on('activeUsersUpdate', (data) => {
+        console.log('Active users data received:', data);
+        if (data && data.users) {
+            const users = data.users;
+            activeUsersCountElement.innerText = `Currently Active Users: ${users.length}`;
+            renderUserTable(users);
+            updateCountryChart(users);
+        } else {
+            console.warn('Invalid activeUsersUpdate data received.');
+            activeUsersCountElement.innerText = 'No active users found.';
+            userTableBody.innerHTML = '<tr><td colspan="5">No active users found.</td></tr>';
+        }
+    });
+
+    // Listen for presenceUpdate event (Optional: For real-time presence)
+    socket.on('presenceUpdate', (data) => {
+        console.log('Presence update received:', data);
+        // Implement additional UI updates if needed
+    });
+
+    // Listen for updateVideoProgress event (Optional: For video tracking)
+    socket.on('updateVideoProgress', (data) => {
+        console.log('Video progress update received:', data);
+        // Implement additional UI updates if needed
+    });
+
+    /**
+     * Render the user table with active users data
+     * @param {Array} users - Array of active user objects
+     */
+    function renderUserTable(users) {
+        if (users.length === 0) {
+            userTableBody.innerHTML = '<tr><td colspan="5">No active users found.</td></tr>';
+            return;
+        }
+
+        userTableBody.innerHTML = ''; // Clear existing rows
+
+        users.forEach(user => {
+            const tr = document.createElement('tr');
+            tr.dataset.socketId = user.socketId;
+
+            const socketIdTd = document.createElement('td');
+            socketIdTd.innerText = user.socketId;
+            tr.appendChild(socketIdTd);
+
+            const ipTd = document.createElement('td');
+            ipTd.innerText = user.ip;
+            tr.appendChild(ipTd);
+
+            const locationTd = document.createElement('td');
+            locationTd.innerText = `${user.city}, ${user.region}, ${user.country}`;
+            tr.appendChild(locationTd);
+
+            const userAgentTd = document.createElement('td');
+            userAgentTd.innerText = user.userAgent;
+            tr.appendChild(userAgentTd);
+
+            const connectedAtTd = document.createElement('td');
+            const connectedDate = new Date(user.connectedAt);
+            connectedAtTd.innerText = connectedDate.toLocaleString();
+            tr.appendChild(connectedAtTd);
+
+            // Add click event to show user details
+            tr.addEventListener('click', () => {
+                displayUserDetails(user);
+            });
+
+            userTableBody.appendChild(tr);
+        });
+    }
+
+    /**
+     * Display detailed information about a selected user
+     * @param {Object} user - User object containing detailed information
+     */
+    function displayUserDetails(user) {
+        selectedUserDetails.innerHTML = `
+            <p><strong>Socket ID:</strong> ${user.socketId}</p>
+            <p><strong>IP Address:</strong> ${user.ip}</p>
+            <p><strong>Location:</strong> ${user.city}, ${user.region}, ${user.country}</p>
+            <p><strong>User Agent:</strong> ${user.userAgent}</p>
+            <p><strong>Connected At:</strong> ${new Date(user.connectedAt).toLocaleString()}</p>
+        `;
+    }
+
+    /**
+     * Update the visitors by country chart
+     * @param {Array} users - Array of active user objects
+     */
+    function updateCountryChart(users) {
+        const countryCounts = {};
+        users.forEach(user => {
+            const country = user.country || 'Unknown';
+            countryCounts[country] = (countryCounts[country] || 0) + 1;
         });
 
-        // Logout logic
-        document.getElementById('logout').addEventListener('click', () => {
-            console.log('Logout initiated.');
+        const countries = Object.keys(countryCounts);
+        const counts = Object.values(countryCounts);
 
-            fetch('/logout', { method: 'POST', credentials: 'include' })
-                .then(() => {
-                    console.log('Logout request successful, clearing token cookie.');
-                    // Clear the JWT token by setting its expiration to the past
-                    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                    // Redirect the user to the login page
-                    window.location.href = '/admin-login.html';
-                })
-                .catch(error => {
-                    console.error('Logout failed:', error);
-                });
+        // Destroy existing chart if it exists
+        if (window.locationChart) {
+            window.locationChart.destroy();
+        }
+
+        const ctx = document.getElementById('locationChart').getContext('2d');
+        window.locationChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: countries,
+                datasets: [{
+                    label: 'Visitors by Country',
+                    data: counts,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
         });
     }
 });
