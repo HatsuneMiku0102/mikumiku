@@ -912,20 +912,40 @@ app.get('/api/location/:ip', async (req, res) => {
 // Track IP Route
 app.post('/track', async (req, res) => {
     const ip = getClientIp(req);
-    logger.info(`Extracted IP: ${ip}`);
+    const userAgent = req.get('User-Agent') || '';
+    logger.info(`Extracted IP: ${ip}, User-Agent: ${userAgent}`);
+
+    // Simple bot detection
+    const botPatterns = [/bot/i, /crawl/i, /spider/i, /slurp/i];
+    if (botPatterns.some(pattern => pattern.test(userAgent))) {
+        logger.info(`Skipped tracking for bot User-Agent: ${userAgent}`);
+        return res.status(200).json({ message: 'Bot detected, tracking skipped.' });
+    }
+
+    // Rate Limiting: Prevent multiple tracking from the same IP within a short time
+    const rateLimitKey = `track_${ip}`;
+    const existingTimestamp = rateLimitMap.get(rateLimitKey) || 0;
+    const currentTime = Date.now();
+
+    if (currentTime - existingTimestamp < 60000) { // 1 minute
+        logger.info(`Rate limit exceeded for IP: ${ip}, skipping tracking.`);
+        return res.status(200).json({ message: 'Rate limit exceeded, tracking skipped.' });
+    }
+
+    rateLimitMap.set(rateLimitKey, currentTime);
 
     try {
-        const location = await getAccurateGeoLocation(ip);
+        const location = await getGeoLocation(ip);
 
         // Check if the IP is already blocked
         if (blockedIps.has(ip)) {
             logger.warn(`Blocked IP attempted to track: ${ip}`);
             return res.status(403).json({ error: 'Access denied.' });
         }
-        
+
         // Fetch existing entry for this IP
         const existingEntry = await GeoData.findOne({ ip: location.ip });
-        
+
         // Check if the location data has changed before updating
         if (existingEntry) {
             const hasChanged = (
@@ -933,13 +953,13 @@ app.post('/track', async (req, res) => {
                 existingEntry.region !== location.region ||
                 existingEntry.country !== location.country
             );
-        
+
             if (!hasChanged) {
                 logger.info(`No changes detected for IP: ${ip}, skipping update.`);
                 return res.json({ message: 'No changes detected, update skipped.', ip, location });
             }
         }
-        
+
         // If no existing entry, or if the data has changed, perform an upsert
         const updatedEntry = await GeoData.findOneAndUpdate(
             { ip: location.ip },  // Query to find the existing IP
@@ -951,16 +971,17 @@ app.post('/track', async (req, res) => {
             },
             { upsert: true, new: true }
         );
-        
-        logger.info(`Location data updated or inserted for IP: ${ip} - City: ${location.city}, Region: ${location.region}, Country: ${location.country}`);
+
+        // Log the updated or inserted entry
+        logger.info(`Location data saved to 'geodatas' collection: ${JSON.stringify(updatedEntry)}`);
         res.json({ ip, location });
-        
+
         // Perform aggregation to group by country
         const countryData = await GeoData.aggregate([
             { $group: { _id: "$country", count: { $sum: 1 } } },
             { $sort: { count: -1 } }
         ]);
-        
+
         // Emit the aggregated data to all connected clients
         io.emit('geoDataUpdate', countryData);
         logger.info('Emitted geoDataUpdate event to all connected clients.');
