@@ -895,6 +895,13 @@ app.get('/api/weather', async (req, res) => {
 // ----------------------
 // WebSocket (Socket.IO) Configuration
 // ----------------------
+const ipBanSchema = new mongoose.Schema({
+    ip: { type: String, required: true, unique: true },
+    blockedAt: { type: Date, default: Date.now },
+});
+
+const IPbans = mongoose.model('IPbans', ipBanSchema);
+
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
 const blockedIps = new Set(); // Set to track blocked IPs
 
@@ -1145,7 +1152,6 @@ function handleOfflinePresence() {
     currentBrowsing = null;
     logger.info(`[Socket.IO] User marked as offline.`);
 }
-
 
 
 
