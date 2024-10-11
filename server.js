@@ -132,7 +132,7 @@ app.use(
                 "https://unpkg.com",
                 "https://cdn.jsdelivr.net",
                 "https://cdn.skypack.dev",
-                "https://cdn.socket.io" // Add this line
+                "https://cdn.socket.io"
             ],
             styleSrc: [
                 "'self'",
@@ -162,7 +162,8 @@ app.use(
                 "https://www.googleapis.com",
                 "https://*.youtube.com",
                 "https://api.openweathermap.org",
-                "https://cdn.socket.io" // Add this line if you use WebSockets over HTTPS
+                "https://cdn.socket.io",
+                "https://mikumiku.dev" // Add your server domain here
             ],
             frameSrc: [
                 "'self'",
@@ -181,6 +182,7 @@ app.use(
         }
     })
 );
+
 
 
 
