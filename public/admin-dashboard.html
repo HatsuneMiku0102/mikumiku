@@ -87,19 +87,6 @@
             align-items: center;
         }
 
-        .block-button {
-            background-color: #dc3545;
-            border: none;
-            color: #ffffff;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .block-button:hover {
-            background-color: #c82333;
-        }
-
         .chart-container {
             margin-top: 40px;
             text-align: center;
@@ -202,35 +189,35 @@
                 ipItem.classList.add('ip-item');
                 ipItem.innerText = `IP: ${user.ip}, City: ${user.city || 'Unknown'}, Region: ${user.region || 'Unknown'}, Country: ${user.country || 'Unknown'}`;
 
-                // Create a block button
                 const blockButton = document.createElement('button');
-                blockButton.classList.add('block-button');
-                blockButton.innerText = 'Block';
+                blockButton.innerText = 'Block User';
                 blockButton.onclick = () => blockUser(user.ip);
-
                 ipItem.appendChild(blockButton);
+                
                 return ipItem;
             }
 
-            // Function to block a user
+            // Block user function
             function blockUser(ip) {
                 fetch('/api/block-user', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ ip }),
+                    body: JSON.stringify({ ip })
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
+                .then(response => {
+                    if (response.ok) {
+                        console.log(`User with IP ${ip} has been blocked.`);
                         alert(`User with IP ${ip} has been blocked.`);
-                        socket.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) }); // Refresh user list
                     } else {
-                        alert(`Failed to block user: ${data.message}`);
+                        console.error('Failed to block user.');
+                        alert('Failed to block user.');
                     }
                 })
-                .catch(error => console.error('Error blocking user:', error));
+                .catch(error => {
+                    console.error('Error blocking user:', error);
+                });
             }
 
             // Logout logic
