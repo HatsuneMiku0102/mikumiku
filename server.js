@@ -982,31 +982,43 @@ io.on('connection', async (socket) => {
     socket.on('blockUser', async (data) => {
         const { ip } = data;
         if (ip) {
-            blockedIps.add(ip); // Add to the in-memory blocked set
-            logger.info(`Blocking user with IP: ${ip}`);
-
-            // Save to MongoDB IPbans collection
-            await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
-
-            // Send acknowledgment back to client
-            socket.emit('blockUserResponse', { status: 'success', message: `User with IP ${ip} has been blocked.` });
+            // Check if the IP is already blocked
+            if (!blockedIps.has(ip)) {
+                blockedIps.add(ip); // Add to the in-memory blocked set
+                logger.info(`Blocking user with IP: ${ip}`);
+    
+                // Save to MongoDB IPbans collection
+                await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
+    
+                // Send acknowledgment back to client
+                socket.emit('blockUserResponse', { status: 'success', message: `User with IP ${ip} has been blocked.` });
+            } else {
+                // IP is already blocked
+                socket.emit('blockUserResponse', { status: 'error', message: `User with IP ${ip} is already blocked.` });
+            }
         } else {
             socket.emit('blockUserResponse', { status: 'error', message: 'IP address is required.' });
         }
     });
-
-    // Handle unblock user request
+    
+    // Unblock user request
     socket.on('unblockUser', async (data) => {
         const { ip } = data;
         if (ip) {
-            blockedIps.delete(ip); // Remove from the in-memory blocked set
-            logger.info(`Unblocking user with IP: ${ip}`);
-
-            // Remove from MongoDB IPbans collection
-            await IPbans.deleteOne({ ip });
-
-            // Send acknowledgment back to client
-            socket.emit('unblockUserResponse', { status: 'success', message: `User with IP ${ip} has been unblocked.` });
+            // Check if the IP is currently blocked
+            if (blockedIps.has(ip)) {
+                blockedIps.delete(ip); // Remove from the in-memory blocked set
+                logger.info(`Unblocking user with IP: ${ip}`);
+    
+                // Remove from MongoDB IPbans collection
+                await IPbans.deleteOne({ ip });
+    
+                // Send acknowledgment back to client
+                socket.emit('unblockUserResponse', { status: 'success', message: `User with IP ${ip} has been unblocked.` });
+            } else {
+                // IP is not blocked
+                socket.emit('unblockUserResponse', { status: 'error', message: `User with IP ${ip} is not blocked.` });
+            }
         } else {
             socket.emit('unblockUserResponse', { status: 'error', message: 'IP address is required.' });
         }
