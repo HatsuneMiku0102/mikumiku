@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (!token) {
         console.warn('No valid token found, redirecting to login page.');
-        window.location.href = '/admin-login.html';
+        window.location.href = '/auth';
     } else {
         console.log('Valid token detected:', token);
 
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(() => {
                     console.log('Logout request successful, clearing token cookie.');
                     document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                    window.location.href = '/admin-login.html';
+                    window.location.href = '/auth';
                 })
                 .catch(error => {
                     console.error('Logout failed:', error);
