@@ -542,6 +542,7 @@ async function getAccurateGeoLocation(ip) {
     }
 }
 
+
 // Web Search Function using Google Custom Search API
 async function getWebSearchResults(query) {
     const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
@@ -916,6 +917,12 @@ app.post('/track', async (req, res) => {
     try {
         const location = await getAccurateGeoLocation(ip);
 
+        // Check if the IP is already blocked
+        if (blockedIps.has(ip)) {
+            logger.warn(`Blocked IP attempted to track: ${ip}`);
+            return res.status(403).json({ error: 'Access denied.' });
+        }
+
         // Fetch existing entry for this IP
         const existingEntry = await GeoData.findOne({ ip: location.ip });
 
@@ -942,7 +949,7 @@ app.post('/track', async (req, res) => {
                 country: location.country,
                 timestamp: new Date()
             },
-            { upsert: true, new: true } // Create if doesn't exist, return updated document
+            { upsert: true, new: true }
         );
 
         logger.info(`Location data updated or inserted for IP: ${ip} - City: ${location.city}, Region: ${location.region}, Country: ${location.country}`);
@@ -963,7 +970,6 @@ app.post('/track', async (req, res) => {
         res.status(500).json({ error: 'Unable to get or save location' });
     }
 });
-
 // ----------------------
 // Admin Dashboard Real-Time Updates
 // ----------------------
