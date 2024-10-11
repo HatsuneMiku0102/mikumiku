@@ -155,11 +155,17 @@
                 // Add block and unblock buttons
                 const blockButton = document.createElement('button');
                 blockButton.innerText = 'Block';
-                blockButton.onclick = () => blockUser(user.ip);
+                blockButton.onclick = () => {
+                    console.log(`Block button clicked for IP: ${user.ip}`);
+                    blockUser(user.ip);
+                };
 
                 const unblockButton = document.createElement('button');
                 unblockButton.innerText = 'Unblock';
-                unblockButton.onclick = () => unblockUser(user.ip);
+                unblockButton.onclick = () => {
+                    console.log(`Unblock button clicked for IP: ${user.ip}`);
+                    unblockUser(user.ip);
+                };
 
                 ipItem.appendChild(blockButton);
                 ipItem.appendChild(unblockButton);
@@ -168,22 +174,26 @@
             }
 
             function blockUser(ip) {
+                console.log(`Attempting to block IP: ${ip}`);
                 socket.emit('blockUser', { ip }, (response) => {
                     if (response && response.status === 'success') {
                         console.log(`User with IP ${ip} has been blocked.`);
                         alert(`User with IP ${ip} has been blocked.`);
                     } else {
+                        console.error(`Failed to block user: ${response.message}`);
                         alert(`Failed to block user: ${response.message}`);
                     }
                 });
             }
 
             function unblockUser(ip) {
+                console.log(`Attempting to unblock IP: ${ip}`);
                 socket.emit('unblockUser', { ip }, (response) => {
                     if (response && response.status === 'success') {
                         console.log(`User with IP ${ip} has been unblocked.`);
                         alert(`User with IP ${ip} has been unblocked.`);
                     } else {
+                        console.error(`Failed to unblock user: ${response.message}`);
                         alert(`Failed to unblock user: ${response.message}`);
                     }
                 });
