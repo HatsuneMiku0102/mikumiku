@@ -112,26 +112,25 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
+
         document.addEventListener('DOMContentLoaded', function () {
             const socket = io();
             const activeIpListElement = document.getElementById('active-ip-list');
-
+    
             socket.on('connect', () => {
                 console.log('Connected to socket server.');
             });
-
+    
             socket.on('connect_error', (error) => {
                 console.error('Error connecting to socket:', error);
             });
-
+    
             socket.on('activeUsersUpdate', (data) => {
                 if (data && data.users && Array.isArray(data.users)) {
                     const activeUsers = data.users;
-
                     document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsers.length}`;
-
                     activeIpListElement.innerHTML = '';
-
+    
                     // Display active users
                     activeUsers.forEach(user => {
                         const ipItem = createIpItem(user);
@@ -142,13 +141,12 @@
                     document.getElementById('active-users-count').innerText = 'No active users found.';
                 }
             });
-
+    
             // Helper function to create an IP list item
             function createIpItem(user) {
                 const ipItem = document.createElement('li');
                 ipItem.classList.add('ip-item');
-                
-                // Ensure that connectionTypes is correctly joined as a string
+    
                 const connectionTypes = Array.from(user.connectionTypes).join(', ');
                 ipItem.innerText = `IP: ${user.ip}, Connection Types: ${connectionTypes}`;
             
@@ -166,12 +164,12 @@
             
                 return ipItem;
             }
-
+    
             function blockUser(ip) {
+                console.log(`Block button clicked for IP: ${ip}`);
                 socket.emit('blockUser', { ip }, (response) => {
                     console.log(`Response from blocking user:`, response);
                     if (response.status === 'success') {
-                        console.log(`User with IP ${ip} has been blocked.`);
                         alert(`User with IP ${ip} has been blocked.`);
                     } else {
                         alert(`Failed to block user: ${response.message}`);
@@ -180,18 +178,17 @@
             }
             
             function unblockUser(ip) {
+                console.log(`Unblock button clicked for IP: ${ip}`);
                 socket.emit('unblockUser', { ip }, (response) => {
                     console.log(`Response from unblocking user:`, response);
                     if (response.status === 'success') {
-                        console.log(`User with IP ${ip} has been unblocked.`);
                         alert(`User with IP ${ip} has been unblocked.`);
                     } else {
                         alert(`Failed to unblock user: ${response.message}`);
                     }
                 });
             }
-
-
+    
             // Logout logic
             document.getElementById('logout').addEventListener('click', () => {
                 fetch('/logout', { method: 'POST', credentials: 'include' })
@@ -201,14 +198,14 @@
                     })
                     .catch(error => console.error('Logout failed:', error));
             });
-
+    
             // Fetch country data for the chart
             fetch('/api/geo-data')
                 .then(response => response.json())
                 .then(data => {
                     const countries = data.map(item => item._id || 'Unknown');
                     const visitCounts = data.map(item => item.count);
-
+    
                     const ctx = document.getElementById('locationChart').getContext('2d');
                     new Chart(ctx, {
                         type: 'bar',
