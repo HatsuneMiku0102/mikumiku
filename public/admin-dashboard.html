@@ -123,19 +123,21 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
+
         document.addEventListener('DOMContentLoaded', function () {
             const socket = io();
             const combinedIpListElement = document.getElementById('combined-ip-list');
-
+    
             socket.on('connect', () => {
                 console.log('Connected to socket server.');
             });
-
+    
             socket.on('connect_error', (error) => {
                 console.error('Error connecting to socket:', error);
             });
-
+    
             socket.on('activeUsersUpdate', (data) => {
+                console.log('Active users update received:', data);  // Log received data
                 if (data && data.users && Array.isArray(data.users)) {
                     const combinedUsers = data.users.reduce((acc, user) => {
                         const existing = acc.find(u => u.ip === user.ip);
@@ -149,11 +151,10 @@
                         }
                         return acc;
                     }, []);
-
+    
                     document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`;
                     combinedIpListElement.innerHTML = '';
-
-                    // Display combined users
+    
                     combinedUsers.forEach(user => {
                         const ipItem = createIpItem(user);
                         combinedIpListElement.appendChild(ipItem);
@@ -163,15 +164,15 @@
                     document.getElementById('active-users-count').innerText = 'No active users found.';
                 }
             });
-
+    
             socket.on('locationUpdate', (data) => {
+                console.log('Location update received:', data); // Log location updates
                 if (data && data.ip) {
                     const ipItem = createIpItem(data);
                     combinedIpListElement.appendChild(ipItem);
                 }
             });
-
-            // Helper function to create an IP list item
+    
             function createIpItem(user) {
                 const ipItem = document.createElement('li');
                 ipItem.classList.add('ip-item');
@@ -179,8 +180,7 @@
                 ipItem.innerText = `IP: ${user.ip}, Connections: ${connectionTypes.length > 0 ? connectionTypes.join(', ') : 'None'}`;
                 return ipItem;
             }
-
-            // Logout logic
+    
             document.getElementById('logout').addEventListener('click', () => {
                 fetch('/logout', { method: 'POST', credentials: 'include' })
                     .then(() => {
@@ -189,14 +189,13 @@
                     })
                     .catch(error => console.error('Logout failed:', error));
             });
-
-            // Fetch country data for the chart
+    
             fetch('/api/geo-data')
                 .then(response => response.json())
                 .then(data => {
                     const countries = data.map(item => item._id || 'Unknown');
                     const visitCounts = data.map(item => item.count);
-
+    
                     const ctx = document.getElementById('locationChart').getContext('2d');
                     new Chart(ctx, {
                         type: 'bar',
@@ -222,6 +221,6 @@
                 })
                 .catch(error => console.error('Error fetching geo data:', error));
         });
-    </script>
+</script>
 </body>
 </html>
