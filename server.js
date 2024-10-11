@@ -903,7 +903,7 @@ const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
 let currentVideo = null;
 let currentBrowsing = null;
 const videoHeartbeat = {};
-const activeUsers = new Map(); // Tracks active users by IP and connection type
+const activeUsers = new Map(); // Tracks active users by IP and connection types
 
 /**
  * Handle new client connections
@@ -948,11 +948,18 @@ io.on('connection', async (socket) => {
 
     // Manage active users based on IP and connection type
     if (!activeUsers.has(ip)) {
-        activeUsers.set(ip, { id: socket.id, ip, connectionType });
-        io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
+        activeUsers.set(ip, { id: socket.id, ip, connectionTypes: [connectionType] });
+        logger.info(`New user added: ${ip}, connection type: ${connectionType}.`);
     } else {
-        logger.info(`IP ${ip} is already connected.`);
+        const user = activeUsers.get(ip);
+        if (!user.connectionTypes.includes(connectionType)) {
+            user.connectionTypes.push(connectionType); // Add new connection type
+            logger.info(`User ${ip} connected via ${connectionType}.`);
+        }
     }
+
+    // Emit updated active users list
+    io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
 
     // Emit current presence state to the newly connected client
     emitCurrentPresence(socket);
@@ -1013,7 +1020,18 @@ io.on('connection', async (socket) => {
      */
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
-        activeUsers.delete(ip);
+        
+        // Remove the user from active users
+        const user = activeUsers.get(ip);
+        if (user) {
+            // Remove the connection type
+            user.connectionTypes = user.connectionTypes.filter(type => type !== connectionType);
+            if (user.connectionTypes.length === 0) {
+                activeUsers.delete(ip); // Remove user if no connection types are left
+            }
+        }
+
+        // Emit updated active users list
         io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
 
         if (currentVideo || currentBrowsing) {
@@ -1130,6 +1148,7 @@ function handleOfflinePresence() {
     currentBrowsing = null;
     logger.info(`[Socket.IO] User marked as offline.`);
 }
+
 
 
 
