@@ -955,10 +955,9 @@ io.on('connection', async (socket) => {
     io.emit('activeUsersUpdate', {
         users: Array.from(activeUsers.values()).map(user => ({
             ip: user.ip,
-            connectionTypes: Array.from(user.connectionTypes).join(', ') // Join connection types correctly
+            connectionTypes: Array.from(user.connectionTypes) // No need to join here for now
         }))
     });
-
 
     // Emit current presence state to the newly connected client
     emitCurrentPresence(socket);
@@ -1019,7 +1018,7 @@ io.on('connection', async (socket) => {
      */
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
-        
+
         if (activeUsers.has(ip)) {
             const user = activeUsers.get(ip);
             user.connectionTypes.delete(connectionType);
@@ -1029,10 +1028,12 @@ io.on('connection', async (socket) => {
         }
 
         // Emit updated user list
-        io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()).map(user => ({
-            ip: user.ip,
-            connectionTypes: Array.from(user.connectionTypes).join(', ')
-        })) });
+        io.emit('activeUsersUpdate', {
+            users: Array.from(activeUsers.values()).map(user => ({
+                ip: user.ip,
+                connectionTypes: Array.from(user.connectionTypes) // Keep connection types separate
+            }))
+        });
 
         if (currentVideo || currentBrowsing) {
             currentVideo = null;
@@ -1148,6 +1149,7 @@ function handleOfflinePresence() {
     currentBrowsing = null;
     logger.info(`[Socket.IO] User marked as offline.`);
 }
+
 
 
 
