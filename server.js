@@ -1,5 +1,3 @@
-// server.js
-
 'use strict';
 
 // ----------------------
@@ -23,7 +21,6 @@ const crypto = require('crypto');
 const fs = require('fs');
 const winston = require('winston');
 const { DateTime } = require('luxon');
-const fetch = require('node-fetch');
 const { body, validationResult } = require('express-validator');
 const dialogflow = require('@google-cloud/dialogflow');
 const uuid = require('uuid');
@@ -47,10 +44,6 @@ const io = socketIo(server, {
         allowedHeaders: ["my-custom-header"],
         credentials: true
     }
-});
-
-app.get('/api/youtube-key', (req, res) => {
-    res.json({ apiKey: process.env.YOUTUBE_API_KEY });
 });
 
 const PORT = process.env.PORT || 3000;
@@ -88,14 +81,75 @@ mongoose.connect(mongoUrl, {
 });
 
 // ----------------------
-// Import Mongoose Models
+// Define Mongoose Schemas and Models
 // ----------------------
-const GeoData = require('./models/GeoData');
-const User = require('./models/User');
-const PendingMember = require('./models/PendingMember');
-const Session = require('./models/Session');
-const Comment = require('./models/Comment');
-// Import other models as needed
+const GeoDataSchema = new mongoose.Schema({
+    ip: {
+        type: String,
+        required: true,
+        unique: true, // Assuming one entry per IP
+    },
+    city: {
+        type: String,
+        default: 'Unknown',
+    },
+    region: {
+        type: String,
+        default: 'Unknown',
+    },
+    country: {
+        type: String,
+        default: 'Unknown',
+    },
+    timestamp: {
+        type: Date,
+        default: Date.now,
+    },
+});
+
+const GeoData = mongoose.model('GeoData', GeoDataSchema);
+
+const userSchema = new mongoose.Schema({
+    discord_id: { type: String, required: true },
+    bungie_name: { type: String, required: true },
+    membership_id: { type: String, unique: true, required: true },
+    platform_type: { type: Number, required: true },
+    token: { type: String, unique: true },
+    registration_date: { type: Date, default: Date.now },
+    access_token: { type: String, required: true },
+    refresh_token: { type: String, required: true },
+    token_expiry: { type: Date, required: true }
+});
+
+const User = mongoose.model('User', userSchema);
+
+const pendingMemberSchema = new mongoose.Schema({
+    membershipId: { type: String, required: true },
+    displayName: { type: String, required: true },
+    joinDate: { type: Date, required: true }
+});
+
+const PendingMember = mongoose.model('PendingMember', pendingMemberSchema);
+
+const sessionSchema = new mongoose.Schema({
+    state: { type: String, required: true, unique: true },
+    user_id: { type: String, required: true },
+    session_id: { type: String, required: true },
+    created_at: { type: Date, default: Date.now, expires: 86400 }, // Expires after 1 day
+    ip_address: { type: String },
+    user_agent: { type: String }
+});
+
+const Session = mongoose.model('Session', sessionSchema, 'sessions');
+
+const commentSchema = new mongoose.Schema({
+    username: { type: String, required: true },
+    comment: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now },
+    approved: { type: Boolean, default: true }
+});
+
+const Comment = mongoose.model('Comment', commentSchema);
 
 // ----------------------
 // Configure Session Store
@@ -203,9 +257,6 @@ app.use(express.static(path.join(__dirname, 'public'), {
     lastModified: false
 }));
 
-// ----------------------
-// Configure Admin Session Store
-// ----------------------
 const adminSessionStore = MongoStore.create({
     mongoUrl: process.env.MONGO_URL,
     collectionName: 'admin_sessions', // Separate collection for admin sessions
@@ -241,9 +292,8 @@ function convertISO8601ToSeconds(isoDuration) {
     const matches = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
     const hours = parseInt(matches[1] || 0, 10);
     const minutes = parseInt(matches[2] || 0, 10);
-    const remainingSeconds = parseInt(matches[3] || 0, 10);
-
-    return hours * 3600 + minutes * 60 + remainingSeconds;
+    const seconds = parseInt(matches[3] || 0, 10);
+    return hours * 3600 + minutes * 60 + seconds;
 }
 
 // JWT Verification Middleware
@@ -366,7 +416,6 @@ async function getBungieUserInfo(accessToken) {
 
 // Update Membership Mapping Function
 function updateMembershipMapping(discordId, userInfo) {
-    const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
     let membershipMapping = {};
 
     if (fs.existsSync(membershipFilePath)) {
@@ -435,27 +484,61 @@ const getClientIp = (req) => {
 // Get Geolocation Data
 async function getGeoLocation(ip) {
     try {
-        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
-        const locationData = response.data;
-
-        // Save the location data to the GeoData collection
-        const geoEntry = new GeoData({
-            ip: ip,
-            city: locationData.city || 'Unknown',
-            region: locationData.region || 'Unknown',
-            country: locationData.country || 'Unknown'
-        });
-
-        await geoEntry.save();
-        logger.info(`GeoData saved: IP=${ip}, City=${locationData.city}, Region=${locationData.region}, Country=${locationData.country}`);
+        const locationData = await getAccurateGeoLocation(ip);
         return locationData;
     } catch (error) {
-        logger.error(`Error fetching geolocation from IPinfo for IP ${ip}: ${error.message}`);
+        logger.error(`Error in getGeoLocation: ${error.message}`);
         return {
             city: 'Unknown',
             region: 'Unknown',
-            country: 'Unknown'
+            country: 'Unknown',
+            ip: ip
         };
+    }
+}
+
+// Accurate Geolocation Function (Using IPinfo and MaxMind)
+const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
+
+async function getAccurateGeoLocation(ip) {
+    try {
+        // IPinfo as the primary source
+        const ipInfoResponse = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
+        const ipInfoData = ipInfoResponse.data;
+
+        // Optionally, you can add MaxMind or another API for more robust location or VPN detection
+        const maxMindApiKey = process.env.MAXMIND_API_KEY;
+        let maxMindData = {};
+        if (maxMindApiKey) {
+            try {
+                const maxMindApiResponse = await axios.get(`https://geoip.maxmind.com/geoip/v2.1/city/${ip}`, {
+                    headers: {
+                        'Authorization': `Bearer ${maxMindApiKey}`
+                    }
+                });
+                maxMindData = maxMindApiResponse.data;
+            } catch (maxMindError) {
+                logger.error(`Error fetching data from MaxMind for IP ${ip}: ${maxMindError.message}`);
+            }
+        } else {
+            logger.warn('MAXMIND_API_KEY is not set. Skipping MaxMind lookup.');
+        }
+
+        // Merge data or cross-check between services if needed
+        const location = {
+            city: ipInfoData.city || (maxMindData.city && maxMindData.city.names.en) || 'Unknown',
+            region: ipInfoData.region || (maxMindData.subdivisions && maxMindData.subdivisions[0].names.en) || 'Unknown',
+            country: ipInfoData.country || (maxMindData.country && maxMindData.country.names.en) || 'Unknown',
+            ip: ip
+        };
+
+        // Log the merged location data
+        logger.info(`AccurateGeoLocation for IP ${ip}: City=${location.city}, Region=${location.region}, Country=${location.country}`);
+
+        return location;
+    } catch (error) {
+        logger.error(`Error fetching accurate geolocation for IP ${ip}: ${error.message}`);
+        return { city: 'Unknown', region: 'Unknown', country: 'Unknown', ip: ip };
     }
 }
 
@@ -482,7 +565,7 @@ async function getWebSearchResults(query) {
                 const errorData = await response.json();
                 errorMsg = errorData.message || errorMsg;
             } catch (e) {
-                logger.error('Error parsing error response:', e.message);
+                logger.error('Error parsing error response:', e);
             }
             return `Error: Received status code ${response.status}. Please check the request or try again later.`;
         }
@@ -537,7 +620,7 @@ app.get('/login', async (req, res) => {
         await sessionData.save();
         logger.info(`Generated state: ${state}`);
         logger.info(`Inserted session: ${JSON.stringify(sessionData)}`);
-        const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+        const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${process.env.CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${encodeURIComponent(process.env.REDIRECT_URI || 'https://mikumiku.dev/callback')}`;
         res.redirect(authorizeUrl);
     } catch (err) {
         logger.error(`Error saving session to DB: ${err.message}`);
@@ -781,7 +864,7 @@ app.delete('/api/comments/:id', verifyToken, async (req, res) => {
 
 // ----------------------
 // Admin Dashboard Route (Protected)
-// ----------------------
+/// ----------------------
 app.get('/admin', verifyToken, (req, res) => {
     logger.info(`Access granted to admin user with ID: ${req.userId}`);
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
@@ -824,7 +907,6 @@ app.get('/api/location/:ip', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch geolocation data' });
     }
 });
-
 
 // Track IP Route
 app.post('/track', async (req, res) => {
@@ -882,94 +964,11 @@ app.post('/track', async (req, res) => {
     }
 });
 
-router.post('/', async (req, res) => {
-    const ip = getClientIp(req);
-    logger.info(`Received /track request from IP: ${ip}`);
-
-    try {
-        const location = await getAccurateGeoLocation(ip);
-        logger.info(`Geolocation data for IP ${ip}: ${JSON.stringify(location)}`);
-
-        // Upsert geolocation data
-        const updatedEntry = await GeoData.findOneAndUpdate(
-            { ip: location.ip }, // Query by IP
-            {
-                city: location.city,
-                region: location.region,
-                country: location.country,
-                timestamp: new Date(),
-            },
-            { upsert: true, new: true, runValidators: true }
-        );
-
-        logger.info(`GeoData saved for IP ${ip}: ${JSON.stringify(updatedEntry)}`);
-
-        // Aggregate data by country
-        const countryData = await GeoData.aggregate([
-            { $group: { _id: "$country", count: { $sum: 1 } } },
-            { $sort: { count: -1 } },
-        ]);
-
-        // Emit the aggregated data to all connected admin dashboards
-        req.app.get('io').emit('geoDataUpdate', countryData);
-        logger.info('Emitted geoDataUpdate event to all connected clients.');
-
-        res.json({ message: 'Geolocation data tracked successfully.', ip, location });
-    } catch (error) {
-        logger.error(`Error in /track route for IP ${ip}: ${error.message}`);
-        res.status(500).json({ error: 'Unable to track geolocation data.' });
-    }
-});
-
-module.exports = router;
 // ----------------------
-// Geolocation Helper Function
+// Admin Dashboard Real-Time Updates
 // ----------------------
-async function getAccurateGeoLocation(ip) {
-    try {
-        // IPinfo as the primary source
-        const ipInfoResponse = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
-        const ipInfoData = ipInfoResponse.data;
 
-        // Optionally, you can add MaxMind or another API for more robust location or VPN detection
-        const maxMindApiKey = process.env.MAXMIND_API_KEY;
-        let maxMindData = {};
-        if (maxMindApiKey) {
-            try {
-                const maxMindApiResponse = await axios.get(`https://geoip.maxmind.com/geoip/v2.1/city/${ip}`, {
-                    headers: {
-                        'Authorization': `Bearer ${maxMindApiKey}`
-                    }
-                });
-                maxMindData = maxMindApiResponse.data;
-            } catch (maxMindError) {
-                logger.error(`Error fetching data from MaxMind for IP ${ip}: ${maxMindError.message}`);
-            }
-        } else {
-            logger.warn('MAXMIND_API_KEY is not set. Skipping MaxMind lookup.');
-        }
-
-        // Merge data or cross-check between services if needed
-        const location = {
-            city: ipInfoData.city || (maxMindData.city && maxMindData.city.names.en) || 'Unknown',
-            region: ipInfoData.region || (maxMindData.subdivisions && maxMindData.subdivisions[0].names.en) || 'Unknown',
-            country: ipInfoData.country || (maxMindData.country && maxMindData.country.names.en) || 'Unknown',
-            ip: ip
-        };
-
-        // Log the merged location data
-        logger.info(`AccurateGeoLocation for IP ${ip}: City=${location.city}, Region=${location.region}, Country=${location.country}`);
-
-        return location;
-    } catch (error) {
-        logger.error(`Error fetching accurate geolocation for IP ${ip}: ${error.message}`);
-        return { city: 'Unknown', region: 'Unknown', country: 'Unknown', ip: ip };
-    }
-}
-
-// ----------------------
 // WebSocket (Socket.IO) Configuration
-// ----------------------
 const ipBanSchema = new mongoose.Schema({
     ip: { type: String, required: true, unique: true },
     blockedAt: { type: Date, default: Date.now },
@@ -1031,6 +1030,7 @@ app.post('/api/unblock-user', async (req, res) => {
             // Notify all clients about the unblocked IP
             io.emit('ipUnblocked', { ip });
 
+            // Acknowledge the unblock
             res.status(200).send({ status: 'success', message: `User with IP ${ip} has been unblocked.` });
         } else {
             res.status(400).send({ status: 'error', message: `User with IP ${ip} is not blocked.` });
@@ -1496,8 +1496,9 @@ app.get('/api/geo-data', async (req, res) => {
     }
 });
 
-
-
+// ----------------------
+// Weather Route
+// ----------------------
 app.get('/api/weather', async (req, res) => {
     const city = req.query.city || 'Leeds';
     const units = 'metric'; // Use 'imperial' for Fahrenheit
@@ -1536,9 +1537,9 @@ app.get('/api/weather', async (req, res) => {
     }
 });
 
-
-
-
+// ----------------------
+// Start the Server
+// ----------------------
 server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
