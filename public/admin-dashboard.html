@@ -144,25 +144,30 @@
             });
 
             // Helper function to create an IP list item
+
             function createIpItem(user) {
                 const ipItem = document.createElement('li');
                 ipItem.classList.add('ip-item');
-                ipItem.innerText = `IP: ${user.ip}, Connection Types: ${Array.from(user.connectionTypes).join(', ')}`;
-
+                
+                // Ensure that connectionTypes is correctly joined as a string
+                const connectionTypes = Array.from(user.connectionTypes).join(', ');
+                ipItem.innerText = `IP: ${user.ip}, Connection Types: ${connectionTypes}`;
+            
                 // Add block and unblock buttons
                 const blockButton = document.createElement('button');
                 blockButton.innerText = 'Block';
                 blockButton.onclick = () => blockUser(user.ip);
-
+            
                 const unblockButton = document.createElement('button');
                 unblockButton.innerText = 'Unblock';
                 unblockButton.onclick = () => unblockUser(user.ip);
-
+            
                 ipItem.appendChild(blockButton);
                 ipItem.appendChild(unblockButton);
-
+            
                 return ipItem;
             }
+
 
             function blockUser(ip) {
                 socket.emit('blockUser', { ip }, (response) => {
