@@ -955,7 +955,7 @@ io.on('connection', async (socket) => {
     // Emit updated user list
     io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()).map(user => ({
         ip: user.ip,
-        connectionTypes: Array.from(user.connectionTypes).join(', ')
+        connectionTypes: Array.from(user.connectionTypes).join(', ') // Join as a string
     })) });
 
     // Emit current presence state to the newly connected client
