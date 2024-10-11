@@ -107,7 +107,7 @@ const GeoDataSchema = new mongoose.Schema({
     },
 });
 
-const GeoData = mongoose.model('GeoData', GeoDataSchema);
+const GeoData = mongoose.model('GeoData', GeoDataSchema, 'geodatas');
 
 const userSchema = new mongoose.Schema({
     discord_id: { type: String, required: true },
@@ -922,10 +922,10 @@ app.post('/track', async (req, res) => {
             logger.warn(`Blocked IP attempted to track: ${ip}`);
             return res.status(403).json({ error: 'Access denied.' });
         }
-
+        
         // Fetch existing entry for this IP
         const existingEntry = await GeoData.findOne({ ip: location.ip });
-
+        
         // Check if the location data has changed before updating
         if (existingEntry) {
             const hasChanged = (
@@ -933,13 +933,13 @@ app.post('/track', async (req, res) => {
                 existingEntry.region !== location.region ||
                 existingEntry.country !== location.country
             );
-
+        
             if (!hasChanged) {
                 logger.info(`No changes detected for IP: ${ip}, skipping update.`);
                 return res.json({ message: 'No changes detected, update skipped.', ip, location });
             }
         }
-
+        
         // If no existing entry, or if the data has changed, perform an upsert
         const updatedEntry = await GeoData.findOneAndUpdate(
             { ip: location.ip },  // Query to find the existing IP
@@ -951,16 +951,16 @@ app.post('/track', async (req, res) => {
             },
             { upsert: true, new: true }
         );
-
+        
         logger.info(`Location data updated or inserted for IP: ${ip} - City: ${location.city}, Region: ${location.region}, Country: ${location.country}`);
         res.json({ ip, location });
-
+        
         // Perform aggregation to group by country
         const countryData = await GeoData.aggregate([
             { $group: { _id: "$country", count: { $sum: 1 } } },
             { $sort: { count: -1 } }
         ]);
-
+        
         // Emit the aggregated data to all connected clients
         io.emit('geoDataUpdate', countryData);
         logger.info('Emitted geoDataUpdate event to all connected clients.');
