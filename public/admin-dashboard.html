@@ -42,7 +42,6 @@
             padding: 10px 20px;
             border-radius: 4px;
             cursor: pointer;
-            margin-left: 10px; /* Added margin for spacing */
         }
 
         button:hover {
@@ -83,9 +82,6 @@
             padding: 10px;
             margin: 5px 0;
             border-radius: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
 
         .chart-container {
@@ -122,6 +118,7 @@
             </div>
         </div>
 
+        <!-- Chart section -->
         <div class="chart-container">
             <h3>Visitors by Country</h3>
             <canvas id="locationChart" width="400" height="200"></canvas>
@@ -173,81 +170,12 @@
                 }
             });
 
-            socket.on('locationUpdate', (data) => {
-                if (data && data.ip) {
-                    const ipItem = createIpItem(data);
-                    if (data.connectionType === 'website') {
-                        websiteIpListElement.appendChild(ipItem);
-                    } else if (data.connectionType === 'extension') {
-                        extensionIpListElement.appendChild(ipItem);
-                    }
-                }
-            });
-
             // Helper function to create an IP list item
             function createIpItem(user) {
                 const ipItem = document.createElement('li');
                 ipItem.classList.add('ip-item');
-                ipItem.innerText = `IP: ${user.ip}, City: ${user.city || 'Unknown'}, Region: ${user.region || 'Unknown'}, Country: ${user.country || 'Unknown'}`;
-
-                const blockButton = document.createElement('button');
-                blockButton.innerText = 'Block User';
-                blockButton.onclick = () => blockUser(user.ip);
-
-                const unblockButton = document.createElement('button');
-                unblockButton.innerText = 'Unblock User';
-                unblockButton.onclick = () => unblockUser(user.ip);
-
-                ipItem.appendChild(blockButton);
-                ipItem.appendChild(unblockButton);
-                
+                ipItem.innerText = `IP: ${user.ip}, Connection Type: ${user.connectionType}`;
                 return ipItem;
-            }
-
-            // Block user function
-            function blockUser(ip) {
-                fetch('/api/block-user', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ ip })
-                })
-                .then(response => {
-                    if (response.ok) {
-                        console.log(`User with IP ${ip} has been blocked.`);
-                        alert(`User with IP ${ip} has been blocked.`);
-                    } else {
-                        console.error('Failed to block user.');
-                        alert('Failed to block user.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error blocking user:', error);
-                });
-            }
-
-            // Unblock user function
-            function unblockUser(ip) {
-                fetch('/api/unblock-user', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ ip })
-                })
-                .then(response => {
-                    if (response.ok) {
-                        console.log(`User with IP ${ip} has been unblocked.`);
-                        alert(`User with IP ${ip} has been unblocked.`);
-                    } else {
-                        console.error('Failed to unblock user.');
-                        alert('Failed to unblock user.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error unblocking user:', error);
-                });
             }
 
             // Logout logic
