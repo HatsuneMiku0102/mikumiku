@@ -890,273 +890,104 @@ app.get('/api/weather', async (req, res) => {
 // WebSocket (Socket.IO) Configuration
 // ----------------------
 
-// Configuration Constants
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
 
 // State Management
 let currentVideo = null;
 let currentBrowsing = null;
 const videoHeartbeat = {};
-const activeUsers = new Map(); // Tracks active users by IP
+const activeUsers = new Map(); // Tracks active users by socket ID
 
 /**
- * Handle new client connections
+ * Emit the updated list of active users to all connected admin dashboards
  */
+function emitActiveUsersUpdate() {
+    const users = Array.from(activeUsers.values()).map(user => ({
+        socketId: user.socketId,
+        ip: user.ip,
+        city: user.city || 'Unknown',
+        region: user.region || 'Unknown',
+        country: user.country || 'Unknown',
+        userAgent: user.userAgent || 'Unknown',
+        connectedAt: user.connectedAt
+    }));
+    io.to('admin').emit('activeUsersUpdate', { users });
+}
+
 io.on('connection', async (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
-    // Extract IP address from the socket
-    const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
-    logger.info(`New connection from IP: ${ip}`);
+    // Join rooms based on client type
+    socket.on('register', async (data) => {
+        const { role } = data;
+        if (role === 'admin') {
+            socket.join('admin');
+            logger.info(`Socket ${socket.id} joined admin room.`);
+        } else if (role === 'extension') {
+            socket.join('extension');
+            logger.info(`Socket ${socket.id} joined extension room.`);
 
-    try {
-        // Fetch geolocation data for the IP
-        let location = await GeoData.findOne({ ip });
-        if (!location) {
-            location = await getGeoLocation(ip);
-            // Save to GeoData if not already present
-            await GeoData.updateOne(
-                { ip },
-                { city: location.city, region: location.region, country: location.country, ip },
-                { upsert: true }
-            );
+            // Extract IP address
+            const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
+            const userAgent = socket.handshake.headers['user-agent'] || 'Unknown';
+
+            // Fetch geolocation data for the IP
+            let location;
+            try {
+                location = await GeoData.findOne({ ip });
+                if (!location) {
+                    location = await getGeoLocation(ip);
+                    // Save to GeoData if not already present
+                    await GeoData.updateOne(
+                        { ip },
+                        { city: location.city, region: location.region, country: location.country, ip },
+                        { upsert: true }
+                    );
+                }
+            } catch (err) {
+                logger.error('Error fetching location:', err);
+                location = { city: 'Unknown', region: 'Unknown', country: 'Unknown' };
+            }
+
+            // Add to active users
+            activeUsers.set(socket.id, {
+                socketId: socket.id,
+                ip,
+                city: location.city || 'Unknown',
+                region: location.region || 'Unknown',
+                country: location.country || 'Unknown',
+                userAgent,
+                connectedAt: new Date()
+            });
+
+            // Emit update to admin dashboards
+            emitActiveUsersUpdate();
+
+            // Optionally, emit location data to the connected extension
+            socket.emit('locationUpdate', {
+                ip,
+                city: location.city || 'Unknown',
+                region: location.region || 'Unknown',
+                country: location.country || 'Unknown'
+            });
+        } else {
+            logger.warn(`Unknown role received from socket ${socket.id}: ${role}`);
         }
+    });
 
-        // Emit location data to the connected client
-        socket.emit('locationUpdate', {
-            ip,
-            city: location.city || 'Unknown',
-            region: location.region || 'Unknown',
-            country: location.country || 'Unknown'
-        });
-    } catch (err) {
-        logger.error('Error fetching location:', err);
-        socket.emit('locationUpdate', {
-            ip,
-            city: 'Unknown',
-            region: 'Unknown',
-            country: 'Unknown'
-        });
-    }
-
-    // Manage active users based on IP
-    if (!activeUsers.has(ip)) {
-        activeUsers.set(ip, { id: socket.id, ip });
-        io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
-    } else {
-        logger.info(`IP ${ip} is already connected.`);
-    }
-
-    // Emit current presence state to the newly connected client
-    if (currentVideo) {
-        socket.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
-    } else if (currentBrowsing) {
-        socket.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
-    } else {
-        socket.emit('presenceUpdate', { presenceType: 'offline' });
-    }
-
-    /**
-     * Handle Presence Updates (Video, Browsing, Offline)
-     */
+    // Handle presence updates from extensions
     socket.on('presenceUpdate', (data) => {
-        if (data.presenceType === 'browsing') {
-            handleBrowsingPresence(data);
-        } else if (data.presenceType === 'video') {
-            handleVideoPresence(data);
-        } else if (data.presenceType === 'offline') {
-            handleOfflinePresence();
-        } else {
-            logger.warn(`Unknown presenceType received: ${data.presenceType}`);
-        }
-
-        // Emit updated presence to all connected clients
-        io.emit('presenceUpdate', data);
+        // Broadcast presence updates to admin dashboards
+        io.to('admin').emit('presenceUpdate', { socketId: socket.id, ...data });
     });
 
-    /**
-     * Handle Browsing Presence Updates
-     * @param {Object} data - Browsing presence data
-     */
-    function handleBrowsingPresence(data) {
-        logger.info(`[Socket.IO] Browsing presence detected.`);
-
-        // Clear current video presence if any
-        if (currentVideo) {
-            logger.info(`[Socket.IO] Clearing current video presence to switch to browsing.`);
-            currentVideo = null;
-        }
-
-        currentBrowsing = {
-            title: data.title || 'YouTube',
-            description: data.description || 'Browsing videos',
-            thumbnail: 'https://www.youtube.com/img/desktop/yt_1200.png',
-            timeElapsed: data.timeElapsed || 0,
-            presenceType: 'browsing'
-        };
-    }
-
-    /**
-     * Handle Video Presence Updates
-     * @param {Object} data - Video presence data
-     */
-    function handleVideoPresence(data) {
-        const {
-            videoId,
-            title,
-            description,
-            channelTitle,
-            viewCount,
-            likeCount,
-            publishedAt,
-            category,
-            thumbnail,
-            currentTime,
-            duration,
-            isPaused,
-            isLive
-        } = data;
-
-        if (currentVideo && currentVideo.videoId === videoId) {
-            // Update existing video details
-            Object.assign(currentVideo, {
-                currentTime,
-                duration,
-                isPaused,
-                title,
-                description,
-                channelTitle,
-                viewCount,
-                likeCount,
-                publishedAt,
-                category,
-                thumbnail,
-                isLive // Update isLive flag
-            });
-            logger.info(`[Socket.IO] Updated video: "${title}" (Live: ${isLive})`);
-        } else {
-            // New video detected
-            currentVideo = {
-                videoId,
-                title,
-                description,
-                channelTitle,
-                viewCount,
-                likeCount,
-                publishedAt,
-                category,
-                thumbnail,
-                currentTime,
-                duration,
-                isPaused,
-                isLive, // Set isLive flag
-                presenceType: 'video'
-            };
-            currentBrowsing = null; // Clear browsing presence if video is playing
-            logger.info(`[Socket.IO] New video detected: "${title}" (Live: ${isLive})`);
-        }
-    }
-
-    /**
-     * Handle Offline Presence Updates
-     */
-    function handleOfflinePresence() {
-        currentVideo = null;
-        currentBrowsing = null;
-        logger.info(`[Socket.IO] User marked as offline.`);
-    }
-
-    /**
-     * Handle YouTube Browsing Presence Updates
-     */
-    socket.on('updateBrowsingPresence', (data) => {
-        logger.info(`[Socket.IO] Browsing presence update received.`);
-
-        // Clear current video presence if any
-        if (currentVideo) {
-            logger.info(`[Socket.IO] Clearing current video presence to switch to browsing.`);
-            currentVideo = null;
-        }
-
-        currentBrowsing = {
-            title: data.title || 'YouTube',
-            description: data.description || 'Browsing videos',
-            thumbnail: 'https://www.youtube.com/img/desktop/yt_1200.png',
-            timeElapsed: data.timeElapsed || 0,
-            presenceType: 'browsing'
-        };
-
-        // Emit browsing presence to all connected clients
-        io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
-    });
-
-    /**
-     * Handle YouTube Video Progress Updates
-     */
+    // Handle video progress updates from extensions
     socket.on('updateVideoProgress', (data) => {
-        logger.info(`[Socket.IO] Video progress update received: ${JSON.stringify(data)}`);
-        const {
-            videoId,
-            title,
-            description,
-            channelTitle,
-            viewCount,
-            likeCount,
-            publishedAt,
-            category,
-            thumbnail,
-            currentTime,
-            duration,
-            isPaused,
-            isLive
-        } = data;
-
-        if (currentVideo && currentVideo.videoId === videoId) {
-            // Update existing video details
-            Object.assign(currentVideo, {
-                currentTime,
-                duration,
-                isPaused,
-                title,
-                description,
-                channelTitle,
-                viewCount,
-                likeCount,
-                publishedAt,
-                category,
-                thumbnail,
-                isLive // Update isLive flag
-            });
-            logger.info(`[Socket.IO] Updated video: "${title}" (Live: ${isLive})`);
-        } else {
-            // New video detected
-            currentVideo = {
-                videoId,
-                title,
-                description,
-                channelTitle,
-                viewCount,
-                likeCount,
-                publishedAt,
-                category,
-                thumbnail,
-                currentTime,
-                duration,
-                isPaused,
-                isLive, // Set isLive flag
-                presenceType: 'video'
-            };
-            currentBrowsing = null; // Clear browsing presence if video is playing
-            logger.info(`[Socket.IO] New video detected: "${title}" (Live: ${isLive})`);
-        }
-
-        // Emit updated video presence to all connected clients
-        io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
+        // Broadcast video progress updates to admin dashboards
+        io.to('admin').emit('updateVideoProgress', { socketId: socket.id, ...data });
     });
 
-    /**
-     * Handle Heartbeat Signals for YouTube Videos
-     */
+    // Handle heartbeat for video presence
     socket.on('heartbeat', (data, callback) => {
         const { videoId } = data;
         if (videoId && currentVideo && currentVideo.videoId === videoId) {
@@ -1167,22 +998,21 @@ io.on('connection', async (socket) => {
         }
     });
 
-    /**
-     * Handle Client Disconnection
-     */
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
 
-        // Remove user from active users map based on IP
-        activeUsers.delete(ip);
-        io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
+        // Remove from active users if it's an extension
+        if (activeUsers.has(socket.id)) {
+            activeUsers.delete(socket.id);
+            emitActiveUsersUpdate();
+        }
 
         // Emit offline presence if necessary
         if (currentVideo || currentBrowsing) {
             currentVideo = null;
             currentBrowsing = null;
-            io.emit('presenceUpdate', { presenceType: 'offline' });
-            logger.info(`[Socket.IO] Emitted offline presence due to disconnection.`);
+            io.to('admin').emit('presenceUpdate', { socketId: socket.id, presenceType: 'offline' });
+            logger.info(`[Socket.IO] Emitted offline presence due to disconnection of socket ${socket.id}.`);
         }
     });
 });
@@ -1196,7 +1026,7 @@ setInterval(() => {
         if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
             currentVideo = null;
             currentBrowsing = null; // Clear browsing to fully reset state
-            io.emit('presenceUpdate', { presenceType: 'offline' });
+            io.to('admin').emit('presenceUpdate', { presenceType: 'offline', videoId });
             delete videoHeartbeat[videoId];
             logger.info(`[Socket.IO] Heartbeat timeout for video ID: ${videoId}. Marked as offline.`);
         }
