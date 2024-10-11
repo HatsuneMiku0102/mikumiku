@@ -953,7 +953,10 @@ io.on('connection', async (socket) => {
     activeUsers.get(ip).connectionTypes.add(connectionType);
 
     // Emit updated user list
-    io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
+    io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()).map(user => ({
+        ip: user.ip,
+        connectionTypes: Array.from(user.connectionTypes).join(', ')
+    })) });
 
     // Emit current presence state to the newly connected client
     emitCurrentPresence(socket);
@@ -1014,8 +1017,20 @@ io.on('connection', async (socket) => {
      */
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
-        activeUsers.delete(ip);
-        io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
+        
+        if (activeUsers.has(ip)) {
+            const user = activeUsers.get(ip);
+            user.connectionTypes.delete(connectionType);
+            if (user.connectionTypes.size === 0) {
+                activeUsers.delete(ip); // Remove user if no connection types remain
+            }
+        }
+
+        // Emit updated user list
+        io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()).map(user => ({
+            ip: user.ip,
+            connectionTypes: Array.from(user.connectionTypes).join(', ')
+        })) });
 
         if (currentVideo || currentBrowsing) {
             currentVideo = null;
