@@ -82,6 +82,22 @@
             padding: 10px;
             margin: 5px 0;
             border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .block-button {
+            background-color: #dc3545;
+            border: none;
+            color: #ffffff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .block-button:hover {
+            background-color: #c82333;
         }
 
         .chart-container {
@@ -109,12 +125,15 @@
 
         <div class="user-list">
             <div class="user-group">
-                <h3>Combined Users</h3>
-                <ul id="combined-ip-list" class="ip-list">Loading...</ul>
+                <h3>Website Users</h3>
+                <ul id="website-ip-list" class="ip-list">Loading...</ul>
+            </div>
+            <div class="user-group">
+                <h3>Extension Users</h3>
+                <ul id="extension-ip-list" class="ip-list">Loading...</ul>
             </div>
         </div>
 
-        <!-- Chart section -->
         <div class="chart-container">
             <h3>Visitors by Country</h3>
             <canvas id="locationChart" width="400" height="200"></canvas>
@@ -125,7 +144,9 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const socket = io();
-            const combinedIpListElement = document.getElementById('combined-ip-list');
+            const websiteIpListElement = document.getElementById('website-ip-list');
+            const extensionIpListElement = document.getElementById('extension-ip-list');
+            const ipElements = new Map();
 
             socket.on('connect', () => {
                 console.log('Connected to socket server.');
@@ -137,21 +158,26 @@
 
             socket.on('activeUsersUpdate', (data) => {
                 if (data && data.users && Array.isArray(data.users)) {
+                    const websiteUsers = data.users.filter(user => user.connectionType === 'website');
+                    const extensionUsers = data.users.filter(user => user.connectionType === 'extension');
+
                     document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`;
-
-                    // Separate counts for website and extension users
-                    const websiteUsers = data.users.filter(user => user.connectionTypes.includes('website'));
-                    const extensionUsers = data.users.filter(user => user.connectionTypes.includes('extension'));
-
                     document.getElementById('website-users-count').innerText = `Website Users: ${websiteUsers.length}`;
                     document.getElementById('extension-users-count').innerText = `Extension Users: ${extensionUsers.length}`;
 
-                    combinedIpListElement.innerHTML = ''; // Clear previous content
+                    websiteIpListElement.innerHTML = '';
+                    extensionIpListElement.innerHTML = '';
 
-                    // Display combined users
-                    data.users.forEach(user => {
+                    // Display website users
+                    websiteUsers.forEach(user => {
                         const ipItem = createIpItem(user);
-                        combinedIpListElement.appendChild(ipItem);
+                        websiteIpListElement.appendChild(ipItem);
+                    });
+
+                    // Display extension users
+                    extensionUsers.forEach(user => {
+                        const ipItem = createIpItem(user);
+                        extensionIpListElement.appendChild(ipItem);
                     });
                 } else {
                     console.warn('No valid active users data found.');
@@ -162,7 +188,11 @@
             socket.on('locationUpdate', (data) => {
                 if (data && data.ip) {
                     const ipItem = createIpItem(data);
-                    combinedIpListElement.appendChild(ipItem);
+                    if (data.connectionType === 'website') {
+                        websiteIpListElement.appendChild(ipItem);
+                    } else if (data.connectionType === 'extension') {
+                        extensionIpListElement.appendChild(ipItem);
+                    }
                 }
             });
 
@@ -170,8 +200,37 @@
             function createIpItem(user) {
                 const ipItem = document.createElement('li');
                 ipItem.classList.add('ip-item');
-                ipItem.innerText = `IP: ${user.ip}, Connections: ${user.connectionTypes.join(', ')}`;
+                ipItem.innerText = `IP: ${user.ip}, City: ${user.city || 'Unknown'}, Region: ${user.region || 'Unknown'}, Country: ${user.country || 'Unknown'}`;
+
+                // Create a block button
+                const blockButton = document.createElement('button');
+                blockButton.classList.add('block-button');
+                blockButton.innerText = 'Block';
+                blockButton.onclick = () => blockUser(user.ip);
+
+                ipItem.appendChild(blockButton);
                 return ipItem;
+            }
+
+            // Function to block a user
+            function blockUser(ip) {
+                fetch('/api/block-user', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ip }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(`User with IP ${ip} has been blocked.`);
+                        socket.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) }); // Refresh user list
+                    } else {
+                        alert(`Failed to block user: ${data.message}`);
+                    }
+                })
+                .catch(error => console.error('Error blocking user:', error));
             }
 
             // Logout logic
