@@ -28,7 +28,6 @@ const uuid = require('uuid');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 
-
 // ----------------------
 // Load Environment Variables
 // ----------------------
@@ -85,6 +84,62 @@ mongoose.connect(mongoUrl, {
     logger.error(`Error connecting to MongoDB: ${err}`);
     process.exit(1); // Exit if unable to connect
 });
+
+// ----------------------
+// Define Mongoose Schemas and Models
+// ----------------------
+const geoDataSchema = new mongoose.Schema({
+    ip: { type: String, required: true, unique: true },
+    city: { type: String, required: true },
+    region: { type: String, required: true },
+    country: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now }
+});
+
+const GeoData = mongoose.model('GeoData', geoDataSchema);
+
+// Define other schemas...
+const userSchema = new mongoose.Schema({
+    discord_id: { type: String, required: true },
+    bungie_name: { type: String, required: true },
+    membership_id: { type: String, unique: true, required: true },
+    platform_type: { type: Number, required: true },
+    token: { type: String, unique: true },
+    registration_date: { type: Date, default: Date.now },
+    access_token: { type: String, required: true },
+    refresh_token: { type: String, required: true },
+    token_expiry: { type: Date, required: true }
+});
+
+const User = mongoose.model('User', userSchema);
+
+const pendingMemberSchema = new mongoose.Schema({
+    membershipId: { type: String, required: true },
+    displayName: { type: String, required: true },
+    joinDate: { type: Date, required: true }
+});
+
+const PendingMember = mongoose.model('PendingMember', pendingMemberSchema);
+
+const sessionSchema = new mongoose.Schema({
+    state: { type: String, required: true, unique: true },
+    user_id: { type: String, required: true },
+    session_id: { type: String, required: true },
+    created_at: { type: Date, default: Date.now, expires: 86400 }, // Expires after 1 day
+    ip_address: { type: String },
+    user_agent: { type: String }
+});
+
+const Session = mongoose.model('Session', sessionSchema, 'sessions');
+
+const commentSchema = new mongoose.Schema({
+    username: { type: String, required: true },
+    comment: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now },
+    approved: { type: Boolean, default: true }
+});
+
+const Comment = mongoose.model('Comment', commentSchema);
 
 // ----------------------
 // Configure Session Store
@@ -183,10 +238,6 @@ app.use(
     })
 );
 
-
-
-
-
 app.set('trust proxy', true);
 
 // Serve Static Files
@@ -196,14 +247,13 @@ app.use(express.static(path.join(__dirname, 'public'), {
     lastModified: false
 }));
 
-
 const adminSessionStore = MongoStore.create({
     mongoUrl: process.env.MONGO_URL,
     collectionName: 'admin_sessions', // Separate collection for admin sessions
     ttl: 14 * 24 * 60 * 60 // 14 days
 });
 
-// Then, use it in the admin panel session
+// Use the admin session store
 app.use(session({
     name: 'admin_session_cookie', // Different cookie name for admin
     secret: process.env.SESSION_SECRET || 'your-session-secret',
@@ -217,99 +267,6 @@ app.use(session({
         maxAge: 60 * 60 * 1000 // 1 hour
     }
 }));
-
-
-const geoDataSchema = new mongoose.Schema({
-    ip: { type: String, required: true, unique: true },
-    city: { type: String, required: true },
-    region: { type: String, required: true },
-    country: { type: String, required: true },
-    timestamp: { type: Date, default: Date.now }
-});
-
-
-const GeoData = mongoose.model('GeoData', geoDataSchema);
-module.exports = GeoData;
-
-async function getGeoLocation(ip) {
-    try {
-        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
-        const locationData = response.data;
-
-        // Save the location data to the GeoData collection
-        const geoEntry = new GeoData({
-            ip: ip,
-            city: locationData.city,
-            region: locationData.region,
-            country: locationData.country
-        });
-
-        await geoEntry.save();
-        return locationData;
-    } catch (error) {
-        console.error('Error fetching geolocation from IPinfo:', error);
-        return {
-            city: 'Unknown',
-            region: 'Unknown',
-            country: 'Unknown'
-        };
-    }
-}
-
-
-// ----------------------
-// Rate Limiting Middleware
-// ----------------------
-const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // Limit each IP to 10 login requests per window
-    message: 'Too many login attempts from this IP, please try again after 15 minutes'
-});
-
-// ----------------------
-// Define Mongoose Schemas and Models
-// ----------------------
-const userSchema = new mongoose.Schema({
-    discord_id: { type: String, required: true },
-    bungie_name: { type: String, required: true },
-    membership_id: { type: String, unique: true, required: true },
-    platform_type: { type: Number, required: true },
-    token: { type: String, unique: true },
-    registration_date: { type: Date, default: Date.now },
-    access_token: { type: String, required: true },
-    refresh_token: { type: String, required: true },
-    token_expiry: { type: Date, required: true }
-});
-
-const User = mongoose.model('User', userSchema);
-
-const pendingMemberSchema = new mongoose.Schema({
-    membershipId: { type: String, required: true },
-    displayName: { type: String, required: true },
-    joinDate: { type: Date, required: true }
-});
-
-const PendingMember = mongoose.model('PendingMember', pendingMemberSchema);
-
-const sessionSchema = new mongoose.Schema({
-    state: { type: String, required: true, unique: true },
-    user_id: { type: String, required: true },
-    session_id: { type: String, required: true },
-    created_at: { type: Date, default: Date.now, expires: 86400 }, // Expires after 1 day
-    ip_address: { type: String },
-    user_agent: { type: String }
-});
-
-const Session = mongoose.model('Session', sessionSchema, 'sessions');
-
-const commentSchema = new mongoose.Schema({
-    username: { type: String, required: true },
-    comment: { type: String, required: true },
-    timestamp: { type: Date, default: Date.now },
-    approved: { type: Boolean, default: true }
-});
-
-const Comment = mongoose.model('Comment', commentSchema);
 
 // ----------------------
 // Helper Functions
@@ -370,7 +327,7 @@ async function getBungieToken(code) {
         logger.info(`Token Response: ${JSON.stringify(response.data)}`);
         return response.data;
     } catch (error) {
-        logger.error(`Error fetching Bungie token: ${error}`);
+        logger.error(`Error fetching Bungie token: ${error.message}`);
         if (error.response) {
             logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
             logger.error(`Response status: ${error.response.status}`);
@@ -402,7 +359,7 @@ async function refreshBungieToken(refreshToken) {
         logger.info(`Refresh Token Response: ${JSON.stringify(response.data)}`);
         return response.data;
     } catch (error) {
-        logger.error(`Error refreshing Bungie token: ${error}`);
+        logger.error(`Error refreshing Bungie token: ${error.message}`);
         if (error.response) {
             logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
             logger.error(`Response status: ${error.response.status}`);
@@ -429,7 +386,7 @@ async function getBungieUserInfo(accessToken) {
         logger.info(`User Info Response: ${JSON.stringify(response.data)}`);
         return response.data;
     } catch (error) {
-        logger.error(`Error fetching Bungie user info: ${error}`);
+        logger.error(`Error fetching Bungie user info: ${error.message}`);
         if (error.response) {
             logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
             logger.error(`Response status: ${error.response.status}`);
@@ -467,7 +424,7 @@ function updateMembershipMapping(discordId, userInfo) {
         try {
             membershipMapping = JSON.parse(data);
         } catch (err) {
-            logger.error(`Error parsing membership mapping file: ${err}`);
+            logger.error(`Error parsing membership mapping file: ${err.message}`);
             membershipMapping = {};
         }
     } else {
@@ -486,14 +443,14 @@ function updateMembershipMapping(discordId, userInfo) {
         fs.writeFileSync(membershipFilePath, JSON.stringify(membershipMapping, null, 2), 'utf8');
         logger.info(`Updated membership mapping file: ${JSON.stringify(membershipMapping, null, 2)}`);
     } catch (err) {
-        logger.error(`Error writing to membership mapping file: ${err}`);
+        logger.error(`Error writing to membership mapping file: ${err.message}`);
     }
 
     try {
         const updatedData = fs.readFileSync(membershipFilePath, 'utf8');
         logger.info(`Verified membership mapping file content: ${updatedData}`);
     } catch (err) {
-        logger.error(`Error reading membership mapping file after update: ${err}`);
+        logger.error(`Error reading membership mapping file after update: ${err.message}`);
     }
 }
 
@@ -525,28 +482,86 @@ const getClientIp = (req) => {
 };
 
 // Get Geolocation Data
-async function getAccurateGeoLocation(ip) {
+async function getGeoLocation(ip) {
     try {
-        // IPinfo as the primary source
-        const ipInfoResponse = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
-        const ipInfoData = ipInfoResponse.data;
+        const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
+        const locationData = response.data;
 
-        // Optionally, you can add MaxMind or another API for more robust location or VPN detection
-        const maxMindApiResponse = await axios.get(`https://geoip.maxmind.com/geoip/v2.1/city/${ip}?apikey=${process.env.MAXMIND_API_KEY}`);
-        const maxMindData = maxMindApiResponse.data;
+        // Save the location data to the GeoData collection
+        const geoEntry = new GeoData({
+            ip: ip,
+            city: locationData.city || 'Unknown',
+            region: locationData.region || 'Unknown',
+            country: locationData.country || 'Unknown'
+        });
 
-        // Merge data or cross-check between services if needed
-        return {
-            city: ipInfoData.city || maxMindData.city.names.en || 'Unknown',
-            region: ipInfoData.region || maxMindData.subdivisions[0].names.en || 'Unknown',
-            country: ipInfoData.country || maxMindData.country.names.en || 'Unknown',
-            ip: ip
-        };
+        await geoEntry.save();
+        logger.info(`GeoData saved: IP=${ip}, City=${locationData.city}, Region=${locationData.region}, Country=${locationData.country}`);
+        return locationData;
     } catch (error) {
-        console.error('Error fetching location from IP services:', error);
-        return { city: 'Unknown', region: 'Unknown', country: 'Unknown' };
+        logger.error(`Error fetching geolocation from IPinfo for IP ${ip}: ${error.message}`);
+        return {
+            city: 'Unknown',
+            region: 'Unknown',
+            country: 'Unknown'
+        };
     }
 }
+
+// Web Search Function using Google Custom Search API
+async function getWebSearchResults(query) {
+    const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+    const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
+
+    if (!GOOGLE_API_KEY || !GOOGLE_CSE_ID) {
+        logger.error("Missing Google API Key or CSE ID.");
+        return 'Configuration error: Missing Google API Key or CSE ID.';
+    }
+
+    const SEARCH_ENDPOINT = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}`;
+
+    try {
+        logger.info(`Fetching web search results for query: "${query}"`);
+        const response = await fetch(SEARCH_ENDPOINT);
+
+        if (!response.ok) {
+            logger.error(`Error fetching web search results: ${response.status} - ${response.statusText}`);
+            let errorMsg = 'Failed to fetch web search data';
+            try {
+                const errorData = await response.json();
+                errorMsg = errorData.message || errorMsg;
+            } catch (e) {
+                logger.error('Error parsing error response:', e.message);
+            }
+            return `Error: Received status code ${response.status}. Please check the request or try again later.`;
+        }
+
+        const data = await response.json();
+        logger.info("Received web search data.");
+
+        if (data.items && data.items.length > 0) {
+            const topResults = data.items.slice(0, 3).map((item, index) => {
+                return `<b>${index + 1}. <a href="${item.link}" target="_blank">${item.title}</a></b><br>${item.snippet}`;
+            }).join("<br><br>");
+
+            return `Here are the top results I found for "<b>${query}</b>":<br><br>${topResults}`;
+        } else {
+            return 'Sorry, I couldn’t find anything relevant.';
+        }
+    } catch (error) {
+        logger.error(`Error fetching web search results for query "${query}": ${error.message}`);
+        return 'Sorry, something went wrong while searching the web.';
+    }
+}
+
+// ----------------------
+// Rate Limiting Middleware
+// ----------------------
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Limit each IP to 5 login requests per window
+    message: 'Too many login attempts from this IP, please try again after 15 minutes'
+});
 
 // ----------------------
 // OAuth Routes
@@ -556,7 +571,7 @@ async function getAccurateGeoLocation(ip) {
 app.get('/login', async (req, res) => {
     const state = generateRandomString(16);
     const user_id = req.query.user_id;
-    const ip_address = req.ip;
+    const ip_address = getClientIp(req);
     const user_agent = req.get('User-Agent');
 
     const sessionData = new Session({
@@ -574,7 +589,7 @@ app.get('/login', async (req, res) => {
         const authorizeUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
         res.redirect(authorizeUrl);
     } catch (err) {
-        logger.error(`Error saving session to DB: ${err}`);
+        logger.error(`Error saving session to DB: ${err.message}`);
         res.status(500).send('Internal Server Error');
     }
 });
@@ -662,7 +677,7 @@ app.get('/callback', async (req, res) => {
 
         res.redirect(`/confirmation.html?token=${user.token}`);
     } catch (error) {
-        logger.error(`Error during callback: ${error}`);
+        logger.error(`Error during callback: ${error.message}`);
         if (error.response) {
             logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
             logger.error(`Response status: ${error.response.status}`);
@@ -693,7 +708,7 @@ app.get('/api/bungie-name', async (req, res) => {
 
         res.send({ bungie_name: user.bungie_name });
     } catch (err) {
-        logger.error(`Error fetching Bungie name: ${err}`);
+        logger.error(`Error fetching Bungie name: ${err.message}`);
         res.status(500).send({ error: 'Internal Server Error' });
     }
 });
@@ -709,7 +724,7 @@ app.post('/login', loginLimiter, async (req, res) => {
         const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH; // Bcrypt hashed password
 
         if (username !== adminUsername) {
-            logger.warn(`Failed login attempt for username: ${username} from IP: ${req.ip}`);
+            logger.warn(`Failed login attempt for username: ${username} from IP: ${getClientIp(req)}`);
             return res.status(401).json({ auth: false, message: 'Invalid username or password' });
         }
 
@@ -717,7 +732,7 @@ app.post('/login', loginLimiter, async (req, res) => {
         const isPasswordValid = await bcrypt.compare(password, adminPasswordHash);
 
         if (!isPasswordValid) {
-            logger.warn(`Failed login attempt for username: ${username} from IP: ${req.ip}`);
+            logger.warn(`Failed login attempt for username: ${username} from IP: ${getClientIp(req)}`);
             return res.status(401).json({ auth: false, message: 'Invalid username or password' });
         }
 
@@ -735,21 +750,20 @@ app.post('/login', loginLimiter, async (req, res) => {
 
         req.session.save((err) => {
             if (err) {
-                logger.error(`Error saving session: ${err}`);
+                logger.error(`Error saving session: ${err.message}`);
                 return res.status(500).json({ auth: false, message: 'Error saving session' });
             }
             // Redirect to the /admin route instead of /admin-dashboard.html
             res.status(200).json({ auth: true, redirect: '/admin' });
         });
     } catch (error) {
-        logger.error(`Unexpected error during login: ${error}`);
+        logger.error(`Unexpected error during login: ${error.message}`);
         res.status(500).json({ auth: false, message: 'Internal Server Error' });
     }
 });
 
-
 // ----------------------
-// Logout Route
+// Logout Routes
 // ----------------------
 app.get('/auth', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-login.html'));
@@ -759,7 +773,7 @@ app.get('/auth', (req, res) => {
 app.post('/logout', (req, res) => {
     req.session.destroy((err) => {
         if (err) {
-            logger.error(`Error destroying session: ${err}`);
+            logger.error(`Error destroying session: ${err.message}`);
             return res.status(500).json({ message: 'Error logging out' });
         }
         
@@ -774,7 +788,6 @@ app.post('/logout', (req, res) => {
     });
 });
 
-
 // ----------------------
 // Comment Routes
 // ----------------------
@@ -787,7 +800,7 @@ app.post('/api/comments', async (req, res) => {
         await newComment.save();
         res.status(201).send(newComment);
     } catch (error) {
-        logger.error(`Error saving comment: ${error}`);
+        logger.error(`Error saving comment: ${error.message}`);
         res.status(500).send({ error: 'Error saving comment' });
     }
 });
@@ -798,7 +811,7 @@ app.get('/api/comments', async (req, res) => {
         const comments = await Comment.find({ approved: true });
         res.json(comments);
     } catch (error) {
-        logger.error(`Error fetching comments: ${error}`);
+        logger.error(`Error fetching comments: ${error.message}`);
         res.status(500).send({ error: 'Error fetching comments' });
     }
 });
@@ -810,7 +823,7 @@ app.delete('/api/comments/:id', verifyToken, async (req, res) => {
         await Comment.findByIdAndDelete(id);
         res.status(200).send({ message: 'Comment deleted' });
     } catch (error) {
-        logger.error(`Error deleting comment: ${error}`);
+        logger.error(`Error deleting comment: ${error.message}`);
         res.status(500).send({ error: 'Error deleting comment' });
     }
 });
@@ -819,7 +832,7 @@ app.delete('/api/comments/:id', verifyToken, async (req, res) => {
 // Admin Dashboard Route (Protected)
 // ----------------------
 app.get('/admin', verifyToken, (req, res) => {
-    logger.info(`Access granted to user with ID: ${req.userId}`);
+    logger.info(`Access granted to admin user with ID: ${req.userId}`);
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
@@ -829,82 +842,132 @@ app.get('/admin-dashboard.html', (req, res) => {
 });
 
 // ----------------------
-// Additional Routes
+// Geolocation Routes
 // ----------------------
 
-// Check YouTube API Status
-app.get('/api/check-youtube', async (req, res) => {
+// Fetch Location Route
+app.get('/fetch-location', async (req, res) => {
+    const ip = getClientIp(req);
     try {
-        const youtubeApiStatus = true; // Implement actual check if necessary
+        const locationData = await getGeoLocation(ip);
+        res.json(locationData);
+    } catch (error) {
+        logger.error(`Error fetching location data for IP ${ip}: ${error.message}`);
+        res.status(500).json({ error: 'Failed to fetch location data' });
+    }
+});
+
+// Get Geolocation by IP Route
+app.get('/api/location/:ip', async (req, res) => {
+    try {
+        const ip = req.params.ip;
+        const locationData = await getGeoLocation(ip);
         res.json({
-            available: youtubeApiStatus,
-            status: youtubeApiStatus ? 'YouTube API is working' : 'YouTube API is unavailable'
+            ip: ip,
+            city: locationData.city,
+            region: locationData.region,
+            country: locationData.country,
         });
     } catch (error) {
-        logger.error(`Error checking YouTube API: ${error}`);
-        res.status(500).json({
-            available: false,
-            status: 'Error checking YouTube API'
-        });
+        logger.error(`Error fetching geolocation for IP ${req.params.ip}: ${error.message}`);
+        res.status(500).json({ error: 'Failed to fetch geolocation data' });
     }
 });
 
-// Check Bungie API Status
-app.get('/api/check-bungie', async (req, res) => {
-    const bungieApiKey = process.env.X_API_KEY;
-    const url = 'https://www.bungie.net/Platform/Destiny2/Manifest/';
+// Track IP Route
+app.post('/track', async (req, res) => {
+    const ip = getClientIp(req);
+    logger.info(`Extracted IP: ${ip}`);
 
     try {
-        const response = await axios.get(url, {
-            headers: { 'X-API-Key': bungieApiKey }
-        });
-        if (response.status === 200) {
-            return res.json({ status: 'Bungie API is working', available: true });
-        }
-    } catch (error) {
-        logger.error(`Error checking Bungie API: ${error}`);
-        return res.json({ status: 'Bungie API is unavailable', available: false });
-    }
-});
+        const location = await getAccurateGeoLocation(ip);
 
-// Weather Route
-app.get('/api/weather', async (req, res) => {
-    const city = req.query.city || 'Leeds';
-    const units = 'metric'; // or 'imperial' for Fahrenheit
-    const apiKey = process.env.OPENWEATHER_API_KEY;
+        // Fetch existing entry for this IP
+        const existingEntry = await GeoData.findOne({ ip: location.ip });
 
-    if (!apiKey) {
-        logger.error('OPENWEATHER_API_KEY is not set in environment variables.');
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
+        // Check if the location data has changed before updating
+        if (existingEntry) {
+            const hasChanged = (
+                existingEntry.city !== location.city ||
+                existingEntry.region !== location.region ||
+                existingEntry.country !== location.country
+            );
 
-    const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=${units}&appid=${apiKey}`;
-
-    try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-            // Attempt to parse error message from response
-            let errorMsg = 'Failed to fetch weather data';
-            try {
-                const errorData = await response.json();
-                errorMsg = errorData.message || errorMsg;
-            } catch (e) {
-                logger.error('Error parsing error response:', e);
+            if (!hasChanged) {
+                logger.info(`No changes detected for IP: ${ip}, skipping update.`);
+                return res.json({ message: 'No changes detected, update skipped.', ip, location });
             }
-            return res.status(response.status).json({ error: errorMsg });
         }
-        const data = await response.json();
-        res.json(data);
-    } catch (error) {
-        logger.error(`Error fetching weather data for city ${city}:`, error);
-        res.status(500).json({ error: 'Internal Server Error' });
+
+        // If no existing entry, or if the data has changed, perform an upsert
+        const updatedEntry = await GeoData.findOneAndUpdate(
+            { ip: location.ip },  // Query to find the existing IP
+            {  // Fields to update
+                city: location.city,
+                region: location.region,
+                country: location.country,
+                timestamp: new Date()
+            },
+            { upsert: true, new: true } // Create if doesn't exist, return updated document
+        );
+
+        logger.info(`Location data updated or inserted for IP: ${ip} - City: ${location.city}, Region: ${location.region}, Country: ${location.country}`);
+        res.json({ ip, location });
+
+    } catch (err) {
+        logger.error(`Error fetching location or saving to MongoDB for IP ${ip}: ${err.message}`);
+        res.status(500).json({ error: 'Unable to get or save location' });
     }
 });
+
+// ----------------------
+// Geolocation Helper Function
+// ----------------------
+async function getAccurateGeoLocation(ip) {
+    try {
+        // IPinfo as the primary source
+        const ipInfoResponse = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
+        const ipInfoData = ipInfoResponse.data;
+
+        // Optionally, you can add MaxMind or another API for more robust location or VPN detection
+        const maxMindApiKey = process.env.MAXMIND_API_KEY;
+        let maxMindData = {};
+        if (maxMindApiKey) {
+            try {
+                const maxMindApiResponse = await axios.get(`https://geoip.maxmind.com/geoip/v2.1/city/${ip}`, {
+                    headers: {
+                        'Authorization': `Bearer ${maxMindApiKey}`
+                    }
+                });
+                maxMindData = maxMindApiResponse.data;
+            } catch (maxMindError) {
+                logger.error(`Error fetching data from MaxMind for IP ${ip}: ${maxMindError.message}`);
+            }
+        } else {
+            logger.warn('MAXMIND_API_KEY is not set. Skipping MaxMind lookup.');
+        }
+
+        // Merge data or cross-check between services if needed
+        const location = {
+            city: ipInfoData.city || (maxMindData.city && maxMindData.city.names.en) || 'Unknown',
+            region: ipInfoData.region || (maxMindData.subdivisions && maxMindData.subdivisions[0].names.en) || 'Unknown',
+            country: ipInfoData.country || (maxMindData.country && maxMindData.country.names.en) || 'Unknown',
+            ip: ip
+        };
+
+        // Log the merged location data
+        logger.info(`AccurateGeoLocation for IP ${ip}: City=${location.city}, Region=${location.region}, Country=${location.country}`);
+
+        return location;
+    } catch (error) {
+        logger.error(`Error fetching accurate geolocation for IP ${ip}: ${error.message}`);
+        return { city: 'Unknown', region: 'Unknown', country: 'Unknown', ip: ip };
+    }
+}
 
 // ----------------------
 // WebSocket (Socket.IO) Configuration
 // ----------------------
-// Existing imports and initializations...
 const ipBanSchema = new mongoose.Schema({
     ip: { type: String, required: true, unique: true },
     blockedAt: { type: Date, default: Date.now },
@@ -921,8 +984,6 @@ let currentBrowsing = null;
 const videoHeartbeat = {};
 const activeUsers = new Map(); // Tracks active users by IP and connection type
 
-app.use(bodyParser.json());
-
 // Block user endpoint
 app.post('/api/block-user', async (req, res) => {
     const { ip } = req.body;
@@ -931,7 +992,13 @@ app.post('/api/block-user', async (req, res) => {
         logger.info(`Blocked user with IP: ${ip}`);
 
         // Save to MongoDB IPbans collection
-        await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
+        try {
+            await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
+            logger.info(`IP ${ip} has been added to IPbans collection.`);
+        } catch (error) {
+            logger.error(`Error adding IP ${ip} to IPbans collection: ${error.message}`);
+            return res.status(500).send({ status: 'error', message: 'Failed to block user.' });
+        }
 
         // Notify all clients about the blocked IP
         io.emit('ipBlocked', { ip });
@@ -946,16 +1013,26 @@ app.post('/api/block-user', async (req, res) => {
 app.post('/api/unblock-user', async (req, res) => {
     const { ip } = req.body;
     if (ip) {
-        blockedIps.delete(ip); // Remove IP from blocked list
-        logger.info(`Unblocked user with IP: ${ip}`);
+        if (blockedIps.has(ip)) {
+            blockedIps.delete(ip); // Remove IP from blocked list
+            logger.info(`Unblocked user with IP: ${ip}`);
 
-        // Remove from MongoDB IPbans collection
-        await IPbans.deleteOne({ ip });
+            // Remove from MongoDB IPbans collection
+            try {
+                await IPbans.deleteOne({ ip });
+                logger.info(`IP ${ip} has been removed from IPbans collection.`);
+            } catch (error) {
+                logger.error(`Error removing IP ${ip} from IPbans collection: ${error.message}`);
+                return res.status(500).send({ status: 'error', message: 'Failed to unblock user.' });
+            }
 
-        // Notify all clients about the unblocked IP
-        io.emit('ipUnblocked', { ip });
+            // Notify all clients about the unblocked IP
+            io.emit('ipUnblocked', { ip });
 
-        res.status(200).send({ status: 'success', message: `User with IP ${ip} has been unblocked.` });
+            res.status(200).send({ status: 'success', message: `User with IP ${ip} has been unblocked.` });
+        } else {
+            res.status(400).send({ status: 'error', message: `User with IP ${ip} is not blocked.` });
+        }
     } else {
         res.status(400).send({ status: 'error', message: 'IP address is required.' });
     }
@@ -1020,13 +1097,20 @@ io.on('connection', async (socket) => {
             if (!blockedIps.has(ip)) {
                 blockedIps.add(ip);
                 logger.info(`Blocking user with IP: ${ip}`);
-    
+
                 // Save to MongoDB IPbans collection
-                await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
-    
+                try {
+                    await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
+                    logger.info(`IP ${ip} has been added to IPbans collection.`);
+                } catch (error) {
+                    logger.error(`Error adding IP ${ip} to IPbans collection: ${error.message}`);
+                    socket.emit('blockUserResponse', { status: 'error', message: 'Failed to block user.' });
+                    return;
+                }
+
                 // Notify all clients about the blocked IP
                 io.emit('ipBlocked', { ip });
-    
+
                 // Acknowledge the block
                 socket.emit('blockUserResponse', { status: 'success', message: `User with IP ${ip} has been blocked.` });
             } else {
@@ -1036,7 +1120,7 @@ io.on('connection', async (socket) => {
             socket.emit('blockUserResponse', { status: 'error', message: 'IP address is required.' });
         }
     });
-    
+
     // Handle unblock user request
     socket.on('unblockUser', async (data) => {
         const { ip } = data;
@@ -1044,13 +1128,20 @@ io.on('connection', async (socket) => {
             if (blockedIps.has(ip)) {
                 blockedIps.delete(ip);
                 logger.info(`Unblocking user with IP: ${ip}`);
-    
+
                 // Remove from MongoDB IPbans collection
-                await IPbans.deleteOne({ ip });
-    
+                try {
+                    await IPbans.deleteOne({ ip });
+                    logger.info(`IP ${ip} has been removed from IPbans collection.`);
+                } catch (error) {
+                    logger.error(`Error removing IP ${ip} from IPbans collection: ${error.message}`);
+                    socket.emit('unblockUserResponse', { status: 'error', message: 'Failed to unblock user.' });
+                    return;
+                }
+
                 // Notify all clients about the unblocked IP
                 io.emit('ipUnblocked', { ip });
-    
+
                 // Acknowledge the unblock
                 socket.emit('unblockUserResponse', { status: 'success', message: `User with IP ${ip} has been unblocked.` });
             } else {
@@ -1217,12 +1308,6 @@ function handleOfflinePresence() {
     logger.info(`[Socket.IO] User marked as offline.`);
 }
 
-
-
-
-
-
-
 // ----------------------
 // Real-time Data Endpoint
 // ----------------------
@@ -1242,7 +1327,7 @@ app.get('/api/videos/public', async (req, res) => {
         // Implement logic to retrieve public videos
         res.json([]);
     } catch (err) {
-        logger.error(`Error retrieving video metadata: ${err}`);
+        logger.error(`Error retrieving video metadata: ${err.message}`);
         res.status(500).send({ error: 'Error retrieving video metadata' });
     }
 });
@@ -1259,6 +1344,7 @@ app.post('/api/videos',
     async (req, res) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
+            logger.warn(`Validation errors: ${JSON.stringify(errors.array())}`);
             return res.status(400).json({ errors: errors.array() });
         }
 
@@ -1277,6 +1363,11 @@ app.post('/api/videos',
 
         try {
             // Implement logic to save video metadata to the database
+            // For example:
+            // const video = new Video(videoMetadata);
+            // await video.save();
+
+            logger.info(`New video added: ${JSON.stringify(videoMetadata)}`);
             res.status(201).json({ message: 'Video added successfully', video: videoMetadata });
         } catch (err) {
             logger.error(`Error saving video metadata: ${err.message}`);
@@ -1296,7 +1387,7 @@ try {
     credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
     logger.info("Credentials loaded successfully.");
 } catch (error) {
-    logger.error("Error parsing credentials JSON from environment variable:", error);
+    logger.error("Error parsing credentials JSON from environment variable:", error.message);
     process.exit(1);
 }
 
@@ -1311,58 +1402,12 @@ try {
     });
     logger.info("Dialogflow session client initialized successfully.");
 } catch (error) {
-    logger.error("Error initializing Dialogflow session client:", error);
+    logger.error("Error initializing Dialogflow session client:", error.message);
     process.exit(1);
 }
 
 const projectId = 'haru-ai-sxjr'; // Ensure this matches your Dialogflow project ID
 logger.info(`Using project ID: ${projectId}`);
-
-// Web Search Function using Google Custom Search API
-async function getWebSearchResults(query) {
-    const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
-    const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
-
-    if (!GOOGLE_API_KEY || !GOOGLE_CSE_ID) {
-        logger.error("Missing Google API Key or CSE ID.");
-        return 'Configuration error: Missing Google API Key or CSE ID.';
-    }
-
-    const SEARCH_ENDPOINT = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}`;
-
-    try {
-        logger.info(`Fetching web search results for query: "${query}"`);
-        const response = await fetch(SEARCH_ENDPOINT);
-
-        if (!response.ok) {
-            logger.error(`Error fetching web search results: ${response.status} - ${response.statusText}`);
-            let errorMsg = 'Failed to fetch web search data';
-            try {
-                const errorData = await response.json();
-                errorMsg = errorData.message || errorMsg;
-            } catch (e) {
-                logger.error('Error parsing error response:', e);
-            }
-            return `Error: Received status code ${response.status}. Please check the request or try again later.`;
-        }
-
-        const data = await response.json();
-        logger.info("Received web search data.");
-
-        if (data.items && data.items.length > 0) {
-            const topResults = data.items.slice(0, 3).map((item, index) => {
-                return `<b>${index + 1}. <a href="${item.link}" target="_blank">${item.title}</a></b><br>${item.snippet}`;
-            }).join("<br><br>");
-
-            return `Here are the top results I found for "<b>${query}</b>":<br><br>${topResults}`;
-        } else {
-            return 'Sorry, I couldn’t find anything relevant.';
-        }
-    } catch (error) {
-        logger.error('Error fetching web search results:', error);
-        return 'Sorry, something went wrong while searching the web.';
-    }
-}
 
 // Handle Incoming Dialogflow Requests
 app.post('/api/dialogflow', async (req, res) => {
@@ -1425,14 +1470,16 @@ app.post('/api/dialogflow', async (req, res) => {
             res.json({ response: 'Sorry, I couldn’t understand that.' });
         }
     } catch (error) {
-        logger.error('Dialogflow API error:', error);
+        logger.error(`Dialogflow API error: ${error.message}`);
         res.status(500).json({ response: 'Sorry, something went wrong.' });
     }
 });
 
 // ----------------------
-// Geolocation Routes
+// Geolocation Routes (continued)
 // ----------------------
+
+// Get GeoData Aggregated by Country
 app.get('/api/geo-data', async (req, res) => {
     try {
         const countryData = await GeoData.aggregate([
@@ -1442,104 +1489,12 @@ app.get('/api/geo-data', async (req, res) => {
 
         res.json(countryData);
     } catch (error) {
-        console.error('Error fetching geo data:', error);
+        logger.error(`Error fetching geo data: ${error.message}`);
         res.status(500).json({ error: 'Error fetching geo data' });
     }
 });
 
-// Fetch Location Route
-app.get('/fetch-location', async (req, res) => {
-    const ip = getClientIp(req);
-    try {
-        const locationData = await getGeoLocation(ip);
-        res.json(locationData);
-    } catch (error) {
-        logger.error('Error fetching location data:', error.message);
-        res.status(500).json({ error: 'Failed to fetch location data' });
-    }
-});
-
-// Get Geolocation by IP Route
-app.get('/api/location/:ip', async (req, res) => {
-    try {
-        const ip = req.params.ip;
-        const locationData = await getGeoLocation(ip);
-        res.json({
-            ip: ip,
-            city: locationData.city,
-            region: locationData.region,
-            country: locationData.country,
-        });
-    } catch (error) {
-        logger.error(`Error fetching geolocation for IP ${req.params.ip}:`, error);
-        res.status(500).json({ error: 'Failed to fetch geolocation data' });
-    }
-});
-
-// Track IP Route
-app.post('/track', async (req, res) => {
-    const ip = getClientIp(req);
-    logger.info(`Extracted IP: ${ip}`);
-
-    try {
-        const location = await getAccurateGeoLocation(ip);
-
-        // Fetch existing entry for this IP
-        const existingEntry = await GeoData.findOne({ ip: location.ip });
-
-        // Check if the location data has changed before updating
-        if (existingEntry) {
-            const hasChanged = (
-                existingEntry.city !== location.city ||
-                existingEntry.region !== location.region ||
-                existingEntry.country !== location.country
-            );
-
-            if (!hasChanged) {
-                logger.info(`No changes detected for IP: ${ip}, skipping update.`);
-                return res.json({ message: 'No changes detected, update skipped.', ip, location });
-            }
-        }
-
-        // If no existing entry, or if the data has changed, perform an upsert
-        const updatedEntry = await GeoData.findOneAndUpdate(
-            { ip: location.ip },  // Query to find the existing IP
-            {  // Fields to update
-                city: location.city,
-                region: location.region,
-                country: location.country,
-                timestamp: new Date()
-            },
-            { upsert: true, new: true } // Create if doesn't exist, return updated document
-        );
-
-        logger.info(`Location data updated or inserted for IP: ${ip}`);
-        res.json({ ip, location });
-
-    } catch (err) {
-        logger.error('Error fetching location or saving to MongoDB:', err);
-        res.status(500).json({ error: 'Unable to get or save location' });
-    }
-});
-
-
-// ----------------------
-// Web Search Results via WebSocket
-// ----------------------
-
-// This is already handled in the Dialogflow route where 'webSearchResult' is emitted
-
-// ----------------------
-// Weather API Route (Duplicated Removed)
-// ----------------------
-// Note: The '/api/weather' route was already defined above. Ensure it's only defined once.
-
-// ----------------------
-// Final Cleanup
-// ----------------------
-
-// Ensure that all routes and functions are defined only once.
-// Remove any duplicate definitions if present.
+// Get Geolocation by IP Route (already defined above)
 
 // ----------------------
 // Start the Server
