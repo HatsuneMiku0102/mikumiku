@@ -900,6 +900,7 @@ const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
 const blockedUsers = new Set(); // Store blocked user IPs
 const videoHeartbeat = {};
 const activeUsers = new Map(); // Tracks active users by IP and connection type
+let currentBrowsing = null;
 
 /**
  * Handle new client connections
