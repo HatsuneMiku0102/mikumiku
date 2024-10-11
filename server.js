@@ -1505,6 +1505,41 @@ app.get('/api/geo-data', async (req, res) => {
     }
 });
 
+
+// Weather Route
+app.get('/api/weather', async (req, res) => {
+    const city = req.query.city || 'Leeds';
+    const units = 'metric'; // or 'imperial' for Fahrenheit
+    const apiKey = process.env.OPENWEATHER_API_KEY;
+
+    if (!apiKey) {
+        logger.error('OPENWEATHER_API_KEY is not set in environment variables.');
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+
+    const apiUrl = https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=${units}&appid=${apiKey};
+
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            // Attempt to parse error message from response
+            let errorMsg = 'Failed to fetch weather data';
+            try {
+                const errorData = await response.json();
+                errorMsg = errorData.message || errorMsg;
+            } catch (e) {
+                logger.error('Error parsing error response:', e);
+            }
+            return res.status(response.status).json({ error: errorMsg });
+        }
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        logger.error(Error fetching weather data for city ${city}:, error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 // Get Geolocation by IP Route (already defined above)
 
 // ----------------------
