@@ -946,43 +946,14 @@ io.on('connection', async (socket) => {
 
     logger.info(`New connection from IP: ${ip}, Type: ${connectionType}`);
 
-    try {
-        // Fetch geolocation data for the IP
-        let location = await GeoData.findOne({ ip });
-        if (!location) {
-            location = await getGeoLocation(ip);
-            // Save to GeoData if not already present
-            await GeoData.updateOne(
-                { ip },
-                { city: location.city, region: location.region, country: location.country, ip },
-                { upsert: true }
-            );
-        }
-
-        // Emit location data to the connected client
-        socket.emit('locationUpdate', {
-            ip,
-            city: location.city || 'Unknown',
-            region: location.region || 'Unknown',
-            country: location.country || 'Unknown'
-        });
-    } catch (err) {
-        logger.error('Error fetching location:', err);
-        socket.emit('locationUpdate', {
-            ip,
-            city: 'Unknown',
-            region: 'Unknown',
-            country: 'Unknown'
-        });
-    }
-
     // Manage active users based on IP and connection type
     if (!activeUsers.has(ip)) {
-        activeUsers.set(ip, { id: socket.id, ip, connectionType });
-        io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
-    } else {
-        logger.info(`IP ${ip} is already connected.`);
+        activeUsers.set(ip, { id: socket.id, ip, connectionTypes: new Set() });
     }
+    activeUsers.get(ip).connectionTypes.add(connectionType);
+
+    // Emit updated user list
+    io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()) });
 
     // Emit current presence state to the newly connected client
     emitCurrentPresence(socket);
