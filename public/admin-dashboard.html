@@ -147,29 +147,29 @@
             function createIpItem(user) {
                 const ipItem = document.createElement('li');
                 ipItem.classList.add('ip-item');
-                
+
                 // Ensure that connectionTypes is correctly joined as a string
                 const connectionTypes = Array.from(user.connectionTypes).join(', ');
                 ipItem.innerText = `IP: ${user.ip}, Connection Types: ${connectionTypes}`;
-            
+
                 // Add block and unblock buttons
                 const blockButton = document.createElement('button');
                 blockButton.innerText = 'Block';
                 blockButton.onclick = () => blockUser(user.ip);
-            
+
                 const unblockButton = document.createElement('button');
                 unblockButton.innerText = 'Unblock';
                 unblockButton.onclick = () => unblockUser(user.ip);
-            
+
                 ipItem.appendChild(blockButton);
                 ipItem.appendChild(unblockButton);
-            
+
                 return ipItem;
             }
 
             function blockUser(ip) {
                 socket.emit('blockUser', { ip }, (response) => {
-                    if (response.status === 'success') {
+                    if (response && response.status === 'success') {
                         console.log(`User with IP ${ip} has been blocked.`);
                         alert(`User with IP ${ip} has been blocked.`);
                     } else {
@@ -180,7 +180,7 @@
 
             function unblockUser(ip) {
                 socket.emit('unblockUser', { ip }, (response) => {
-                    if (response.status === 'success') {
+                    if (response && response.status === 'success') {
                         console.log(`User with IP ${ip} has been unblocked.`);
                         alert(`User with IP ${ip} has been unblocked.`);
                     } else {
