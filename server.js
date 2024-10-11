@@ -819,6 +819,11 @@ app.get('/admin', verifyToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
+// Prevent direct access to the HTML file
+app.get('/admin-dashboard.html', (req, res) => {
+    res.redirect('/admin'); // Redirect to the /admin route
+});
+
 // ----------------------
 // Additional Routes
 // ----------------------
