@@ -814,9 +814,9 @@ app.delete('/api/comments/:id', verifyToken, async (req, res) => {
 // ----------------------
 // Admin Dashboard Route (Protected)
 // ----------------------
-app.get('/admin-dashboard.html', verifyToken, (req, res) => {
+app.get('/admin-dashboard', verifyToken, (req, res) => {
     logger.info(`Access granted to user with ID: ${req.userId}`);
-    res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
+    res.sendFile(path.join(__dirname, 'public', 'admin-dashboard'));
 });
 
 // ----------------------
