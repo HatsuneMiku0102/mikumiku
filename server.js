@@ -893,9 +893,6 @@ app.get('/api/weather', async (req, res) => {
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
 
 // State Management
-let currentVideo = null;
-let currentBrowsing = null;
-const videoHeartbeat = {};
 const activeUsers = new Map(); // Tracks active users by socket ID
 
 /**
@@ -912,92 +909,144 @@ function emitActiveUsersUpdate() {
         connectedAt: user.connectedAt
     }));
     io.to('admin').emit('activeUsersUpdate', { users });
+    logger.info('Emitted activeUsersUpdate to admin room.');
 }
 
+// Handle new connections
 io.on('connection', async (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
-    // Join rooms based on client type
+    // Initialize per-socket state
+    socket.currentVideo = null;
+    socket.currentBrowsing = null;
+    socket.videoHeartbeat = {};
+
+    // Listen for 'register' event to determine client role
     socket.on('register', async (data) => {
-        const { role } = data;
-        if (role === 'admin') {
-            socket.join('admin');
-            logger.info(`Socket ${socket.id} joined admin room.`);
-        } else if (role === 'extension') {
-            socket.join('extension');
-            logger.info(`Socket ${socket.id} joined extension room.`);
+        try {
+            const { role } = data;
+            if (role === 'admin') {
+                socket.join('admin');
+                logger.info(`Socket ${socket.id} joined admin room.`);
+                // Optionally, emit current active users upon admin connection
+                emitActiveUsersUpdate();
+            } else if (role === 'extension') {
+                socket.join('extension');
+                logger.info(`Socket ${socket.id} joined extension room.`);
 
-            // Extract IP address
-            const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
-            const userAgent = socket.handshake.headers['user-agent'] || 'Unknown';
+                // Extract IP address
+                const ip = socket.handshake.headers['x-forwarded-for']
+                    ? socket.handshake.headers['x-forwarded-for'].split(',')[0].trim()
+                    : socket.handshake.address;
+                const userAgent = socket.handshake.headers['user-agent'] || 'Unknown';
 
-            // Fetch geolocation data for the IP
-            let location;
-            try {
-                location = await GeoData.findOne({ ip });
-                if (!location) {
-                    location = await getGeoLocation(ip);
-                    // Save to GeoData if not already present
-                    await GeoData.updateOne(
-                        { ip },
-                        { city: location.city, region: location.region, country: location.country, ip },
-                        { upsert: true }
-                    );
+                // Fetch geolocation data for the IP
+                let location;
+                try {
+                    location = await GeoData.findOne({ ip });
+                    if (!location) {
+                        location = await getGeoLocation(ip);
+                        // Save to GeoData if not already present
+                        await GeoData.updateOne(
+                            { ip },
+                            { city: location.city, region: location.region, country: location.country, ip },
+                            { upsert: true }
+                        );
+                        logger.info(`Geolocation data saved for IP: ${ip}`);
+                    }
+                } catch (err) {
+                    logger.error('Error fetching location:', err);
+                    location = { city: 'Unknown', region: 'Unknown', country: 'Unknown' };
                 }
-            } catch (err) {
-                logger.error('Error fetching location:', err);
-                location = { city: 'Unknown', region: 'Unknown', country: 'Unknown' };
+
+                // Add to active users
+                activeUsers.set(socket.id, {
+                    socketId: socket.id,
+                    ip,
+                    city: location.city || 'Unknown',
+                    region: location.region || 'Unknown',
+                    country: location.country || 'Unknown',
+                    userAgent,
+                    connectedAt: new Date()
+                });
+
+                // Emit update to admin dashboards
+                emitActiveUsersUpdate();
+
+                // Optionally, emit location data to the connected extension
+                socket.emit('locationUpdate', {
+                    ip,
+                    city: location.city || 'Unknown',
+                    region: location.region || 'Unknown',
+                    country: location.country || 'Unknown'
+                });
+
+                logger.info(`Extension registered with IP: ${ip}, User Agent: ${userAgent}`);
+            } else {
+                logger.warn(`Unknown role received from socket ${socket.id}: ${role}`);
+                socket.emit('error', { message: 'Unknown role specified during registration.' });
             }
-
-            // Add to active users
-            activeUsers.set(socket.id, {
-                socketId: socket.id,
-                ip,
-                city: location.city || 'Unknown',
-                region: location.region || 'Unknown',
-                country: location.country || 'Unknown',
-                userAgent,
-                connectedAt: new Date()
-            });
-
-            // Emit update to admin dashboards
-            emitActiveUsersUpdate();
-
-            // Optionally, emit location data to the connected extension
-            socket.emit('locationUpdate', {
-                ip,
-                city: location.city || 'Unknown',
-                region: location.region || 'Unknown',
-                country: location.country || 'Unknown'
-            });
-        } else {
-            logger.warn(`Unknown role received from socket ${socket.id}: ${role}`);
+        } catch (error) {
+            logger.error(`Error in 'register' event handler for socket ${socket.id}:`, error);
+            socket.emit('error', { message: 'Registration failed due to server error.' });
         }
     });
 
     // Handle presence updates from extensions
     socket.on('presenceUpdate', (data) => {
-        // Broadcast presence updates to admin dashboards
-        io.to('admin').emit('presenceUpdate', { socketId: socket.id, ...data });
+        try {
+            // Update per-socket state
+            if (data.presenceType === 'video') {
+                socket.currentVideo = data;
+                logger.info(`PresenceUpdate (video) from ${socket.id}:`, data);
+            } else if (data.presenceType === 'browsing') {
+                socket.currentBrowsing = data;
+                logger.info(`PresenceUpdate (browsing) from ${socket.id}:`, data);
+            }
+
+            // Broadcast presence updates to admin dashboards
+            io.to('admin').emit('presenceUpdate', { socketId: socket.id, ...data });
+        } catch (error) {
+            logger.error(`Error handling 'presenceUpdate' from ${socket.id}:`, error);
+        }
     });
 
     // Handle video progress updates from extensions
     socket.on('updateVideoProgress', (data) => {
-        // Broadcast video progress updates to admin dashboards
-        io.to('admin').emit('updateVideoProgress', { socketId: socket.id, ...data });
+        try {
+            // Update heartbeat for the video
+            if (data.videoId && socket.currentVideo && socket.currentVideo.videoId === data.videoId) {
+                socket.videoHeartbeat[data.videoId] = Date.now();
+                logger.info(`Heartbeat updated for video ID: ${data.videoId} from socket ${socket.id}`);
+            }
+
+            // Broadcast video progress updates to admin dashboards
+            io.to('admin').emit('updateVideoProgress', { socketId: socket.id, ...data });
+            logger.info(`UpdateVideoProgress from ${socket.id}:`, data);
+        } catch (error) {
+            logger.error(`Error handling 'updateVideoProgress' from ${socket.id}:`, error);
+        }
     });
 
     // Handle heartbeat for video presence
     socket.on('heartbeat', (data, callback) => {
-        const { videoId } = data;
-        if (videoId && currentVideo && currentVideo.videoId === videoId) {
-            videoHeartbeat[videoId] = Date.now();
-            if (callback) callback({ status: "ok" });
-        } else {
-            if (callback) callback({ status: "error", message: "Unknown video ID" });
+        try {
+            const { videoId } = data;
+            if (videoId && socket.currentVideo && socket.currentVideo.videoId === videoId) {
+                socket.videoHeartbeat[videoId] = Date.now();
+                if (callback) callback({ status: "ok" });
+                logger.info(`Heartbeat received for video ID: ${videoId} from socket ${socket.id}`);
+            } else {
+                if (callback) callback({ status: "error", message: "Unknown video ID" });
+                logger.warn(`Heartbeat received with unknown video ID: ${videoId} from socket ${socket.id}`);
+            }
+        } catch (error) {
+            logger.error(`Error handling 'heartbeat' from ${socket.id}:`, error);
+            if (callback) callback({ status: "error", message: "Internal server error" });
         }
     });
 
+    // Handle disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
 
@@ -1005,13 +1054,16 @@ io.on('connection', async (socket) => {
         if (activeUsers.has(socket.id)) {
             activeUsers.delete(socket.id);
             emitActiveUsersUpdate();
+            logger.info(`Removed socket ${socket.id} from active users.`);
         }
 
         // Emit offline presence if necessary
-        if (currentVideo || currentBrowsing) {
-            currentVideo = null;
-            currentBrowsing = null;
-            io.to('admin').emit('presenceUpdate', { socketId: socket.id, presenceType: 'offline' });
+        if (socket.currentVideo || socket.currentBrowsing) {
+            const offlineData = { presenceType: 'offline' };
+            if (socket.currentVideo) {
+                offlineData.videoId = socket.currentVideo.videoId;
+            }
+            io.to('admin').emit('presenceUpdate', { socketId: socket.id, ...offlineData });
             logger.info(`[Socket.IO] Emitted offline presence due to disconnection of socket ${socket.id}.`);
         }
     });
@@ -1022,15 +1074,19 @@ io.on('connection', async (socket) => {
  */
 setInterval(() => {
     const now = Date.now();
-    for (const [videoId, lastHeartbeat] of Object.entries(videoHeartbeat)) {
-        if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
-            currentVideo = null;
-            currentBrowsing = null; // Clear browsing to fully reset state
-            io.to('admin').emit('presenceUpdate', { presenceType: 'offline', videoId });
-            delete videoHeartbeat[videoId];
-            logger.info(`[Socket.IO] Heartbeat timeout for video ID: ${videoId}. Marked as offline.`);
+    io.of('/').sockets.forEach((socket) => {
+        // Check for each video heartbeat in the socket
+        for (const [videoId, lastHeartbeat] of Object.entries(socket.videoHeartbeat)) {
+            if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
+                // Mark video as offline
+                socket.currentVideo = null;
+                socket.currentBrowsing = null; // Clear browsing to fully reset state
+                io.to('admin').emit('presenceUpdate', { socketId: socket.id, presenceType: 'offline', videoId });
+                delete socket.videoHeartbeat[videoId];
+                logger.info(`[Socket.IO] Heartbeat timeout for video ID: ${videoId} from socket ${socket.id}. Marked as offline.`);
+            }
         }
-    }
+    });
 }, HEARTBEAT_TIMEOUT / 2);
 
 
