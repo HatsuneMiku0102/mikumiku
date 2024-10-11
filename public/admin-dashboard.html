@@ -42,6 +42,7 @@
             padding: 10px 20px;
             border-radius: 4px;
             cursor: pointer;
+            margin-left: 10px; /* Added margin for spacing */
         }
 
         button:hover {
@@ -192,7 +193,13 @@
                 const blockButton = document.createElement('button');
                 blockButton.innerText = 'Block User';
                 blockButton.onclick = () => blockUser(user.ip);
+
+                const unblockButton = document.createElement('button');
+                unblockButton.innerText = 'Unblock User';
+                unblockButton.onclick = () => unblockUser(user.ip);
+
                 ipItem.appendChild(blockButton);
+                ipItem.appendChild(unblockButton);
                 
                 return ipItem;
             }
@@ -217,6 +224,29 @@
                 })
                 .catch(error => {
                     console.error('Error blocking user:', error);
+                });
+            }
+
+            // Unblock user function
+            function unblockUser(ip) {
+                fetch('/api/unblock-user', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ ip })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        console.log(`User with IP ${ip} has been unblocked.`);
+                        alert(`User with IP ${ip} has been unblocked.`);
+                    } else {
+                        console.error('Failed to unblock user.');
+                        alert('Failed to unblock user.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error unblocking user:', error);
                 });
             }
 
