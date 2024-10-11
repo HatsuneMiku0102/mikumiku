@@ -163,7 +163,7 @@ app.use(
                 "https://*.youtube.com",
                 "https://api.openweathermap.org",
                 "https://cdn.socket.io",
-                "https://mikumiku.dev" // Add your server domain here
+                "https://mikumiku.dev" // Ensure this matches the actual domain
             ],
             frameSrc: [
                 "'self'",
@@ -182,6 +182,7 @@ app.use(
         }
     })
 );
+
 
 
 
