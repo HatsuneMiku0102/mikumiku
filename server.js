@@ -31,6 +31,7 @@ const rateLimit = require('express-rate-limit');
 // Load Environment Variables
 // ----------------------
 dotenv.config();
+const rateLimitMap = new Map();
 
 // ----------------------
 // Initialize Express App and Server
