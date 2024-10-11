@@ -934,13 +934,12 @@ app.post('/api/unblock-user', (req, res) => {
 io.on('connection', async (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
-    // Extract IP address from the socket
     const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
-    const connectionType = socket.handshake.query.connectionType || 'website'; // 'website' or 'extension'
-    
+    const connectionType = socket.handshake.query.connectionType || 'website';
+
     if (blockedIps.has(ip)) {
         logger.warn(`Blocked connection attempt from IP: ${ip}`);
-        socket.disconnect(); // Disconnect if IP is blocked
+        socket.disconnect();
         return;
     }
 
@@ -950,13 +949,16 @@ io.on('connection', async (socket) => {
     if (!activeUsers.has(ip)) {
         activeUsers.set(ip, { id: socket.id, ip, connectionTypes: new Set() });
     }
-    activeUsers.get(ip).connectionTypes.add(connectionType);
+    activeUsers.get(ip).connectionTypes.add(connectionType); // Add the connection type to the Set
 
-    // Emit updated user list
-    io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()).map(user => ({
-        ip: user.ip,
-        connectionTypes: Array.from(user.connectionTypes).join(', ') // Join as a string
-    })) });
+    // Emit updated active users
+    io.emit('activeUsersUpdate', {
+        users: Array.from(activeUsers.values()).map(user => ({
+            ip: user.ip,
+            connectionTypes: Array.from(user.connectionTypes).join(', ') // Join connection types correctly
+        }))
+    });
+
 
     // Emit current presence state to the newly connected client
     emitCurrentPresence(socket);
