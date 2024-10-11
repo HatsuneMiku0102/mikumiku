@@ -896,31 +896,55 @@ app.get('/api/weather', async (req, res) => {
 // WebSocket (Socket.IO) Configuration
 // ----------------------
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
+const blockedIps = new Set(); // Set to track blocked IPs
 
 // State Management
 let currentVideo = null;
 let currentBrowsing = null;
 const videoHeartbeat = {};
 const activeUsers = new Map(); // Tracks active users by IP and connection type
-const blockedUsers = new Set(); // Store blocked users' IPs
 
-/**
- * Handle new client connections
- */
+app.use(bodyParser.json());
+
+// Block user endpoint
+app.post('/api/block-user', (req, res) => {
+    const { ip } = req.body;
+    if (ip) {
+        blockedIps.add(ip); // Add IP to blocked list
+        logger.info(`Blocked user with IP: ${ip}`);
+        res.status(200).send({ status: 'success', message: `User with IP ${ip} has been blocked.` });
+    } else {
+        res.status(400).send({ status: 'error', message: 'IP address is required.' });
+    }
+});
+
+// Unblock user endpoint
+app.post('/api/unblock-user', (req, res) => {
+    const { ip } = req.body;
+    if (ip) {
+        blockedIps.delete(ip); // Remove IP from blocked list
+        logger.info(`Unblocked user with IP: ${ip}`);
+        res.status(200).send({ status: 'success', message: `User with IP ${ip} has been unblocked.` });
+    } else {
+        res.status(400).send({ status: 'error', message: 'IP address is required.' });
+    }
+});
+
+// Handle new client connections
 io.on('connection', async (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
     // Extract IP address from the socket
     const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
     const connectionType = socket.handshake.query.connectionType || 'website'; // 'website' or 'extension'
-    logger.info(`New connection from IP: ${ip}, Type: ${connectionType}`);
-
-    // Check if the user is blocked
-    if (blockedUsers.has(ip)) {
-        socket.emit('blocked', { message: 'You are blocked from accessing this service.' });
-        socket.disconnect();
+    
+    if (blockedIps.has(ip)) {
+        logger.warn(`Blocked connection attempt from IP: ${ip}`);
+        socket.disconnect(); // Disconnect if IP is blocked
         return;
     }
+
+    logger.info(`New connection from IP: ${ip}, Type: ${connectionType}`);
 
     try {
         // Fetch geolocation data for the IP
@@ -1032,20 +1056,6 @@ io.on('connection', async (socket) => {
 });
 
 /**
- * Block a user by IP
- */
-app.post('/api/block-user', (req, res) => {
-    const { ip } = req.body;
-    if (ip) {
-        blockedUsers.add(ip);
-        logger.info(`User with IP ${ip} has been blocked.`);
-        res.status(200).send({ message: 'User blocked successfully' });
-    } else {
-        res.status(400).send({ message: 'IP address is required' });
-    }
-});
-
-/**
  * Periodically check for heartbeat timeouts to mark videos as offline
  */
 setInterval(() => {
@@ -1150,7 +1160,6 @@ function handleOfflinePresence() {
     currentBrowsing = null;
     logger.info(`[Socket.IO] User marked as offline.`);
 }
-
 
 
 
