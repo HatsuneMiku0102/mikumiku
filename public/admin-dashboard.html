@@ -53,13 +53,7 @@
         }
 
         .user-list {
-            display: flex;
-            justify-content: space-between;
             margin-top: 20px;
-        }
-
-        .user-group {
-            width: 48%;
         }
 
         .user-group h3 {
@@ -103,19 +97,11 @@
         <div class="real-time-info">
             <h3>Real-time Active Users</h3>
             <p id="active-users-count">Loading active user count...</p>
-            <p id="website-users-count">Website Users: Loading...</p>
-            <p id="extension-users-count">Extension Users: Loading...</p>
         </div>
 
         <div class="user-list">
-            <div class="user-group">
-                <h3>Website Users</h3>
-                <ul id="website-ip-list" class="ip-list">Loading...</ul>
-            </div>
-            <div class="user-group">
-                <h3>Extension Users</h3>
-                <ul id="extension-ip-list" class="ip-list">Loading...</ul>
-            </div>
+            <h3>Active Users</h3>
+            <ul id="active-ip-list" class="ip-list">Loading...</ul>
         </div>
 
         <!-- Chart section -->
@@ -129,9 +115,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const socket = io();
-            const websiteIpListElement = document.getElementById('website-ip-list');
-            const extensionIpListElement = document.getElementById('extension-ip-list');
-            const ipElements = new Map();
+            const activeIpListElement = document.getElementById('active-ip-list');
 
             socket.on('connect', () => {
                 console.log('Connected to socket server.');
@@ -143,26 +127,16 @@
 
             socket.on('activeUsersUpdate', (data) => {
                 if (data && data.users && Array.isArray(data.users)) {
-                    const websiteUsers = data.users.filter(user => user.connectionType === 'website');
-                    const extensionUsers = data.users.filter(user => user.connectionType === 'extension');
+                    const activeUsers = data.users;
 
-                    document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`;
-                    document.getElementById('website-users-count').innerText = `Website Users: ${websiteUsers.length}`;
-                    document.getElementById('extension-users-count').innerText = `Extension Users: ${extensionUsers.length}`;
+                    document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsers.length}`;
 
-                    websiteIpListElement.innerHTML = '';
-                    extensionIpListElement.innerHTML = '';
+                    activeIpListElement.innerHTML = '';
 
-                    // Display website users
-                    websiteUsers.forEach(user => {
+                    // Display active users
+                    activeUsers.forEach(user => {
                         const ipItem = createIpItem(user);
-                        websiteIpListElement.appendChild(ipItem);
-                    });
-
-                    // Display extension users
-                    extensionUsers.forEach(user => {
-                        const ipItem = createIpItem(user);
-                        extensionIpListElement.appendChild(ipItem);
+                        activeIpListElement.appendChild(ipItem);
                     });
                 } else {
                     console.warn('No valid active users data found.');
