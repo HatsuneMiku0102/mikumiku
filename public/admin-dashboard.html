@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* Your existing styles */
         body {
             font-family: 'Roboto', sans-serif;
             background-color: #f5f5f5;
@@ -112,124 +113,152 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-
         document.addEventListener('DOMContentLoaded', function () {
-            const socket = io();
-            const activeIpListElement = document.getElementById('active-ip-list');
-    
-            socket.on('connect', () => {
-                console.log('Connected to socket server.');
-            });
-    
-            socket.on('connect_error', (error) => {
-                console.error('Error connecting to socket:', error);
-            });
-    
-            socket.on('activeUsersUpdate', (data) => {
-                if (data && data.users && Array.isArray(data.users)) {
-                    const activeUsers = data.users;
-                    document.getElementById('active-users-count').innerText = `Currently Active Users: ${activeUsers.length}`;
-                    activeIpListElement.innerHTML = '';
-    
+            console.log('Admin dashboard script loaded.');
+
+            // Extract the 'token' cookie if available
+            const cookieString = document.cookie;
+            console.log('Current cookies:', cookieString);
+
+            const token = cookieString
+                .split('; ')
+                .find(row => row.startsWith('token='))
+                ?.split('=')[1];
+
+            if (!token) {
+                console.warn('No valid token found, redirecting to login page.');
+                window.location.href = '/auth';
+            } else {
+                console.log('Valid token detected:', token);
+
+                // Initialize Socket.IO
+                const socket = io();
+
+                // Initialize Chart.js Chart
+                const ctx = document.getElementById('locationChart').getContext('2d');
+                const locationChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: [], // Countries
+                        datasets: [{
+                            label: 'Visitors by Country',
+                            data: [], // Visitor counts
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+
+                // Function to update the chart with new data
+                function updateChart(countryData) {
+                    const countries = countryData.map(item => item._id || 'Unknown');
+                    const visitCounts = countryData.map(item => item.count);
+
+                    // Update chart data
+                    locationChart.data.labels = countries;
+                    locationChart.data.datasets[0].data = visitCounts;
+                    locationChart.update();
+                }
+
+                // Fetch initial GeoData to populate the chart
+                fetch('/api/geo-data')
+                    .then(response => response.json())
+                    .then(data => {
+                        updateChart(data);
+                    })
+                    .catch(error => console.error('Error fetching initial geo data:', error));
+
+                // Listen for geoDataUpdate events to update the chart in real-time
+                socket.on('geoDataUpdate', (data) => {
+                    console.log('Received geoDataUpdate:', data);
+                    updateChart(data);
+                });
+
+                // Listen for active users update
+                socket.on('activeUsersUpdate', (data) => {
+                    console.log('Active users data received:', data);
+                    document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`;
+                    const activeIpListElement = document.getElementById('active-ip-list');
+                    activeIpListElement.innerHTML = ''; // Clear previous content
+
                     // Display active users
-                    activeUsers.forEach(user => {
+                    data.users.forEach(user => {
                         const ipItem = createIpItem(user);
                         activeIpListElement.appendChild(ipItem);
                     });
-                } else {
-                    console.warn('No valid active users data found.');
-                    document.getElementById('active-users-count').innerText = 'No active users found.';
+                });
+
+                // Helper function to create an IP list item
+                function createIpItem(user) {
+                    const ipItem = document.createElement('li');
+                    ipItem.classList.add('ip-item');
+
+                    const connectionTypes = Array.from(user.connectionTypes).join(', ');
+                    ipItem.innerText = `IP: ${user.ip}, Connection Types: ${connectionTypes}`;
+
+                    // Add block and unblock buttons
+                    const blockButton = document.createElement('button');
+                    blockButton.innerText = 'Block';
+                    blockButton.onclick = () => blockUser(user.ip);
+
+                    const unblockButton = document.createElement('button');
+                    unblockButton.innerText = 'Unblock';
+                    unblockButton.onclick = () => unblockUser(user.ip);
+
+                    ipItem.appendChild(blockButton);
+                    ipItem.appendChild(unblockButton);
+
+                    return ipItem;
                 }
-            });
-    
-            // Helper function to create an IP list item
-            function createIpItem(user) {
-                const ipItem = document.createElement('li');
-                ipItem.classList.add('ip-item');
-    
-                const connectionTypes = Array.from(user.connectionTypes).join(', ');
-                ipItem.innerText = `IP: ${user.ip}, Connection Types: ${connectionTypes}`;
-            
-                // Add block and unblock buttons
-                const blockButton = document.createElement('button');
-                blockButton.innerText = 'Block';
-                blockButton.onclick = () => blockUser(user.ip);
-            
-                const unblockButton = document.createElement('button');
-                unblockButton.innerText = 'Unblock';
-                unblockButton.onclick = () => unblockUser(user.ip);
-            
-                ipItem.appendChild(blockButton);
-                ipItem.appendChild(unblockButton);
-            
-                return ipItem;
-            }
-    
-            function blockUser(ip) {
-                console.log(`Block button clicked for IP: ${ip}`);
-                socket.emit('blockUser', { ip }, (response) => {
-                    console.log(`Response from blocking user:`, response);
-                    if (response.status === 'success') {
-                        alert(`User with IP ${ip} has been blocked.`);
-                    } else {
-                        alert(`Failed to block user: ${response.message}`);
-                    }
-                });
-            }
-            
-            function unblockUser(ip) {
-                console.log(`Unblock button clicked for IP: ${ip}`);
-                socket.emit('unblockUser', { ip }, (response) => {
-                    console.log(`Response from unblocking user:`, response);
-                    if (response.status === 'success') {
-                        alert(`User with IP ${ip} has been unblocked.`);
-                    } else {
-                        alert(`Failed to unblock user: ${response.message}`);
-                    }
-                });
-            }
-    
-            // Logout logic
-            document.getElementById('logout').addEventListener('click', () => {
-                fetch('/logout', { method: 'POST', credentials: 'include' })
-                    .then(() => {
-                        document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                        window.location.href = '/auth';
-                    })
-                    .catch(error => console.error('Logout failed:', error));
-            });
-    
-            // Fetch country data for the chart
-            fetch('/api/geo-data')
-                .then(response => response.json())
-                .then(data => {
-                    const countries = data.map(item => item._id || 'Unknown');
-                    const visitCounts = data.map(item => item.count);
-    
-                    const ctx = document.getElementById('locationChart').getContext('2d');
-                    new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: countries,
-                            datasets: [{
-                                label: 'Visitors by Country',
-                                data: visitCounts,
-                                backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                                borderColor: 'rgba(54, 162, 235, 1)',
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            scales: {
-                                y: {
-                                    beginAtZero: true
-                                }
-                            }
+
+                function blockUser(ip) {
+                    console.log(`Block button clicked for IP: ${ip}`);
+                    socket.emit('blockUser', { ip }, (response) => {
+                        console.log(`Response from blocking user:`, response);
+                        if (response.status === 'success') {
+                            alert(`User with IP ${ip} has been blocked.`);
+                        } else {
+                            alert(`Failed to block user: ${response.message}`);
                         }
                     });
-                })
-                .catch(error => console.error('Error fetching geo data:', error));
+                }
+                
+                function unblockUser(ip) {
+                    console.log(`Unblock button clicked for IP: ${ip}`);
+                    socket.emit('unblockUser', { ip }, (response) => {
+                        console.log(`Response from unblocking user:`, response);
+                        if (response.status === 'success') {
+                            alert(`User with IP ${ip} has been unblocked.`);
+                        } else {
+                            alert(`Failed to unblock user: ${response.message}`);
+                        }
+                    });
+                }
+
+                // Logout logic
+                document.getElementById('logout').addEventListener('click', () => {
+                    console.log('Logout initiated.');
+
+                    fetch('/logout', { method: 'POST', credentials: 'include' })
+                        .then(() => {
+                            console.log('Logout request successful, clearing token cookie.');
+                            document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                            window.location.href = '/auth';
+                        })
+                        .catch(error => {
+                            console.error('Logout failed:', error);
+                        });
+                });
+            }
         });
     </script>
 </body>
