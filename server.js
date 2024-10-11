@@ -906,27 +906,17 @@ const activeUsers = new Map(); // Tracks active users by IP and connection type
 
 app.use(bodyParser.json());
 
-// MongoDB model for IP bans
-const IPBan = mongoose.model('IPBan', new mongoose.Schema({
-    ip: { type: String, required: true, unique: true }
-}));
-
 // Block user endpoint
 app.post('/api/block-user', async (req, res) => {
     const { ip } = req.body;
     if (ip) {
         blockedIps.add(ip); // Add IP to blocked list
+        logger.info(`Blocked user with IP: ${ip}`);
 
-        // Save IP to MongoDB
-        const ipBan = new IPBan({ ip });
-        try {
-            await ipBan.save();
-            logger.info(`Blocked user with IP: ${ip}`);
-            res.status(200).send({ status: 'success', message: `User with IP ${ip} has been blocked.` });
-        } catch (error) {
-            logger.error(`Error saving IP ban: ${error}`);
-            res.status(500).send({ status: 'error', message: 'Failed to block user.' });
-        }
+        // Save the blocked IP to MongoDB
+        await IPbans.create({ ip }); // Save to IPbans collection
+
+        res.status(200).send({ status: 'success', message: `User with IP ${ip} has been blocked.` });
     } else {
         res.status(400).send({ status: 'error', message: 'IP address is required.' });
     }
@@ -937,16 +927,12 @@ app.post('/api/unblock-user', async (req, res) => {
     const { ip } = req.body;
     if (ip) {
         blockedIps.delete(ip); // Remove IP from blocked list
+        logger.info(`Unblocked user with IP: ${ip}`);
 
-        // Remove IP from MongoDB
-        try {
-            await IPBan.deleteOne({ ip });
-            logger.info(`Unblocked user with IP: ${ip}`);
-            res.status(200).send({ status: 'success', message: `User with IP ${ip} has been unblocked.` });
-        } catch (error) {
-            logger.error(`Error removing IP ban: ${error}`);
-            res.status(500).send({ status: 'error', message: 'Failed to unblock user.' });
-        }
+        // Remove the unblocked IP from MongoDB
+        await IPbans.deleteOne({ ip }); // Remove from IPbans collection
+
+        res.status(200).send({ status: 'success', message: `User with IP ${ip} has been unblocked.` });
     } else {
         res.status(400).send({ status: 'error', message: 'IP address is required.' });
     }
@@ -959,7 +945,6 @@ io.on('connection', async (socket) => {
     const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
     const connectionType = socket.handshake.query.connectionType || 'website'; // 'website' or 'extension'
 
-    // Check if the IP is blocked
     if (blockedIps.has(ip)) {
         logger.warn(`Blocked connection attempt from IP: ${ip}`);
         socket.disconnect(); // Disconnect if IP is blocked
@@ -978,7 +963,7 @@ io.on('connection', async (socket) => {
     io.emit('activeUsersUpdate', {
         users: Array.from(activeUsers.values()).map(user => ({
             ip: user.ip,
-            connectionTypes: Array.from(user.connectionTypes)
+            connectionTypes: Array.from(user.connectionTypes) // Connection types are saved as an array
         }))
     });
 
@@ -1041,7 +1026,7 @@ io.on('connection', async (socket) => {
      */
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
-
+        
         if (activeUsers.has(ip)) {
             const user = activeUsers.get(ip);
             user.connectionTypes.delete(connectionType);
@@ -1051,12 +1036,10 @@ io.on('connection', async (socket) => {
         }
 
         // Emit updated user list
-        io.emit('activeUsersUpdate', {
-            users: Array.from(activeUsers.values()).map(user => ({
-                ip: user.ip,
-                connectionTypes: Array.from(user.connectionTypes)
-            }))
-        });
+        io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()).map(user => ({
+            ip: user.ip,
+            connectionTypes: Array.from(user.connectionTypes)
+        })) });
 
         if (currentVideo || currentBrowsing) {
             currentVideo = null;
@@ -1172,6 +1155,7 @@ function handleOfflinePresence() {
     currentBrowsing = null;
     logger.info(`[Socket.IO] User marked as offline.`);
 }
+
 
 
 
