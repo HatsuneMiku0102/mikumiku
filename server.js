@@ -982,18 +982,19 @@ io.on('connection', async (socket) => {
     socket.on('blockUser', async (data) => {
         const { ip } = data;
         if (ip) {
-            // Check if the IP is already blocked
             if (!blockedIps.has(ip)) {
-                blockedIps.add(ip); // Add to the in-memory blocked set
+                blockedIps.add(ip);
                 logger.info(`Blocking user with IP: ${ip}`);
     
                 // Save to MongoDB IPbans collection
                 await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
     
-                // Send acknowledgment back to client
+                // Notify all clients about the blocked IP
+                io.emit('ipBlocked', { ip });
+    
+                // Acknowledge the block
                 socket.emit('blockUserResponse', { status: 'success', message: `User with IP ${ip} has been blocked.` });
             } else {
-                // IP is already blocked
                 socket.emit('blockUserResponse', { status: 'error', message: `User with IP ${ip} is already blocked.` });
             }
         } else {
@@ -1001,28 +1002,30 @@ io.on('connection', async (socket) => {
         }
     });
     
-    // Unblock user request
+    // Notify all connected clients when an IP is unblocked
     socket.on('unblockUser', async (data) => {
         const { ip } = data;
         if (ip) {
-            // Check if the IP is currently blocked
             if (blockedIps.has(ip)) {
-                blockedIps.delete(ip); // Remove from the in-memory blocked set
+                blockedIps.delete(ip);
                 logger.info(`Unblocking user with IP: ${ip}`);
     
                 // Remove from MongoDB IPbans collection
                 await IPbans.deleteOne({ ip });
     
-                // Send acknowledgment back to client
+                // Notify all clients about the unblocked IP
+                io.emit('ipUnblocked', { ip });
+    
+                // Acknowledge the unblock
                 socket.emit('unblockUserResponse', { status: 'success', message: `User with IP ${ip} has been unblocked.` });
             } else {
-                // IP is not blocked
                 socket.emit('unblockUserResponse', { status: 'error', message: `User with IP ${ip} is not blocked.` });
             }
         } else {
             socket.emit('unblockUserResponse', { status: 'error', message: 'IP address is required.' });
         }
     });
+
 
     // Handle Presence Updates (Video, Browsing, Offline)
     socket.on('presenceUpdate', (data) => {
