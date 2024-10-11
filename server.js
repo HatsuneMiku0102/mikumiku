@@ -875,6 +875,7 @@ app.get('/api/location/:ip', async (req, res) => {
 });
 
 // Track IP Route
+// Track IP Route
 app.post('/track', async (req, res) => {
     const ip = getClientIp(req);
     logger.info(`Extracted IP: ${ip}`);
@@ -913,6 +914,16 @@ app.post('/track', async (req, res) => {
 
         logger.info(`Location data updated or inserted for IP: ${ip} - City: ${location.city}, Region: ${location.region}, Country: ${location.country}`);
         res.json({ ip, location });
+
+        // Perform aggregation to group by country
+        const countryData = await GeoData.aggregate([
+            { $group: { _id: "$country", count: { $sum: 1 } } },
+            { $sort: { count: -1 } }
+        ]);
+
+        // Emit the aggregated data to all connected clients
+        io.emit('geoDataUpdate', countryData);
+        logger.info('Emitted geoDataUpdate event to all connected clients.');
 
     } catch (err) {
         logger.error(`Error fetching location or saving to MongoDB for IP ${ip}: ${err.message}`);
