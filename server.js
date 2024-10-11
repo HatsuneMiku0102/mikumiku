@@ -930,12 +930,6 @@ io.on('connection', async (socket) => {
     // Listen for 'register' event to determine client role
     socket.on('register', async (data) => {
         const { role } = data || {};
-        if (!role) {
-            logger.warn(`Registration failed for socket ${socket.id}: No role provided`);
-            socket.emit('error', { message: 'No role provided during registration.' });
-            return;
-        }
-
         if (role === 'admin') {
             socket.join('admin');
             logger.info(`Socket ${socket.id} joined admin room.`);
@@ -983,7 +977,8 @@ io.on('connection', async (socket) => {
 
     // Handle presence updates
     socket.on('presenceUpdate', (data) => {
-        if (!data.presenceType) {
+        // Ensure that data is not null or undefined
+        if (!data || !data.presenceType) {
             logger.warn(`Invalid presenceUpdate from ${socket.id}: No presenceType specified`);
             return;
         }
@@ -1003,10 +998,16 @@ io.on('connection', async (socket) => {
 
     // Handle video progress updates
     socket.on('updateVideoProgress', (data) => {
-        if (data.videoId && socket.currentVideo?.videoId === data.videoId) {
-            socket.videoHeartbeat[data.videoId] = Date.now();
-            logger.info(`Heartbeat updated for video ID: ${data.videoId} from socket ${socket.id}`);
+        // Validate that data and videoId are present
+        if (!data || !data.videoId) {
+            logger.warn(`Invalid updateVideoProgress from ${socket.id}: Missing videoId`);
+            return;
         }
+
+        if (socket.currentVideo && socket.currentVideo.videoId === data.videoId) {
+            socket.videoHeartbeat[data.videoId] = Date.now();
+        }
+        logger.info(`Received video progress update from ${socket.id}:`, data);
         io.to('admin').emit('updateVideoProgress', { socketId: socket.id, ...data });
     });
 
