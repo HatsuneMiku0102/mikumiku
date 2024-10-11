@@ -913,8 +913,8 @@ app.post('/api/block-user', async (req, res) => {
         blockedIps.add(ip); // Add IP to blocked list
         logger.info(`Blocked user with IP: ${ip}`);
 
-        // Save the blocked IP to MongoDB
-        await IPbans.create({ ip }); // Save to IPbans collection
+        // Save to MongoDB IPbans collection
+        await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
 
         res.status(200).send({ status: 'success', message: `User with IP ${ip} has been blocked.` });
     } else {
@@ -929,8 +929,8 @@ app.post('/api/unblock-user', async (req, res) => {
         blockedIps.delete(ip); // Remove IP from blocked list
         logger.info(`Unblocked user with IP: ${ip}`);
 
-        // Remove the unblocked IP from MongoDB
-        await IPbans.deleteOne({ ip }); // Remove from IPbans collection
+        // Remove from MongoDB IPbans collection
+        await IPbans.deleteOne({ ip });
 
         res.status(200).send({ status: 'success', message: `User with IP ${ip} has been unblocked.` });
     } else {
@@ -963,16 +963,14 @@ io.on('connection', async (socket) => {
     io.emit('activeUsersUpdate', {
         users: Array.from(activeUsers.values()).map(user => ({
             ip: user.ip,
-            connectionTypes: Array.from(user.connectionTypes) // Connection types are saved as an array
+            connectionTypes: Array.from(user.connectionTypes) // No need to join here
         }))
     });
 
     // Emit current presence state to the newly connected client
     emitCurrentPresence(socket);
 
-    /**
-     * Handle Presence Updates (Video, Browsing, Offline)
-     */
+    // Handle Presence Updates (Video, Browsing, Offline)
     socket.on('presenceUpdate', (data) => {
         switch (data.presenceType) {
             case 'browsing':
@@ -992,25 +990,19 @@ io.on('connection', async (socket) => {
         io.emit('presenceUpdate', data);
     });
 
-    /**
-     * Handle YouTube Browsing Presence Updates
-     */
+    // Handle YouTube Browsing Presence Updates
     socket.on('updateBrowsingPresence', (data) => {
         handleBrowsingPresence(data);
         io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
     });
 
-    /**
-     * Handle YouTube Video Progress Updates
-     */
+    // Handle YouTube Video Progress Updates
     socket.on('updateVideoProgress', (data) => {
         handleVideoPresence(data);
         io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
     });
 
-    /**
-     * Handle Heartbeat Signals for YouTube Videos
-     */
+    // Handle Heartbeat Signals for YouTube Videos
     socket.on('heartbeat', (data, callback) => {
         const { videoId } = data;
         if (videoId && currentVideo && currentVideo.videoId === videoId) {
@@ -1021,9 +1013,7 @@ io.on('connection', async (socket) => {
         }
     });
 
-    /**
-     * Handle Client Disconnection
-     */
+    // Handle Client Disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
         
@@ -1038,7 +1028,7 @@ io.on('connection', async (socket) => {
         // Emit updated user list
         io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()).map(user => ({
             ip: user.ip,
-            connectionTypes: Array.from(user.connectionTypes)
+            connectionTypes: Array.from(user.connectionTypes) // No need to join here
         })) });
 
         if (currentVideo || currentBrowsing) {
