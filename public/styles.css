@@ -17,7 +17,6 @@
     --font-family: 'Roboto', sans-serif;
     --background-gradient: linear-gradient(135deg, rgba(0, 229, 255, 0.6), rgba(255, 64, 129, 0.6));
     --futuristic-background: rgba(0, 0, 0, 0.6); /* Subtle futuristic tone */
-    --title-color: #00e5ff; /* Added for typewriter caret color */
 }
 
 /* =========================================
@@ -99,9 +98,7 @@ body {
     gap: 1.5rem; /* Increased gap */
 }
 
-/* =========================================
-   Menu Button
-========================================= */
+/* Menu Button */
 .menu-button {
     display: flex;
     align-items: center;
@@ -133,11 +130,6 @@ body {
 }
 
 /* =========================================
-   Personality Section (Merged into Overlay Menu)
-========================================= */
-/* Removed .personality-circle from title bar */
-
-/* =========================================
    Title Wrapper and Typewriter Effect
 ========================================= */
 .title-wrapper {
@@ -145,12 +137,11 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    position: relative;
 }
 
 .site-title {
     font-size: var(--title-font-size);
-    color: var(--title-color);
+    color: #ffffff;
     text-shadow: 0 0 15px rgba(0, 229, 255, 0.7);
     cursor: default;
     background-image: linear-gradient(45deg, #00e5ff, #ff4081);
@@ -158,30 +149,34 @@ body {
     -webkit-text-fill-color: transparent;
     overflow: hidden;
     white-space: nowrap;
-    border-right: .15em solid var(--title-color); /* Cursor for typewriter effect */
+    border-right: .15em solid var(--secondary-color); /* Cursor for typewriter effect */
     letter-spacing: .15em;
-    animation: typing 4s steps(30, end) forwards, blink-caret 0.75s step-end 4s forwards;
-    /* Positioned to ensure proper centering */
-    display: inline-block;
+    animation: typing 4s steps(30, end) forwards, blink-caret 0.75s step-end 1 forwards;
+    position: relative;
 }
 
 @keyframes typing {
-    from { width: 0; }
-    to { width: 15em; }
+    from { width: 0 }
+    to { width: 15em }
 }
 
 @keyframes blink-caret {
-    from { border-right-color: var(--title-color); }
-    to { border-right-color: transparent; }
+    from, to { border-color: transparent }
+    50% { border-color: var(--secondary-color); }
 }
 
-.title-bar.scrolled .site-title {
-    font-size: 1.8rem;
-    text-shadow: 0 0 10px rgba(255, 64, 129, 1), 0 0 20px rgba(0, 229, 255, 1);
+.site-title.completed {
+    border-right: none; /* Remove caret after typing */
+}
+
+/* Center the title after typing */
+.site-title.completed {
+    width: auto;
+    animation: none;
 }
 
 /* =========================================
-   Right Section - "mm.dev" SVG Logo
+   Right Section - "mm.dev" Logo
 ========================================= */
 .right-section {
     display: flex;
@@ -201,11 +196,11 @@ body {
 }
 
 .logo-svg {
-    width: 55px; /* Slightly larger */
-    height: 55px;
+    width: 60px; /* Slightly larger size */
+    height: 60px;
     cursor: pointer;
     transition: transform var(--transition-duration) ease, opacity var(--transition-duration) ease;
-    margin-left: 0.5rem; /* Closer to the title */
+    margin-left: 1rem; /* Move closer to the title */
 }
 
 .logo-svg:hover {
@@ -213,18 +208,21 @@ body {
     opacity: 0.8;
 }
 
-/* Adjusted keyframe for rotation */
 .logo-svg.rotate {
     animation: rotateLogo 10s linear infinite;
 }
 
 @keyframes rotateLogo {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* =========================================
-   Overlay Menu (Including Personality Options)
+   Overlay Menu
 ========================================= */
 .overlay-menu {
     position: fixed;
@@ -271,22 +269,27 @@ body {
 }
 
 /* Personality Options within Overlay Menu */
-.overlay-menu .personality-option {
+.overlay-menu .personality-options {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
+    gap: 1rem;
+}
+
+.overlay-menu .personality-options button {
+    background: none;
+    border: 2px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    padding: 0.5rem 1rem;
+    color: #ffffff;
+    font-size: 1rem;
     cursor: pointer;
+    transition: background-color var(--transition-duration) ease, color var(--transition-duration) ease, transform var(--transition-duration) ease;
 }
 
-.overlay-menu .personality-option svg {
-    width: 25px;
-    height: 25px;
-    fill: var(--primary-color);
-    transition: fill var(--transition-duration) ease;
-}
-
-.overlay-menu .personality-option:hover svg {
-    fill: var(--secondary-color);
+.overlay-menu .personality-options button:hover {
+    background-color: var(--primary-color);
+    transform: scale(1.05);
 }
 
 /* Close Overlay Button */
@@ -316,25 +319,25 @@ body.overlay-active {
    Now Playing Section
 ========================================= */
 .now-playing-container {
-    padding: 80px 20px 20px 20px; /* Adjusted padding */
+    padding: 80px 20px 20px 20px; /* Reduced top padding */
     display: flex;
     justify-content: center;
     align-items: center;
-    background: transparent;
-    margin-top: 10px;
+    background: transparent; /* Removed background */
+    margin-top: 10px; /* Added margin to move it down */
 }
 
 .now-playing {
     display: flex;
     flex-direction: row;
-    background: transparent;
+    background: transparent; /* Removed background */
     border-radius: var(--border-radius);
-    padding: 1rem;
-    max-width: 1000px;
+    padding: 1rem; /* Further reduced padding for compactness */
+    max-width: 1000px; /* Reduced max-width */
     width: 100%;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6); /* Retained shadow for depth */
     transition: box-shadow var(--transition-duration) ease;
-    background-color: var(--futuristic-background);
+    background-color: var(--futuristic-background); /* Subtle futuristic background */
     position: relative;
 }
 
@@ -347,11 +350,11 @@ body.overlay-active {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    padding: 0.75rem;
+    gap: 0.75rem; /* Reduced gap */
+    padding: 0.75rem; /* Reduced padding */
     border-right: 1px solid rgba(255, 255, 255, 0.2);
-    background: transparent;
-    box-shadow: none;
+    background: transparent; /* Removed background */
+    box-shadow: none; /* Removed shadow */
     transition: box-shadow var(--transition-duration) ease;
 }
 
@@ -359,7 +362,7 @@ body.overlay-active {
 .sidebar-item {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.3rem; /* Reduced gap */
     font-size: var(--content-font-size);
     color: #ffffff;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
@@ -367,14 +370,14 @@ body.overlay-active {
 
 .sidebar-item i {
     color: var(--primary-color);
-    font-size: 1rem;
+    font-size: 1rem; /* Slightly smaller */
 }
 
 /* Category Item */
 .sidebar-item.video-category {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.3rem; /* Reduced gap */
     position: relative;
 }
 
@@ -389,13 +392,13 @@ body.overlay-active {
    Clock Widget
 ========================================= */
 .clock-section {
-    background: transparent;
-    padding: 0.5rem;
+    background: transparent; /* Removed background */
+    padding: 0.5rem; /* Reduced padding */
     border-radius: var(--border-radius);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    gap: 1rem; /* Reduced gap */
 }
 
 .clock-section p.greeting {
@@ -409,7 +412,7 @@ body.overlay-active {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 1rem;
+    gap: 1rem; /* Reduced gap */
     width: 100%;
 }
 
@@ -435,11 +438,7 @@ body.overlay-active {
     color: #ffffff;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     animation: fadeIn 1s ease forwards;
-    text-align: center;
-}
-
-.time-zone {
-    text-align: center;
+    text-align: center; /* Centered text */
 }
 
 /* Analog Clock */
@@ -450,7 +449,7 @@ body.overlay-active {
 }
 
 .analog-clock {
-    width: 150px;
+    width: 150px; /* Reduced size for compactness */
     height: 150px;
     border-radius: 50%;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
@@ -464,9 +463,7 @@ body.overlay-active {
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
 }
 
-/* =========================================
-   Last Visit Message
-========================================= */
+/* Last Visit Message */
 .last-visit-message {
     margin-top: 15px;
     font-size: var(--small-font-size);
@@ -479,20 +476,20 @@ body.overlay-active {
    Weather Section
 ========================================= */
 .weather-section {
-    background: transparent;
-    padding: 0.5rem;
+    background: transparent; /* Removed background */
+    padding: 0.5rem; /* Reduced padding */
     border-radius: var(--border-radius);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
-    border-left: 1px solid rgba(255, 255, 255, 0.2);
-    height: 100%;
-    justify-content: space-between;
+    gap: 1rem; /* Reduced gap */
+    border-left: 1px solid rgba(255, 255, 255, 0.2); /* Divider between Now Playing and Weather */
+    height: 100%; /* Stretch to match Now Playing box height */
+    justify-content: space-between; /* Distribute space evenly */
 }
 
 .weather-icon {
-    width: 80px;
+    width: 80px; /* Reduced size */
     height: 80px;
     animation: fadeIn 1s ease forwards;
 }
@@ -507,7 +504,7 @@ body.overlay-active {
     transition: color var(--transition-duration) ease;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     animation: fadeIn 1s ease forwards;
-    text-align: center;
+    text-align: center; /* Centered text */
 }
 
 .weather-description:hover,
@@ -525,7 +522,7 @@ body.overlay-active {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    gap: 1rem; /* Reduced gap */
     position: relative;
 }
 
@@ -534,14 +531,14 @@ body.overlay-active {
 }
 
 .video-title-container h2 {
-    font-size: 1.2rem;
+    font-size: 1.2rem; /* Further reduced font size */
     color: #ffffff;
     text-shadow: 0 0 10px rgba(0, 229, 255, 0.7);
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.3rem; /* Reduced margin */
 }
 
 .video-title-container p {
-    font-size: 1.2rem;
+    font-size: 1.2rem; /* Consistent font size */
     color: #ffffff;
     text-shadow: 0 0 5px rgba(255, 64, 129, 1);
 }
@@ -549,7 +546,7 @@ body.overlay-active {
 .thumbnail-container {
     position: relative;
     width: 100%;
-    max-width: 600px;
+    max-width: 600px; /* Reduced max-width */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -557,7 +554,7 @@ body.overlay-active {
 
 .video-thumbnail {
     width: 90%;
-    max-width: 500px;
+    max-width: 500px; /* Reduced max-width */
     border-radius: var(--border-radius);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
     transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
@@ -569,21 +566,22 @@ body.overlay-active {
 }
 
 .offline-indicator {
-    display: none;
-    font-size: 1rem;
+    display: none; /* Initially hidden */
+    font-size: 1rem; /* Reduced font size */
     color: #ff4081;
     text-shadow: 0 0 5px rgba(255, 64, 129, 1);
     text-align: center;
 }
 
+/* Progress Bar Container */
 .progress-bar-container {
     width: 100%;
-    max-width: 600px;
-    height: 8px;
+    max-width: 600px; /* Reduced max-width */
+    height: 8px; /* Reduced height */
     background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
+    border-radius: 4px; /* Reduced border-radius */
     overflow: hidden;
-    margin-top: -8px;
+    margin-top: -8px; /* Adjusted for reduced height */
     transition: background var(--transition-duration) ease;
 }
 
@@ -605,11 +603,11 @@ body.overlay-active {
 
 /* Time Elapsed */
 .time-elapsed {
-    font-size: 0.9rem;
+    font-size: 0.9rem; /* Reduced font size */
     color: #ccc;
     display: flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.3rem; /* Reduced gap */
 }
 
 /* Toggle Description Button */
@@ -618,11 +616,11 @@ body.overlay-active {
     border: none;
     color: var(--primary-color);
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 0.9rem; /* Reduced font size */
     transition: color var(--transition-duration) ease;
     display: flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.3rem; /* Reduced gap */
 }
 
 .toggle-description:hover {
@@ -635,17 +633,17 @@ body.overlay-active {
 .live-indicator-container {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    margin-top: 10px;
+    justify-content: flex-start; /* Align to the left */
+    margin-top: 10px; /* Space above the LIVE indicator */
 }
 
 /* Base Styles for the Live Icon */
 .live-icon {
-    width: 60px;
-    height: 60px;
-    display: none;
-    transition: transform var(--transition-duration) ease, filter var(--transition-duration) ease;
-    pointer-events: none;
+    width: 60px; /* Maintain the width as per SVG */
+    height: 60px; /* Maintain the height as per SVG */
+    display: none; /* Hidden by default */
+    transition: transform 0.3s ease, filter 0.3s ease;
+    pointer-events: none; /* Allows clicks to pass through if necessary */
 }
 
 /* Active State to Display the Live Icon */
@@ -675,7 +673,7 @@ body.overlay-active {
 ========================================= */
 .loading-spinner {
     display: none;
-    width: 40px;
+    width: 40px; /* Reduced size */
     height: 40px;
     border: 4px solid rgba(255, 255, 255, 0.3);
     border-top: 4px solid var(--secondary-color);
