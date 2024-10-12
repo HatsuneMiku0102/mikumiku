@@ -315,9 +315,9 @@
             <!-- Tracking Script -->
             <script>
                 document.addEventListener('DOMContentLoaded', function () {
-                  
+
                     if (window.location.pathname !== '/admin') {
-                        
+
                         fetch('/track', {
                             method: 'POST',
                             credentials: 'include' 
@@ -368,29 +368,19 @@
                 });
 
                 // Personality Options Functionality
-                const personalityOption1 = document.getElementById('personalityOption1');
-                const personalityOption2 = document.getElementById('personalityOption2');
-                const personalityOption3 = document.getElementById('personalityOption3');
-                const siteTitle = document.getElementById('siteTitle');
+                const personalityButtons = document.querySelectorAll('.personality-button');
+                const siteTitle = document.getElementById('dynamicTitle');
 
-                personalityOption1.addEventListener('click', () => {
-                    setTitleStyle('Melody');
+                personalityButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        const personality = button.textContent.trim();
+                        changeTitleStyle(personality);
+                        setActivePersonalityButton(button);
+                    });
                 });
 
-                personalityOption2.addEventListener('click', () => {
-                    setTitleStyle('Harmony');
-                });
-
-                personalityOption3.addEventListener('click', () => {
-                    setTitleStyle('Rhythm');
-                });
-
-                function setTitleStyle(personality) {
-                    // Remove existing gradient fills
-                    siteTitle.setAttribute('fill', '');
-
-                    // Change the gradient based on personality
-                    switch (personality) {
+                function changeTitleStyle(personality) {
+                    switch(personality) {
                         case 'Melody':
                             siteTitle.setAttribute('fill', 'url(#melodyGradient)');
                             break;
@@ -403,16 +393,42 @@
                         default:
                             siteTitle.setAttribute('fill', 'url(#logoGradient)');
                     }
-
-                    // Optional: Add unique animations or styles per personality
-                    // For example, you can toggle classes or manipulate other SVG elements
                 }
 
-                // Reduce Video Thumbnail Size on Page Load
+                function setActivePersonalityButton(activeButton) {
+                    personalityButtons.forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    activeButton.classList.add('active');
+                }
+
+                // Page Load Animations
                 document.addEventListener('DOMContentLoaded', () => {
-                    const videoThumbnail = document.querySelector('.video-thumbnail');
-                    videoThumbnail.style.width = '70%'; /* Adjust as needed */
-                    videoThumbnail.style.height = 'auto'; /* Maintain aspect ratio */
+                    // Select Elements
+                    const titleBar = document.getElementById('titleBar');
+                    const footer = document.querySelector('.footer');
+                    const nowPlaying = document.querySelector('.now-playing-container');
+
+                    // Function to Add Animation Classes with Delay
+                    const animateElements = () => {
+                        // Animate Title Bar
+                        setTimeout(() => {
+                            titleBar.classList.add('animate-title-bar');
+                        }, 300); // Delay of 0.3 seconds
+
+                        // Animate Now Playing Section
+                        setTimeout(() => {
+                            nowPlaying.classList.add('animate-now-playing');
+                        }, 600); // Delay of 0.6 seconds
+
+                        // Animate Footer
+                        setTimeout(() => {
+                            footer.classList.add('animate-footer');
+                        }, 900); // Delay of 0.9 seconds
+                    };
+
+                    // Trigger Animations
+                    animateElements();
                 });
             </script>
             <script>
