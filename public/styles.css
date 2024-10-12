@@ -17,6 +17,7 @@
     --font-family: 'Roboto', sans-serif;
     --background-gradient: linear-gradient(135deg, rgba(0, 229, 255, 0.6), rgba(255, 64, 129, 0.6));
     --futuristic-background: rgba(0, 0, 0, 0.6); /* Subtle futuristic tone */
+    --title-color: #00e5ff; /* Added for typewriter caret color */
 }
 
 /* =========================================
@@ -98,7 +99,9 @@ body {
     gap: 1.5rem; /* Increased gap */
 }
 
-/* Menu Button */
+/* =========================================
+   Menu Button
+========================================= */
 .menu-button {
     display: flex;
     align-items: center;
@@ -130,6 +133,11 @@ body {
 }
 
 /* =========================================
+   Personality Section (Merged into Overlay Menu)
+========================================= */
+/* Removed .personality-circle from title bar */
+
+/* =========================================
    Title Wrapper and Typewriter Effect
 ========================================= */
 .title-wrapper {
@@ -137,11 +145,12 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    position: relative;
 }
 
 .site-title {
     font-size: var(--title-font-size);
-    color: #ffffff;
+    color: var(--title-color);
     text-shadow: 0 0 15px rgba(0, 229, 255, 0.7);
     cursor: default;
     background-image: linear-gradient(45deg, #00e5ff, #ff4081);
@@ -149,21 +158,21 @@ body {
     -webkit-text-fill-color: transparent;
     overflow: hidden;
     white-space: nowrap;
-    margin: 0 auto;
+    border-right: .15em solid var(--title-color); /* Cursor for typewriter effect */
     letter-spacing: .15em;
-    border-right: .15em solid var(--primary-color); /* Cursor for typewriter effect */
-    /* Polished animation */
-    animation: typing 4s steps(30, end) forwards, blink-caret 0.75s step-end forwards;
+    animation: typing 4s steps(30, end) forwards, blink-caret 0.75s step-end 4s forwards;
+    /* Positioned to ensure proper centering */
+    display: inline-block;
 }
 
 @keyframes typing {
-    from { width: 0 }
-    to { width: 15em }
+    from { width: 0; }
+    to { width: 15em; }
 }
 
 @keyframes blink-caret {
-    from, to { border-color: transparent }
-    50% { border-color: var(--primary-color); }
+    from { border-right-color: var(--title-color); }
+    to { border-right-color: transparent; }
 }
 
 .title-bar.scrolled .site-title {
@@ -172,7 +181,7 @@ body {
 }
 
 /* =========================================
-   Right Section - "mm.dev" Logo
+   Right Section - "mm.dev" SVG Logo
 ========================================= */
 .right-section {
     display: flex;
@@ -192,10 +201,11 @@ body {
 }
 
 .logo-svg {
-    width: 60px; /* Slightly larger */
-    height: 60px;
+    width: 55px; /* Slightly larger */
+    height: 55px;
     cursor: pointer;
     transition: transform var(--transition-duration) ease, opacity var(--transition-duration) ease;
+    margin-left: 0.5rem; /* Closer to the title */
 }
 
 .logo-svg:hover {
@@ -203,21 +213,18 @@ body {
     opacity: 0.8;
 }
 
+/* Adjusted keyframe for rotation */
 .logo-svg.rotate {
     animation: rotateLogo 10s linear infinite;
 }
 
 @keyframes rotateLogo {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 /* =========================================
-   Overlay Menu
+   Overlay Menu (Including Personality Options)
 ========================================= */
 .overlay-menu {
     position: fixed;
@@ -263,6 +270,25 @@ body {
     transform: scale(1.1);
 }
 
+/* Personality Options within Overlay Menu */
+.overlay-menu .personality-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.overlay-menu .personality-option svg {
+    width: 25px;
+    height: 25px;
+    fill: var(--primary-color);
+    transition: fill var(--transition-duration) ease;
+}
+
+.overlay-menu .personality-option:hover svg {
+    fill: var(--secondary-color);
+}
+
 /* Close Overlay Button */
 .close-overlay {
     position: absolute;
@@ -290,25 +316,25 @@ body.overlay-active {
    Now Playing Section
 ========================================= */
 .now-playing-container {
-    padding: 80px 20px 20px 20px; /* Reduced top padding */
+    padding: 80px 20px 20px 20px; /* Adjusted padding */
     display: flex;
     justify-content: center;
     align-items: center;
-    background: transparent; /* Removed background */
-    margin-top: 10px; /* Added margin to move it down */
+    background: transparent;
+    margin-top: 10px;
 }
 
 .now-playing {
     display: flex;
     flex-direction: row;
-    background: transparent; /* Removed background */
+    background: transparent;
     border-radius: var(--border-radius);
-    padding: 1rem; /* Further reduced padding for compactness */
-    max-width: 1000px; /* Reduced max-width */
+    padding: 1rem;
+    max-width: 1000px;
     width: 100%;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6); /* Retained shadow for depth */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
     transition: box-shadow var(--transition-duration) ease;
-    background-color: var(--futuristic-background); /* Subtle futuristic background */
+    background-color: var(--futuristic-background);
     position: relative;
 }
 
@@ -321,11 +347,11 @@ body.overlay-active {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem; /* Reduced gap */
-    padding: 0.75rem; /* Reduced padding */
+    gap: 0.75rem;
+    padding: 0.75rem;
     border-right: 1px solid rgba(255, 255, 255, 0.2);
-    background: transparent; /* Removed background */
-    box-shadow: none; /* Removed shadow */
+    background: transparent;
+    box-shadow: none;
     transition: box-shadow var(--transition-duration) ease;
 }
 
@@ -333,7 +359,7 @@ body.overlay-active {
 .sidebar-item {
     display: flex;
     align-items: center;
-    gap: 0.3rem; /* Reduced gap */
+    gap: 0.3rem;
     font-size: var(--content-font-size);
     color: #ffffff;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
@@ -341,14 +367,14 @@ body.overlay-active {
 
 .sidebar-item i {
     color: var(--primary-color);
-    font-size: 1rem; /* Slightly smaller */
+    font-size: 1rem;
 }
 
 /* Category Item */
 .sidebar-item.video-category {
     display: flex;
     align-items: center;
-    gap: 0.3rem; /* Reduced gap */
+    gap: 0.3rem;
     position: relative;
 }
 
@@ -363,13 +389,13 @@ body.overlay-active {
    Clock Widget
 ========================================= */
 .clock-section {
-    background: transparent; /* Removed background */
-    padding: 0.5rem; /* Reduced padding */
+    background: transparent;
+    padding: 0.5rem;
     border-radius: var(--border-radius);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem; /* Reduced gap */
+    gap: 1rem;
 }
 
 .clock-section p.greeting {
@@ -383,7 +409,7 @@ body.overlay-active {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 1rem; /* Reduced gap */
+    gap: 1rem;
     width: 100%;
 }
 
@@ -409,10 +435,9 @@ body.overlay-active {
     color: #ffffff;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     animation: fadeIn 1s ease forwards;
-    text-align: center; /* Centered text */
+    text-align: center;
 }
 
-/* Center Time Zone */
 .time-zone {
     text-align: center;
 }
@@ -425,7 +450,7 @@ body.overlay-active {
 }
 
 .analog-clock {
-    width: 150px; /* Reduced size for compactness */
+    width: 150px;
     height: 150px;
     border-radius: 50%;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
@@ -454,20 +479,20 @@ body.overlay-active {
    Weather Section
 ========================================= */
 .weather-section {
-    background: transparent; /* Removed background */
-    padding: 0.5rem; /* Reduced padding */
+    background: transparent;
+    padding: 0.5rem;
     border-radius: var(--border-radius);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem; /* Reduced gap */
-    border-left: 1px solid rgba(255, 255, 255, 0.2); /* Divider between Now Playing and Weather */
-    height: 100%; /* Stretch to match Now Playing box height */
-    justify-content: space-between; /* Distribute space evenly */
+    gap: 1rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    height: 100%;
+    justify-content: space-between;
 }
 
 .weather-icon {
-    width: 80px; /* Reduced size */
+    width: 80px;
     height: 80px;
     animation: fadeIn 1s ease forwards;
 }
@@ -482,7 +507,7 @@ body.overlay-active {
     transition: color var(--transition-duration) ease;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     animation: fadeIn 1s ease forwards;
-    text-align: center; /* Centered text */
+    text-align: center;
 }
 
 .weather-description:hover,
@@ -500,7 +525,7 @@ body.overlay-active {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem; /* Reduced gap */
+    gap: 1rem;
     position: relative;
 }
 
@@ -509,14 +534,14 @@ body.overlay-active {
 }
 
 .video-title-container h2 {
-    font-size: 1.2rem; /* Further reduced font size */
+    font-size: 1.2rem;
     color: #ffffff;
     text-shadow: 0 0 10px rgba(0, 229, 255, 0.7);
-    margin-bottom: 0.3rem; /* Reduced margin */
+    margin-bottom: 0.3rem;
 }
 
 .video-title-container p {
-    font-size: 1.2rem; /* Consistent font size */
+    font-size: 1.2rem;
     color: #ffffff;
     text-shadow: 0 0 5px rgba(255, 64, 129, 1);
 }
@@ -524,7 +549,7 @@ body.overlay-active {
 .thumbnail-container {
     position: relative;
     width: 100%;
-    max-width: 600px; /* Reduced max-width */
+    max-width: 600px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -532,7 +557,7 @@ body.overlay-active {
 
 .video-thumbnail {
     width: 90%;
-    max-width: 500px; /* Reduced max-width */
+    max-width: 500px;
     border-radius: var(--border-radius);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
     transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
@@ -544,8 +569,8 @@ body.overlay-active {
 }
 
 .offline-indicator {
-    display: none; /* Initially hidden */
-    font-size: 1rem; /* Reduced font size */
+    display: none;
+    font-size: 1rem;
     color: #ff4081;
     text-shadow: 0 0 5px rgba(255, 64, 129, 1);
     text-align: center;
@@ -553,12 +578,12 @@ body.overlay-active {
 
 .progress-bar-container {
     width: 100%;
-    max-width: 600px; /* Reduced max-width */
-    height: 8px; /* Reduced height */
+    max-width: 600px;
+    height: 8px;
     background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px; /* Reduced border-radius */
+    border-radius: 4px;
     overflow: hidden;
-    margin-top: -8px; /* Adjusted for reduced height */
+    margin-top: -8px;
     transition: background var(--transition-duration) ease;
 }
 
@@ -580,11 +605,11 @@ body.overlay-active {
 
 /* Time Elapsed */
 .time-elapsed {
-    font-size: 0.9rem; /* Reduced font size */
+    font-size: 0.9rem;
     color: #ccc;
     display: flex;
     align-items: center;
-    gap: 0.3rem; /* Reduced gap */
+    gap: 0.3rem;
 }
 
 /* Toggle Description Button */
@@ -593,11 +618,11 @@ body.overlay-active {
     border: none;
     color: var(--primary-color);
     cursor: pointer;
-    font-size: 0.9rem; /* Reduced font size */
+    font-size: 0.9rem;
     transition: color var(--transition-duration) ease;
     display: flex;
     align-items: center;
-    gap: 0.3rem; /* Reduced gap */
+    gap: 0.3rem;
 }
 
 .toggle-description:hover {
@@ -610,17 +635,17 @@ body.overlay-active {
 .live-indicator-container {
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* Align to the left */
-    margin-top: 10px; /* Space above the LIVE indicator */
+    justify-content: flex-start;
+    margin-top: 10px;
 }
 
 /* Base Styles for the Live Icon */
 .live-icon {
-    width: 60px; /* Maintain the width as per SVG */
-    height: 60px; /* Maintain the height as per SVG */
-    display: none; /* Hidden by default */
-    transition: transform 0.3s ease, filter 0.3s ease;
-    pointer-events: none; /* Allows clicks to pass through if necessary */
+    width: 60px;
+    height: 60px;
+    display: none;
+    transition: transform var(--transition-duration) ease, filter var(--transition-duration) ease;
+    pointer-events: none;
 }
 
 /* Active State to Display the Live Icon */
@@ -650,7 +675,7 @@ body.overlay-active {
 ========================================= */
 .loading-spinner {
     display: none;
-    width: 40px; /* Reduced size */
+    width: 40px;
     height: 40px;
     border: 4px solid rgba(255, 255, 255, 0.3);
     border-top: 4px solid var(--secondary-color);
