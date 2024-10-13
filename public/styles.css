@@ -8,7 +8,7 @@
     --shadow-color: rgba(0, 198, 255, 0.7);
     --hover-shadow-color: rgba(255, 64, 129, 0.7);
     --futuristic-background: rgba(0, 0, 0, 0.6);
-    --background-color: transparent; /* Dark background */
+    --background-color: #121212; /* Dark background */
     --tattoo-color: #00c6ff; /* Color for Miku tattoo */
     --tattoo-accent: #ff4081; /* Accent color for Miku tattoo */
 
@@ -63,20 +63,6 @@ body {
 }
 
 /* =========================================
-   Three.js Canvas
-========================================= */
-#techCanvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: -3; /* Below animeBackground and tattoo */
-    pointer-events: none;
-    background-color: transparent;
-}
-
-/* =========================================
    Animated Background Styling
 ========================================= */
 
@@ -88,7 +74,7 @@ body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    z-index: -2; /* Ensure it's behind all other content but above #techCanvas */
+    z-index: -3; /* Ensure it's behind all other content */
     background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); /* Miku-inspired gradient */
 }
 
@@ -111,33 +97,47 @@ body {
 /* =========================================
    Miku Tattoo Animation Styling
 ========================================= */
-#mikuTattoo {
+#centralTattoo {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     width: 300px; /* Adjust size as needed */
     height: 300px; /* Adjust size as needed */
-    z-index: -1; /* Behind all other content */
+    z-index: -2; /* Behind all other content but above the animeBackground */
     pointer-events: none; /* Allow interactions to pass through */
     opacity: 0.5; /* Adjust opacity for subtlety */
 }
 
-#mikuTattoo svg {
+#centralTattoo svg {
     width: 100%;
     height: 100%;
     fill: var(--tattoo-color);
     stroke: var(--tattoo-accent);
     stroke-width: 2px;
-    animation: rotateTattoo 20s linear infinite;
+    animation: rotateTattoo 60s linear infinite, pulseTattoo 4s ease-in-out infinite;
 }
 
+/* Rotate Animation */
 @keyframes rotateTattoo {
     from {
         transform: rotate(0deg);
     }
     to {
         transform: rotate(360deg);
+    }
+}
+
+/* Pulse Animation for Glow Effect */
+@keyframes pulseTattoo {
+    0% {
+        filter: drop-shadow(0 0 5px var(--tattoo-color));
+    }
+    50% {
+        filter: drop-shadow(0 0 15px var(--secondary-color));
+    }
+    100% {
+        filter: drop-shadow(0 0 5px var(--tattoo-color));
     }
 }
 
@@ -151,7 +151,7 @@ body {
     align-items: center;
     background-color: #000000;
     padding: 20px 0;
-    z-index: 2; /* Place the title above the visualizer */
+    z-index: 10; /* Place the title above the tattoo and background */
 }
 
 .title-bar.animate-title-bar {
@@ -1110,6 +1110,18 @@ body {
     }
 }
 
+@keyframes pulseTattoo {
+    0% {
+        filter: drop-shadow(0 0 5px var(--tattoo-color));
+    }
+    50% {
+        filter: drop-shadow(0 0 15px var(--tattoo-accent));
+    }
+    100% {
+        filter: drop-shadow(0 0 5px var(--tattoo-color));
+    }
+}
+
 /* =========================================
    Accessibility Enhancements
 ========================================= */
@@ -1182,7 +1194,7 @@ body {
     }
 
     /* Adjust Miku Tattoo Size for Smaller Screens */
-    #mikuTattoo {
+    #centralTattoo {
         width: 200px;
         height: 200px;
     }
@@ -1221,7 +1233,7 @@ body {
     }
 
     /* Further Adjust Miku Tattoo for Very Small Screens */
-    #mikuTattoo {
+    #centralTattoo {
         width: 150px;
         height: 150px;
     }
