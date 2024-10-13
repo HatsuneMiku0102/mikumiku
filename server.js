@@ -1383,42 +1383,43 @@ const openaiConfig = new Configuration({
 const openai = new OpenAIApi(openaiConfig);
 
 // Handle Incoming OpenAI Requests
-app.post('/api/dialogflow', async (req, res) => { // Consider renaming this endpoint for clarity
-    const userMessage = req.body.message;
+const sessions = {};
 
-    if (!userMessage) {
-        return res.status(400).json({ error: 'No message provided.' });
+// POST /api/openai-chat
+app.post('/api/openai-chat', async (req, res) => {
+    const { message, sessionId } = req.body;
+
+    if (!message) {
+        return res.status(400).json({ error: 'Message is required.' });
     }
+
+    // Initialize session if it doesn't exist
+    if (!sessions[sessionId]) {
+        sessions[sessionId] = [
+            { role: 'system', content: 'You are Haru AI, a helpful assistant.' }
+        ];
+    }
+
+    // Add user message to session
+    sessions[sessionId].push({ role: 'user', content: message });
 
     try {
         const response = await openai.createChatCompletion({
             model: 'gpt-3.5-turbo',
-            messages: [
-                { role: 'system', content: 'You are Haru AI, a helpful assistant.' },
-                { role: 'user', content: userMessage },
-            ],
-            temperature: 0.7, // Adjust as needed
-            max_tokens: 150,   // Adjust as needed
+            messages: sessions[sessionId],
+            temperature: 0.7,
+            max_tokens: 150,
         });
 
         const botResponse = response.data.choices[0].message.content.trim();
+        sessions[sessionId].push({ role: 'assistant', content: botResponse });
 
         res.json({ response: botResponse });
     } catch (error) {
-        logger.error(`Error communicating with OpenAI: ${error.message}`);
+        console.error('Error communicating with OpenAI:', error.message);
         res.status(500).json({ error: 'An error occurred while processing your request.' });
     }
 });
-
-// Optional: Rename the endpoint for clarity
-// For example, change '/api/dialogflow' to '/api/openai-chat' in both server and client
-// To do so, you can replace the route as follows:
-
-/*
-app.post('/api/openai-chat', async (req, res) => {
-    // ... same implementation as above
-});
-*/
 
 // ----------------------
 // Geolocation Routes (continued)
