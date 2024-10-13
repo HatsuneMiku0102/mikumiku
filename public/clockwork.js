@@ -159,7 +159,7 @@
         const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
         if (localTimeElement) {
             try {
-                localTimeElement.textContent = now.toLocaleTimeString('en-US', timeOptions);
+                localTimeElement.innerHTML = `<i class="fas fa-clock"></i> ${now.toLocaleTimeString('en-US', timeOptions)}`;
             } catch (error) {
                 console.error('Error updating local time:', error);
             }
@@ -172,7 +172,7 @@
                 const formattedDate = formatDate(now).trim();
                 // Only update if the date has changed to prevent unnecessary DOM updates
                 if (lastFormattedDate !== formattedDate) {
-                    currentDateElement.textContent = formattedDate;
+                    currentDateElement.innerHTML = `<i class="fas fa-calendar-alt"></i> ${formattedDate}`;
                     lastFormattedDate = formattedDate;
                     console.log(`Updated date to: ${formattedDate}`);
                 }
@@ -188,7 +188,7 @@
                 const formattedDay = formatDayOfWeek(now).trim();
                 // Only update if the day has changed
                 if (lastFormattedDayOfWeek !== formattedDay) {
-                    dayOfWeekElement.textContent = formattedDay;
+                    dayOfWeekElement.innerHTML = `<i class="fas fa-calendar-day"></i> ${formattedDay}`;
                     lastFormattedDayOfWeek = formattedDay;
                     console.log(`Updated day of the week to: ${formattedDay}`);
                 }
@@ -202,7 +202,7 @@
         if (timeZoneElement) {
             try {
                 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                timeZoneElement.textContent = `Time Zone: ${timeZone}`;
+                timeZoneElement.innerHTML = `<i class="fas fa-globe"></i> Time Zone: ${timeZone}`;
             } catch (error) {
                 console.error('Error updating time zone:', error);
             }
@@ -228,159 +228,24 @@
                 console.error('Error updating greeting:', error);
             }
         }
-
-        // Optional: Adjust text styling based on time for better readability
-        const clockContainer = document.querySelector('.clock-container');
-        if (clockContainer) {
-            try {
-                const hour = now.getHours();
-                if (hour >= 6 && hour < 18) {
-                    // Daytime - lighter text shadow
-                    clockContainer.style.textShadow = '0 0 5px rgba(255, 255, 255, 0.7)';
-                } else {
-                    // Nighttime - stronger text shadow
-                    clockContainer.style.textShadow = '0 0 10px rgba(0, 0, 0, 0.7)';
-                }
-            } catch (error) {
-                console.error('Error updating clock container styling:', error);
-            }
-        }
     }
 
     /**
-     * Draws the analog clock on the canvas.
-     * (Ensure this function is correctly implemented without syntax errors.)
+     * Updates the "last visit" cookie when the user is about to leave the page.
      */
-    function drawAnalogClock() {
-        const canvas = document.getElementById('analog-clock');
-        if (!canvas) {
-            console.error("Canvas element with id 'analog-clock' not found.");
+    function updateLastVisitOnUnload() {
+        // Check for necessary consent before setting the cookie
+        if (!hasNecessaryConsent()) {
+            console.log("Consent not given. 'lastVisit' cookie will not be set.");
             return;
         }
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-            console.error("2D context not supported or canvas already initialized.");
-            return;
-        }
-
-        // Prevent multiple initializations
-        if (canvas.getAttribute('data-initialized') === 'true') {
-            return;
-        }
-        canvas.setAttribute('data-initialized', 'true');
-
-        const radius = canvas.width / 2;
-        ctx.translate(radius, radius);
-        const clockRadius = radius * 0.90;
-
-        /**
-         * Draws the clock face, numbers, and hands.
-         */
-        function drawClock() {
-            ctx.clearRect(-radius, -radius, canvas.width, canvas.height); // Clear the canvas
-            drawFace(ctx, clockRadius);
-            drawNumbers(ctx, clockRadius);
-            drawTime(ctx, clockRadius);
-            requestAnimationFrame(drawClock);
-        }
-
-        /**
-         * Draws the clock face with gradients.
-         * @param {CanvasRenderingContext2D} ctx - The canvas context.
-         * @param {number} radius - The radius of the clock.
-         */
-        function drawFace(ctx, radius) {
-            // Outer circle
-            ctx.beginPath();
-            ctx.arc(0, 0, radius, 0, 2 * Math.PI);
-            ctx.fillStyle = '#333';
-            ctx.fill();
-
-            // Gradient border
-            const grad = ctx.createRadialGradient(0, 0, radius * 0.95, 0, 0, radius * 1.05);
-            grad.addColorStop(0, '#fff');
-            grad.addColorStop(0.5, getCSSVariable('--primary-color', '#00e5ff')); // Use CSS variable
-            grad.addColorStop(1, getCSSVariable('--secondary-color', '#ff4081')); // Use CSS variable
-            ctx.strokeStyle = grad;
-            ctx.lineWidth = radius * 0.05;
-            ctx.stroke();
-
-            // Center dot
-            ctx.beginPath();
-            ctx.arc(0, 0, radius * 0.05, 0, 2 * Math.PI);
-            ctx.fillStyle = '#fff';
-            ctx.fill();
-        }
-
-        /**
-         * Draws the numbers on the clock face.
-         * @param {CanvasRenderingContext2D} ctx - The canvas context.
-         * @param {number} radius - The radius of the clock.
-         */
-        function drawNumbers(ctx, radius) {
-            ctx.font = `${radius * 0.15}px Arial`;
-            ctx.textBaseline = 'middle';
-            ctx.textAlign = 'center';
-            ctx.fillStyle = '#fff';
-
-            for (let num = 1; num <= 12; num++) {
-                const angle = num * Math.PI / 6;
-                ctx.rotate(angle);
-                ctx.translate(0, -radius * 0.8);
-                ctx.rotate(-angle);
-                ctx.fillText(num.toString(), 0, 0);
-                ctx.rotate(angle);
-                ctx.translate(0, radius * 0.8);
-                ctx.rotate(-angle);
-            }
-        }
-
-        /**
-         * Draws the clock hands based on the current time.
-         * @param {CanvasRenderingContext2D} ctx - The canvas context.
-         * @param {number} radius - The radius of the clock.
-         */
-        function drawTime(ctx, radius) {
+        try {
             const now = new Date();
-            let hour = now.getHours() % 12;
-            let minute = now.getMinutes();
-            let second = now.getSeconds();
-
-            // Hour hand
-            hour = hour * Math.PI / 6 + minute * Math.PI / (6 * 60) + second * Math.PI / (360 * 60);
-            drawHand(ctx, hour, radius * 0.5, radius * 0.07, '#fff');
-
-            // Minute hand
-            minute = minute * Math.PI / 30 + second * Math.PI / (30 * 60);
-            drawHand(ctx, minute, radius * 0.75, radius * 0.07, '#fff');
-
-            // Second hand
-            second = second * Math.PI / 30;
-            drawHand(ctx, second, radius * 0.85, radius * 0.02, getCSSVariable('--accent-color', '#ff4081'));
+            setCookie('lastVisit', now.toISOString(), 365);
+            console.log(`Set 'lastVisit' cookie to ${now.toISOString()}`);
+        } catch (error) {
+            console.error('Error updating last visit in cookies on unload:', error);
         }
-
-        /**
-         * Draws a single hand on the clock.
-         * @param {CanvasRenderingContext2D} ctx - The canvas context.
-         * @param {number} pos - The position of the hand in radians.
-         * @param {number} length - The length of the hand.
-         * @param {number} width - The width of the hand.
-         * @param {string} color - The color of the hand.
-         */
-        function drawHand(ctx, pos, length, width, color = '#fff') {
-            ctx.beginPath();
-            ctx.lineWidth = width;
-            ctx.lineCap = 'round';
-            ctx.strokeStyle = color;
-            ctx.moveTo(0, 0);
-            ctx.rotate(pos);
-            ctx.lineTo(0, -length);
-            ctx.stroke();
-            ctx.rotate(-pos);
-        }
-
-        // Start the clock animation
-        drawClock();
     }
 
     /**
@@ -391,25 +256,11 @@
         clockInitialized = true;
 
         updateLastVisit();
-        drawAnalogClock();
         updateClock();
         setInterval(updateClock, 1000);
 
         // Update 'lastVisit' cookie when the user is about to leave the page
-        window.addEventListener('beforeunload', () => {
-            // Check for necessary consent before setting the cookie
-            if (!hasNecessaryConsent()) {
-                console.log("Consent not given. 'lastVisit' cookie will not be set.");
-                return;
-            }
-            try {
-                const now = new Date();
-                setCookie('lastVisit', now.toISOString(), 365);
-                console.log(`Set 'lastVisit' cookie to ${now.toISOString()}`);
-            } catch (error) {
-                console.error('Error updating last visit in cookies on unload:', error);
-            }
-        });
+        window.addEventListener('beforeunload', updateLastVisitOnUnload);
     }
 
     // Wait for the DOM to load before initializing
@@ -420,4 +271,8 @@
             console.error('Error initializing clock:', error);
         }
     });
+
+
+
+    // [Assuming other parts of the original script remain here]
 })();
