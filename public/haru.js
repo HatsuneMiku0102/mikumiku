@@ -1,4 +1,4 @@
-// public/js/chat.js
+// public/js/haru.js
 
 document.addEventListener('DOMContentLoaded', () => {
     const chatBox = document.getElementById('chat-box');
@@ -44,8 +44,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function appendMessage(content, className) {
         const messageElement = document.createElement('div');
         messageElement.classList.add('message', className);
-        const icon = className === 'bot-message' ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#ffffff" class="bi bi-robot" viewBox="0 0 16 16"><path d="M2 4a2 2 0 0 1 2-2h1a1 1 0 0 1 1 1v1h6V3a1 1 0 0 1 1-1h1a2 2 0 0 1 2 2v1h-1v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5H2V4zm4.5 0h5a.5.5 0 0 0 0 1h-5a.5.5 0 0 0 0-1zm1 3a.5.5 0 0 0-.5.5V9h1v-1.5a.5.5 0 0 0-.5-.5zm-2 0a.5.5 0 0 0-.5.5V9h1v-1.5a.5.5 0 0 0-.5-.5zM4 5v1h1V5H4zm6 0v1h1V5H10zm-5.5 3a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg>' 
-                                          : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#ffffff" class="bi bi-person" viewBox="0 0 16 16"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm4-3a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"/><path fill-rule="evenodd" d="M8 9a5 5 0 0 0-4.546 2.916A5.978 5.978 0 0 0 1 15a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1 5.978 5.978 0 0 0-2.454-3.084A5 5 0 0 0 8 9z"/></svg>';
+        const icon = className === 'bot-message' ? `
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#ffffff" class="bi bi-robot" viewBox="0 0 16 16">
+                <path d="M2 4a2 2 0 0 1 2-2h1a1 1 0 0 1 1 1v1h6V3a1 1 0 0 1 1-1h1a2 2 0 0 1 2 2v1h-1v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5H2V4zm4.5 0h5a.5.5 0 0 0 0 1h-5a.5.5 0 0 0 0-1zm1 3a.5.5 0 0 0-.5.5V9h1v-1.5a.5.5 0 0 0-.5-.5zm-2 0a.5.5 0 0 0-.5.5V9h1v-1.5a.5.5 0 0 0-.5-.5zM4 5v1h1V5H4zm6 0v1h1V5H10zm-5.5 3a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>
+            </svg>` 
+                                              : `
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#ffffff" class="bi bi-person" viewBox="0 0 16 16">
+                <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm4-3a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"/>
+                <path fill-rule="evenodd" d="M8 9a5 5 0 0 0-4.546 2.916A5.978 5.978 0 0 0 1 15a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1 5.978 5.978 0 0 0-2.454-3.084A5 5 0 0 0 8 9z"/>
+            </svg>`;
         messageElement.innerHTML = `
             ${icon}
             <div class="message-content">${content}</div>
@@ -122,4 +129,122 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize chat as closed
     closeChat();
+
+    /* =========================================
+       Draggable Chat Box Functionality
+    ========================================= */
+
+    // Make the chat header draggable
+    const chatHeader = document.querySelector('.chat-header');
+
+    let isDragging = false;
+    let offset = { x: 0, y: 0 };
+
+    chatHeader.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        const rect = chatBox.getBoundingClientRect();
+        offset.x = e.clientX - rect.left;
+        offset.y = e.clientY - rect.top;
+        chatBox.style.transition = 'none'; // Disable transitions during drag
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            let left = e.clientX - offset.x;
+            let top = e.clientY - offset.y;
+
+            // Constrain within viewport
+            const maxLeft = window.innerWidth - chatBox.offsetWidth;
+            const maxTop = window.innerHeight - chatBox.offsetHeight;
+
+            left = Math.max(0, Math.min(left, maxLeft));
+            top = Math.max(0, Math.min(top, maxTop));
+
+            chatBox.style.left = `${left}px`;
+            chatBox.style.top = `${top}px`;
+            chatBox.style.right = 'auto';
+            chatBox.style.bottom = 'auto';
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            chatBox.style.transition = 'opacity 0.3s ease, transform 0.3s ease'; // Re-enable transitions
+        }
+    });
+
+    // Reset position to bottom-right on open
+    openChatButton.addEventListener('click', () => {
+        chatBox.style.left = '';
+        chatBox.style.top = '';
+        chatBox.style.right = '20px';
+        chatBox.style.bottom = '80px';
+    });
+
+    /* =========================================
+       Handle Floating Chat Button Visibility
+    ========================================= */
+
+    // Hide floating chat button when chat is open
+    function toggleFloatingChatButton() {
+        if (chatBox.classList.contains('open')) {
+            openChatButton.classList.add('hidden');
+        } else {
+            openChatButton.classList.remove('hidden');
+        }
+    }
+
+    // Modify openChat and closeChat to call toggleFloatingChatButton
+    function openChatWithToggle() {
+        openChat();
+        toggleFloatingChatButton();
+    }
+
+    function closeChatWithToggle() {
+        closeChat();
+        toggleFloatingChatButton();
+    }
+
+    // Update event listeners to use the new functions
+    openChatButton.removeEventListener('click', openChat);
+    closeChatButton.removeEventListener('click', closeChat);
+    openChatButton.addEventListener('click', openChatWithToggle);
+    closeChatButton.addEventListener('click', closeChatWithToggle);
+
+    /* =========================================
+       Additional Enhancements (Optional)
+    ========================================= */
+
+    // Optional: Save chatBox position in localStorage
+    function saveChatPosition(left, top) {
+        localStorage.setItem('chatPositionLeft', left);
+        localStorage.setItem('chatPositionTop', top);
+    }
+
+    function loadChatPosition() {
+        const left = localStorage.getItem('chatPositionLeft');
+        const top = localStorage.getItem('chatPositionTop');
+
+        if (left && top) {
+            chatBox.style.left = left;
+            chatBox.style.top = top;
+            chatBox.style.right = 'auto';
+            chatBox.style.bottom = 'auto';
+        } else {
+            // Default position
+            chatBox.style.right = '20px';
+            chatBox.style.bottom = '80px';
+        }
+    }
+
+    // Update drag end to save position
+    document.addEventListener('mouseup', () => {
+        if (!isDragging) return;
+        const rect = chatBox.getBoundingClientRect();
+        saveChatPosition(`${rect.left}px`, `${rect.top}px`);
+    });
+
+    // Load chat position on load
+    loadChatPosition();
 });
