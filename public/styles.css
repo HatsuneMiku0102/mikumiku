@@ -71,13 +71,13 @@ body {
     position: fixed;
     top: 0;
     width: 100%;
-    height: 100px; /* Increased height for better visibility */
-    padding: 0 2.5rem; /* Increased padding */
+    height: 100px; /* Initial height */
+    padding: 0 2.5rem; /* Initial padding */
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
-    background: rgba(0, 0, 0, 0.85); /* Semi-transparent dark background */
+    background: linear-gradient(135deg, rgba(0, 198, 255, 0.85), rgba(255, 64, 129, 0.85)); /* Gradient background */
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(10px);
     transition: all var(--transition-duration) ease-in-out;
@@ -87,9 +87,10 @@ body {
 }
 
 .title-bar.scrolled {
-    height: 90px;
-    padding: 0 2rem;
-    background: rgba(0, 0, 0, 0.95);
+    height: 90px; /* Reduced height */
+    padding: 0 2rem; /* Reduced padding */
+    background: rgba(0, 0, 0, 0.95); /* Slightly more opaque */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4); /* Reduced shadow */
 }
 
 .title-bar.animate-title-bar {
@@ -107,7 +108,7 @@ body {
     max-width: 1600px; /* Increased max-width */
 }
 
-/* Left Section: Empty for Alignment */
+/* Left Section: Menu Button and Search */
 .left-section {
     display: flex;
     align-items: center;
@@ -116,7 +117,7 @@ body {
 
 /* Menu Button */
 .menu-button {
-    display: flex;
+    display: none; /* Hidden on larger screens */
     align-items: center;
     justify-content: center;
     width: 50px; /* Increased size */
@@ -143,6 +144,89 @@ body {
 
 .title-bar.scrolled .menu-button i {
     color: var(--primary-color);
+}
+
+/* Show menu button on small screens */
+@media (max-width: 768px) {
+    .menu-button {
+        display: flex;
+    }
+}
+
+/* =========================================
+   Navigation Links
+========================================= */
+.nav-links {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.nav-links a {
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 1.1rem;
+    transition: color var(--transition-duration) ease, border-bottom var(--transition-duration) ease;
+    position: relative;
+}
+
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    width: 0%;
+    height: 2px;
+    bottom: -3px;
+    left: 0;
+    background-color: var(--secondary-color);
+    transition: width var(--transition-duration) ease;
+}
+
+.nav-links a:hover::after {
+    width: 100%;
+}
+
+/* Hide navigation links on small screens */
+@media (max-width: 768px) {
+    .nav-links {
+        display: none;
+    }
+}
+
+/* Search Bar */
+.search-bar {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    transition: background 0.3s ease;
+}
+
+.search-bar input {
+    border: none;
+    background: transparent;
+    outline: none;
+    color: #ffffff;
+    font-size: 1rem;
+    width: 150px;
+    transition: width 0.3s ease;
+}
+
+.search-bar button {
+    background: none;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-bar:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.search-bar input:focus {
+    width: 200px;
 }
 
 /* =========================================
@@ -177,6 +261,7 @@ body {
 
 .logo-svg:hover {
     opacity: 0.9;
+    transform: rotate(10deg) scale(1.05); /* Added rotation and scaling */
 }
 
 /* Sound Waves Animation */
@@ -361,7 +446,7 @@ body.overlay-active {
     justify-content: center;
     align-items: center;
     background: transparent; /* Removed background */
-    margin-top: 20px; /* Added margin to move it down */
+    margin-top: 120px; /* Added margin to move it down below the fixed title bar */
     opacity: 0;
     transform: translateY(20px) scale(0.95);
     filter: blur(5px);
@@ -1160,9 +1245,9 @@ body.overlay-active {
 /* Large Screens (Desktop) */
 @media (min-width: 1201px) {
     .now-playing-container {
-        padding-top: 80px; /* Adjusted padding */
+        margin-top: 120px; /* Adjusted margin */
     }
-    
+
     .sidebar-item {
         font-size: var(--content-font-size);
     }
@@ -1215,6 +1300,10 @@ body.overlay-active {
     #greeting,
     #time-zone {
         font-size: 1.1rem; /* Adjusted font size */
+    }
+
+    .now-playing-container {
+        margin-top: 110px; /* Adjusted margin for tablets */
     }
 }
 
@@ -1279,6 +1368,10 @@ body.overlay-active {
     .time-elapsed {
         font-size: 0.9rem; /* Increased font size */
     }
+
+    .now-playing-container {
+        margin-top: 100px; /* Adjusted margin for mobile */
+    }
 }
 
 /* Extra Small Screens (Very Small Mobile) */
@@ -1302,6 +1395,7 @@ body.overlay-active {
 
     .now-playing-container {
         padding-top: 80px; /* Adjusted padding */
+        margin-top: 90px; /* Adjusted margin for very small screens */
     }
 
     .now-playing-sidebar {
@@ -1350,7 +1444,8 @@ body.overlay-active {
 .manage-consent-button:focus,
 .consent-button:focus,
 .close-button:focus,
-.toggle-description:focus {
+.toggle-description:focus,
+.search-bar input:focus {
     outline: 2px solid var(--primary-color);
     outline-offset: 2px;
 }
