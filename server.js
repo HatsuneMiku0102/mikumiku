@@ -1375,22 +1375,50 @@ app.post('/api/videos',
 // ----------------------
 
 // Initialize OpenAI Client
-const { Configuration, OpenAIApi } = require('openai');
-
-const openaiConfig = new Configuration({
-    apiKey: process.env.OPENAI_API_KEY, // Ensure you have this in your .env file
+const configuration = new Configuration({
+    apiKey: process.env.OPENAI_API_KEY,
 });
-const openai = new OpenAIApi(openaiConfig);
+const openai = new OpenAIApi(configuration);
 
-// Handle Incoming OpenAI Requests
+// In-memory session storage (for demonstration purposes only)
 const sessions = {};
 
+// Rate Limiting Middleware
+const openAICallLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 60, // Limit each IP to 60 requests per windowMs (adjust as needed)
+    message: { error: 'Too many requests, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Utility function for exponential backoff
+async function makeOpenAIRequest(messages, retries = 3, backoff = 1000) {
+    try {
+        const response = await openai.createChatCompletion({
+            model: 'gpt-3.5-turbo',
+            messages: messages,
+            temperature: 0.7,
+            max_tokens: 150,
+        });
+        return response.data.choices[0].message.content.trim();
+    } catch (error) {
+        if (error.response && error.response.status === 429 && retries > 0) {
+            console.warn(`Rate limit exceeded. Retrying in ${backoff}ms...`);
+            await new Promise(res => setTimeout(res, backoff));
+            return makeOpenAIRequest(messages, retries - 1, backoff * 2);
+        } else {
+            throw error;
+        }
+    }
+}
+
 // POST /api/openai-chat
-app.post('/api/openai-chat', async (req, res) => {
+app.post('/api/openai-chat', openAICallLimiter, async (req, res) => {
     const { message, sessionId } = req.body;
 
-    if (!message) {
-        return res.status(400).json({ error: 'Message is required.' });
+    if (!message || !sessionId) {
+        return res.status(400).json({ error: 'Message and sessionId are required.' });
     }
 
     // Initialize session if it doesn't exist
@@ -1404,20 +1432,17 @@ app.post('/api/openai-chat', async (req, res) => {
     sessions[sessionId].push({ role: 'user', content: message });
 
     try {
-        const response = await openai.createChatCompletion({
-            model: 'gpt-3.5-turbo',
-            messages: sessions[sessionId],
-            temperature: 0.7,
-            max_tokens: 150,
-        });
-
-        const botResponse = response.data.choices[0].message.content.trim();
+        const botResponse = await makeOpenAIRequest(sessions[sessionId]);
         sessions[sessionId].push({ role: 'assistant', content: botResponse });
 
         res.json({ response: botResponse });
     } catch (error) {
-        console.error('Error communicating with OpenAI:', error.message);
-        res.status(500).json({ error: 'An error occurred while processing your request.' });
+        console.error(`Error communicating with OpenAI: ${error.message}`);
+        if (error.response && error.response.status === 429) {
+            res.status(429).json({ error: 'Too many requests. Please try again later.' });
+        } else {
+            res.status(500).json({ error: 'An error occurred while processing your request.' });
+        }
     }
 });
 
