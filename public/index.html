@@ -373,107 +373,160 @@
                     }
                 });
             </script>
-            <!-- Custom Scripts -->
             <script>
                 document.addEventListener('DOMContentLoaded', function () {
                     // Function to add animation classes with staggered delays
                     function animateElements() {
                         // Title Bar Animation
                         const titleBar = document.getElementById('titleBar');
-                        setTimeout(() => {
-                            titleBar.classList.add('animate-title-bar');
-                        }, 100); // Delay of 100ms
-    
+                        if (titleBar) {
+                            setTimeout(() => {
+                                titleBar.classList.add('animate-title-bar');
+                                console.log('Added animate-title-bar to titleBar');
+                            }, 100); // Delay of 100ms
+                        } else {
+                            console.error('Title Bar element not found!');
+                        }
+            
                         // Now Playing Section Animation
                         const nowPlaying = document.querySelector('.now-playing-container');
-                        setTimeout(() => {
-                            nowPlaying.classList.add('animate-now-playing');
-                        }, 400); // Delay of 400ms
-    
+                        if (nowPlaying) {
+                            setTimeout(() => {
+                                nowPlaying.classList.add('animate-now-playing');
+                                console.log('Added animate-now-playing to nowPlaying');
+                            }, 400); // Delay of 400ms
+                        } else {
+                            console.error('Now Playing container not found!');
+                        }
+            
                         // About Me Section Animation
                         const aboutMe = document.querySelector('.about');
-                        setTimeout(() => {
-                            aboutMe.classList.add('animate-about');
-                        }, 700); // Delay of 700ms
-    
+                        if (aboutMe) {
+                            setTimeout(() => {
+                                aboutMe.classList.add('animate-about');
+                                console.log('Added animate-about to aboutMe');
+                            }, 700); // Delay of 700ms
+                        } else {
+                            console.error('About Me section not found!');
+                        }
+            
                         // Footer Animation
                         const footer = document.querySelector('.footer');
-                        setTimeout(() => {
-                            footer.classList.add('animate-footer');
-                        }, 1000); // Delay of 1000ms
+                        if (footer) {
+                            setTimeout(() => {
+                                footer.classList.add('animate-footer');
+                                console.log('Added animate-footer to footer');
+                            }, 1000); // Delay of 1000ms
+                        } else {
+                            console.error('Footer element not found!');
+                        }
                     }
-    
+            
                     animateElements();
-    
+            
                     // Title Bar Scroll Effect
                     const titleBarElement = document.getElementById('titleBar');
-                    window.addEventListener('scroll', () => {
-                        if (window.scrollY > 50) {
-                            titleBarElement.classList.add('scrolled');
-                        } else {
-                            titleBarElement.classList.remove('scrolled');
-                        }
-                    });
-    
+                    if (titleBarElement) {
+                        window.addEventListener('scroll', () => {
+                            if (window.scrollY > 50) {
+                                titleBarElement.classList.add('scrolled');
+                                console.log('Added scrolled class to titleBar');
+                            } else {
+                                titleBarElement.classList.remove('scrolled');
+                                console.log('Removed scrolled class from titleBar');
+                            }
+                        });
+                    } else {
+                        console.error('Title Bar element not found for scroll effect!');
+                    }
+            
                     // Overlay Menu Functionality
                     const menuButton = document.getElementById('menuButton');
                     const overlayMenu = document.getElementById('overlayMenu');
                     const closeOverlay = document.getElementById('closeOverlay');
-    
-                    menuButton.addEventListener('click', () => {
-                        overlayMenu.classList.add('active');
-                        document.body.classList.add('overlay-active');
-                    });
-    
-                    closeOverlay.addEventListener('click', () => {
-                        overlayMenu.classList.remove('active');
-                        document.body.classList.remove('overlay-active');
-                    });
-    
+            
+                    if (menuButton && overlayMenu) {
+                        menuButton.addEventListener('click', (e) => {
+                            e.stopPropagation(); // Prevent event bubbling
+                            overlayMenu.classList.add('active');
+                            document.body.classList.add('overlay-active');
+                            console.log('Overlay menu activated');
+                        });
+                    } else {
+                        console.error('Menu Button or Overlay Menu element not found!');
+                    }
+            
+                    if (closeOverlay && overlayMenu) {
+                        closeOverlay.addEventListener('click', (e) => {
+                            e.stopPropagation(); // Prevent event bubbling
+                            overlayMenu.classList.remove('active');
+                            document.body.classList.remove('overlay-active');
+                            console.log('Overlay menu deactivated');
+                        });
+                    } else {
+                        console.error('Close Overlay button or Overlay Menu element not found!');
+                    }
+            
                     // Close menu when clicking outside of it
                     window.addEventListener('click', (event) => {
                         if (event.target === overlayMenu) {
                             overlayMenu.classList.remove('active');
                             document.body.classList.remove('overlay-active');
+                            console.log('Overlay menu closed by clicking outside');
                         }
                     });
-    
+            
                     // Personality Options Functionality
                     const personalityButtons = document.querySelectorAll('.personality-button');
                     const siteTitle = document.getElementById('dynamicTitle');
-    
-                    personalityButtons.forEach(button => {
-                        button.addEventListener('click', () => {
-                            const personality = button.textContent.trim();
-                            changeTitleStyle(personality);
-                            setActivePersonalityButton(button);
+            
+                    if (personalityButtons.length > 0 && siteTitle) {
+                        personalityButtons.forEach(button => {
+                            button.addEventListener('click', () => {
+                                const personality = button.textContent.trim();
+                                changeTitleStyle(personality);
+                                setActivePersonalityButton(button);
+                            });
                         });
-                    });
-    
+                    } else {
+                        if (personalityButtons.length === 0) {
+                            console.error('No personality buttons found!');
+                        }
+                        if (!siteTitle) {
+                            console.error('Dynamic Title element not found!');
+                        }
+                    }
+            
                     function changeTitleStyle(personality) {
                         switch(personality) {
                             case 'Melody':
                                 siteTitle.setAttribute('fill', 'url(#melodyGradient)');
+                                console.log('Changed title style to Melody');
                                 break;
                             case 'Harmony':
                                 siteTitle.setAttribute('fill', 'url(#harmonyGradient)');
+                                console.log('Changed title style to Harmony');
                                 break;
                             case 'Rhythm':
                                 siteTitle.setAttribute('fill', 'url(#rhythmGradient)');
+                                console.log('Changed title style to Rhythm');
                                 break;
                             default:
                                 siteTitle.setAttribute('fill', 'url(#logoGradient)');
+                                console.log('Reverted title style to default');
                         }
                     }
-    
+            
                     function setActivePersonalityButton(activeButton) {
                         personalityButtons.forEach(btn => {
                             btn.classList.remove('active');
                         });
                         activeButton.classList.add('active');
+                        console.log(`Active personality button set to ${activeButton.textContent.trim()}`);
                     }
                 });
             </script>
+
             <script>
                 // [Cookie Consent Script]
                 (function () {
