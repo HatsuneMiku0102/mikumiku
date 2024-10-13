@@ -9,18 +9,6 @@
     let lastFormattedDayOfWeek = null;
 
     /**
-     * Retrieves the value of a CSS variable from the :root selector.
-     * @param {string} variableName - The name of the CSS variable (e.g., '--primary-color').
-     * @param {string} fallback - The fallback value if the variable is not found.
-     * @returns {string} The value of the CSS variable or the fallback.
-     */
-    function getCSSVariable(variableName, fallback = '#ffffff') {
-        const rootStyles = getComputedStyle(document.documentElement);
-        const value = rootStyles.getPropertyValue(variableName).trim();
-        return value || fallback;
-    }
-
-    /**
      * Sets a cookie with the given name, value, and expiration in days.
      * @param {string} name - The name of the cookie.
      * @param {string} value - The value to store.
@@ -155,13 +143,13 @@
         const now = new Date();
 
         // Update local time
-        const localTimeElement = document.getElementById('time');
+        const timeElement = document.getElementById('time');
         const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-        if (localTimeElement) {
+        if (timeElement) {
             try {
                 const currentTime = now.toLocaleTimeString('en-US', timeOptions);
-                if (localTimeElement.textContent !== currentTime) {
-                    localTimeElement.textContent = currentTime;
+                if (timeElement.textContent !== currentTime) {
+                    timeElement.textContent = currentTime;
                 }
             } catch (error) {
                 console.error('Error updating local time:', error);
@@ -169,13 +157,13 @@
         }
 
         // Update date
-        const currentDateElement = document.getElementById('date');
-        if (currentDateElement) {
+        const dateElement = document.getElementById('date');
+        if (dateElement) {
             try {
                 const formattedDate = formatDate(now).trim();
                 // Only update if the date has changed to prevent unnecessary DOM updates
                 if (lastFormattedDate !== formattedDate) {
-                    currentDateElement.textContent = formattedDate;
+                    dateElement.textContent = formattedDate;
                     lastFormattedDate = formattedDate;
                     console.log(`Updated date to: ${formattedDate}`);
                 }
@@ -185,13 +173,13 @@
         }
 
         // Update day of the week
-        const dayOfWeekElement = document.getElementById('day');
-        if (dayOfWeekElement) {
+        const dayElement = document.getElementById('day');
+        if (dayElement) {
             try {
                 const formattedDay = formatDayOfWeek(now).trim();
                 // Only update if the day has changed
                 if (lastFormattedDayOfWeek !== formattedDay) {
-                    dayOfWeekElement.textContent = formattedDay;
+                    dayElement.textContent = formattedDay;
                     lastFormattedDayOfWeek = formattedDay;
                     console.log(`Updated day of the week to: ${formattedDay}`);
                 }
