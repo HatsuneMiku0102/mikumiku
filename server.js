@@ -25,6 +25,7 @@ const { body, validationResult } = require('express-validator');
 const uuid = require('uuid');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
+const { Configuration, OpenAIApi } = require('openai');
 
 // ----------------------
 // Load Environment Variables
