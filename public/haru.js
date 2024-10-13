@@ -1,11 +1,11 @@
-// public/js/haru.js
+// public/js/chat.js
 
 document.addEventListener('DOMContentLoaded', () => {
     const chatBox = document.getElementById('chat-box');
     const chatContent = document.getElementById('chat-content');
     const chatInput = document.getElementById('chat-input');
     const sendMessageButton = document.getElementById('send-message');
-    const closeChatButton = document.getElementById('close-chat');
+    const closeChatButton = document.querySelector('.chat-header .close-chat');
     const openChatButton = document.getElementById('open-chat');
     const chatLoading = document.getElementById('chat-loading'); // Loading spinner
 
@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function openChat() {
         chatBox.classList.add('open');
         chatBox.classList.remove('closed');
+        openChatButton.classList.add('hidden'); // Hide the floating chat button
         chatInput.focus();
     }
 
@@ -36,13 +37,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeChat() {
         chatBox.classList.remove('open');
         chatBox.classList.add('closed');
+        openChatButton.classList.remove('hidden'); // Show the floating chat button
     }
 
     // Append Message to Chat
     function appendMessage(content, className) {
         const messageElement = document.createElement('div');
         messageElement.classList.add('message', className);
-        const icon = className === 'bot-message' ? '<i class="fas fa-robot"></i>' : '<i class="fas fa-user"></i>';
+        const icon = className === 'bot-message' ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#ffffff" class="bi bi-robot" viewBox="0 0 16 16"><path d="M2 4a2 2 0 0 1 2-2h1a1 1 0 0 1 1 1v1h6V3a1 1 0 0 1 1-1h1a2 2 0 0 1 2 2v1h-1v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5H2V4zm4.5 0h5a.5.5 0 0 0 0 1h-5a.5.5 0 0 0 0-1zm1 3a.5.5 0 0 0-.5.5V9h1v-1.5a.5.5 0 0 0-.5-.5zm-2 0a.5.5 0 0 0-.5.5V9h1v-1.5a.5.5 0 0 0-.5-.5zM4 5v1h1V5H4zm6 0v1h1V5H10zm-5.5 3a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg>' 
+                                          : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#ffffff" class="bi bi-person" viewBox="0 0 16 16"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm4-3a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"/><path fill-rule="evenodd" d="M8 9a5 5 0 0 0-4.546 2.916A5.978 5.978 0 0 0 1 15a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1 5.978 5.978 0 0 0-2.454-3.084A5 5 0 0 0 8 9z"/></svg>';
         messageElement.innerHTML = `
             ${icon}
             <div class="message-content">${content}</div>
