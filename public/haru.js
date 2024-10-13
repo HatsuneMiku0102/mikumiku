@@ -8,6 +8,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeChatButton = document.getElementById('close-chat');
     const openChatButton = document.getElementById('open-chat');
 
+    // Generate or retrieve a sessionId
+    let sessionId = localStorage.getItem('sessionId');
+    if (!sessionId) {
+        sessionId = generateUUID();
+        localStorage.setItem('sessionId', sessionId);
+    }
+
+    // Function to generate a simple UUID
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0,
+                  v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
     // Open Chat Function
     function openChat() {
         chatBox.classList.add('open');
@@ -25,9 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function appendMessage(content, className) {
         const messageElement = document.createElement('div');
         messageElement.classList.add('message', className);
-        const icon = className === 'bot-message' ? '<i class="fas fa-robot"></i>' : '<i class="fas fa-user"></i>';
         messageElement.innerHTML = `
-            ${icon}
             <div class="message-content">${content}</div>
         `;
         chatContent.appendChild(messageElement);
@@ -50,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ message }),
+                body: JSON.stringify({ message, sessionId }),
             });
 
             if (!response.ok) {
