@@ -261,6 +261,104 @@
 
         // Update 'lastVisit' cookie when the user is about to leave the page
         window.addEventListener('beforeunload', updateLastVisitOnUnload);
+
+        // Initialize Animations using Anime.js
+        initializeAnimations();
+    }
+
+    /**
+     * Initializes animations using Anime.js for the now-playing box and widgets.
+     */
+    function initializeAnimations() {
+        // Ensure Anime.js is loaded
+        if (typeof anime === 'undefined') {
+            console.error('Anime.js is not loaded. Please include the Anime.js library.');
+            return;
+        }
+
+        // Animate the now-playing box
+        anime({
+            targets: '#nowPlayingBox',
+            opacity: [0, 1],
+            translateY: [-50, 0],
+            easing: 'easeOutExpo',
+            duration: 1000
+        });
+
+        // Animate the weather section
+        anime({
+            targets: '.weather-section',
+            opacity: [0, 1],
+            translateX: [50, 0],
+            easing: 'easeOutExpo',
+            duration: 1000,
+            delay: 200
+        });
+
+        // Animate the clock section
+        anime({
+            targets: '.clock-section',
+            opacity: [0, 1],
+            translateY: [50, 0],
+            easing: 'easeOutExpo',
+            duration: 1000,
+            delay: 400
+        });
+
+        // Animate the footer
+        anime({
+            targets: '.footer',
+            opacity: [0, 1],
+            translateY: [100, 0],
+            easing: 'easeOutExpo',
+            duration: 1000,
+            delay: 600
+        });
+
+        // Optional: Animate individual widgets within the now-playing box
+        anime({
+            targets: '.now-playing-sidebar .sidebar-item',
+            opacity: [0, 1],
+            translateX: [-20, 0],
+            easing: 'easeOutExpo',
+            duration: 800,
+            delay: anime.stagger(100, { start: 800 }) // Start after main animations
+        });
+
+        anime({
+            targets: '.video-section .video-title-container h2',
+            scale: [0.5, 1],
+            opacity: [0, 1],
+            easing: 'easeOutElastic(1, .8)',
+            duration: 1000
+        });
+
+        anime({
+            targets: '.video-section .thumbnail-container',
+            scale: [0.8, 1],
+            opacity: [0, 1],
+            easing: 'easeOutExpo',
+            duration: 1000,
+            delay: 200
+        });
+    }
+
+    /**
+     * Initializes the clock by setting up event listeners and starting updates.
+     */
+    function initializeClock() {
+        if (clockInitialized) return;
+        clockInitialized = true;
+
+        updateLastVisit();
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Update 'lastVisit' cookie when the user is about to leave the page
+        window.addEventListener('beforeunload', updateLastVisitOnUnload);
+
+        // Initialize Animations using Anime.js
+        initializeAnimations();
     }
 
     // Wait for the DOM to load before initializing
@@ -272,7 +370,9 @@
         }
     });
 
-
+    // ==================================================
+    // Existing Scripts (Ensure no conflicts occur)
+    // ==================================================
 
     // [Assuming other parts of the original script remain here]
 })();
