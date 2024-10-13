@@ -1,4 +1,39 @@
 /* =========================================
+   CSS Variables
+========================================= */
+:root {
+    /* Colors */
+    --primary-color: #00c6ff; /* Vibrant turquoise */
+    --secondary-color: #ff4081; /* Hot pink */
+    --background-color: #121212; /* Dark background */
+    --modal-background: rgba(0, 0, 0, 0.85);
+    --text-color: #ffffff;
+    --border-color: rgba(255, 255, 255, 0.2);
+    --button-hover-bg: rgba(255, 64, 129, 0.8);
+    --shadow-color: rgba(0, 0, 0, 0.5);
+    --accent-color: #ff4081;
+
+    /* Typography */
+    --font-family: 'Roboto', sans-serif;
+    --title-font-size: 3rem;
+    --content-font-size: 1rem;
+    --small-font-size: 0.875rem;
+
+    /* Spacing */
+    --padding-base: 1rem;
+    --padding-large: 2rem;
+    --margin-base: 1rem;
+    --margin-large: 2rem;
+
+    /* Transitions and Animations */
+    --transition-duration: 0.3s;
+    --animation-duration: 5s;
+
+    /* Borders and Radius */
+    --border-radius: 8px;
+}
+
+/* =========================================
    Reset and Base Styles
 ========================================= */
 *,
@@ -22,66 +57,15 @@ body {
 body {
     display: flex;
     flex-direction: column;
-    min-height: 100vh; /* Ensure body takes full viewport height */
 }
 
 .page-container {
     display: flex;
     flex-direction: column;
-    flex: 1; /* Allows the container to expand and push the footer down */
+    flex: 1;
+    min-height: 100vh;
     position: relative;
     z-index: 1;
-}
-
-/* =========================================
-   Footer Section - Centered Content & Sticky Position
-========================================= */
-.footer {
-    background-color: rgba(0, 0, 0, 0.8);
-    padding: var(--padding-base);
-    width: 100%; /* Ensure full width */
-    /* Remove position: fixed; to allow natural flow */
-    /* position: fixed; */
-    /* bottom: 0; */
-    /* left: 0; */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-color);
-    font-size: var(--small-font-size);
-    /* z-index: 100; Remove z-index as it's no longer fixed */
-    /* z-index: 100; */
-}
-
-.footer .container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center; /* Centers content vertically within the container */
-    gap: 0.5rem;
-}
-
-.footer p {
-    margin: 0; /* Remove default margins */
-}
-
-.manage-consent-button {
-    /* Additional styling to ensure the button is centered and styled appropriately */
-    background: var(--primary-color);
-    border: none;
-    color: var(--text-color);
-    padding: 0.5rem 1rem;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    transition: background-color var(--transition-duration) ease, transform var(--transition-duration) ease;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.manage-consent-button:hover {
-    background-color: var(--secondary-color);
-    transform: scale(1.05);
 }
 
 /* =========================================
@@ -346,8 +330,17 @@ body {
 
 .sidebar-item,
 .weather-section p {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     font-size: 1.1rem; /* Slightly larger font */
     transition: color var(--transition-duration) ease;
+}
+
+.sidebar-item i,
+.weather-section i {
+    color: var(--primary-color);
+    font-size: 1.2rem;
 }
 
 .sidebar-item:hover,
@@ -355,47 +348,13 @@ body {
     color: var(--secondary-color);
 }
 
-/* Divider Styles */
-.animated-divider {
-    width: 100%;
-    height: 2px;
-    background: var(--primary-color);
+.divider {
+    border: none;
+    border-top: 1px solid var(--border-color);
     margin: 1rem 0;
-    position: relative;
-    overflow: hidden;
 }
 
-.animated-divider::before,
-.animated-divider::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    height: 100%;
-    width: 100%;
-    background: var(--secondary-color);
-    animation: slide 2s infinite;
-}
-
-.animated-divider::after {
-    animation-delay: 1s;
-}
-
-/* Keyframe for divider animation */
-@keyframes slide {
-    0% {
-        transform: translateX(-100%);
-    }
-    50% {
-        transform: translateX(0%);
-    }
-    100% {
-        transform: translateX(100%);
-    }
-}
-
-/* =========================================
-   Clock Section
-========================================= */
+/* Clock Section */
 .clock-section {
     display: flex;
     flex-direction: column;
@@ -405,7 +364,9 @@ body {
 
 .clock-section .greeting {
     font-size: 1.2rem; /* Slightly larger */
-    /* Removed icon-related styles */
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .clocks-container {
@@ -419,12 +380,22 @@ body {
 .digital-clock p {
     font-size: 1.5rem; /* Enlarged font for better visibility */
     margin: 0.3rem 0;
-    /* Removed icon-related styles */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem; /* Space between icon and text */
+}
+
+.digital-clock p i {
+    color: var(--primary-color);
+    font-size: 1.2rem;
 }
 
 .time-zone {
     font-size: 1rem; /* Adjust font size as needed */
-    /* Removed icon-related styles */
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .last-visit-message {
@@ -590,6 +561,51 @@ body {
 .about p {
     font-size: var(--content-font-size);
     line-height: 1.6;
+}
+
+/* =========================================
+   Footer Section
+========================================= */
+.footer {
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: var(--padding-base);
+    width: 100%; /* Ensure full width */
+    bottom: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-color);
+    font-size: var(--small-font-size);
+    z-index: 100; /* Ensure it stays above other elements */
+}
+
+.footer .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; /* Centers content vertically within the container */
+    gap: 0.5rem;
+}
+
+.footer p {
+    margin: 0; /* Remove default margins */
+}
+
+.manage-consent-button {
+    /* Additional styling to ensure the button is centered and styled appropriately */
+    background: var(--primary-color);
+    border: none;
+    color: var(--text-color);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: background-color var(--transition-duration) ease, transform var(--transition-duration) ease;
+}
+
+.manage-consent-button:hover {
+    background-color: var(--secondary-color);
+    transform: scale(1.05);
 }
 
 /* =========================================
@@ -816,7 +832,7 @@ body {
 }
 
 .consent-button:hover {
-    background-color: var(--secondary-color);
+    background: var(--secondary-color);
     transform: scale(1.05);
 }
 
@@ -841,18 +857,6 @@ body {
     }
     100% {
         filter: drop-shadow(0 0 5px var(--primary-color));
-    }
-}
-
-@keyframes slide {
-    0% {
-        transform: translateX(-100%);
-    }
-    50% {
-        transform: translateX(0%);
-    }
-    100% {
-        transform: translateX(100%);
     }
 }
 
@@ -913,6 +917,11 @@ body {
         font-size: 1rem; /* Enlarge text */
     }
 
+    .weather-icon {
+        width: 60px;
+        height: 60px;
+    }
+
     .last-visit-message {
         font-size: 0.95rem;
     }
@@ -951,6 +960,11 @@ body {
 
     .weather-section p {
         font-size: 0.9rem;
+    }
+
+    .weather-icon {
+        width: 50px;
+        height: 50px;
     }
 
     .last-visit-message {
@@ -1025,27 +1039,3 @@ button {
     transform: translateY(20px);
 }
 
-/* Animated Divider Styles */
-.animated-divider {
-    width: 100%;
-    height: 2px;
-    background: var(--primary-color);
-    margin: 1rem 0;
-    position: relative;
-    overflow: hidden;
-}
-
-.animated-divider::before,
-.animated-divider::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    height: 100%;
-    width: 100%;
-    background: var(--secondary-color);
-    animation: slide 2s infinite;
-}
-
-.animated-divider::after {
-    animation-delay: 1s;
-}
