@@ -1,38 +1,60 @@
 // public/js/chat.js
 
 document.addEventListener('DOMContentLoaded', () => {
-    const chatLog = document.getElementById('chat-log');
+    const chatBox = document.getElementById('chat-box');
+    const chatContent = document.getElementById('chat-content');
     const chatInput = document.getElementById('chat-input');
-    const sendButton = document.getElementById('send-button');
+    const sendMessageButton = document.getElementById('send-message');
+    const closeChatButton = document.getElementById('close-chat');
+    const openChatButton = document.getElementById('open-chat');
 
-    // Function to append messages to the chat log
+    // Open Chat Function
+    function openChat() {
+        chatBox.classList.add('open');
+        chatBox.classList.remove('closed');
+        chatInput.focus();
+    }
+
+    // Close Chat Function
+    function closeChat() {
+        chatBox.classList.remove('open');
+        chatBox.classList.add('closed');
+    }
+
+    // Append Message to Chat
     function appendMessage(content, className) {
         const messageElement = document.createElement('div');
         messageElement.classList.add('message', className);
-        messageElement.innerHTML = content;
-        chatLog.appendChild(messageElement);
-        chatLog.scrollTop = chatLog.scrollHeight;
+        const icon = className === 'bot-message' ? '<i class="fas fa-robot"></i>' : '<i class="fas fa-user"></i>';
+        messageElement.innerHTML = `
+            ${icon}
+            <div class="message-content">${content}</div>
+        `;
+        chatContent.appendChild(messageElement);
+        chatContent.scrollTop = chatContent.scrollHeight;
     }
 
-    // Function to send message to the server
+    // Send Message to Server
     async function sendMessage() {
-        const userMessage = chatInput.value.trim();
-        if (userMessage === '') return;
+        const message = chatInput.value.trim();
+        if (message === '') return;
 
-        appendMessage(userMessage, 'user-message');
+        appendMessage(message, 'user-message');
         chatInput.value = '';
+        chatInput.disabled = true;
+        sendMessageButton.disabled = true;
 
         try {
-            const response = await fetch('/api/dialogflow', { // Update to '/api/openai-chat' if you renamed the endpoint
+            const response = await fetch('/api/openai-chat', { // Ensure this matches your server endpoint
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ message: userMessage }),
+                body: JSON.stringify({ message }),
             });
 
             if (!response.ok) {
-                appendMessage('Sorry, something went wrong.', 'bot-message');
+                appendMessage('Sorry, something went wrong. Please try again.', 'bot-message');
                 return;
             }
 
@@ -42,17 +64,34 @@ document.addEventListener('DOMContentLoaded', () => {
             appendMessage(botResponse, 'bot-message');
         } catch (error) {
             console.error('Error:', error);
-            appendMessage('Sorry, something went wrong.', 'bot-message');
+            appendMessage('Sorry, something went wrong. Please try again.', 'bot-message');
+        } finally {
+            chatInput.disabled = false;
+            sendMessageButton.disabled = false;
+            chatInput.focus();
         }
     }
 
-    // Event listener for send button
-    sendButton.addEventListener('click', sendMessage);
+    // Event Listeners
+    sendMessageButton.addEventListener('click', sendMessage);
 
-    // Event listener for Enter key
     chatInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             sendMessage();
         }
     });
+
+    closeChatButton.addEventListener('click', closeChat);
+    openChatButton.addEventListener('click', openChat);
+
+    // Accessibility: Close chat with Escape key when focused inside the chat
+    chatBox.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeChat();
+            openChatButton.focus();
+        }
+    });
+
+    // Initialize chat as closed
+    closeChat();
 });
