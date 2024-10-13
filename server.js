@@ -218,7 +218,7 @@ app.use(
                 "https://threejs.org",
                 "https://www.youtube.com",
                 "https://raw.githubusercontent.com" // Allow loading SVGs from GitHub
-                "'unsafe-inline'"
+                "unsafe-inline"
             ],
             fontSrc: [
                 "'self'",
