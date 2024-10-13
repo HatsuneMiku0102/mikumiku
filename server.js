@@ -216,7 +216,8 @@ app.use(
                 "https://openweathermap.org",
                 "https://i.postimg.cc",
                 "https://threejs.org",
-                "https://www.youtube.com"
+                "https://www.youtube.com",
+                "https://raw.githubusercontent.com" // Allow loading SVGs from GitHub
             ],
             fontSrc: [
                 "'self'",
@@ -249,6 +250,7 @@ app.use(
         }
     })
 );
+
 
 app.set('trust proxy', true);
 
