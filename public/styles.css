@@ -76,7 +76,8 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: -3; /* Ensure it's behind all content */
+    z-index: -3; /* Behind all content */
+    background: transparent;
     pointer-events: none; /* Allow interactions to pass through */
 }
 
@@ -89,11 +90,20 @@ body {
     position: sticky;
     top: 0;
     width: 100%;
-    z-index: 10; /* Above the canvas */
+    z-index: 10; /* Above canvas and visualizer */
     display: flex;
     justify-content: center;
     align-items: center;
     box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.container {
+    width: 100%;
+    max-width: 1200px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
 }
 
 .title-wrapper {
@@ -115,7 +125,7 @@ body {
     font-weight: bold;
     color: var(--primary-color);
     position: relative;
-    z-index: 2;
+    z-index: 2; /* Above visualizer */
     transition: color var(--transition-duration) ease;
 }
 
@@ -126,12 +136,12 @@ body {
 
 .visualizer-wrapper {
     position: absolute;
-    bottom: -10px; /* Positioning the visualizer slightly below the title */
+    bottom: -20px; /* Adjust as needed */
     left: 50%;
     transform: translateX(-50%);
-    width: 100px;
-    height: 40px;
-    z-index: 1;
+    width: 150px; /* Increased width */
+    height: 60px; /* Increased height */
+    z-index: 1; /* Behind site-title */
 }
 
 .visualizer {
@@ -141,8 +151,7 @@ body {
 
 /* Menu Button */
 .right-section {
-    position: absolute;
-    right: var(--padding-base);
+    /* Positioning handled by .container's justify-content: space-between */
 }
 
 .menu-button {
@@ -188,7 +197,7 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    z-index: 2000; /* Above all content */
+    z-index: 2000;
     transition: opacity var(--transition-duration) ease, visibility var(--transition-duration) ease;
     opacity: 0;
     visibility: hidden;
@@ -314,7 +323,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: var(--content-font-size);
+    font-size: 1.1rem; /* Slightly larger font */
     transition: color var(--transition-duration) ease;
 }
 
@@ -344,7 +353,7 @@ body {
 }
 
 .clock-section .greeting {
-    font-size: var(--content-font-size);
+    font-size: 1.2rem; /* Slightly larger */
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -354,6 +363,7 @@ body {
     display: flex;
     gap: 2rem;
     align-items: center;
+    justify-content: center;
 }
 
 .digital-clock,
@@ -364,19 +374,15 @@ body {
 }
 
 .digital-clock .local-time {
-    font-size: 1.5rem;
+    font-size: 2rem; /* Enlarge digital clock */
     color: var(--primary-color);
     font-weight: bold;
+    text-align: center;
 }
 
 .digital-clock p {
     font-size: var(--small-font-size);
-}
-
-.analog-clock-container canvas {
-    border: 2px solid var(--primary-color);
-    border-radius: 50%;
-    background: transparent;
+    text-align: center;
 }
 
 .last-visit-message {
@@ -384,6 +390,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    text-align: center;
 }
 
 /* =========================================
@@ -401,6 +408,7 @@ body {
 .video-title-container h2 {
     font-size: 1.75rem;
     color: var(--primary-color);
+    text-align: center;
 }
 
 .video-title-container p {
@@ -473,8 +481,12 @@ body {
     animation: glowPulse 2s infinite;
 }
 
+.live-icon.active {
+    display: flex; /* Use 'flex' to align properly */
+}
+
 .time-elapsed {
-    font-size: var(--small-font-size);
+    font-size: 1rem; /* Slightly larger */
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -549,6 +561,13 @@ body {
     font-size: var(--small-font-size);
 }
 
+.footer .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .manage-consent-button {
     background: var(--primary-color);
     border: none;
@@ -561,7 +580,7 @@ body {
 }
 
 .manage-consent-button:hover {
-    background: var(--secondary-color);
+    background-color: var(--secondary-color);
     transform: scale(1.05);
 }
 
@@ -580,7 +599,7 @@ body {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     display: none;
     flex-direction: column;
-    z-index: 3000; /* Above all content */
+    z-index: 3000;
 }
 
 .chat-box.open {
@@ -690,7 +709,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 3001; /* Above chat box */
+    z-index: 3001;
     transition: background-color var(--transition-duration) ease, transform var(--transition-duration) ease;
 }
 
@@ -718,7 +737,7 @@ body {
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 4000; /* Above all content */
+    z-index: 4000;
     transition: opacity var(--transition-duration) ease, visibility var(--transition-duration) ease;
     opacity: 0;
     visibility: hidden;
@@ -759,11 +778,13 @@ body {
 .modal-content h2 {
     margin-bottom: 1rem;
     color: var(--primary-color);
+    text-align: center;
 }
 
 .modal-content p {
     font-size: var(--content-font-size);
     line-height: 1.6;
+    text-align: center;
 }
 
 .consent-buttons {
@@ -844,8 +865,8 @@ body {
     }
 
     .visualizer-wrapper {
-        width: 80px;
-        height: 30px;
+        width: 120px;
+        height: 40px;
     }
 
     .now-playing {
@@ -859,6 +880,23 @@ body {
     .thumbnail-container {
         max-width: 100%;
     }
+
+    .digital-clock .local-time {
+        font-size: 2.5rem; /* Further enlarge on smaller screens */
+    }
+
+    .digital-clock p {
+        font-size: 1rem;
+    }
+
+    .weather-section p {
+        font-size: 1rem; /* Enlarge text */
+    }
+
+    .weather-icon {
+        width: 60px;
+        height: 60px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -871,8 +909,8 @@ body {
     }
 
     .visualizer-wrapper {
-        width: 60px;
-        height: 25px;
+        width: 80px;
+        height: 30px;
     }
 
     .now-playing-sidebar,
@@ -882,6 +920,23 @@ body {
 
     .now-playing {
         padding: var(--padding-base) 0.5rem;
+    }
+
+    .digital-clock .local-time {
+        font-size: 2rem;
+    }
+
+    .digital-clock p {
+        font-size: 0.9rem;
+    }
+
+    .weather-section p {
+        font-size: 0.9rem;
+    }
+
+    .weather-icon {
+        width: 50px;
+        height: 50px;
     }
 }
 
