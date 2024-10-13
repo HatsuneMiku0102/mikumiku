@@ -155,15 +155,13 @@
         const now = new Date();
 
         // Update local time
-        const localTimeElement = document.getElementById('local-time');
+        const localTimeElement = document.getElementById('time');
         const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
         if (localTimeElement) {
             try {
-                // Only update the time text to prevent re-rendering the icon
                 const currentTime = now.toLocaleTimeString('en-US', timeOptions);
-                const iconHtml = `<i class="fas fa-clock"></i> `;
-                if (localTimeElement.innerHTML !== `${iconHtml}${currentTime}`) {
-                    localTimeElement.innerHTML = `${iconHtml}${currentTime}`;
+                if (localTimeElement.textContent !== currentTime) {
+                    localTimeElement.textContent = currentTime;
                 }
             } catch (error) {
                 console.error('Error updating local time:', error);
@@ -171,13 +169,13 @@
         }
 
         // Update date
-        const currentDateElement = document.getElementById('current-date');
+        const currentDateElement = document.getElementById('date');
         if (currentDateElement) {
             try {
                 const formattedDate = formatDate(now).trim();
                 // Only update if the date has changed to prevent unnecessary DOM updates
                 if (lastFormattedDate !== formattedDate) {
-                    currentDateElement.innerHTML = `<i class="fas fa-calendar-alt"></i> ${formattedDate}`;
+                    currentDateElement.textContent = formattedDate;
                     lastFormattedDate = formattedDate;
                     console.log(`Updated date to: ${formattedDate}`);
                 }
@@ -187,13 +185,13 @@
         }
 
         // Update day of the week
-        const dayOfWeekElement = document.getElementById('day-of-week');
+        const dayOfWeekElement = document.getElementById('day');
         if (dayOfWeekElement) {
             try {
                 const formattedDay = formatDayOfWeek(now).trim();
                 // Only update if the day has changed
                 if (lastFormattedDayOfWeek !== formattedDay) {
-                    dayOfWeekElement.innerHTML = `<i class="fas fa-calendar-day"></i> ${formattedDay}`;
+                    dayOfWeekElement.textContent = formattedDay;
                     lastFormattedDayOfWeek = formattedDay;
                     console.log(`Updated day of the week to: ${formattedDay}`);
                 }
@@ -203,14 +201,13 @@
         }
 
         // Update time zone
-        const timeZoneElement = document.getElementById('time-zone');
+        const timeZoneElement = document.getElementById('timezone');
         if (timeZoneElement) {
             try {
                 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 const timeZoneText = `Time Zone: ${timeZone}`;
-                const iconHtml = `<i class="fas fa-globe"></i> `;
-                if (timeZoneElement.innerHTML !== `${iconHtml}${timeZoneText}`) {
-                    timeZoneElement.innerHTML = `${iconHtml}${timeZoneText}`;
+                if (timeZoneElement.textContent !== timeZoneText) {
+                    timeZoneElement.textContent = timeZoneText;
                 }
             } catch (error) {
                 console.error('Error updating time zone:', error);
@@ -218,8 +215,8 @@
         }
 
         // Update greeting
-        const greetingElement = document.getElementById('greeting');
-        if (greetingElement) {
+        const greetingTextElement = document.getElementById('greeting-text');
+        if (greetingTextElement) {
             try {
                 const hour = now.getHours();
                 let greeting;
@@ -232,8 +229,8 @@
                 } else {
                     greeting = 'Good night!';
                 }
-                if (greetingElement.textContent !== greeting) {
-                    greetingElement.textContent = greeting;
+                if (greetingTextElement.textContent !== greeting) {
+                    greetingTextElement.textContent = greeting;
                 }
             } catch (error) {
                 console.error('Error updating greeting:', error);
