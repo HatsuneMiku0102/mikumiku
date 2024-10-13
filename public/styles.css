@@ -8,23 +8,22 @@
     --shadow-color: rgba(0, 198, 255, 0.7);
     --hover-shadow-color: rgba(255, 64, 129, 0.7);
     --futuristic-background: rgba(0, 0, 0, 0.6);
-    --background-gradient: linear-gradient(135deg, rgba(0, 198, 255, 0.6), rgba(255, 64, 129, 0.6));
 
     /* Typography */
-    --font-family: 'Roboto', sans-serif;
     --title-font-size: 2.5rem;
     --current-time-font-size: 2.5rem;
     --content-font-size: 1.6rem;
     --small-font-size: 1rem;
 
-    /* Transitions & Animations */
+    /* Transitions and Animations */
     --transition-duration: 0.6s;
     --border-radius: 10px; /* Sleek corners */
     --box-shadow-default: 0 4px 10px rgba(0, 0, 0, 0.4);
     --box-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.7);
+    --font-family: 'Roboto', sans-serif;
 
-    /* Others */
-    --loading-spinner-size: 50px;
+    /* Backgrounds */
+    --background-gradient: linear-gradient(135deg, rgba(0, 198, 255, 0.6), rgba(255, 64, 129, 0.6));
 }
 
 /* =========================================
@@ -694,6 +693,7 @@ body.overlay-active {
     pointer-events: none; /* Allows clicks to pass through if necessary */
 }
 
+/* Active State to Display the Live Icon */
 .live-icon.active {
     display: block;
     animation: glowPulse 2s infinite;
@@ -732,8 +732,8 @@ body.overlay-active {
 
 .loading-spinner {
     display: none;
-    width: var(--loading-spinner-size); /* Increased size */
-    height: var(--loading-spinner-size);
+    width: 50px; /* Increased size */
+    height: 50px;
     border: 5px solid rgba(255, 255, 255, 0.3);
     border-top: 5px solid var(--secondary-color);
     border-radius: 50%;
@@ -743,10 +743,6 @@ body.overlay-active {
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 100;
-}
-
-.chat-loading.active .loading-spinner {
-    display: block;
 }
 
 /* Keyframes for Loading Spinner Animation */
@@ -848,7 +844,7 @@ body.overlay-active {
     display: none; /* Initially hidden */
     flex-direction: column;
     position: fixed;
-    bottom: 20px;
+    bottom: 80px; /* Adjusted to prevent overlap */
     right: 20px;
     width: 350px; /* Increased width for better usability */
     max-width: 100%;
@@ -881,7 +877,7 @@ body.overlay-active {
     position: relative;
 }
 
-/* Close Chat Button with SVG Icon */
+/* Close Chat Button */
 .close-chat {
     background: none;
     border: none;
@@ -889,23 +885,15 @@ body.overlay-active {
     font-size: 1.4rem;
     cursor: pointer;
     transition: color var(--transition-duration) ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .close-chat:hover {
     color: var(--secondary-color);
 }
 
-.close-chat::before {
-    content: '';
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg fill="%23ffffff" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18.3 5.71a1 1 0 0 0-1.42 0L12 10.59 7.12 5.7a1 1 0 0 0-1.42 1.42L10.59 12l-4.88 4.88a1 1 0 0 0 1.42 1.42L12 13.41l4.88 4.88a1 1 0 0 0 1.42-1.42L13.41 12l4.88-4.88a1 1 0 0 0 0-1.42z"/></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
+/* Remove Duplicate Close Buttons */
+.title-bar .close-chat {
+    display: none;
 }
 
 /* Chat Content */
@@ -916,7 +904,6 @@ body.overlay-active {
     display: flex;
     flex-direction: column;
     gap: 0.5rem; /* Increased gap */
-    position: relative;
 }
 
 /* Message Styles */
@@ -927,7 +914,6 @@ body.overlay-active {
     word-wrap: break-word;
     font-size: var(--small-font-size);
     animation: fadeIn 0.5s ease forwards;
-    position: relative;
 }
 
 .user-message {
@@ -935,43 +921,12 @@ body.overlay-active {
     background-color: var(--primary-color);
     color: #ffffff;
     text-align: right;
-    border-bottom-right-radius: 0;
-    position: relative;
 }
 
 .bot-message {
     align-self: flex-start;
     background-color: #f1f1f1;
     color: #333333;
-    border-bottom-left-radius: 0;
-    position: relative;
-}
-
-/* Adding SVG Tail for Messages */
-.user-message::after,
-.bot-message::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    width: 0;
-    height: 0;
-    border: 10px solid transparent;
-}
-
-.user-message::after {
-    right: -10px;
-    border-left-color: var(--primary-color);
-    border-top: 0;
-    border-bottom: 0;
-    top: 10px;
-}
-
-.bot-message::after {
-    left: -10px;
-    border-right-color: #f1f1f1;
-    border-top: 0;
-    border-bottom: 0;
-    top: 10px;
 }
 
 /* Chat Input Container */
@@ -994,10 +949,9 @@ body.overlay-active {
 
 .chat-input:focus {
     border-color: var(--primary-color);
-    outline: none;
 }
 
-/* Send Message Button with SVG Icon */
+/* Send Message Button */
 .send-message {
     background-color: var(--primary-color);
     border: none;
@@ -1008,27 +962,17 @@ body.overlay-active {
     font-size: 1rem;
     cursor: pointer;
     transition: background-color var(--transition-duration) ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .send-message:hover {
     background-color: #008c9e;
 }
 
-.send-message::before {
-    content: '';
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    margin-right: 8px;
-    background-image: url('data:image/svg+xml;utf8,<svg fill="%23ffffff" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-}
+/* =========================================
+   Floating Chat Button
+========================================= */
 
-/* Floating Chat Button */
+/* Adjusted Position to Prevent Overlap */
 .open-chat-button {
     position: fixed;
     bottom: 20px;
@@ -1045,11 +989,8 @@ body.overlay-active {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 1001; /* Higher z-index to stay above chat box */
     transition: background-color 0.3s ease, transform 0.3s ease;
-    background-image: url('data:image/svg+xml;utf8,<svg fill="%23ffffff" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 4c-4.41 0-8 3.59-8 8 0 3.84 2.61 7.06 6.07 7.88.45.08.63-.19.63-.42v-1.66c-2.48.54-3-1.19-3-1.19-.42-1.07-1.03-1.35-1.03-1.35-.84-.58.06-.57.06-.57 0 .06 0 .23 0 .37 0 .54.35.37.35.37.82.07 1.25.84 1.25.84.83 1.42 2.18 1.01 2.7.77.08-.6.32-1.01.58-1.24-1.98-.23-4.07-.99-4.07-4.42 0-.97.35-1.76.93-2.38-.09-.23-.4-1.16.09-2.42 0 0 .76-.24 2.5.93a8.717 8.717 0 012.28-.31c.77 0 1.54.1 2.28.31 1.74-1.17 2.5-.93 2.5-.93.49 1.26.18 2.19.09 2.42.58.62.93 1.41.93 2.38 0 3.44-2.09 4.19-4.07 4.42.33.29.63.86.63 1.74v2.58c0 .23.18.5.63.42A8.001 8.001 0 0022 12c0-4.41-3.59-8-8-8z"/></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
 }
 
 .open-chat-button:hover {
@@ -1263,7 +1204,10 @@ body.overlay-active {
         padding: 16px; /* Adjusted padding */
     }
 
-    .clock-section p, #last-visit-message, #greeting, #time-zone {
+    .clock-section p,
+    #last-visit-message,
+    #greeting,
+    #time-zone {
         font-size: 1.1rem; /* Adjusted font size */
     }
 }
