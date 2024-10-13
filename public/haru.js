@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sendMessageButton = document.getElementById('send-message');
     const closeChatButton = document.getElementById('close-chat');
     const openChatButton = document.getElementById('open-chat');
+    const chatLoading = document.getElementById('chat-loading'); // Loading spinner
 
     // Generate or retrieve a sessionId
     let sessionId = localStorage.getItem('sessionId');
@@ -41,7 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function appendMessage(content, className) {
         const messageElement = document.createElement('div');
         messageElement.classList.add('message', className);
+        const icon = className === 'bot-message' ? '<i class="fas fa-robot"></i>' : '<i class="fas fa-user"></i>';
         messageElement.innerHTML = `
+            ${icon}
             <div class="message-content">${content}</div>
         `;
         chatContent.appendChild(messageElement);
@@ -57,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInput.value = '';
         chatInput.disabled = true;
         sendMessageButton.disabled = true;
+        chatLoading.classList.add('active'); // Show loading spinner
 
         try {
             const response = await fetch('/api/openai-chat', { // Ensure this matches your server endpoint
@@ -64,11 +68,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ message, sessionId }),
+                body: JSON.stringify({ message, sessionId }), // Include sessionId
             });
 
             if (!response.ok) {
-                appendMessage('Sorry, something went wrong. Please try again.', 'bot-message');
+                if (response.status === 429) {
+                    appendMessage('You are sending messages too quickly. Please wait a moment.', 'bot-message');
+                } else if (response.status === 400) {
+                    appendMessage('Your message could not be processed. Please try again.', 'bot-message');
+                } else {
+                    appendMessage('Sorry, something went wrong. Please try again.', 'bot-message');
+                }
                 return;
             }
 
@@ -82,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             chatInput.disabled = false;
             sendMessageButton.disabled = false;
+            chatLoading.classList.remove('active'); // Hide loading spinner
             chatInput.focus();
         }
     }
