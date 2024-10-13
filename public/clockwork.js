@@ -159,7 +159,12 @@
         const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
         if (localTimeElement) {
             try {
-                localTimeElement.innerHTML = `<i class="fas fa-clock"></i> ${now.toLocaleTimeString('en-US', timeOptions)}`;
+                // Only update the time text to prevent re-rendering the icon
+                const currentTime = now.toLocaleTimeString('en-US', timeOptions);
+                const iconHtml = `<i class="fas fa-clock"></i> `;
+                if (localTimeElement.innerHTML !== `${iconHtml}${currentTime}`) {
+                    localTimeElement.innerHTML = `${iconHtml}${currentTime}`;
+                }
             } catch (error) {
                 console.error('Error updating local time:', error);
             }
@@ -202,7 +207,11 @@
         if (timeZoneElement) {
             try {
                 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                timeZoneElement.innerHTML = `<i class="fas fa-globe"></i> Time Zone: ${timeZone}`;
+                const timeZoneText = `Time Zone: ${timeZone}`;
+                const iconHtml = `<i class="fas fa-globe"></i> `;
+                if (timeZoneElement.innerHTML !== `${iconHtml}${timeZoneText}`) {
+                    timeZoneElement.innerHTML = `${iconHtml}${timeZoneText}`;
+                }
             } catch (error) {
                 console.error('Error updating time zone:', error);
             }
@@ -223,7 +232,9 @@
                 } else {
                     greeting = 'Good night!';
                 }
-                greetingElement.textContent = greeting;
+                if (greetingElement.textContent !== greeting) {
+                    greetingElement.textContent = greeting;
+                }
             } catch (error) {
                 console.error('Error updating greeting:', error);
             }
@@ -341,24 +352,6 @@
             duration: 1000,
             delay: 200
         });
-    }
-
-    /**
-     * Initializes the clock by setting up event listeners and starting updates.
-     */
-    function initializeClock() {
-        if (clockInitialized) return;
-        clockInitialized = true;
-
-        updateLastVisit();
-        updateClock();
-        setInterval(updateClock, 1000);
-
-        // Update 'lastVisit' cookie when the user is about to leave the page
-        window.addEventListener('beforeunload', updateLastVisitOnUnload);
-
-        // Initialize Animations using Anime.js
-        initializeAnimations();
     }
 
     // Wait for the DOM to load before initializing
