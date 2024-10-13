@@ -68,10 +68,13 @@ body {
    Title Bar
 ========================================= */
 .title-bar {
+    opacity: 0; /* Start hidden */
+    transform: translateY(-20px); /* Slightly above */
+    filter: blur(5px); /* Initial blur */
+    transition: all var(--transition-duration) ease-in-out;
     position: fixed;
     top: 0;
     width: 100%;
-    height: 100px; /* Increased height for better visibility */
     padding: 0 2.5rem; /* Increased padding */
     display: flex;
     justify-content: center;
@@ -80,15 +83,12 @@ body {
     background: rgba(0, 0, 0, 0.85); /* Semi-transparent dark background */
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(10px);
-    transition: all var(--transition-duration) ease-in-out;
-    opacity: 0; /* Set initial opacity to 0 for animation */
-    transform: translateY(-20px) scale(0.95); /* Initial transform for animation */
-    filter: blur(5px); /* Initial blur */
 }
 
+/* Animate Title Bar into view */
 .title-bar.animate-title-bar {
-    opacity: 1; /* Fade in to full opacity */
-    transform: translateY(0) scale(1); /* Reset transform */
+    opacity: 1; /* Fully visible */
+    transform: translateY(0); /* Original position */
     filter: blur(0); /* Remove blur */
 }
 
@@ -96,17 +96,23 @@ body {
 .title-bar .container {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center; /* Center items */
     width: 100%;
     max-width: 1600px; /* Increased max-width */
+    position: relative; /* For positioning menu button */
 }
 
-/* Title Wrapper */
+/* Left Section: Removed to center the title */
+.left-section {
+    display: none; /* Removed */
+}
+
+/* Title Wrapper and Site Title */
 .title-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     position: relative; /* For positioning the site title */
 }
 
@@ -127,30 +133,54 @@ body {
     height: 120px;
     cursor: pointer;
     transition: transform var(--transition-duration) ease, opacity var(--transition-duration) ease;
-    margin-left: 1rem; /* Move closer to the title */
     position: relative;
+}
+
+/* Sound Waves Animation */
+.sound-waves .wave {
+    transform-origin: center;
+    animation: wavePulse 3s infinite;
+}
+
+.sound-waves .wave:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.sound-waves .wave:nth-child(2) {
+    animation-delay: 1s;
+}
+
+.sound-waves .wave:nth-child(3) {
+    animation-delay: 2s;
+}
+
+@keyframes wavePulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.6;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0.6;
+    }
 }
 
 .logo-svg:hover {
     opacity: 0.9;
 }
 
-/* Site Title */
-.site-title {
-    margin-left: 1rem; /* Space between logo and title */
-    font-size: var(--title-font-size);
-    font-weight: bold;
-    color: #ffffff;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    transition: color var(--transition-duration) ease, text-shadow var(--transition-duration) ease;
-}
-
-.title-bar:hover .site-title {
-    color: var(--secondary-color);
-    text-shadow: 2px 2px 8px rgba(255, 64, 129, 0.7);
-}
-
 /* Menu Button */
+.right-section {
+    position: absolute;
+    right: 20px; /* Adjust as needed */
+    display: flex;
+    align-items: center;
+}
+
 .menu-button {
     display: flex;
     align-items: center;
@@ -164,7 +194,6 @@ body {
     backdrop-filter: blur(6px);
     transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
     box-shadow: 0 0 12px rgba(0, 198, 255, 0.6);
-    margin-left: auto; /* Push to the right */
 }
 
 .menu-button i {
@@ -254,43 +283,28 @@ body {
 /* =========================================
    Personality Buttons
 ========================================= */
-.personality-options {
-    display: flex;
-    gap: 1.5rem;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
 .personality-button {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--futuristic-background);
     color: #ffffff;
     border: 2px solid var(--primary-color);
-    padding: 0.75rem 1.5rem;
+    padding: 0.75rem 1.5rem; /* Increased padding */
     border-radius: var(--border-radius);
     font-size: 1rem;
     cursor: pointer;
-    transition: background-color var(--transition-duration) ease, color var(--transition-duration) ease, transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
+    transition: background-color var(--transition-duration) ease, transform var(--transition-duration) ease;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-}
-
-.personality-button i {
-    font-size: 1.2rem;
+    gap: 0.5rem; /* Space between icon and text */
 }
 
 .personality-button:hover {
     background-color: var(--primary-color);
-    color: #ffffff;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 198, 255, 0.5);
+    transform: scale(1.05);
 }
 
 .personality-button.active {
     background-color: var(--secondary-color);
     border-color: var(--secondary-color);
-    color: #ffffff;
-    box-shadow: 0 4px 15px rgba(255, 64, 129, 0.5);
 }
 
 /* =========================================
@@ -834,11 +848,6 @@ body {
 
 .close-chat:hover {
     color: var(--secondary-color);
-}
-
-/* Remove Duplicate Close Buttons */
-.title-bar .close-chat {
-    display: none;
 }
 
 /* Chat Content */
