@@ -8,7 +8,7 @@
     --shadow-color: rgba(0, 198, 255, 0.7);
     --hover-shadow-color: rgba(255, 64, 129, 0.7);
     --futuristic-background: rgba(0, 0, 0, 0.6);
-    --background-color: transparent; /* Default background */
+    --background-color: #000000; /* Default background */
 
     /* Typography */
     --font-family: 'Roboto', sans-serif;
@@ -123,25 +123,65 @@ body {
     align-items: center;
     justify-content: center;
     transition: transform var(--transition-duration) ease;
+    gap: 1rem; /* Space between logo and title */
 }
 
 .logo-link:hover {
     transform: scale(1.05);
 }
 
-/* SVG Title Styling */
-#dynamicTitle text {
-    animation: gradientAnimation var(--animation-duration) infinite alternate;
-    filter: drop-shadow(0 0 10px var(--primary-color))
-            drop-shadow(0 0 20px var(--primary-color))
-            drop-shadow(0 0 30px var(--secondary-color));
-    transition: filter 0.5s ease-in-out;
+/* Logo SVG Styling */
+.logo-svg {
+    width: 60px; /* Adjusted size for better fit */
+    height: 60px;
+    cursor: pointer;
+    transition: transform var(--transition-duration) ease, filter var(--transition-duration) ease;
+    animation: pulse 2s infinite;
 }
 
-#dynamicTitle text:hover {
-    filter: drop-shadow(0 0 20px var(--primary-color))
-            drop-shadow(0 0 30px var(--primary-color))
-            drop-shadow(0 0 40px var(--secondary-color));
+/* Pulse Animation for Logo */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 5px var(--primary-color));
+    }
+    50% {
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 15px var(--primary-color));
+    }
+    100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 5px var(--primary-color));
+    }
+}
+
+/* Site Title Styling */
+.site-title {
+    font-size: 2rem; /* Adjusted for better fit with logo */
+    font-weight: 700;
+    color: var(--primary-color);
+    text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color);
+    transition: color var(--transition-duration) ease, text-shadow var(--transition-duration) ease;
+}
+
+/* Animate Site Title Color */
+.site-title.animate-title {
+    animation: titleColorChange 10s infinite alternate;
+}
+
+@keyframes titleColorChange {
+    0% {
+        color: var(--primary-color);
+        text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color);
+    }
+    50% {
+        color: var(--secondary-color);
+        text-shadow: 0 0 5px var(--secondary-color), 0 0 10px var(--secondary-color);
+    }
+    100% {
+        color: var(--primary-color);
+        text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color);
+    }
 }
 
 /* Menu Button */
@@ -1042,290 +1082,33 @@ body {
     }
 }
 
-/* =========================================
-   Accessibility Enhancements
-========================================= */
-/* Focus States */
-.menu-button:focus,
-.close-overlay:focus,
-.close-chat:focus,
-.manage-consent-button:focus,
-.consent-button:focus,
-.close-button:focus,
-.toggle-description:focus,
-.open-chat-button:focus,
-.send-message:focus,
-.chat-input:focus {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
-}
-
-/* =========================================
-   Utility Classes
-========================================= */
-/* Center Elements */
-.center {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-/* Hidden Elements */
-.hidden {
-    display: none;
-    pointer-events: none;
-    opacity: 0;
-}
-
-/* Responsive Text */
-.responsive-text {
-    font-size: calc(var(--content-font-size) + 0.2rem);
-}
-
-@media (max-width: 768px) {
-    .responsive-text {
-        font-size: calc(var(--content-font-size) + 0.1rem);
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 5px var(--primary-color));
+    }
+    50% {
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 15px var(--primary-color));
+    }
+    100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 5px var(--primary-color));
     }
 }
 
-@media (max-width: 480px) {
-    .responsive-text {
-        font-size: var(--content-font-size);
+@keyframes titleColorChange {
+    0% {
+        color: var(--primary-color);
+        text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color);
     }
-}
-
-/* Ensure images do not exceed their containers */
-img, video, canvas {
-    max-width: 100%;
-    height: auto;
-    display: block;
-}
-
-/* Ensure the page container takes full height */
-.page-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Scrollbar Styling for Overlay Menu and Chat Content */
-.overlay-menu .overlay-content,
-.chat-content {
-    scrollbar-width: thin;
-    scrollbar-color: var(--primary-color) rgba(0, 0, 0, 0.5);
-}
-
-.overlay-menu .overlay-content::-webkit-scrollbar,
-.chat-content::-webkit-scrollbar {
-    width: 8px;
-}
-
-.overlay-menu .overlay-content::-webkit-scrollbar-track,
-.chat-content::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.1);
-}
-
-.overlay-menu .overlay-content::-webkit-scrollbar-thumb,
-.chat-content::-webkit-scrollbar-thumb {
-    background-color: var(--primary-color);
-    border-radius: 4px;
-}
-
-/* Prevent text selection on buttons */
-button {
-    user-select: none;
-}
-
-/* Smooth transitions for all interactive elements */
-a, button {
-    transition: all var(--transition-duration) ease;
-}
-
-/* =========================================
-   Responsive Design
-========================================= */
-
-/* Large Screens (Desktop) */
-@media (min-width: 1201px) {
-    .now-playing-container {
-        padding-top: 80px;
+    50% {
+        color: var(--secondary-color);
+        text-shadow: 0 0 5px var(--secondary-color), 0 0 10px var(--secondary-color);
     }
-
-    .sidebar-item {
-        font-size: var(--content-font-size);
-    }
-
-    .video-title-container h2 {
-        font-size: 2.5rem;
-    }
-
-    .video-title-container p {
-        font-size: 1.6rem;
-    }
-
-    .progress-bar-container {
-        margin-top: -12px;
-    }
-}
-
-/* Medium Screens (Tablet) */
-@media (max-width: 1200px) and (min-width: 769px) {
-    .now-playing {
-        flex-direction: row;
-    }
-
-    .now-playing-sidebar,
-    .video-section,
-    .weather-section {
-        width: 100%;
-    }
-
-    .now-playing-sidebar {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .video-thumbnail {
-        max-width: 90%;
-        height: 160px;
-    }
-
-    .progress-bar-container {
-        margin-top: -12px;
-    }
-
-    .clock-section {
-        padding: 16px;
-    }
-
-    .clock-section p,
-    #last-visit-message,
-    #greeting,
-    #time-zone {
-        font-size: 1.1rem;
-    }
-}
-
-/* Small Screens (Mobile) */
-@media (max-width: 768px) {
-    .title-bar .container,
-    .widgets-container {
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .now-playing,
-    .about,
-    .widgets-container {
-        width: 95%;
-        padding: 1.5rem;
-    }
-
-    .now-playing {
-        flex-direction: column;
-        padding: 1.5rem;
-    }
-
-    .now-playing-sidebar {
-        flex-direction: row;
-        flex-wrap: wrap;
-        padding-right: 0;
-        border-right: none;
-        gap: 1.5rem;
-    }
-
-    .sidebar-item {
-        width: 45%;
-        font-size: 0.9rem;
-    }
-
-    .video-section {
-        flex: 1;
-        padding-top: 1.5rem;
-    }
-
-    .video-thumbnail {
-        height: 140px;
-    }
-
-    .progress-bar-container {
-        margin-top: -18px;
-    }
-
-    .video-title-container h2 {
-        font-size: 1.8rem;
-    }
-
-    .video-title-container p {
-        font-size: 1.3rem;
-    }
-
-    .toggle-description {
-        font-size: 0.9rem;
-    }
-
-    .time-elapsed {
-        font-size: 0.9rem;
-    }
-}
-
-/* Extra Small Screens (Very Small Mobile) */
-@media (max-width: 480px) {
-    .logo-svg {
-        width: 60px;
-        height: 60px;
-    }
-
-    .title-wrapper {
-        margin-bottom: 0.5rem;
-    }
-
-    .about h2 {
-        font-size: 1.8rem;
-    }
-
-    .about p {
-        font-size: 1rem;
-    }
-
-    .now-playing-container {
-        padding-top: 80px;
-        margin-top: 100px;
-    }
-
-    .now-playing-sidebar {
-        flex-direction: column;
-        gap: 0.5rem;
-        width: 100%;
-    }
-
-    .sidebar-item {
-        width: 100%;
-        font-size: 0.85rem;
-    }
-
-    .video-section {
-        padding-top: 1.5rem;
-    }
-
-    .video-title-container h2 {
-        font-size: 1.4rem;
-    }
-
-    .video-title-container p {
-        font-size: 1.1rem;
-    }
-
-    .toggle-description {
-        font-size: 0.85rem;
-    }
-
-    .time-elapsed {
-        font-size: 0.85rem;
-    }
-
-    .progress-bar-container {
-        margin-top: -18px;
+    100% {
+        color: var(--primary-color);
+        text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color);
     }
 }
 
@@ -1458,6 +1241,38 @@ a, button {
     100% {
         transform: scale(1);
         filter: drop-shadow(0 0 5px #FF0000);
+    }
+}
+
+/* Pulse Animation for Logo */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 5px var(--primary-color));
+    }
+    50% {
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 15px var(--primary-color));
+    }
+    100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 5px var(--primary-color));
+    }
+}
+
+/* Title Color Change Animation */
+@keyframes titleColorChange {
+    0% {
+        color: var(--primary-color);
+        text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color);
+    }
+    50% {
+        color: var(--secondary-color);
+        text-shadow: 0 0 5px var(--secondary-color), 0 0 10px var(--secondary-color);
+    }
+    100% {
+        color: var(--primary-color);
+        text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color);
     }
 }
 
