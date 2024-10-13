@@ -1,4 +1,4 @@
-// public/js/chat.js
+// public/js/haru.js
 
 document.addEventListener('DOMContentLoaded', () => {
     const chatBox = document.getElementById('chat-box');
