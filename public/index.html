@@ -1073,125 +1073,55 @@
         </script>
 
         <script>
-            document.addEventListener('DOMContentLoaded', () => {
-              const canvas = document.getElementById('animationCanvas');
-              const ctx = canvas.getContext('2d');
-            
-              // Set canvas size
-              function resizeCanvas() {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-              }
-            
-              resizeCanvas();
-              window.addEventListener('resize', resizeCanvas);
-            
-              // Tile configuration
-              const TILE_SIZE = 50;
-              const GAP = 5;
-              const COLORS = ['#FF00FF', '#00FFFF']; // Neon Pink and Neon Blue
-            
-              let tiles = [];
-            
-              // Tile class
-              class Tile {
-                constructor(x, y, size) {
-                  this.x = x;
-                  this.y = y;
-                  this.size = size;
-                  this.initialSize = size;
-                  this.currentSize = size;
-                  this.popOut = false;
-                  this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
-                  this.opacity = 0;
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Animation Elements Animation
+            function animateElements() {
+                // Title Bar Animation
+                const titleBar = document.getElementById('titleBar');
+                if (titleBar) {
+                    setTimeout(() => {
+                        titleBar.classList.add('animate-title-bar');
+                        console.log('Added animate-title-bar to titleBar');
+                    }, 100); // Delay of 100ms
+                } else {
+                    console.error('Title Bar element not found!');
                 }
-            
-                draw(ctx) {
-                  ctx.save();
-                  ctx.translate(this.x, this.y);
-            
-                  // Apply glow
-                  if (this.popOut) {
-                    ctx.shadowColor = this.color;
-                    ctx.shadowBlur = 20;
-                  } else {
-                    ctx.shadowBlur = 0;
-                  }
-            
-                  ctx.fillStyle = this.color;
-                  ctx.globalAlpha = this.opacity;
-                  ctx.fillRect(-this.currentSize / 2, -this.currentSize / 2, this.currentSize, this.currentSize);
-                  ctx.restore();
+                // Now Playing Section Animation
+                const nowPlaying = document.querySelector('.now-playing-container');
+                if (nowPlaying) {
+                    setTimeout(() => {
+                        nowPlaying.classList.add('animate-now-playing');
+                        console.log('Added animate-now-playing to nowPlaying');
+                    }, 400); // Delay of 400ms
+                } else {
+                    console.error('Now Playing container not found!');
                 }
-            
-                animatePopOut() {
-                  this.popOut = true;
-                  anime.timeline({
-                    targets: this,
-                    easing: 'easeOutExpo',
-                  })
-                  .add({
-                    currentSize: this.initialSize * 1.5,
-                    opacity: 1,
-                    duration: 500,
-                  })
-                  .add({
-                    currentSize: this.initialSize,
-                    opacity: 0,
-                    duration: 500,
-                    delay: 1000,
-                    complete: () => {
-                      this.popOut = false;
-                    }
-                  });
+
+                // About Me Section Animation
+                const aboutMe = document.querySelector('.about');
+                if (aboutMe) {
+                    setTimeout(() => {
+                        aboutMe.classList.add('animate-about');
+                        console.log('Added animate-about to aboutMe');
+                    }, 700); // Delay of 700ms
+                } else {
+                    console.error('About Me section not found!');
                 }
-              }
-            
-              // Initialize tiles
-              function createTiles() {
-                tiles = [];
-                const cols = Math.floor(canvas.width / (TILE_SIZE + GAP));
-                const rows = Math.floor(canvas.height / (TILE_SIZE + GAP));
-            
-                for (let i = 0; i < cols; i++) {
-                  for (let j = 0; j < rows; j++) {
-                    const x = i * (TILE_SIZE + GAP) + TILE_SIZE / 2 + GAP;
-                    const y = j * (TILE_SIZE + GAP) + TILE_SIZE / 2 + GAP;
-                    tiles.push(new Tile(x, y, TILE_SIZE));
-                  }
+
+                // Footer Animation
+                const footer = document.querySelector('.footer');
+                if (footer) {
+                    setTimeout(() => {
+                        footer.classList.add('animate-footer');
+                        console.log('Added animate-footer to footer');
+                    }, 1000); // Delay of 1000ms
+                } else {
+                    console.error('Footer element not found!');
                 }
-              }
-            
-              createTiles();
-              window.addEventListener('resize', createTiles);
-            
-              // Animation loop
-              function animate() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-                tiles.forEach(tile => {
-                  tile.draw(ctx);
-                });
-            
-                requestAnimationFrame(animate);
-              }
-            
-              animate();
-            
-              // Randomly trigger tile pop-outs
-              function triggerPopOut() {
-                const randomTile = tiles[Math.floor(Math.random() * tiles.length)];
-                if (!randomTile.popOut) {
-                  randomTile.animatePopOut();
-                }
-            
-                // Schedule next pop-out
-                const nextPop = Math.random() * 2000 + 500; // 0.5s to 2.5s
-                setTimeout(triggerPopOut, nextPop);
-              }
-            
-              triggerPopOut();
-            });
+            }
+
+            animateElements();
         </script>
 
 
