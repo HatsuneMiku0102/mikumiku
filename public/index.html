@@ -701,7 +701,8 @@
             let isSessionExpired = false;
             let browsingStartTime = null;
             let browsingInterval = null;
-
+            let currentVideoId = null; // Track the current video ID to prevent flickering on progress updates
+        
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
             const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -716,7 +717,7 @@
             const videoDescriptionElement = document.getElementById("descriptionModalDescription");
             const timeElapsedElement = document.getElementById("timeElapsed");
             const liveIconElement = document.getElementById("liveIcon"); // LIVE Indicator
-
+        
             function formatNumber(number) {
                 if (typeof number === 'string') {
                     number = number.replace(/,/g, '');
@@ -724,7 +725,7 @@
                 const num = Number(number);
                 return isNaN(num) ? "N/A" : num.toLocaleString();
             }
-
+        
             function clearDisplay() {
                 nowPlayingBox.classList.add("offline");
                 offlineIndicatorElement.style.display = "flex";
@@ -743,7 +744,7 @@
                 timeElapsedElement.style.display = "none";
                 liveIconElement.style.display = "none"; // Hide LIVE Icon
             }
-
+        
             function clearVideoPresence() {
                 videoTitleElement.textContent = "";
                 videoThumbnailImage.src = "";
@@ -759,18 +760,18 @@
                 videoDescriptionElement.textContent = "";
                 liveIconElement.style.display = "none"; // Hide LIVE Icon
             }
-
+        
             function reinitializeSession() {
                 console.warn("[Client] Reinitializing session due to mismatch or timeout.");
                 clearDisplay();
                 isSessionExpired = true;
             }
-
+        
             function formatTimeElapsed(seconds) {
                 const hours = Math.floor(seconds / 3600);
                 const minutes = Math.floor((seconds % 3600) / 60);
                 const remainingSeconds = seconds % 60;
-
+        
                 if (hours > 0) {
                     return `${hours}h ${minutes}m ${remainingSeconds}s`;
                 } else if (minutes > 0) {
@@ -779,76 +780,79 @@
                     return `${remainingSeconds}s`;
                 }
             }
-
+        
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
-
-                // Start Fade-Out
-                nowPlayingBox.classList.add('fade-out');
-
-                // After fade-out completes, update content and fade-in
-                setTimeout(() => {
-                    // Update the video title and other information
-                    videoTitleElement.textContent = data.title || "Unknown Title";
-                    channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-                    viewCountElement.textContent = `${formatNumber(data.viewCount)}` || "N/A";
-                    likeCountElement.textContent = `${formatNumber(data.likeCount)}` || "N/A";
-
-                    if (data.publishedAt) {
-                        const publishedDate = new Date(data.publishedAt);
-                        publishedDateElement.textContent = `${publishedDate.toLocaleDateString()}` || "Published on: N/A";
-                    } else {
-                        publishedDateElement.textContent = "Published on: N/A";
-                    }
-
-                    videoCategoryElement.textContent = `${data.category}` || "N/A";
-                    videoDescriptionElement.textContent = data.description || "No description available.";
-                    handleRealTimeProgress(data);
-
-                    if (data.thumbnail) {
-                        videoThumbnailImage.src = data.thumbnail;
-                        videoThumbnailImage.style.display = "block";
-                        videoThumbnailElement.style.display = "none";
-                    } else {
-                        videoThumbnailImage.src = "";
-                        videoThumbnailElement.style.display = "none";
-                    }
-
-                    if (data.videoSrc) {
-                        videoThumbnailElement.src = data.videoSrc;
-                        videoThumbnailElement.style.display = "block";
-                        videoThumbnailImage.style.display = "none";
-                    } else {
-                        videoThumbnailElement.style.display = "none";
-                        videoThumbnailImage.style.display = "block";
-                    }
-
-                    // Handle Live Status
-                    if (data.isLive) {
-                        liveIconElement.classList.add('active'); // Add active class to trigger animation
-                        liveIconElement.style.display = "flex"; // Use 'flex' to utilize CSS flex properties
-                    } else {
-                        liveIconElement.classList.remove('active'); // Remove active class
-                        liveIconElement.style.display = "none"; // Hide the live icon when not live
-                    }
-
-                    // Start Fade-In
-                    nowPlayingBox.classList.remove('fade-out');
-                    nowPlayingBox.classList.add('fade-in');
-
-                    // Remove fade-in class after animation completes to allow future transitions
+        
+                // Check if video has changed by comparing video IDs (or another unique identifier)
+                if (data.videoId !== currentVideoId) {
+                    currentVideoId = data.videoId; // Update the current video ID
+        
+                    // Start Fade-Out for major updates (new video)
+                    nowPlayingBox.classList.add('fade-out');
+        
                     setTimeout(() => {
-                        nowPlayingBox.classList.remove('fade-in');
+                        // Update the video title and other information
+                        videoTitleElement.textContent = data.title || "Unknown Title";
+                        channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+                        viewCountElement.textContent = `${formatNumber(data.viewCount)}` || "N/A";
+                        likeCountElement.textContent = `${formatNumber(data.likeCount)}` || "N/A";
+        
+                        if (data.publishedAt) {
+                            const publishedDate = new Date(data.publishedAt);
+                            publishedDateElement.textContent = `${publishedDate.toLocaleDateString()}` || "Published on: N/A";
+                        } else {
+                            publishedDateElement.textContent = "Published on: N/A";
+                        }
+        
+                        videoCategoryElement.textContent = `${data.category}` || "N/A";
+                        videoDescriptionElement.textContent = data.description || "No description available.";
+        
+                        if (data.thumbnail) {
+                            videoThumbnailImage.src = data.thumbnail;
+                            videoThumbnailImage.style.display = "block";
+                            videoThumbnailElement.style.display = "none";
+                        } else {
+                            videoThumbnailImage.src = "";
+                            videoThumbnailElement.style.display = "none";
+                        }
+        
+                        if (data.videoSrc) {
+                            videoThumbnailElement.src = data.videoSrc;
+                            videoThumbnailElement.style.display = "block";
+                            videoThumbnailImage.style.display = "none";
+                        } else {
+                            videoThumbnailElement.style.display = "none";
+                            videoThumbnailImage.style.display = "block";
+                        }
+        
+                        // Handle Live Status
+                        if (data.isLive) {
+                            liveIconElement.classList.add('active'); // Add active class to trigger animation
+                            liveIconElement.style.display = "flex"; // Use 'flex' to utilize CSS flex properties
+                        } else {
+                            liveIconElement.classList.remove('active'); // Remove active class
+                            liveIconElement.style.display = "none"; // Hide the live icon when not live
+                        }
+        
+                        // Start Fade-In after updating content
+                        nowPlayingBox.classList.remove('fade-out');
+                        nowPlayingBox.classList.add('fade-in');
+        
+                        // Remove fade-in class after animation completes
+                        setTimeout(() => {
+                            nowPlayingBox.classList.remove('fade-in');
+                        }, 500); // Duration should match the CSS animation duration
+        
                     }, 500); // Duration should match the CSS animation duration
-
-                    // Ensure video title and info are visible
-                    nowPlayingBox.classList.remove('offline');
-                }, 500); // Duration should match the CSS animation duration
+                }
+        
+                // Always handle progress bar updates independently
+                handleRealTimeProgress(data);
             }
-
-
+        
             function handleRealTimeProgress(data) {
                 if (data.duration && data.currentTime) {
                     const progressPercentage = (data.currentTime / data.duration) * 100;
@@ -857,14 +861,14 @@
                     progressBarElement.style.width = "0%";
                 }
             }
-
+        
             function displayBrowsingPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
-
+        
                 clearVideoPresence();
-
+        
                 videoTitleElement.textContent = data.title || "Browsing YouTube";
                 videoThumbnailImage.src = data.thumbnail || "";
                 videoThumbnailImage.style.display = "block";
@@ -872,19 +876,19 @@
                 channelNameElement.textContent = "Browsing...";
                 videoDescriptionElement.textContent = data.description || "Browsing videos on YouTube";
                 progressBarElement.style.width = "0%";
-
+        
                 if (data.timeElapsed !== undefined) {
                     timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(data.timeElapsed)}`;
                     timeElapsedElement.style.display = "block";
                 }
             }
-
+        
             function updateBrowsingPresence() {
                 if (browsingStartTime !== null) {
                     const timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
                     timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(timeElapsed)}`;
                     timeElapsedElement.style.display = "block";
-
+        
                     const browsingData = {
                         title: 'YouTube',
                         description: 'Browsing videos',
@@ -895,7 +899,7 @@
                     socket.emit('updateBrowsingPresence', browsingData);
                 }
             }
-
+        
             function startBrowsingPresence() {
                 if (browsingStartTime === null) {
                     browsingStartTime = Date.now();
@@ -904,7 +908,7 @@
                     browsingInterval = setInterval(updateBrowsingPresence, 5000);
                 }
             }
-
+        
             function stopBrowsingPresence() {
                 if (browsingInterval) {
                     clearInterval(browsingInterval);
@@ -912,21 +916,21 @@
                 }
                 browsingStartTime = null;
             }
-
+        
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
                 isSessionExpired = false;
                 socket.emit('requestLatestData');
             });
-
+        
             socket.on("presenceUpdate", (data) => {
                 if (isSessionExpired) {
                     console.warn("[Client] Ignoring presenceUpdate due to expired session.");
                     return;
                 }
-
+        
                 console.log("[Socket.IO] Received presenceUpdate:", data);
-
+        
                 if (data.presenceType === 'video') {
                     stopBrowsingPresence();
                     displayVideoPresence(data);
@@ -937,35 +941,35 @@
                     clearDisplay();
                 }
             });
-
+        
             socket.on("reinitializeSession", (data) => {
                 console.warn(`[Socket.IO] Received reinitializeSession: ${JSON.stringify(data)}`);
                 reinitializeSession();
             });
-
+        
             socket.on("sessionExpired", (data) => {
                 console.warn(`[Socket.IO] Session expired for video ID: ${data.videoId}`);
                 reinitializeSession();
             });
-
+        
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
                 stopBrowsingPresence();
                 clearDisplay();
             });
-
+        
             setInterval(() => {
                 if (Date.now() - lastHeartbeatReceived > 60000) {
                     console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
                     clearDisplay();
                 }
             }, 5000);
-
+        
             // Modal Toggle Logic
             const descriptionModal = document.getElementById("descriptionModal");
             const closeDescriptionButton = document.getElementById("closeDescriptionButton");
             const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
-
+        
             toggleDescriptionButton.addEventListener("click", function () {
                 if (descriptionModal.classList.contains("active")) {
                     descriptionModal.classList.remove("active");
@@ -975,12 +979,12 @@
                     toggleDescriptionButton.innerHTML = '<i class="fas fa-info-circle"></i> Hide Description';
                 }
             });
-
+        
             closeDescriptionButton.addEventListener("click", function () {
                 descriptionModal.classList.remove("active");
                 toggleDescriptionButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
             });
-
+        
             window.addEventListener("click", function (event) {
                 if (event.target === descriptionModal) {
                     descriptionModal.classList.remove("active");
