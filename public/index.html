@@ -750,11 +750,11 @@
             }
 
             function clearVideoPresence() {
-                // Start fade-out animation
+                // Start fade-out animation for video information (not for progress)
                 videoInfoContainer.classList.add('fade-out');
             
                 setTimeout(() => {
-                    // Clear video information after fade-out is complete (or immediately if no transition)
+                    // Clear video information after fade-out is complete
                     videoTitleElement.textContent = "";
                     videoThumbnailImage.src = "";
                     videoThumbnailImage.style.display = "none";
@@ -768,9 +768,9 @@
                     progressBarElement.style.width = "0%";
                     videoDescriptionElement.textContent = "";
             
-                    // Remove fade-out class to reset for future transitions
+                    // Remove fade-out class
                     videoInfoContainer.classList.remove('fade-out');
-                }, 500); // Adjust this to match your CSS transition duration (500ms in this case)
+                }, 500); // Adjust this to match your CSS transition duration
             }
 
             function reinitializeSession() {
@@ -798,64 +798,69 @@
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
             
-                // Start fade-out animation
-                videoInfoContainer.classList.add('fade-out');
+                // Only trigger the transition if the video actually changed (e.g., title, thumbnail)
+                if (videoTitleElement.textContent !== data.title || videoThumbnailImage.src !== data.thumbnail) {
+                    videoInfoContainer.classList.add('fade-out');
             
-                setTimeout(() => {
-                    // Update video information after fade-out completes (or immediately if no transition)
-                    videoTitleElement.textContent = data.title || "Unknown Title";
+                    setTimeout(() => {
+                        // Update video information after fade-out
+                        videoTitleElement.textContent = data.title || "Unknown Title";
             
-                    if (data.thumbnail) {
-                        videoThumbnailImage.src = data.thumbnail;
-                        videoThumbnailImage.style.display = "block";
-                        videoThumbnailElement.style.display = "none";
-                    } else {
-                        videoThumbnailImage.src = "";
-                        videoThumbnailElement.style.display = "none";
-                    }
+                        if (data.thumbnail) {
+                            videoThumbnailImage.src = data.thumbnail;
+                            videoThumbnailImage.style.display = "block";
+                            videoThumbnailElement.style.display = "none";
+                        } else {
+                            videoThumbnailImage.src = "";
+                            videoThumbnailElement.style.display = "none";
+                        }
             
-                    channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-                    viewCountElement.textContent = `${formatNumber(data.viewCount)}` || "N/A";
-                    likeCountElement.textContent = `${formatNumber(data.likeCount)}` || "N/A";
+                        channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+                        viewCountElement.textContent = `${formatNumber(data.viewCount)}` || "N/A";
+                        likeCountElement.textContent = `${formatNumber(data.likeCount)}` || "N/A";
             
-                    if (data.publishedAt) {
-                        const publishedDate = new Date(data.publishedAt);
-                        publishedDateElement.textContent = ` ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
-                    } else {
-                        publishedDateElement.textContent = "Published on: N/A";
-                    }
+                        if (data.publishedAt) {
+                            const publishedDate = new Date(data.publishedAt);
+                            publishedDateElement.textContent = ` ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
+                        } else {
+                            publishedDateElement.textContent = "Published on: N/A";
+                        }
             
-                    videoCategoryElement.textContent = `${data.category}` || "N/A";
-                    videoDescriptionElement.textContent = data.description || "No description available.";
-                    handleRealTimeProgress(data);
-                    timeElapsedElement.style.display = "none";
+                        videoCategoryElement.textContent = `${data.category}` || "N/A";
+                        videoDescriptionElement.textContent = data.description || "No description available.";
+                        timeElapsedElement.style.display = "none";
             
-                    if (data.videoSrc) {
-                        videoThumbnailElement.src = data.videoSrc;
-                        videoThumbnailElement.style.display = "block";
-                        videoThumbnailImage.style.display = "none";
-                    } else {
-                        videoThumbnailElement.style.display = "none";
-                        videoThumbnailImage.style.display = "block";
-                    }
+                        if (data.videoSrc) {
+                            videoThumbnailElement.src = data.videoSrc;
+                            videoThumbnailElement.style.display = "block";
+                            videoThumbnailImage.style.display = "none";
+                        } else {
+                            videoThumbnailElement.style.display = "none";
+                            videoThumbnailImage.style.display = "block";
+                        }
             
-                    // Handle Live Status
-                    if (data.isLive) {
-                        liveIconElement.classList.add('active');
-                        liveIconElement.style.display = "flex";
-                    } else {
-                        liveIconElement.classList.remove('active');
-                        liveIconElement.style.display = "none";
-                    }
+                        // Handle Live Status
+                        if (data.isLive) {
+                            liveIconElement.classList.add('active');
+                            liveIconElement.style.display = "flex";
+                        } else {
+                            liveIconElement.classList.remove('active');
+                            liveIconElement.style.display = "none";
+                        }
             
-                    // Remove fade-out class and add fade-in
-                    videoInfoContainer.classList.remove('fade-out');
-                    videoInfoContainer.classList.add('fade-in');
-                }, 500); // Adjust this to match your CSS transition duration (500ms in this case)
+                        // Remove fade-out class and trigger fade-in
+                        videoInfoContainer.classList.remove('fade-out');
+                        videoInfoContainer.classList.add('fade-in');
+                    }, 500); // Adjust this to match your CSS transition duration
+                }
+            
+                // Always handle real-time progress without animation
+                handleRealTimeProgress(data);
             }
 
 
             function handleRealTimeProgress(data) {
+                // Progress bar updates should happen smoothly without triggering a fade transition
                 if (data.duration && data.currentTime) {
                     const progressPercentage = (data.currentTime / data.duration) * 100;
                     progressBarElement.style.width = `${progressPercentage}%`;
