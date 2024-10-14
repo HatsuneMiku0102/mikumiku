@@ -701,6 +701,7 @@
             let isOffline = false;
             let currentVideoId = null;
         
+            // DOM Elements
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
             const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -716,24 +717,34 @@
             const timeElapsedElement = document.getElementById("timeElapsed");
             const liveIconElement = document.getElementById("liveIcon"); // LIVE Indicator
         
-            // Request the latest video data from the server when the client connects
-            socket.on("connect", () => {
-                console.log("[Socket.IO] Connected to server.");
-                socket.emit('requestLatestData'); // Request the latest video state from the server
-            });
+            // Utility functions
+            function saveVideoDataToLocalStorage(data) {
+                localStorage.setItem("lastKnownVideoData", JSON.stringify(data));
+            }
         
-            // Listen for the latest video state from the server
-            socket.on("latestVideoState", (data) => {
-                if (data && data.videoId !== currentVideoId) {
-                    displayVideoPresence(data);
+            function loadLastKnownData() {
+                const savedData = localStorage.getItem("lastKnownVideoData");
+                if (savedData) {
+                    const parsedData = JSON.parse(savedData);
+                    displayVideoPresence(parsedData);
                 }
-            });
+            }
         
+            function clearLocalStorage() {
+                localStorage.removeItem("lastKnownVideoData");
+            }
+        
+            function formatNumber(number) {
+                return isNaN(number) ? "N/A" : Number(number).toLocaleString();
+            }
+        
+            // Display video presence
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 isOffline = false;
                 comeOnline();
         
+                // Avoid unnecessary re-updates
                 if (data.videoId !== currentVideoId) {
                     currentVideoId = data.videoId;
         
@@ -779,9 +790,13 @@
                     }
         
                     handleRealTimeProgress(data); // Update progress bar
+        
+                    // Save video state to localStorage
+                    saveVideoDataToLocalStorage(data);
                 }
             }
         
+            // Handle video progress
             function handleRealTimeProgress(data) {
                 if (data.duration && data.currentTime) {
                     const progressPercentage = (data.currentTime / data.duration) * 100;
@@ -805,6 +820,29 @@
                 isOffline = true;
             }
         
+            // Request the latest video data from the server when the client connects
+            socket.on("connect", () => {
+                console.log("[Socket.IO] Connected to server.");
+                socket.emit('requestLatestData'); // Request the latest video state from the server
+                loadLastKnownData(); // Restore last known video data on reconnect
+            });
+        
+            // Listen for the latest video state from the server
+            socket.on("latestVideoState", (data) => {
+                if (data) {
+                    displayVideoPresence(data);
+                }
+            });
+        
+            // Listen for presence updates from the server
+            socket.on("presenceUpdate", (data) => {
+                if (data.presenceType === 'video') {
+                    displayVideoPresence(data);
+                } else {
+                    clearDisplay();
+                }
+            });
+        
             // Handle server disconnection
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
@@ -818,51 +856,6 @@
                     goOffline();
                 }
             }, 5000); // Check every 5 seconds
-        
-            // Socket event listeners
-            socket.on("connect", () => {
-                console.log("[Socket.IO] Connected to server.");
-                isSessionExpired = false;
-                socket.emit('requestLatestData');
-            });
-        
-            socket.on("presenceUpdate", (data) => {
-                if (isSessionExpired) {
-                    console.warn("[Client] Ignoring presenceUpdate due to expired session.");
-                    return;
-                }
-        
-                console.log("[Socket.IO] Received presenceUpdate:", data);
-        
-                if (data.presenceType === 'video') {
-                    displayVideoPresence(data);
-                } else {
-                    clearDisplay();
-                }
-            });
-        
-            socket.on("reinitializeSession", (data) => {
-                console.warn(`[Socket.IO] Received reinitializeSession: ${JSON.stringify(data)}`);
-                reinitializeSession();
-            });
-        
-            socket.on("sessionExpired", (data) => {
-                console.warn(`[Socket.IO] Session expired for video ID: ${data.videoId}`);
-                reinitializeSession();
-            });
-        
-            socket.on("disconnect", () => {
-                console.warn("[Socket.IO] Disconnected from server.");
-                clearDisplay();
-                clearLocalStorage(); // Clear stored video info on disconnect
-            });
-        
-            // Check if offline and re-display video info when resuming
-            setInterval(() => {
-                if (isOffline) {
-                    resumeVideoDisplay();
-                }
-            }, 1000); // Check every second if video info should be restored after being offline
         
             // Load video info from localStorage on page load
             document.addEventListener('DOMContentLoaded', () => {
@@ -895,6 +888,8 @@
                     toggleDescriptionButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
                 }
             });
+
+
 
 
 
