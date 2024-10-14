@@ -738,6 +738,21 @@
                 return isNaN(number) ? "N/A" : Number(number).toLocaleString();
             }
         
+            // Function to clear the display when the user goes offline or when no video is playing
+            function clearDisplay() {
+                videoTitleElement.textContent = "No video currently playing.";
+                videoThumbnailImage.src = "";
+                videoThumbnailElement.src = "";
+                channelNameElement.textContent = "";
+                viewCountElement.textContent = "";
+                likeCountElement.textContent = "";
+                publishedDateElement.textContent = "";
+                videoCategoryElement.textContent = "";
+                videoDescriptionElement.textContent = "";
+                progressBarElement.style.width = "0%";
+                liveIconElement.style.display = "none";
+            }
+        
             // Display video presence
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
@@ -839,7 +854,7 @@
                 if (data.presenceType === 'video') {
                     displayVideoPresence(data);
                 } else {
-                    clearDisplay();
+                    clearDisplay(); // Clear display if no video is playing
                 }
             });
         
@@ -888,12 +903,6 @@
                     toggleDescriptionButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
                 }
             });
-
-
-
-
-
-
 
 
             // Clock Update Script
