@@ -700,7 +700,7 @@
             let isOffline = false;
             let currentVideoId = null;
             let videoInterval = null;
-            let browsingInterval = null; // For browsing presence
+            let browsingInterval = null;
         
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
@@ -739,7 +739,7 @@
                 }
             }
         
-            // Start counting video time elapsed
+            // Start counting video time elapsed and update the progress bar
             function startVideoTimeElapsed(data) {
                 stopBrowsingTimeElapsed(); // Stop browsing time when switching to video
         
@@ -748,15 +748,18 @@
                     clearInterval(videoInterval);
                 }
         
-                let startTime = Math.floor(data.currentTime || 0); // Start from the current time
+                let currentTime = Math.floor(data.currentTime || 0); // Start from the current time
                 const duration = Math.floor(data.duration || 0); // Get the video duration
         
-                // Set the interval to increment the time and update the display
+                // Set the interval to increment the time and update the display and progress bar
                 videoInterval = setInterval(() => {
                     if (!data.isPaused) {
-                        startTime += 1; // Increment time only if the video isn't paused
+                        currentTime += 1; // Increment time only if the video isn't paused
                     }
-                    timeElapsedElement.textContent = `Video Time Elapsed: ${formatTimeElapsed(startTime)} / ${formatTimeElapsed(duration)}`;
+                    const progressPercentage = (currentTime / duration) * 100;
+                    progressBarElement.style.width = `${progressPercentage}%`;
+        
+                    timeElapsedElement.textContent = `Video Time Elapsed: ${formatTimeElapsed(currentTime)} / ${formatTimeElapsed(duration)}`;
                     timeElapsedElement.style.display = "block";
                 }, 1000); // Update every second
             }
@@ -795,19 +798,6 @@
                         startVideoTimeElapsed(videoState);
                     }
                 }
-            }
-        
-            // Handle real-time progress updates
-            function handleRealTimeProgress(data) {
-                const progressPercentage = (data.currentTime / data.duration) * 100;
-                progressBarElement.style.width = `${progressPercentage}%`;
-        
-                // Save the video’s current state to localStorage
-                saveLastKnownData({
-                    videoId: data.videoId,
-                    currentTime: data.currentTime,
-                    duration: data.duration
-                });
             }
         
             function comeOnline() {
@@ -875,7 +865,6 @@
         
                     // Start time elapsed counter
                     startVideoTimeElapsed(data);
-                    handleRealTimeProgress(data); // Update progress bar
                 }
             }
         
@@ -964,6 +953,8 @@
                     toggleDescriptionButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
                 }
             });
+
+
 
 
 
