@@ -12,14 +12,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/styles.css">
-
-    <!-- Anime.js CDN (Deferred Loading) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" defer></script>
 </head>
 
 <body>
     <!-- Canvas Background -->
-    <canvas id="animationCanvas" aria-hidden="true"></canvas> <!-- Correct ID -->
+    <canvas id="techCanvas" aria-hidden="true"></canvas>
 
     <div class="page-container">
         <!-- Title Bar -->
@@ -331,6 +328,7 @@
         <!-- JavaScript Libraries -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous"
             referrerpolicy="no-referrer"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
         <script src="haru.js"></script>
@@ -356,141 +354,8 @@
                 }
             });
         </script>
-
-        <!-- Animation Classes and Canvas Script -->
         <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                const canvas = document.getElementById('animationCanvas'); // Correct ID
-                const ctx = canvas.getContext('2d');
-
-                // Ensure the canvas exists
-                if (!canvas) {
-                    console.error("Canvas element with ID 'animationCanvas' not found.");
-                    return;
-                }
-
-                // Set canvas size
-                function resizeCanvas() {
-                    canvas.width = window.innerWidth;
-                    canvas.height = window.innerHeight;
-                    createTiles(); // Recreate tiles on resize to fit new dimensions
-                }
-
-                window.addEventListener('resize', resizeCanvas);
-                resizeCanvas();
-
-                // Tile configuration
-                const TILE_SIZE = 50;
-                const GAP = 5;
-                const COLORS = ['#FF00FF', '#00FFFF']; // Neon Pink and Neon Blue
-
-                let tiles = []; // Declare tiles before using
-
-                // Tile class
-                class Tile {
-                    constructor(x, y, size) {
-                        this.x = x;
-                        this.y = y;
-                        this.size = size;
-                        this.initialSize = size;
-                        this.currentSize = size;
-                        this.popOut = false;
-                        this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
-                        this.opacity = 0;
-                        this.angle = Math.random() * Math.PI * 2; // Random angle for 3D effect
-                    }
-
-                    draw(ctx) {
-                        ctx.save();
-                        ctx.translate(this.x, this.y);
-                        ctx.rotate(this.angle);
-
-                        // Apply shadow for depth
-                        if (this.popOut) {
-                            ctx.shadowColor = this.color;
-                            ctx.shadowBlur = 20;
-                        } else {
-                            ctx.shadowBlur = 0;
-                        }
-
-                        // Create radial gradient for realistic lighting
-                        const gradient = ctx.createRadialGradient(0, 0, this.currentSize * 0.3, 0, 0, this.currentSize);
-                        gradient.addColorStop(0, this.color);
-                        gradient.addColorStop(1, '#ffffff'); // Lighten to create a highlight
-
-                        ctx.fillStyle = gradient;
-                        ctx.globalAlpha = this.opacity;
-                        ctx.fillRect(-this.currentSize / 2, -this.currentSize / 2, this.currentSize, this.currentSize);
-                        ctx.restore();
-                    }
-
-                    animatePopOut() {
-                        this.popOut = true;
-                        anime.timeline({
-                            targets: this,
-                            easing: 'easeOutExpo',
-                        })
-                            .add({
-                                currentSize: this.initialSize * 1.5,
-                                opacity: 1,
-                                duration: 500,
-                            })
-                            .add({
-                                currentSize: this.initialSize,
-                                opacity: 0,
-                                duration: 500,
-                                delay: 1000,
-                                complete: () => {
-                                    this.popOut = false;
-                                }
-                            });
-                    }
-                }
-
-                // Initialize tiles
-                function createTiles() {
-                    tiles = []; // Reset tiles
-                    const cols = Math.floor(canvas.width / (TILE_SIZE + GAP));
-                    const rows = Math.floor(canvas.height / (TILE_SIZE + GAP));
-
-                    for (let i = 0; i < cols; i++) {
-                        for (let j = 0; j < rows; j++) {
-                            const x = i * (TILE_SIZE + GAP) + TILE_SIZE / 2 + GAP;
-                            const y = j * (TILE_SIZE + GAP) + TILE_SIZE / 2 + GAP;
-                            tiles.push(new Tile(x, y, TILE_SIZE));
-                        }
-                    }
-                }
-
-                createTiles();
-
-                // Animation loop
-                function animate() {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                    tiles.forEach(tile => {
-                        tile.draw(ctx);
-                    });
-
-                    requestAnimationFrame(animate);
-                }
-
-                animate();
-
-                // Randomly trigger tile pop-outs
-                function triggerPopOut() {
-                    const randomTile = tiles[Math.floor(Math.random() * tiles.length)];
-                    if (!randomTile.popOut) {
-                        randomTile.animatePopOut();
-                    }
-
-                    // Schedule next pop-out
-                    const nextPop = Math.random() * 2000 + 500; // 0.5s to 2.5s
-                    setTimeout(triggerPopOut, nextPop);
-                }
-
-                triggerPopOut();
-
+            document.addEventListener('DOMContentLoaded', function () {
                 // Function to add animation classes with staggered delays
                 function animateElements() {
                     // Title Bar Animation
@@ -642,8 +507,8 @@
             });
         </script>
 
-        <!-- Cookie Consent Script -->
         <script>
+            // [Cookie Consent Script]
             (function () {
                 'use strict';
 
@@ -654,7 +519,7 @@
                     consentModalId: 'consentModal',
                     acceptButtonId: 'acceptConsent',
                     declineButtonId: 'declineConsent',
-                    manageButtonIds: ['manageConsentFooter'],
+                    manageButtonIds: ['manageConsentModal', 'manageConsentFooter'],
                     closeButtonId: 'closeConsentModal',
                     cookieCategories: {
                         necessary: {
@@ -832,7 +697,6 @@
             })();
         </script>
 
-        <!-- Now Playing and Socket.IO Integration Script -->
         <script>
             // Now Playing Elements and Socket.IO Integration
             const socket = io("https://mikumiku.dev");
@@ -1206,6 +1070,132 @@
 
             setInterval(fetchWeather, 3600000); // Update every hour
             fetchWeather();
+        </script>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+              const canvas = document.getElementById('animationCanvas');
+              const ctx = canvas.getContext('2d');
+            
+              // Set canvas size
+              function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+              }
+            
+              resizeCanvas();
+              window.addEventListener('resize', resizeCanvas);
+            
+              // Tile configuration
+              const TILE_SIZE = 50;
+              const GAP = 5;
+              const COLORS = ['#FF00FF', '#00FFFF']; // Neon Pink and Neon Blue
+            
+              let tiles = [];
+            
+              // Tile class
+              class Tile {
+                constructor(x, y, size) {
+                  this.x = x;
+                  this.y = y;
+                  this.size = size;
+                  this.initialSize = size;
+                  this.currentSize = size;
+                  this.popOut = false;
+                  this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+                  this.opacity = 0;
+                }
+            
+                draw(ctx) {
+                  ctx.save();
+                  ctx.translate(this.x, this.y);
+            
+                  // Apply glow
+                  if (this.popOut) {
+                    ctx.shadowColor = this.color;
+                    ctx.shadowBlur = 20;
+                  } else {
+                    ctx.shadowBlur = 0;
+                  }
+            
+                  ctx.fillStyle = this.color;
+                  ctx.globalAlpha = this.opacity;
+                  ctx.fillRect(-this.currentSize / 2, -this.currentSize / 2, this.currentSize, this.currentSize);
+                  ctx.restore();
+                }
+            
+                animatePopOut() {
+                  this.popOut = true;
+                  anime.timeline({
+                    targets: this,
+                    easing: 'easeOutExpo',
+                  })
+                  .add({
+                    currentSize: this.initialSize * 1.5,
+                    opacity: 1,
+                    duration: 500,
+                  })
+                  .add({
+                    currentSize: this.initialSize,
+                    opacity: 0,
+                    duration: 500,
+                    delay: 1000,
+                    complete: () => {
+                      this.popOut = false;
+                    }
+                  });
+                }
+              }
+            
+              // Initialize tiles
+              function createTiles() {
+                tiles = [];
+                const cols = Math.floor(canvas.width / (TILE_SIZE + GAP));
+                const rows = Math.floor(canvas.height / (TILE_SIZE + GAP));
+            
+                for (let i = 0; i < cols; i++) {
+                  for (let j = 0; j < rows; j++) {
+                    const x = i * (TILE_SIZE + GAP) + TILE_SIZE / 2 + GAP;
+                    const y = j * (TILE_SIZE + GAP) + TILE_SIZE / 2 + GAP;
+                    tiles.push(new Tile(x, y, TILE_SIZE));
+                  }
+                }
+              }
+            
+              createTiles();
+              window.addEventListener('resize', createTiles);
+            
+              // Animation loop
+              function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+                tiles.forEach(tile => {
+                  tile.draw(ctx);
+                });
+            
+                requestAnimationFrame(animate);
+              }
+            
+              animate();
+            
+              // Randomly trigger tile pop-outs
+              function triggerPopOut() {
+                const randomTile = tiles[Math.floor(Math.random() * tiles.length)];
+                if (!randomTile.popOut) {
+                  randomTile.animatePopOut();
+                }
+            
+                // Schedule next pop-out
+                const nextPop = Math.random() * 2000 + 500; // 0.5s to 2.5s
+                setTimeout(triggerPopOut, nextPop);
+              }
+            
+              triggerPopOut();
+            });
+        </script>
+
+
+
         </script>
     </div>
 </body>
