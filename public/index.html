@@ -12,11 +12,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/styles.css">
+
+    <!-- Anime.js CDN (Deferred Loading) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" defer></script>
 </head>
 
 <body>
     <!-- Canvas Background -->
-    <canvas id="techCanvas" aria-hidden="true"></canvas>
+    <canvas id="animationCanvas" aria-hidden="true"></canvas> <!-- Changed ID from techCanvas to animationCanvas -->
 
     <div class="page-container">
         <!-- Title Bar -->
@@ -328,7 +331,7 @@
         <!-- JavaScript Libraries -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous"
             referrerpolicy="no-referrer"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <!-- Anime.js is already loaded in the head with 'defer' -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
         <script src="haru.js"></script>
@@ -354,6 +357,8 @@
                 }
             });
         </script>
+
+        <!-- Animation Classes Script -->
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 // Function to add animation classes with staggered delays
@@ -507,8 +512,8 @@
             });
         </script>
 
+        <!-- Cookie Consent Script -->
         <script>
-            // [Cookie Consent Script]
             (function () {
                 'use strict';
 
@@ -697,6 +702,7 @@
             })();
         </script>
 
+        <!-- Now Playing and Socket.IO Integration Script -->
         <script>
             // Now Playing Elements and Socket.IO Integration
             const socket = io("https://mikumiku.dev");
@@ -1072,33 +1078,34 @@
             fetchWeather();
         </script>
 
+        <!-- Anime.js Canvas Animation Script -->
         <script>
             document.addEventListener('DOMContentLoaded', () => {
-                const canvas = document.getElementById('animationCanvas');
+                const canvas = document.getElementById('animationCanvas'); // Updated ID
                 const ctx = canvas.getContext('2d');
-    
+
                 // Ensure the canvas exists
                 if (!canvas) {
                     console.error("Canvas element with ID 'animationCanvas' not found.");
                     return;
                 }
-    
+
                 // Set canvas size
                 function resizeCanvas() {
                     canvas.width = window.innerWidth;
                     canvas.height = window.innerHeight;
                 }
-    
+
                 resizeCanvas();
                 window.addEventListener('resize', resizeCanvas);
-    
+
                 // Tile configuration
                 const TILE_SIZE = 50;
                 const GAP = 5;
                 const COLORS = ['#FF00FF', '#00FFFF']; // Neon Pink and Neon Blue
-    
+
                 let tiles = [];
-    
+
                 // Tile class
                 class Tile {
                     constructor(x, y, size) {
@@ -1111,11 +1118,11 @@
                         this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
                         this.opacity = 0;
                     }
-    
+
                     draw(ctx) {
                         ctx.save();
                         ctx.translate(this.x, this.y);
-    
+
                         // Apply glow
                         if (this.popOut) {
                             ctx.shadowColor = this.color;
@@ -1123,13 +1130,13 @@
                         } else {
                             ctx.shadowBlur = 0;
                         }
-    
+
                         ctx.fillStyle = this.color;
                         ctx.globalAlpha = this.opacity;
                         ctx.fillRect(-this.currentSize / 2, -this.currentSize / 2, this.currentSize, this.currentSize);
                         ctx.restore();
                     }
-    
+
                     animatePopOut() {
                         this.popOut = true;
                         anime.timeline({
@@ -1152,13 +1159,13 @@
                             });
                     }
                 }
-    
+
                 // Initialize tiles
                 function createTiles() {
                     tiles = [];
                     const cols = Math.floor(canvas.width / (TILE_SIZE + GAP));
                     const rows = Math.floor(canvas.height / (TILE_SIZE + GAP));
-    
+
                     for (let i = 0; i < cols; i++) {
                         for (let j = 0; j < rows; j++) {
                             const x = i * (TILE_SIZE + GAP) + TILE_SIZE / 2 + GAP;
@@ -1167,42 +1174,39 @@
                         }
                     }
                 }
-    
+
                 createTiles();
                 window.addEventListener('resize', createTiles);
-    
+
                 // Animation loop
                 function animate() {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
                     tiles.forEach(tile => {
                         tile.draw(ctx);
                     });
-    
+
                     requestAnimationFrame(animate);
                 }
-    
+
                 animate();
-    
+
                 // Randomly trigger tile pop-outs
                 function triggerPopOut() {
                     const randomTile = tiles[Math.floor(Math.random() * tiles.length)];
                     if (!randomTile.popOut) {
                         randomTile.animatePopOut();
                     }
-    
+
                     // Schedule next pop-out
                     const nextPop = Math.random() * 2000 + 500; // 0.5s to 2.5s
                     setTimeout(triggerPopOut, nextPop);
                 }
-    
+
                 triggerPopOut();
             });
         </script>
 
-
-
-        </script>
     </div>
 </body>
 
