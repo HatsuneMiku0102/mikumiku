@@ -698,12 +698,8 @@
             // Now Playing Elements and Socket.IO Integration
             const socket = io("https://mikumiku.dev");
             let lastHeartbeatReceived = Date.now();
-            let isSessionExpired = false;
-            let browsingStartTime = null;
-            let browsingInterval = null;
-            let currentVideoId = null; // Track the current video ID to prevent flickering on progress updates
-            let lastKnownVideoData = null; // Store the last known video data
-            let isOffline = false; // Track the offline state
+            let isOffline = false;
+            let currentVideoId = null;
         
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
@@ -720,87 +716,31 @@
             const timeElapsedElement = document.getElementById("timeElapsed");
             const liveIconElement = document.getElementById("liveIcon"); // LIVE Indicator
         
-            // Load data from localStorage on page reload
-            function loadLastKnownData() {
-                const storedData = localStorage.getItem("lastKnownVideoData");
-                if (storedData) {
-                    lastKnownVideoData = JSON.parse(storedData);
-                    if (lastKnownVideoData) {
-                        console.log("[Page Load] Restoring last known video data from localStorage.");
-                        displayVideoPresence(lastKnownVideoData);
-                    }
+            // Request the latest video data from the server when the client connects
+            socket.on("connect", () => {
+                console.log("[Socket.IO] Connected to server.");
+                socket.emit('requestLatestData'); // Request the latest video state from the server
+            });
+        
+            // Listen for the latest video state from the server
+            socket.on("latestVideoState", (data) => {
+                if (data && data.videoId !== currentVideoId) {
+                    displayVideoPresence(data);
                 }
-            }
+            });
         
-            // Save data to localStorage
-            function saveVideoDataToLocalStorage(data) {
-                localStorage.setItem("lastKnownVideoData", JSON.stringify(data));
-            }
-        
-            // Clear localStorage
-            function clearLocalStorage() {
-                localStorage.removeItem("lastKnownVideoData");
-            }
-        
-            function formatNumber(number) {
-                if (typeof number === 'string') {
-                    number = number.replace(/,/g, '');
-                }
-                const num = Number(number);
-                return isNaN(num) ? "N/A" : num.toLocaleString();
-            }
-        
-            // Hide the display and show offline indicator
-            function goOffline() {
-                nowPlayingBox.classList.add("offline");
-                offlineIndicatorElement.style.display = "flex";
-                progressBarElement.style.display = "none"; // Hide the progress bar when offline
-                liveIconElement.style.display = "none"; // Hide LIVE icon when offline
-                isOffline = true;
-            }
-        
-            // Restore video info and hide offline indicator
-            function comeOnline() {
-                nowPlayingBox.classList.remove("offline");
-                offlineIndicatorElement.style.display = "none";
-                progressBarElement.style.display = "block"; // Show the progress bar again
-                isOffline = false;
-            }
-        
-            // Clear video information when going offline or switching video
-            function clearDisplay() {
-                goOffline();
-                videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
-                videoThumbnailImage.src = "";
-                videoThumbnailImage.style.display = "none";
-                videoThumbnailElement.src = "";
-                videoThumbnailElement.style.display = "none";
-                channelNameElement.textContent = "";
-                viewCountElement.textContent = "";
-                likeCountElement.textContent = "";
-                publishedDateElement.textContent = "";
-                videoCategoryElement.textContent = "";
-                videoDescriptionElement.textContent = "";
-                timeElapsedElement.style.display = "none";
-            }
-        
-            // Display the video presence based on data received
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 isOffline = false;
                 comeOnline();
         
-                // Check if the video has changed
                 if (data.videoId !== currentVideoId) {
-                    currentVideoId = data.videoId; // Update current video ID
-                    lastKnownVideoData = data; // Store the last known video data
-                    saveVideoDataToLocalStorage(data); // Save to localStorage
+                    currentVideoId = data.videoId;
         
-                    // Update video information
                     videoTitleElement.textContent = data.title || "Unknown Title";
                     channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-                    viewCountElement.textContent = `${formatNumber(data.viewCount)}` || "N/A";
-                    likeCountElement.textContent = `${formatNumber(data.likeCount)}` || "N/A";
+                    viewCountElement.textContent = formatNumber(data.viewCount) || "N/A";
+                    likeCountElement.textContent = formatNumber(data.likeCount) || "N/A";
         
                     if (data.publishedAt) {
                         const publishedDate = new Date(data.publishedAt);
@@ -833,15 +773,12 @@
         
                     // Handle live status
                     if (data.isLive) {
-                        liveIconElement.style.display = "flex"; // Show live icon when live
+                        liveIconElement.style.display = "flex";
                     } else {
-                        liveIconElement.style.display = "none"; // Hide live icon when not live
+                        liveIconElement.style.display = "none";
                     }
         
                     handleRealTimeProgress(data); // Update progress bar
-                } else {
-                    // If the video hasn't changed, just update progress
-                    handleRealTimeProgress(data);
                 }
             }
         
@@ -854,26 +791,33 @@
                 }
             }
         
-            function reinitializeSession() {
-                console.warn("[Client] Reinitializing session due to mismatch or timeout.");
-                clearDisplay();
-                clearLocalStorage(); // Clear stored video info on session expiration
-                isSessionExpired = true;
+            function comeOnline() {
+                nowPlayingBox.classList.remove("offline");
+                offlineIndicatorElement.style.display = "none";
+                progressBarElement.style.display = "block";
             }
         
-            function resumeVideoDisplay() {
-                if (lastKnownVideoData && isOffline) {
-                    displayVideoPresence(lastKnownVideoData); // Re-display last known video data when resuming
-                }
+            function goOffline() {
+                nowPlayingBox.classList.add("offline");
+                offlineIndicatorElement.style.display = "flex";
+                progressBarElement.style.display = "none";
+                liveIconElement.style.display = "none";
+                isOffline = true;
             }
         
-            // Handle offline timeout
+            // Handle server disconnection
+            socket.on("disconnect", () => {
+                console.warn("[Socket.IO] Disconnected from server.");
+                goOffline();
+            });
+        
+            // Handle offline timeout (heartbeat check)
             setInterval(() => {
                 if (Date.now() - lastHeartbeatReceived > 60000 && !isOffline) {
                     console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
-                    clearDisplay();
+                    goOffline();
                 }
-            }, 5000); // Check every 5 seconds for a heartbeat timeout
+            }, 5000); // Check every 5 seconds
         
             // Socket event listeners
             socket.on("connect", () => {
