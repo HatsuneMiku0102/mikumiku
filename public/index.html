@@ -695,14 +695,13 @@
         </script>
 
         <script>
-            // Now Playing Elements and Socket.IO Integration
             const socket = io("https://mikumiku.dev");
             let lastHeartbeatReceived = Date.now();
             let isOffline = false;
             let currentVideoId = null;
             let browsingStartTime = null;
             let browsingInterval = null;
-        
+            
             // DOM Elements
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
@@ -740,7 +739,7 @@
                 return isNaN(number) ? "N/A" : Number(number).toLocaleString();
             }
         
-            // Function to clear the display when the user goes offline or when no video is playing
+            // Clear the display for offline or no video
             function clearDisplay() {
                 videoTitleElement.textContent = "No video currently playing.";
                 videoThumbnailImage.src = "";
@@ -762,6 +761,7 @@
                 isOffline = false;
                 comeOnline();
         
+                // Check if it's a new video or the same one
                 if (data.videoId !== currentVideoId) {
                     currentVideoId = data.videoId;
         
@@ -806,10 +806,14 @@
                         liveIconElement.style.display = "none";
                     }
         
-                    handleRealTimeProgress(data); // Update progress bar
+                    // Handle progress bar update
+                    handleRealTimeProgress(data);
         
                     // Save video state to localStorage
                     saveVideoDataToLocalStorage(data);
+                } else {
+                    // If it's the same video, just update the progress
+                    handleRealTimeProgress(data);
                 }
             }
         
@@ -894,30 +898,22 @@
                         displayVideoPresence(data);
                     } else if (data.presenceType === 'browsing') {
                         displayBrowsingPresence(data);
-                    } else {
-                        clearDisplay(); // Clear display if no video is playing or user is offline
                     }
                 }
             });
         
-            // Listen for presence updates from the server
+            // Handle presence update
             socket.on("presenceUpdate", (data) => {
                 if (data.presenceType === 'video') {
                     displayVideoPresence(data);
                 } else if (data.presenceType === 'browsing') {
                     displayBrowsingPresence(data);
                 } else {
-                    clearDisplay(); // Clear display if no video is playing or user is offline
+                    goOffline();
                 }
             });
         
-            // Handle server disconnection
-            socket.on("disconnect", () => {
-                console.warn("[Socket.IO] Disconnected from server.");
-                goOffline();
-            });
-        
-            // Handle offline timeout (heartbeat check)
+            // Handle heartbeat timeout
             setInterval(() => {
                 if (Date.now() - lastHeartbeatReceived > 60000 && !isOffline) {
                     console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
@@ -925,12 +921,18 @@
                 }
             }, 5000); // Check every 5 seconds
         
+            // Handle disconnect
+            socket.on("disconnect", () => {
+                console.warn("[Socket.IO] Disconnected from server.");
+                goOffline();
+            });
+        
             // Load video info from localStorage on page load
             document.addEventListener('DOMContentLoaded', () => {
                 loadLastKnownData(); // Restore last known video data if available
             });
         
-            // Modal toggle logic for video description
+            // Logic for video description modal toggle
             const descriptionModal = document.getElementById("descriptionModal");
             const closeDescriptionButton = document.getElementById("closeDescriptionButton");
             const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
