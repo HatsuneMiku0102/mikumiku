@@ -979,7 +979,7 @@ const blockedIps = new Set(); // Set to track blocked IPs
 let currentVideo = null;
 let currentBrowsing = null;
 const videoHeartbeat = {};
-const activeUsers = new Map(); // Tracks active users by IP and connection type
+const activeUsers = new Map(); // Tracks active users by IP and session (socket ID)
 
 // Block user endpoint
 app.post('/api/block-user', async (req, res) => {
@@ -1006,36 +1006,6 @@ app.post('/api/block-user', async (req, res) => {
     }
 });
 
-// Unblock user endpoint
-app.post('/api/unblock-user', async (req, res) => {
-    const { ip } = req.body;
-    if (ip) {
-        if (blockedIps.has(ip)) {
-            blockedIps.delete(ip);
-            logger.info(`Unblocked user with IP: ${ip}`);
-
-            // Remove from MongoDB IPbans collection
-            try {
-                await IPbans.deleteOne({ ip });
-                logger.info(`IP ${ip} has been removed from IPbans collection.`);
-            } catch (error) {
-                logger.error(`Error removing IP ${ip} from IPbans collection: ${error.message}`);
-                return res.status(500).send({ status: 'error', message: 'Failed to unblock user.' });
-            }
-
-            // Notify all clients about the unblocked IP
-            io.emit('ipUnblocked', { ip });
-
-            // Acknowledge the unblock
-            socket.emit('unblockUserResponse', { status: 'success', message: `User with IP ${ip} has been unblocked.` });
-        } else {
-            res.status(400).send({ status: 'error', message: `User with IP ${ip} is not blocked.` });
-        }
-    } else {
-        res.status(400).send({ status: 'error', message: 'IP address is required.' });
-    }
-});
-
 // Handle new client connections
 io.on('connection', async (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
@@ -1051,17 +1021,14 @@ io.on('connection', async (socket) => {
 
     logger.info(`New connection from IP: ${ip}, Type: ${connectionType}`);
 
-    // Manage active users based on IP and connection type
-    if (!activeUsers.has(ip)) {
-        activeUsers.set(ip, { id: socket.id, ip, connectionTypes: new Set() });
-    }
-    activeUsers.get(ip).connectionTypes.add(connectionType); // Add connection type to the Set
+    // Manage active users based on IP and session ID
+    activeUsers.set(socket.id, { id: socket.id, ip, connectionType });
 
     // Emit updated active users
     io.emit('activeUsersUpdate', {
         users: Array.from(activeUsers.values()).map(user => ({
             ip: user.ip,
-            connectionTypes: Array.from(user.connectionTypes) // No need to join here
+            connectionType: user.connectionType,
         }))
     });
 
@@ -1088,88 +1055,14 @@ io.on('connection', async (socket) => {
         io.emit('presenceUpdate', data);
     });
 
-    // Handle block user request
-    socket.on('blockUser', async (data) => {
-        const { ip } = data;
-        if (ip) {
-            if (!blockedIps.has(ip)) {
-                blockedIps.add(ip);
-                logger.info(`Blocking user with IP: ${ip}`);
-
-                // Save to MongoDB IPbans collection
-                try {
-                    await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
-                    logger.info(`IP ${ip} has been added to IPbans collection.`);
-                } catch (error) {
-                    logger.error(`Error adding IP ${ip} to IPbans collection: ${error.message}`);
-                    socket.emit('blockUserResponse', { status: 'error', message: 'Failed to block user.' });
-                    return;
-                }
-
-                // Notify all clients about the blocked IP
-                io.emit('ipBlocked', { ip });
-
-                // Acknowledge the block
-                socket.emit('blockUserResponse', { status: 'success', message: `User with IP ${ip} has been blocked.` });
-            } else {
-                socket.emit('blockUserResponse', { status: 'error', message: `User with IP ${ip} is already blocked.` });
-            }
-        } else {
-            socket.emit('blockUserResponse', { status: 'error', message: 'IP address is required.' });
-        }
-    });
-
-    // Handle unblock user request
-    socket.on('unblockUser', async (data) => {
-        const { ip } = data;
-        if (ip) {
-            if (blockedIps.has(ip)) {
-                blockedIps.delete(ip);
-                logger.info(`Unblocking user with IP: ${ip}`);
-
-                // Remove from MongoDB IPbans collection
-                try {
-                    await IPbans.deleteOne({ ip });
-                    logger.info(`IP ${ip} has been removed from IPbans collection.`);
-                } catch (error) {
-                    logger.error(`Error removing IP ${ip} from IPbans collection: ${error.message}`);
-                    socket.emit('unblockUserResponse', { status: 'error', message: 'Failed to unblock user.' });
-                    return;
-                }
-
-                // Notify all clients about the unblocked IP
-                io.emit('ipUnblocked', { ip });
-
-                // Acknowledge the unblock
-                socket.emit('unblockUserResponse', { status: 'success', message: `User with IP ${ip} has been unblocked.` });
-            } else {
-                socket.emit('unblockUserResponse', { status: 'error', message: `User with IP ${ip} is not blocked.` });
-            }
-        } else {
-            socket.emit('unblockUserResponse', { status: 'error', message: 'IP address is required.' });
-        }
-    });
-
-    // Handle YouTube Browsing Presence Updates
-    socket.on('updateBrowsingPresence', (data) => {
-        handleBrowsingPresence(data);
-        io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
-    });
-
-    // Handle YouTube Video Progress Updates
-    socket.on('updateVideoProgress', (data) => {
-        handleVideoPresence(data);
-        io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
-    });
-
-    // Handle Heartbeat Signals for YouTube Videos
+    // Handle heartbeat signals for YouTube videos
     socket.on('heartbeat', (data, callback) => {
         const { videoId } = data;
         if (videoId && currentVideo && currentVideo.videoId === videoId) {
             videoHeartbeat[videoId] = Date.now();
-            if (callback) callback({ status: "ok" });
+            if (callback) callback({ status: 'ok' });
         } else {
-            if (callback) callback({ status: "error", message: "Unknown video ID" });
+            if (callback) callback({ status: 'error', message: 'Unknown video ID' });
         }
     });
 
@@ -1177,25 +1070,22 @@ io.on('connection', async (socket) => {
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
         
-        if (activeUsers.has(ip)) {
-            const user = activeUsers.get(ip);
-            user.connectionTypes.delete(connectionType);
-            if (user.connectionTypes.size === 0) {
-                activeUsers.delete(ip); // Remove user if no connection types remain
-            }
-        }
+        activeUsers.delete(socket.id);
 
         // Emit updated user list
-        io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()).map(user => ({
-            ip: user.ip,
-            connectionTypes: Array.from(user.connectionTypes) // No need to join here
-        })) });
+        io.emit('activeUsersUpdate', { 
+            users: Array.from(activeUsers.values()).map(user => ({
+                ip: user.ip,
+                connectionType: user.connectionType,
+            })) 
+        });
 
-        if (currentVideo || currentBrowsing) {
+        // If no more active users, set presence to offline
+        if (activeUsers.size === 0) {
             currentVideo = null;
             currentBrowsing = null;
             io.emit('presenceUpdate', { presenceType: 'offline' });
-            logger.info(`[Socket.IO] Emitted offline presence due to disconnection.`);
+            logger.info(`[Socket.IO] Emitted offline presence due to no active users.`);
         }
     });
 });
@@ -1231,11 +1121,6 @@ function emitCurrentPresence(socket) {
 
 function handleBrowsingPresence(data) {
     logger.info(`[Socket.IO] Browsing presence detected.`);
-    if (currentVideo) {
-        currentVideo = null;
-        logger.info(`[Socket.IO] Cleared current video presence.`);
-    }
-
     currentBrowsing = {
         title: data.title || 'YouTube',
         description: data.description || 'Browsing videos',
@@ -1243,10 +1128,13 @@ function handleBrowsingPresence(data) {
         timeElapsed: data.timeElapsed || 0,
         presenceType: 'browsing'
     };
+    currentVideo = null; // Clear current video presence
 }
 
 function handleVideoPresence(data) {
-    const {
+    const { videoId, title, description, channelTitle, viewCount, likeCount, publishedAt, category, thumbnail, currentTime, duration, isPaused, isLive } = data;
+
+    currentVideo = {
         videoId,
         title,
         description,
@@ -1259,45 +1147,10 @@ function handleVideoPresence(data) {
         currentTime,
         duration,
         isPaused,
-        isLive
-    } = data;
-
-    if (currentVideo && currentVideo.videoId === videoId) {
-        Object.assign(currentVideo, {
-            currentTime,
-            duration,
-            isPaused,
-            title,
-            description,
-            channelTitle,
-            viewCount,
-            likeCount,
-            publishedAt,
-            category,
-            thumbnail,
-            isLive
-        });
-        logger.info(`[Socket.IO] Updated video: "${title}" (Live: ${isLive})`);
-    } else {
-        currentVideo = {
-            videoId,
-            title,
-            description,
-            channelTitle,
-            viewCount,
-            likeCount,
-            publishedAt,
-            category,
-            thumbnail,
-            currentTime,
-            duration,
-            isPaused,
-            isLive,
-            presenceType: 'video'
-        };
-        currentBrowsing = null;
-        logger.info(`[Socket.IO] New video detected: "${title}" (Live: ${isLive})`);
-    }
+        isLive,
+        presenceType: 'video'
+    };
+    currentBrowsing = null; // Clear browsing presence
 }
 
 function handleOfflinePresence() {
@@ -1305,6 +1158,7 @@ function handleOfflinePresence() {
     currentBrowsing = null;
     logger.info(`[Socket.IO] User marked as offline.`);
 }
+
 
 // ----------------------
 // Real-time Data Endpoint
