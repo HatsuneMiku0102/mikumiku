@@ -873,17 +873,28 @@
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
-
-                clearVideoPresence();
-
-                videoTitleElement.textContent = data.title || "Browsing YouTube";
-                videoThumbnailImage.src = data.thumbnail || "";
-                videoThumbnailImage.style.display = "block";
-                videoThumbnailElement.style.display = "none";
-                channelNameElement.textContent = "Browsing...";
-                videoDescriptionElement.textContent = data.description || "Browsing videos on YouTube";
-                progressBarElement.style.width = "0%";
-
+            
+                // Only trigger the transition if browsing content actually changed (e.g., title, thumbnail)
+                if (videoTitleElement.textContent !== data.title || videoThumbnailImage.src !== data.thumbnail) {
+                    videoInfoContainer.classList.add('fade-out');
+            
+                    setTimeout(() => {
+                        // Update browsing content after fade-out
+                        videoTitleElement.textContent = data.title || "Browsing YouTube";
+                        videoThumbnailImage.src = data.thumbnail || "";
+                        videoThumbnailImage.style.display = data.thumbnail ? "block" : "none";
+                        videoThumbnailElement.style.display = "none";
+                        channelNameElement.textContent = "Browsing...";
+                        videoDescriptionElement.textContent = data.description || "Browsing videos on YouTube";
+                        progressBarElement.style.width = "0%"; // No progress for browsing
+            
+                        // Remove fade-out and add fade-in
+                        videoInfoContainer.classList.remove('fade-out');
+                        videoInfoContainer.classList.add('fade-in');
+                    }, 500); // Adjust this to match your CSS transition duration
+                }
+            
+                // Always update the time elapsed without triggering transitions
                 if (data.timeElapsed !== undefined) {
                     timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(data.timeElapsed)}`;
                     timeElapsedElement.style.display = "block";
