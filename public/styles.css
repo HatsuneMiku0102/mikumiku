@@ -16,6 +16,7 @@
     /* Typography */
     --font-family: 'Roboto', sans-serif;
     --title-font-size: 3rem;
+    --video-title-font-size: 2rem; /* New variable for video title */
     --content-font-size: 1rem;
     --small-font-size: 0.875rem;
 
@@ -96,6 +97,7 @@ body {
     justify-content: center;
     align-items: center;
     box-shadow: 0 2px 4px var(--shadow-color);
+    transition: background-color var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
 }
 
 .container {
@@ -350,6 +352,12 @@ body {
     color: var(--secondary-color);
 }
 
+.divider {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 1rem 0;
+}
+
 /* Animated Divider */
 .animated-divider {
     border: none;
@@ -449,15 +457,21 @@ body {
 }
 
 .video-title-container p {
-    font-size: 1.5rem; /* Increased from var(--small-font-size) */
+    font-size: var(--video-title-font-size); /* Increased font size */
     text-align: center;
-    transition: opacity 0.5s ease, transform 0.5s ease;
+    transition: opacity 0.5s ease, transform 0.5s ease; /* Smooth transition for animations */
     opacity: 1;
+    position: relative;
 }
 
 .video-title-container p.animate-title {
     opacity: 0;
     transform: translateY(-20px);
+}
+
+.video-title-container p.fade-in {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .thumbnail-container {
@@ -466,16 +480,39 @@ body {
     max-width: 600px;
 }
 
-.video-thumbnail {
+/* Redesigned SVG Progress Bar */
+.progress-bar-container {
     width: 100%;
-    border-radius: var(--border-radius);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-    transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
+    max-width: 600px;
+    height: 20px; /* Increased height for better visibility */
+    margin-top: 0.5rem;
 }
 
-.video-thumbnail:hover {
-    transform: scale(1.02);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
+.svg-progress {
+    width: 100%;
+    height: 100%;
+}
+
+.svg-progress svg {
+    width: 100%;
+    height: 100%;
+}
+
+.svg-progress .background-bar {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.2);
+    stroke-width: 10;
+    stroke-linecap: round;
+}
+
+.svg-progress .progress-bar {
+    fill: none;
+    stroke: var(--primary-color);
+    stroke-width: 10;
+    stroke-linecap: round;
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    transition: stroke-dashoffset 0.3s ease;
 }
 
 .offline-indicator {
@@ -494,32 +531,7 @@ body {
     gap: 0.5rem;
 }
 
-/* SVG Progress Bar Styling */
-.progress-bar-container {
-    width: 100%;
-    max-width: 500px; /* Match SVG viewBox width */
-    height: 10px;
-    margin-top: 0.5rem;
-}
-
-.progress-bar-svg {
-    width: 100%;
-    height: 100%;
-}
-
-.progress-bar-svg rect:first-child {
-    /* Background bar */
-    rx: 5;
-    ry: 5;
-}
-
-.progress-bar-svg rect#svgProgressBar {
-    /* Foreground progress bar */
-    rx: 5;
-    ry: 5;
-    transition: width 0.3s ease;
-}
-
+/* LIVE Indicator Positioned Below the Progress Bar */
 .live-indicator-container {
     margin-top: 0.5rem;
     display: flex;
@@ -615,7 +627,6 @@ body {
     justify-content: center;
     color: var(--text-color);
     font-size: var(--small-font-size);
-    /* Removed position: fixed; bottom: 0; left: 0; z-index: 100; */
 }
 
 .footer .container {
@@ -898,6 +909,56 @@ body {
     }
 }
 
+/* Smooth Fade-In and Fade-Out for Video Title */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.video-title-container p {
+    font-size: var(--video-title-font-size); /* Increased font size */
+    text-align: center;
+    transition: opacity 0.5s ease, transform 0.5s ease; /* Smooth transition for animations */
+    opacity: 1;
+    position: relative;
+}
+
+.video-title-container p.animate-title {
+    animation: fadeOut 0.5s forwards;
+}
+
+.video-title-container p.fade-in {
+    animation: fadeIn 0.5s forwards;
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* =========================================
    Responsive Design
 ========================================= */
@@ -1078,10 +1139,54 @@ button {
 }
 
 /* =========================================
-   Additional Styles for Animated Video Title
+   SVG Progress Bar Styling
 ========================================= */
-.video-title.animate-title {
-    opacity: 0;
-    transform: translateY(-20px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
+.svg-progress {
+    width: 100%;
+    height: 20px; /* Adjust height as needed */
+}
+
+.svg-progress svg {
+    width: 100%;
+    height: 100%;
+}
+
+.svg-progress .background-bar {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.2);
+    stroke-width: 10;
+    stroke-linecap: round;
+}
+
+.svg-progress .progress-bar {
+    fill: none;
+    stroke: var(--primary-color);
+    stroke-width: 10;
+    stroke-linecap: round;
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    transition: stroke-dashoffset 0.3s ease;
+}
+
+.progress-bar-container {
+    width: 100%;
+    max-width: 600px;
+    height: 20px; /* Increased height for better visibility */
+    margin-top: 0.5rem;
+}
+
+.offline-indicator {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 0, 0, 0.8);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    color: #ffffff;
+    font-size: var(--small-font-size);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
