@@ -751,6 +751,7 @@
                 videoDescriptionElement.textContent = "";
                 progressBarElement.style.width = "0%";
                 liveIconElement.style.display = "none";
+                clearLocalStorage(); // Clear stored data
             }
         
             // Display video presence
@@ -759,7 +760,6 @@
                 isOffline = false;
                 comeOnline();
         
-                // Avoid unnecessary re-updates
                 if (data.videoId !== currentVideoId) {
                     currentVideoId = data.videoId;
         
@@ -811,6 +811,17 @@
                 }
             }
         
+            // Handle browsing presence
+            function displayBrowsingPresence(data) {
+                clearDisplay(); // Clear any video info
+                videoTitleElement.textContent = data.title || "Browsing YouTube";
+                videoDescriptionElement.textContent = data.description || "Browsing videos on YouTube";
+                videoThumbnailImage.src = data.thumbnail || 'https://www.youtube.com/img/desktop/yt_1200.png';
+                videoThumbnailImage.style.display = "block";
+                videoThumbnailElement.style.display = "none";
+                progressBarElement.style.width = "0%";
+            }
+        
             // Handle video progress
             function handleRealTimeProgress(data) {
                 if (data.duration && data.currentTime) {
@@ -845,7 +856,13 @@
             // Listen for the latest video state from the server
             socket.on("latestVideoState", (data) => {
                 if (data) {
-                    displayVideoPresence(data);
+                    if (data.presenceType === 'video') {
+                        displayVideoPresence(data);
+                    } else if (data.presenceType === 'browsing') {
+                        displayBrowsingPresence(data);
+                    } else {
+                        clearDisplay(); // Clear display if no video is playing or user is offline
+                    }
                 }
             });
         
@@ -853,8 +870,10 @@
             socket.on("presenceUpdate", (data) => {
                 if (data.presenceType === 'video') {
                     displayVideoPresence(data);
+                } else if (data.presenceType === 'browsing') {
+                    displayBrowsingPresence(data);
                 } else {
-                    clearDisplay(); // Clear display if no video is playing
+                    clearDisplay(); // Clear display if no video is playing or user is offline
                 }
             });
         
