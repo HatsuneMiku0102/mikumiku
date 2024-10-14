@@ -1078,17 +1078,6 @@
                 const canvas = document.getElementById('techCanvas');
                 const ctx = canvas.getContext('2d');
         
-                // Set canvas size to match the window size
-                function resizeCanvas() {
-                    canvas.width = window.innerWidth;
-                    canvas.height = window.innerHeight;
-                    initializeVisualizer(); // Reinitialize visualizer on resize
-                }
-        
-                // Initialize canvas size on load and resize
-                window.addEventListener('resize', resizeCanvas);
-                resizeCanvas();
-        
                 // Canvas Background Color
                 const canvasBackgroundColor = '#1a1a1a'; // Charcoal color
         
@@ -1099,25 +1088,6 @@
                 const maxBarHeight = canvas.height / 3; // Maximum height of the bars
                 let bars = [];                // Array to hold bar objects
                 const animationSpeed = 0.05;  // Speed of the animation
-        
-                // Function to initialize the visualizer bars
-                function initializeVisualizer() {
-                    bars = []; // Clear existing bars
-                    const spacing = (canvas.width / 2) / barCount; // Calculate spacing based on screen width
-                    for (let i = 0; i < barCount; i++) {
-                        bars.push({
-                            x: canvas.width / 2,
-                            y: canvas.height / 2,
-                            height: 0,
-                            color: i % 2 === 0 ? { r: 0, g: 198, b: 255 } : { r: 255, g: 64, b: 129 }, // Alternate colors
-                            angle: (i / barCount) * Math.PI * 2, // Distribute bars in a circle
-                            radius: spacing * i
-                        });
-                    }
-                }
-        
-                // Call initializeVisualizer to set up bars initially
-                initializeVisualizer();
         
                 // Firework Class Definition
                 class Firework {
@@ -1177,20 +1147,23 @@
         
                 const fireworks = []; // Array to hold active fireworks
         
-                // Event Listener for User Clicks to Trigger Fireworks
-                canvas.addEventListener('click', function (event) {
-                    const rect = canvas.getBoundingClientRect();
-                    const x = event.clientX - rect.left;
-                    const y = event.clientY - rect.top;
-                    const colors = [
-                        { r: 0, g: 198, b: 255 },   // Neon Blue
-                        { r: 255, g: 64, b: 129 }   // Neon Pink
-                    ];
-                    const color = colors[Math.floor(Math.random() * colors.length)];
-                    fireworks.push(new Firework(x, y, color));
-                });
+                // Function to initialize the visualizer bars
+                function initializeVisualizer() {
+                    bars = []; // Clear existing bars
+                    const spacing = (canvas.width / 2) / barCount; // Calculate spacing based on screen width
+                    for (let i = 0; i < barCount; i++) {
+                        bars.push({
+                            x: canvas.width / 2,
+                            y: canvas.height / 2,
+                            height: 0,
+                            color: i % 2 === 0 ? { r: 0, g: 198, b: 255 } : { r: 255, g: 64, b: 129 }, // Alternate colors
+                            angle: (i / barCount) * Math.PI * 2, // Distribute bars in a circle
+                            radius: spacing * i
+                        });
+                    }
+                }
         
-                // Function to Update Visualizer Bars
+                // Function to update visualizer bars
                 function updateVisualizer() {
                     bars.forEach(bar => {
                         // Simulate frequency data with sine waves
@@ -1198,7 +1171,7 @@
                     });
                 }
         
-                // Function to Draw Visualizer Bars
+                // Function to draw visualizer bars
                 function drawVisualizer() {
                     bars.forEach(bar => {
                         ctx.save();
@@ -1212,6 +1185,29 @@
                     });
                 }
         
+                // Function to handle window resize
+                function resizeCanvas() {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                    initializeVisualizer(); // Reinitialize visualizer on resize
+                }
+        
+                // Initialize canvas size and visualizer
+                resizeCanvas();
+        
+                // Event Listener for User Clicks to Trigger Fireworks
+                canvas.addEventListener('click', function (event) {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = event.clientX - rect.left;
+                    const y = event.clientY - rect.top;
+                    const colors = [
+                        { r: 0, g: 198, b: 255 },   // Neon Blue
+                        { r: 255, g: 64, b: 129 }   // Neon Pink
+                    ];
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    fireworks.push(new Firework(x, y, color));
+                });
+        
                 // Animation Loop Function
                 function animate() {
                     // Clear canvas with a slight transparency for trail effect
@@ -1223,18 +1219,33 @@
                     drawVisualizer();
         
                     // Update and draw each firework
-                    fireworks.forEach((fw, index) => {
+                    for (let i = fireworks.length - 1; i >= 0; i--) {
+                        const fw = fireworks[i];
                         fw.draw();
                         fw.update();
                         if (fw.isDone()) {
-                            fireworks.splice(index, 1); // Remove firework if done
+                            fireworks.splice(i, 1); // Remove firework if done
                         }
-                    });
+                    }
         
                     requestAnimationFrame(animate); // Continue the loop
                 }
         
-                animate(); // Start the animation loop
+                // Start the animation loop
+                animate();
+        
+                // Optional: Additional Anime.js Animations (e.g., background pulsate)
+                // Uncomment the following lines if you wish to use Anime.js for additional effects
+                /*
+                anime({
+                    targets: '#techCanvas',
+                    opacity: [0.95, 1],
+                    easing: 'easeInOutSine',
+                    duration: 2000,
+                    direction: 'alternate',
+                    loop: true
+                });
+                */
             });
         </script>
 
