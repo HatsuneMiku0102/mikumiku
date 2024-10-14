@@ -125,10 +125,10 @@
                     <div class="sidebar-item video-category">
                         <i class="fas fa-tag"></i> <span id="videoCategory">Loading...</span>
                     </div>
-        
+
                     <!-- Divider Between Channel Info and Clock -->
                     <hr class="animated-divider">
-        
+
                     <!-- Clock Section -->
                     <section class="clock-section">
                         <p id="greeting" class="greeting"><i class="fas fa-sun"></i> Good Morning!</p>
@@ -144,9 +144,9 @@
                         <p id="last-visit-message" class="last-visit-message"><i class="fas fa-history"></i> Welcome back!</p>
                     </section>
                 </aside>
-        
+
                 <!-- End of Channel Info -->
-        
+
                 <div class="video-section">
                     <!-- New container for video info -->
                     <div id="videoInfoContainer" class="video-info-container">
@@ -154,7 +154,7 @@
                             <h2>Currently Playing</h2>
                             <p id="videoTitle">Loading...</p>
                         </div>
-                
+
                         <div class="thumbnail-container">
                             <!-- Video and Image Elements -->
                             <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls aria-label="Currently Playing Video">
@@ -163,16 +163,16 @@
                             <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
                         </div>
                     </div>
-                    
+
                     <div id="offline-indicator" class="offline-indicator">
                         <i class="fas fa-signal-slash"></i> I’m currently offline
                     </div>
-                        
+
                     <!-- Progress Bar Container -->
                     <div class="progress-bar-container">
                         <div id="progressBar" class="progress-bar"></div>
                     </div>
-        
+
                     <!-- LIVE Indicator Positioned Below the Progress Bar -->
                     <div class="live-indicator-container">
                         <!-- Live Indicator SVG -->
@@ -182,27 +182,27 @@
                             <text x="50%" y="55%" text-anchor="middle" fill="#FFFFFF" font-size="12" font-family="Arial, sans-serif" dy=".3em">LIVE</text>
                         </svg>
                     </div>
-        
+
                     <!-- Time Elapsed Display -->
                     <div id="timeElapsedContainer" class="time-elapsed">
                         <i class="fas fa-clock"></i> <span id="timeElapsed">0s</span>
                     </div>
-        
+
                     <!-- Show Description Button -->
                     <button class="toggle-description" id="toggleDescriptionButton" aria-label="Toggle Description">
                         <i class="fas fa-info-circle"></i> Show Description
                     </button>
-        
+
                     <!-- Loading Spinner -->
                     <div id="loadingSpinner" class="loading-spinner" aria-label="Loading">
                         <i class="fas fa-spinner fa-spin"></i>
                     </div>
                 </div>
                 <!-- End of Video Section -->
-        
+
                 <!-- Divider Between Now Playing and Weather -->
                 <hr class="animated-divider">
-        
+
                 <!-- Weather Section on the Right Side -->
                 <aside class="weather-section">
                     <img id="weather-icon" src="" alt="Weather Icon" class="weather-icon" loading="lazy">
@@ -1009,8 +1009,130 @@
                     toggleDescriptionButton.textContent = ' Show Description';
                 }
             });
+        </script>
 
+        <script>
+            // Canvas Animation Script with Enhanced Interactivity and Anime.js for Sound Waves
+            document.addEventListener('DOMContentLoaded', function () {
+                const canvas = document.getElementById('techCanvas');
+                const ctx = canvas.getContext('2d');
 
+                // Set canvas size
+                function resizeCanvas() {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                }
+
+                window.addEventListener('resize', resizeCanvas);
+                resizeCanvas();
+
+                // Sound Wave Class
+                class SoundWave {
+                    constructor(x, y, maxRadius, color) {
+                        this.x = x;
+                        this.y = y;
+                        this.radius = 0;
+                        this.maxRadius = maxRadius;
+                        this.color = color;
+                        this.opacity = 1;
+                        this.lineWidth = 2;
+                    }
+
+                    draw() {
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+                        ctx.strokeStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity})`;
+                        ctx.lineWidth = this.lineWidth;
+                        ctx.stroke();
+                    }
+
+                    update() {
+                        this.radius += 2;
+                        this.opacity -= 0.005;
+                        this.lineWidth = 2 + (1 - this.opacity) * 2; // Thicker lines as they fade
+                    }
+
+                    isDone() {
+                        return this.radius > this.maxRadius || this.opacity <= 0;
+                    }
+                }
+
+                const soundWaves = [];
+                const waveInterval = 1000; // milliseconds
+                const maxRadius = Math.min(canvas.width, canvas.height) / 2;
+
+                // Function to create sound waves
+                function createSoundWave(x = canvas.width / 2, y = canvas.height / 2) {
+                    const colors = [
+                        { r: 0, g: 198, b: 255 }, // Neon Blue
+                        { r: 255, g: 64, b: 129 }  // Neon Pink
+                    ];
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    soundWaves.push(new SoundWave(x, y, maxRadius, color));
+                }
+
+                // Create initial sound waves
+                createSoundWave();
+
+                // Create sound waves at intervals from the center
+                setInterval(() => {
+                    createSoundWave();
+                }, waveInterval);
+
+                // Add event listener for mouse clicks to create sound waves from click position
+                canvas.addEventListener('click', (event) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = event.clientX - rect.left;
+                    const y = event.clientY - rect.top;
+                    createSoundWave(x, y);
+                });
+
+                // Optional: Create sound waves on mouse move with a certain frequency
+                let lastMoveTime = Date.now();
+                const moveInterval = 100; // milliseconds
+
+                canvas.addEventListener('mousemove', (event) => {
+                    const now = Date.now();
+                    if (now - lastMoveTime > moveInterval) {
+                        const rect = canvas.getBoundingClientRect();
+                        const x = event.clientX - rect.left;
+                        const y = event.clientY - rect.top;
+                        createSoundWave(x, y);
+                        lastMoveTime = now;
+                    }
+                });
+
+                // Animation Loop
+                function animate() {
+                    ctx.fillStyle = 'rgba(51, 51, 51, 0.1)'; // Dark grey with slight transparency for trailing effect
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    soundWaves.forEach((wave, index) => {
+                        wave.draw();
+                        wave.update();
+                        if (wave.isDone()) {
+                            soundWaves.splice(index, 1);
+                        }
+                    });
+
+                    requestAnimationFrame(animate);
+                }
+
+                animate();
+
+                // Optional: Use Anime.js for additional effects (e.g., pulsating center)
+                anime({
+                    targets: '#techCanvas',
+                    scale: [1, 1.02],
+                    direction: 'alternate',
+                    easing: 'easeInOutSine',
+                    duration: 2000,
+                    loop: true
+                });
+            });
+        </script>
+
+        <script>
             // Clock Update Script
             function updateClocks() {
                 const now = new Date();
@@ -1070,102 +1192,6 @@
 
             setInterval(fetchWeather, 3600000); // Update every hour
             fetchWeather();
-        </script>
-
-        <script>
-            // Canvas Animation Script with Anime.js for Sound Waves
-            document.addEventListener('DOMContentLoaded', function () {
-                const canvas = document.getElementById('techCanvas');
-                const ctx = canvas.getContext('2d');
-
-                // Set canvas size
-                function resizeCanvas() {
-                    canvas.width = window.innerWidth;
-                    canvas.height = window.innerHeight;
-                }
-
-                window.addEventListener('resize', resizeCanvas);
-                resizeCanvas();
-
-                // Sound Wave Class
-                class SoundWave {
-                    constructor(x, y, maxRadius, color) {
-                        this.x = x;
-                        this.y = y;
-                        this.radius = 0;
-                        this.maxRadius = maxRadius;
-                        this.color = color;
-                        this.opacity = 1;
-                    }
-
-                    draw() {
-                        ctx.beginPath();
-                        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-                        ctx.strokeStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity})`;
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
-                    }
-
-                    update() {
-                        this.radius += 2;
-                        this.opacity -= 0.005;
-                    }
-
-                    isDone() {
-                        return this.radius > this.maxRadius || this.opacity <= 0;
-                    }
-                }
-
-                const soundWaves = [];
-                const waveInterval = 1000; // milliseconds
-                const maxRadius = Math.min(canvas.width, canvas.height) / 2;
-
-                // Function to create sound waves
-                function createSoundWave() {
-                    const x = canvas.width / 2;
-                    const y = canvas.height / 2;
-                    const colors = [
-                        { r: 0, g: 198, b: 255 }, // Neon Blue
-                        { r: 255, g: 64, b: 129 }  // Neon Pink
-                    ];
-                    const color = colors[Math.floor(Math.random() * colors.length)];
-                    soundWaves.push(new SoundWave(x, y, maxRadius, color));
-                }
-
-                // Create initial sound waves
-                createSoundWave();
-
-                // Create sound waves at intervals
-                setInterval(createSoundWave, waveInterval);
-
-                // Animation Loop
-                function animate() {
-                    ctx.fillStyle = 'rgba(50, 50, 50, 0.1)'; // Dark grey with slight transparency for trailing effect
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    soundWaves.forEach((wave, index) => {
-                        wave.draw();
-                        wave.update();
-                        if (wave.isDone()) {
-                            soundWaves.splice(index, 1);
-                        }
-                    });
-
-                    requestAnimationFrame(animate);
-                }
-
-                animate();
-
-                // Optional: Use Anime.js for additional effects (e.g., pulsating center)
-                anime({
-                    targets: '#techCanvas',
-                    scale: [1, 1.05],
-                    direction: 'alternate',
-                    easing: 'easeInOutSine',
-                    duration: 2000,
-                    loop: true
-                });
-            });
         </script>
     </div>
 </body>
