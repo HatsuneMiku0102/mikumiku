@@ -886,16 +886,18 @@
             function startVideoTimeElapsed(data) {
                 // Stop any browsing time counter
                 stopBrowsingTimeElapsed();
-        
+            
                 // Clear any existing video intervals
                 if (videoInterval) {
                     clearInterval(videoInterval);
                 }
-        
-                let startTime = data.currentTime || 0;
+            
+                let startTime = Math.floor(data.currentTime || 0); // Round to nearest second
+                const duration = Math.floor(data.duration || 0); // Round to nearest second
+            
                 videoInterval = setInterval(() => {
                     startTime += 1; // Increment time by 1 second
-                    timeElapsedElement.textContent = `Video Time Elapsed: ${formatTimeElapsed(startTime)} / ${formatTimeElapsed(data.duration)}`;
+                    timeElapsedElement.textContent = `Video Time Elapsed: ${formatTimeElapsed(startTime)} / ${formatTimeElapsed(duration)}`;
                     timeElapsedElement.style.display = "block";
                 }, 1000); // Update every second
             }
@@ -908,10 +910,12 @@
             }
         
             function formatTimeElapsed(seconds) {
+                seconds = Math.floor(seconds); // Round down to the nearest whole number
+            
                 const hours = Math.floor(seconds / 3600);
                 const minutes = Math.floor((seconds % 3600) / 60);
                 const remainingSeconds = seconds % 60;
-        
+            
                 if (hours > 0) {
                     return `${hours}h ${minutes}m ${remainingSeconds}s`;
                 } else if (minutes > 0) {
@@ -920,6 +924,7 @@
                     return `${remainingSeconds}s`;
                 }
             }
+
         
             // Request the latest video data from the server when the client connects
             socket.on("connect", () => {
