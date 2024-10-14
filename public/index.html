@@ -164,7 +164,9 @@
                     <div class="progress-bar-container">
                         <svg id="progressBarSVG" class="progress-bar-svg" viewBox="0 0 100 10">
                             <rect x="0" y="0" width="100" height="10" fill="rgba(255, 255, 255, 0.2)" rx="5" ry="5"></rect>
-                            <rect id="progressBarSVGFill" x="0" y="0" width="0" height="10" fill="var(--primary-color)" rx="5" ry="5"></rect>
+                            <rect id="progressBarSVGFill" x="0" y="0" width="0" height="10" fill="var(--primary-color)" rx="5" ry="5">
+                                <animate id="progressAnimation" attributeName="width" from="0" to="100" dur="0s" fill="freeze" />
+                            </rect>
                         </svg>
                     </div>
 
@@ -328,10 +330,6 @@
             referrerpolicy="no-referrer"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 
-        <!-- Main JavaScript -->
-        <script src="index.js"></script>
-        <script src="clockwork.js"></script>
-
         <!-- Tracking Script -->
         <script>
             document.addEventListener('DOMContentLoaded', function () {
@@ -352,8 +350,6 @@
                 }
             });
         </script>
-
-        <!-- Animation and UI Scripts -->
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 // Function to add animation classes with staggered delays
@@ -507,8 +503,8 @@
             });
         </script>
 
-        <!-- Cookie Consent Script -->
         <script>
+            // [Cookie Consent Script]
             (function () {
                 'use strict';
 
@@ -697,16 +693,14 @@
             })();
         </script>
 
-        <!-- Now Playing Elements and Socket.IO Integration -->
         <script>
-            // Initialize Socket.IO
+            // Now Playing Elements and Socket.IO Integration
             const socket = io("https://mikumiku.dev");
             let lastHeartbeatReceived = Date.now();
             let isSessionExpired = false;
             let browsingStartTime = null;
             let browsingInterval = null;
 
-            // DOM Elements
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
             const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -722,22 +716,27 @@
             const timeElapsedElement = document.getElementById("timeElapsed");
             const liveIconElement = document.getElementById("liveIcon"); // LIVE Indicator
 
+            // Track current title to detect changes
+            let currentTitle = '';
+
             // Animation for Title Change
             function animateTitleChange(newTitle) {
-                // Add the fade-out class
-                videoTitleElement.classList.add('fade-out');
+                if (newTitle === currentTitle) {
+                    // No change in title, do not animate
+                    return;
+                }
+                currentTitle = newTitle;
 
-                // After the fade-out transition, change the title and fade in
+                videoTitleElement.classList.add('animate-title');
                 setTimeout(() => {
                     videoTitleElement.textContent = newTitle;
-                    videoTitleElement.classList.remove('fade-out');
+                    videoTitleElement.classList.remove('animate-title');
                     videoTitleElement.classList.add('fade-in');
-
-                    // Remove the fade-in class after the transition completes
-                    setTimeout(() => {
-                        videoTitleElement.classList.remove('fade-in');
-                    }, 500); // Duration matches CSS transition
                 }, 500); // Duration matches CSS transition
+
+                setTimeout(() => {
+                    videoTitleElement.classList.remove('fade-in');
+                }, 1000); // Total time: fadeOut + fadeIn
             }
 
             function formatNumber(number) {
@@ -768,7 +767,7 @@
             }
 
             function clearVideoPresence() {
-                animateTitleChange("Loading...");
+                animateTitleChange("");
                 videoThumbnailImage.src = "";
                 videoThumbnailImage.style.display = "none";
                 videoThumbnailElement.src = "";
@@ -928,7 +927,6 @@
                 browsingStartTime = null;
             }
 
-            // Handle Socket.IO Events
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
                 isSessionExpired = false;
@@ -1017,9 +1015,6 @@
                 const dayOfWeek = now.toLocaleDateString(undefined, { weekday: 'long' });
                 const dayOfWeekElement = document.getElementById('day-of-week');
                 if (dayOfWeekElement) dayOfWeekElement.innerHTML = `<i class="fas fa-calendar-day"></i> ${dayOfWeek}`;
-                const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                const timeZoneElement = document.getElementById('time-zone');
-                if (timeZoneElement) timeZoneElement.innerHTML = `<i class="fas fa-globe"></i> ${timeZone}`;
             }
 
             setInterval(updateClocks, 1000);
@@ -1069,8 +1064,8 @@
             fetchWeather();
         </script>
 
-        <!-- Canvas Animation Script -->
         <script>
+            // Canvas Animation Script
             document.addEventListener('DOMContentLoaded', function () {
                 const canvas = document.getElementById('techCanvas');
                 const ctx = canvas.getContext('2d');
