@@ -702,7 +702,6 @@
             let videoInterval = null;
             let browsingInterval = null;
         
-            let videoStartTime = 0;
             let videoPaused = false;
         
             const nowPlayingBox = document.getElementById("nowPlayingBox");
@@ -746,7 +745,6 @@
             function startVideoTimeElapsed(data) {
                 stopBrowsingTimeElapsed(); // Stop browsing time when switching to video
         
-                // Clear any existing video intervals
                 if (videoInterval) {
                     clearInterval(videoInterval);
                 }
@@ -754,7 +752,6 @@
                 let currentTime = Math.floor(data.currentTime || 0); // Start from the current time
                 const duration = Math.floor(data.duration || 0); // Get the video duration
         
-                // Set the interval to increment the time and update the display and progress bar
                 videoInterval = setInterval(() => {
                     if (!videoPaused) {
                         currentTime += 1; // Increment time only if the video isn't paused
@@ -807,8 +804,7 @@
                 if (savedData) {
                     const videoState = JSON.parse(savedData);
                     if (videoState.videoId === currentVideoId) {
-                        // Use the saved time to resume progress
-                        startVideoTimeElapsed(videoState);
+                        startVideoTimeElapsed(videoState); // Use the saved time to resume progress
                     }
                 }
             }
@@ -827,6 +823,7 @@
                 isOffline = true;
             }
         
+            // Display video presence when received
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 isOffline = false;
@@ -886,6 +883,10 @@
                 clearInterval(videoInterval); // Stop video time interval when switching to browsing
                 timeElapsedElement.style.display = "none"; // Hide time elapsed during browsing
                 progressBarElement.style.width = "0%"; // Reset progress bar for browsing presence
+        
+                if (browsingInterval) {
+                    clearInterval(browsingInterval);
+                }
         
                 // Start browsing time interval if needed
                 browsingInterval = setInterval(() => {
@@ -955,6 +956,9 @@
                 resumeVideo();
                 updateVideoTimeOnSeek(data.currentTime, data.duration);
             });
+        
+
+
         
 
 
