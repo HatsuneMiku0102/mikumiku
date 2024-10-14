@@ -700,6 +700,8 @@
             let lastHeartbeatReceived = Date.now();
             let isOffline = false;
             let currentVideoId = null;
+            let browsingStartTime = null;
+            let browsingInterval = null;
         
             // DOM Elements
             const nowPlayingBox = document.getElementById("nowPlayingBox");
@@ -811,7 +813,7 @@
                 }
             }
         
-            // Handle browsing presence
+            // Display browsing presence
             function displayBrowsingPresence(data) {
                 clearDisplay(); // Clear any video info
                 videoTitleElement.textContent = data.title || "Browsing YouTube";
@@ -819,7 +821,9 @@
                 videoThumbnailImage.src = data.thumbnail || 'https://www.youtube.com/img/desktop/yt_1200.png';
                 videoThumbnailImage.style.display = "block";
                 videoThumbnailElement.style.display = "none";
-                progressBarElement.style.width = "0%";
+                progressBarElement.style.display = "none"; // No progress bar for browsing
+                offlineIndicatorElement.style.display = "none"; // No offline indicator during browsing
+                startBrowsingTimeElapsed(data.timeElapsed || 0); // Start time elapsed counter
             }
         
             // Handle video progress
@@ -844,6 +848,36 @@
                 progressBarElement.style.display = "none";
                 liveIconElement.style.display = "none";
                 isOffline = true;
+            }
+        
+            // Time elapsed for browsing sessions
+            function startBrowsingTimeElapsed(startTime) {
+                browsingStartTime = Date.now() - startTime * 1000; // Adjust to the correct starting time
+                if (!browsingInterval) {
+                    browsingInterval = setInterval(updateBrowsingTimeElapsed, 1000); // Update every second
+                }
+            }
+        
+            function updateBrowsingTimeElapsed() {
+                if (browsingStartTime) {
+                    const elapsedSeconds = Math.floor((Date.now() - browsingStartTime) / 1000);
+                    timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(elapsedSeconds)}`;
+                    timeElapsedElement.style.display = "block";
+                }
+            }
+        
+            function formatTimeElapsed(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const remainingSeconds = seconds % 60;
+        
+                if (hours > 0) {
+                    return `${hours}h ${minutes}m ${remainingSeconds}s`;
+                } else if (minutes > 0) {
+                    return `${minutes}m ${remainingSeconds}s`;
+                } else {
+                    return `${remainingSeconds}s`;
+                }
             }
         
             // Request the latest video data from the server when the client connects
@@ -922,6 +956,8 @@
                     toggleDescriptionButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
                 }
             });
+
+
 
 
             // Clock Update Script
