@@ -701,7 +701,8 @@
             let currentVideoId = null;
             let browsingStartTime = null;
             let browsingInterval = null;
-            
+            let videoInterval = null; // For video progress update
+        
             // DOM Elements
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
@@ -761,6 +762,9 @@
                 isOffline = false;
                 comeOnline();
         
+                // Stop the browsing time counter when switching to a video
+                stopBrowsingTimeElapsed();
+        
                 // Check if it's a new video or the same one
                 if (data.videoId !== currentVideoId) {
                     currentVideoId = data.videoId;
@@ -806,8 +810,9 @@
                         liveIconElement.style.display = "none";
                     }
         
-                    // Handle progress bar update
+                    // Handle progress bar update and time elapsed
                     handleRealTimeProgress(data);
+                    startVideoTimeElapsed(data); // Start counting the video time elapsed
         
                     // Save video state to localStorage
                     saveVideoDataToLocalStorage(data);
@@ -867,6 +872,38 @@
                     const elapsedSeconds = Math.floor((Date.now() - browsingStartTime) / 1000);
                     timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(elapsedSeconds)}`;
                     timeElapsedElement.style.display = "block";
+                }
+            }
+        
+            function stopBrowsingTimeElapsed() {
+                if (browsingInterval) {
+                    clearInterval(browsingInterval);
+                    browsingInterval = null;
+                }
+            }
+        
+            // Time elapsed for video sessions
+            function startVideoTimeElapsed(data) {
+                // Stop any browsing time counter
+                stopBrowsingTimeElapsed();
+        
+                // Clear any existing video intervals
+                if (videoInterval) {
+                    clearInterval(videoInterval);
+                }
+        
+                let startTime = data.currentTime || 0;
+                videoInterval = setInterval(() => {
+                    startTime += 1; // Increment time by 1 second
+                    timeElapsedElement.textContent = `Video Time Elapsed: ${formatTimeElapsed(startTime)} / ${formatTimeElapsed(data.duration)}`;
+                    timeElapsedElement.style.display = "block";
+                }, 1000); // Update every second
+            }
+        
+            function stopVideoTimeElapsed() {
+                if (videoInterval) {
+                    clearInterval(videoInterval);
+                    videoInterval = null;
                 }
             }
         
@@ -932,7 +969,7 @@
                 loadLastKnownData(); // Restore last known video data if available
             });
         
-            // Logic for video description modal toggle
+            // Modal toggle logic for video description
             const descriptionModal = document.getElementById("descriptionModal");
             const closeDescriptionButton = document.getElementById("closeDescriptionButton");
             const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
@@ -958,6 +995,8 @@
                     toggleDescriptionButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
                 }
             });
+
+
 
 
 
