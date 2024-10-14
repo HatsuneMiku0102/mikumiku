@@ -702,9 +702,6 @@
             let browsingStartTime = null;
             let browsingInterval = null;
 
-            // Variable to track the current video ID to prevent unnecessary transitions
-            let currentVideoId = null;
-
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
             const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -788,50 +785,67 @@
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
 
-                videoTitleElement.textContent = data.title || "Unknown Title";
+                // Start Fade-Out
+                nowPlayingBox.classList.add('fade-out');
 
-                if (data.thumbnail) {
-                    videoThumbnailImage.src = data.thumbnail;
-                    videoThumbnailImage.style.display = "block";
-                    videoThumbnailElement.style.display = "none";
-                } else {
-                    videoThumbnailImage.src = "";
-                    videoThumbnailElement.style.display = "none";
-                }
+                // After fade-out completes, update content and fade-in
+                setTimeout(() => {
+                    // Update the video title and other information
+                    videoTitleElement.textContent = data.title || "Unknown Title";
+                    channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+                    viewCountElement.textContent = `${formatNumber(data.viewCount)}` || "N/A";
+                    likeCountElement.textContent = `${formatNumber(data.likeCount)}` || "N/A";
 
-                channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-                viewCountElement.textContent = `${formatNumber(data.viewCount)}` || "N/A";
-                likeCountElement.textContent = `${formatNumber(data.likeCount)}` || "N/A";
+                    if (data.publishedAt) {
+                        const publishedDate = new Date(data.publishedAt);
+                        publishedDateElement.textContent = `${publishedDate.toLocaleDateString()}` || "Published on: N/A";
+                    } else {
+                        publishedDateElement.textContent = "Published on: N/A";
+                    }
 
-                if (data.publishedAt) {
-                    const publishedDate = new Date(data.publishedAt);
-                    publishedDateElement.textContent = ` ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
-                } else {
-                    publishedDateElement.textContent = "Published on: N/A";
-                }
+                    videoCategoryElement.textContent = `${data.category}` || "N/A";
+                    videoDescriptionElement.textContent = data.description || "No description available.";
+                    handleRealTimeProgress(data);
 
-                videoCategoryElement.textContent = `${data.category}` || "N/A";
-                videoDescriptionElement.textContent = data.description || "No description available.";
-                handleRealTimeProgress(data);
-                timeElapsedElement.style.display = "none";
+                    if (data.thumbnail) {
+                        videoThumbnailImage.src = data.thumbnail;
+                        videoThumbnailImage.style.display = "block";
+                        videoThumbnailElement.style.display = "none";
+                    } else {
+                        videoThumbnailImage.src = "";
+                        videoThumbnailElement.style.display = "none";
+                    }
 
-                if (data.videoSrc) {
-                    videoThumbnailElement.src = data.videoSrc;
-                    videoThumbnailElement.style.display = "block";
-                    videoThumbnailImage.style.display = "none";
-                } else {
-                    videoThumbnailElement.style.display = "none";
-                    videoThumbnailImage.style.display = "block";
-                }
+                    if (data.videoSrc) {
+                        videoThumbnailElement.src = data.videoSrc;
+                        videoThumbnailElement.style.display = "block";
+                        videoThumbnailImage.style.display = "none";
+                    } else {
+                        videoThumbnailElement.style.display = "none";
+                        videoThumbnailImage.style.display = "block";
+                    }
 
-                // Handle Live Status
-                if (data.isLive) {
-                    liveIconElement.classList.add('active'); // Add active class to trigger animation
-                    liveIconElement.style.display = "flex"; // Use 'flex' to utilize CSS flex properties
-                } else {
-                    liveIconElement.classList.remove('active'); // Remove active class
-                    liveIconElement.style.display = "none"; // Hide the live icon when not live
-                }
+                    // Handle Live Status
+                    if (data.isLive) {
+                        liveIconElement.classList.add('active'); // Add active class to trigger animation
+                        liveIconElement.style.display = "flex"; // Use 'flex' to utilize CSS flex properties
+                    } else {
+                        liveIconElement.classList.remove('active'); // Remove active class
+                        liveIconElement.style.display = "none"; // Hide the live icon when not live
+                    }
+
+                    // Start Fade-In
+                    nowPlayingBox.classList.remove('fade-out');
+                    nowPlayingBox.classList.add('fade-in');
+
+                    // Remove fade-in class after animation completes to allow future transitions
+                    setTimeout(() => {
+                        nowPlayingBox.classList.remove('fade-in');
+                    }, 500); // Duration should match the CSS animation duration
+
+                    // Ensure video title and info are visible
+                    nowPlayingBox.classList.remove('offline');
+                }, 500); // Duration should match the CSS animation duration
             }
 
 
@@ -914,14 +928,8 @@
                 console.log("[Socket.IO] Received presenceUpdate:", data);
 
                 if (data.presenceType === 'video') {
-                    // Check if the video has changed
-                    if (data.videoId && data.videoId !== currentVideoId) {
-                        currentVideoId = data.videoId;
-                        updateNowPlaying(data);
-                    } else {
-                        // Only update progress if video hasn't changed
-                        handleRealTimeProgress(data);
-                    }
+                    stopBrowsingPresence();
+                    displayVideoPresence(data);
                 } else if (data.presenceType === 'browsing') {
                     displayBrowsingPresence(data);
                     startBrowsingPresence();
@@ -961,22 +969,22 @@
             toggleDescriptionButton.addEventListener("click", function () {
                 if (descriptionModal.classList.contains("active")) {
                     descriptionModal.classList.remove("active");
-                    toggleDescriptionButton.textContent = ' Show Description';
+                    toggleDescriptionButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
                 } else {
                     descriptionModal.classList.add("active");
-                    toggleDescriptionButton.textContent = ' Hide Description';
+                    toggleDescriptionButton.innerHTML = '<i class="fas fa-info-circle"></i> Hide Description';
                 }
             });
 
             closeDescriptionButton.addEventListener("click", function () {
                 descriptionModal.classList.remove("active");
-                toggleDescriptionButton.textContent = ' Show Description';
+                toggleDescriptionButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
             });
 
             window.addEventListener("click", function (event) {
                 if (event.target === descriptionModal) {
                     descriptionModal.classList.remove("active");
-                    toggleDescriptionButton.textContent = ' Show Description';
+                    toggleDescriptionButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
                 }
             });
 
