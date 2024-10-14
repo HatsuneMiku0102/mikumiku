@@ -125,10 +125,10 @@
                     <div class="sidebar-item video-category">
                         <i class="fas fa-tag"></i> <span id="videoCategory">Loading...</span>
                     </div>
-        
+
                     <!-- Divider Between Channel Info and Clock -->
                     <hr class="animated-divider">
-        
+
                     <!-- Clock Section -->
                     <section class="clock-section">
                         <p id="greeting" class="greeting"><i class="fas fa-sun"></i> Good Morning!</p>
@@ -144,32 +144,37 @@
                         <p id="last-visit-message" class="last-visit-message"><i class="fas fa-history"></i> Welcome back!</p>
                     </section>
                 </aside>
-        
+
                 <!-- End of Channel Info -->
-        
+
                 <!-- Video Section in the Center -->
                 <div class="video-section">
                     <div class="video-title-container">
                         <h2>Currently Playing</h2>
-                        <p id="videoTitle">Loading...</p>
+                        <p id="videoTitle" class="video-title">Loading...</p>
                     </div>
-        
+
                     <div class="thumbnail-container">
                         <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls aria-label="Currently Playing Video">
                             Your browser does not support the video tag.
                         </video>
                         <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
                     </div>
-        
+
                     <div id="offline-indicator" class="offline-indicator">
                         <i class="fas fa-signal-slash"></i> I’m currently offline
                     </div>
-        
-                    <!-- Progress Bar Container -->
+
+                    <!-- SVG Progress Bar Container -->
                     <div class="progress-bar-container">
-                        <div id="progressBar" class="progress-bar"></div>
+                        <svg class="progress-bar-svg" viewBox="0 0 500 10" preserveAspectRatio="none">
+                            <rect width="500" height="10" fill="rgba(255, 255, 255, 0.2)" rx="5" ry="5"></rect>
+                            <rect id="svgProgressBar" width="0" height="10" fill="#00c6ff" rx="5" ry="5">
+                                <animate attributeName="width" from="0" to="500" dur="0.3s" fill="freeze" />
+                            </rect>
+                        </svg>
                     </div>
-        
+
                     <!-- LIVE Indicator Positioned Below the Progress Bar -->
                     <div class="live-indicator-container">
                         <!-- Live Indicator SVG -->
@@ -179,27 +184,27 @@
                             <text x="50%" y="55%" text-anchor="middle" fill="#FFFFFF" font-size="12" font-family="Arial, sans-serif" dy=".3em">LIVE</text>
                         </svg>
                     </div>
-        
+
                     <!-- Time Elapsed Display -->
                     <div id="timeElapsedContainer" class="time-elapsed">
                         <i class="fas fa-clock"></i> <span id="timeElapsed">0s</span>
                     </div>
-        
+
                     <!-- Show Description Button -->
                     <button class="toggle-description" id="toggleDescriptionButton" aria-label="Toggle Description">
                         <i class="fas fa-info-circle"></i> Show Description
                     </button>
-        
+
                     <!-- Loading Spinner -->
                     <div id="loadingSpinner" class="loading-spinner" aria-label="Loading">
                         <i class="fas fa-spinner fa-spin"></i>
                     </div>
                 </div>
                 <!-- End of Video Section -->
-        
+
                 <!-- Divider Between Now Playing and Weather -->
                 <hr class="animated-divider">
-        
+
                 <!-- Weather Section on the Right Side -->
                 <aside class="weather-section">
                     <img id="weather-icon" src="" alt="Weather Icon" class="weather-icon" loading="lazy">
@@ -707,7 +712,7 @@
             const videoThumbnailImage = document.getElementById("videoThumbnailImage");
             const videoThumbnailElement = document.getElementById("videoThumbnail");
             const offlineIndicatorElement = document.getElementById("offline-indicator");
-            const progressBarElement = document.getElementById("progressBar");
+            const svgProgressBarElement = document.getElementById("svgProgressBar"); // Updated to SVG
             const channelNameElement = document.getElementById("channelName");
             const viewCountElement = document.getElementById("viewCount");
             const likeCountElement = document.getElementById("likeCount");
@@ -716,6 +721,9 @@
             const videoDescriptionElement = document.getElementById("descriptionModalDescription");
             const timeElapsedElement = document.getElementById("timeElapsed");
             const liveIconElement = document.getElementById("liveIcon"); // LIVE Indicator
+
+            // New variables for animation
+            let isAnimatingTitle = false;
 
             function formatNumber(number) {
                 if (typeof number === 'string') {
@@ -738,7 +746,7 @@
                 likeCountElement.textContent = "";
                 publishedDateElement.textContent = "";
                 videoCategoryElement.textContent = "";
-                progressBarElement.style.width = "0%";
+                svgProgressBarElement.setAttribute("width", "0");
                 videoDescriptionElement.textContent = "";
                 timeElapsedElement.style.display = "none";
                 liveIconElement.style.display = "none"; // Hide LIVE Icon
@@ -755,7 +763,7 @@
                 likeCountElement.textContent = "";
                 publishedDateElement.textContent = "";
                 videoCategoryElement.textContent = "";
-                progressBarElement.style.width = "0%";
+                svgProgressBarElement.setAttribute("width", "0");
                 videoDescriptionElement.textContent = "";
                 liveIconElement.style.display = "none"; // Hide LIVE Icon
             }
@@ -780,13 +788,28 @@
                 }
             }
 
+            function animateTitleChange(newTitle) {
+                if (isAnimatingTitle) return;
+                isAnimatingTitle = true;
+                videoTitleElement.classList.add('animate-title');
+
+                // After animation duration, update the title and remove the animation class
+                setTimeout(() => {
+                    videoTitleElement.textContent = newTitle;
+                    videoTitleElement.classList.remove('animate-title');
+                    isAnimatingTitle = false;
+                }, 500); // Match with CSS transition duration
+            }
+
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
                 nowPlayingBox.classList.remove("offline");
                 offlineIndicatorElement.style.display = "none";
-            
-                videoTitleElement.textContent = data.title || "Unknown Title";
-            
+
+                // Animate title change
+                const newTitle = data.title || "Unknown Title";
+                animateTitleChange(newTitle);
+
                 if (data.thumbnail) {
                     videoThumbnailImage.src = data.thumbnail;
                     videoThumbnailImage.style.display = "block";
@@ -795,23 +818,23 @@
                     videoThumbnailImage.src = "";
                     videoThumbnailElement.style.display = "none";
                 }
-            
+
                 channelNameElement.textContent = data.channelTitle || "Unknown Channel";
                 viewCountElement.textContent = `${formatNumber(data.viewCount)}` || "N/A";
                 likeCountElement.textContent = `${formatNumber(data.likeCount)}` || "N/A";
-            
+
                 if (data.publishedAt) {
                     const publishedDate = new Date(data.publishedAt);
                     publishedDateElement.textContent = ` ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
                 } else {
                     publishedDateElement.textContent = "Published on: N/A";
                 }
-            
+
                 videoCategoryElement.textContent = `${data.category}` || "N/A";
                 videoDescriptionElement.textContent = data.description || "No description available.";
                 handleRealTimeProgress(data);
                 timeElapsedElement.style.display = "none";
-            
+
                 if (data.videoSrc) {
                     videoThumbnailElement.src = data.videoSrc;
                     videoThumbnailElement.style.display = "block";
@@ -820,7 +843,7 @@
                     videoThumbnailElement.style.display = "none";
                     videoThumbnailImage.style.display = "block";
                 }
-            
+
                 // Handle Live Status
                 if (data.isLive) {
                     liveIconElement.classList.add('active'); // Add active class to trigger animation
@@ -835,9 +858,12 @@
             function handleRealTimeProgress(data) {
                 if (data.duration && data.currentTime) {
                     const progressPercentage = (data.currentTime / data.duration) * 100;
-                    progressBarElement.style.width = `${progressPercentage}%`;
+                    // Update SVG progress bar
+                    const totalWidth = 500; // As defined in SVG viewBox
+                    const newWidth = (progressPercentage / 100) * totalWidth;
+                    svgProgressBarElement.setAttribute("width", newWidth);
                 } else {
-                    progressBarElement.style.width = "0%";
+                    svgProgressBarElement.setAttribute("width", "0");
                 }
             }
 
@@ -854,7 +880,7 @@
                 videoThumbnailElement.style.display = "none";
                 channelNameElement.textContent = "Browsing...";
                 videoDescriptionElement.textContent = data.description || "Browsing videos on YouTube";
-                progressBarElement.style.width = "0%";
+                svgProgressBarElement.setAttribute("width", "0");
 
                 if (data.timeElapsed !== undefined) {
                     timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(data.timeElapsed)}`;
