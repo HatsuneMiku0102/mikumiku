@@ -702,6 +702,9 @@
             let videoInterval = null;
             let browsingInterval = null;
         
+            let videoStartTime = 0;
+            let videoPaused = false;
+        
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
             const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -753,7 +756,7 @@
         
                 // Set the interval to increment the time and update the display and progress bar
                 videoInterval = setInterval(() => {
-                    if (!data.isPaused) {
+                    if (!videoPaused) {
                         currentTime += 1; // Increment time only if the video isn't paused
                     }
                     const progressPercentage = (currentTime / duration) * 100;
@@ -772,10 +775,20 @@
                 }
             }
         
-            // Sync video time when seeking
-            function updateVideoTimeOnSeek(currentTime, duration) {
+            // Update video time when seeked or when the video resumes from pause
+            function updateVideoTimeOnSeek(newCurrentTime, duration) {
                 clearInterval(videoInterval); // Clear the interval to stop counting
-                startVideoTimeElapsed({ currentTime, duration }); // Restart counting from new currentTime
+                videoPaused = false;
+                startVideoTimeElapsed({ currentTime: newCurrentTime, duration }); // Restart counting from the new time
+            }
+        
+            // Pause and resume logic
+            function pauseVideo() {
+                videoPaused = true;
+            }
+        
+            function resumeVideo() {
+                videoPaused = false;
             }
         
             // Save video state to localStorage
@@ -876,6 +889,7 @@
         
                 // Start browsing time interval if needed
                 browsingInterval = setInterval(() => {
+                    data.timeElapsed += 1; // Increment browsing time every second
                     timeElapsedElement.textContent = `Browsing Time Elapsed: ${formatTimeElapsed(data.timeElapsed)}`;
                     timeElapsedElement.style.display = "block";
                 }, 1000); // Update every second
@@ -927,43 +941,21 @@
                 loadLastKnownData(); // Restore last known video data if available
             });
         
-            // Modal toggle logic for video description
-            const descriptionModal = document.getElementById("descriptionModal");
-            const closeDescriptionButton = document.getElementById("closeDescriptionButton");
-            const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
-        
-            toggleDescriptionButton.addEventListener("click", function () {
-                if (descriptionModal.classList.contains("active")) {
-                    descriptionModal.classList.remove("active");
-                    toggleDescriptionButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
-                } else {
-                    descriptionModal.classList.add("active");
-                    toggleDescriptionButton.innerHTML = '<i class="fas fa-info-circle"></i> Hide Description';
-                }
+            // Handle seeking events from the video player
+            socket.on('videoSeeked', (data) => {
+                updateVideoTimeOnSeek(data.newTime, data.duration);
             });
         
-            closeDescriptionButton.addEventListener("click", function () {
-                descriptionModal.classList.remove("active");
-                toggleDescriptionButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
+            // Handle pause and resume events
+            socket.on('videoPaused', () => {
+                pauseVideo();
             });
         
-            window.addEventListener("click", function (event) {
-                if (event.target === descriptionModal) {
-                    descriptionModal.classList.remove("active");
-                    toggleDescriptionButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
-                }
+            socket.on('videoResumed', (data) => {
+                resumeVideo();
+                updateVideoTimeOnSeek(data.currentTime, data.duration);
             });
-
-
-
-
-
-
-
-
-
-
-
+        
 
 
 
