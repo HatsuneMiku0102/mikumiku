@@ -753,11 +753,8 @@
                 // Start fade-out animation
                 videoInfoContainer.classList.add('fade-out');
             
-                const fadeOutListener = function () {
-                    // Remove event listener to avoid multiple triggers
-                    videoInfoContainer.removeEventListener('transitionend', fadeOutListener);
-            
-                    // Clear video information
+                setTimeout(() => {
+                    // Clear video information after fade-out is complete (or immediately if no transition)
                     videoTitleElement.textContent = "";
                     videoThumbnailImage.src = "";
                     videoThumbnailImage.style.display = "none";
@@ -771,11 +768,9 @@
                     progressBarElement.style.width = "0%";
                     videoDescriptionElement.textContent = "";
             
-                    // Remove fade-out class and trigger fade-in if necessary
+                    // Remove fade-out class to reset for future transitions
                     videoInfoContainer.classList.remove('fade-out');
-                };
-            
-                videoInfoContainer.addEventListener('transitionend', fadeOutListener);
+                }, 500); // Adjust this to match your CSS transition duration (500ms in this case)
             }
 
             function reinitializeSession() {
@@ -806,11 +801,8 @@
                 // Start fade-out animation
                 videoInfoContainer.classList.add('fade-out');
             
-                const fadeOutListener = function () {
-                    // Remove event listener after fade-out completes
-                    videoInfoContainer.removeEventListener('transitionend', fadeOutListener);
-            
-                    // Update video information
+                setTimeout(() => {
+                    // Update video information after fade-out completes (or immediately if no transition)
                     videoTitleElement.textContent = data.title || "Unknown Title";
             
                     if (data.thumbnail) {
@@ -856,12 +848,10 @@
                         liveIconElement.style.display = "none";
                     }
             
-                    // Start fade-in animation
+                    // Remove fade-out class and add fade-in
                     videoInfoContainer.classList.remove('fade-out');
                     videoInfoContainer.classList.add('fade-in');
-                };
-            
-                videoInfoContainer.addEventListener('transitionend', fadeOutListener);
+                }, 500); // Adjust this to match your CSS transition duration (500ms in this case)
             }
 
 
