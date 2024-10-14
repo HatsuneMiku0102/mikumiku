@@ -1,59 +1,82 @@
 /* =========================================
-   Root Variables for Easy Theming
+   CSS Variables
 ========================================= */
 :root {
-    --primary-color: #00c6ff;
-    --secondary-color: #ff4081;
+    /* Colors */
+    --primary-color: #00c6ff; /* Vibrant turquoise */
+    --secondary-color: #ff4081; /* Hot pink */
+    --background-color: #121212; /* Dark background */
+    --modal-background: rgba(0, 0, 0, 0.85);
     --text-color: #ffffff;
-    --background-color: #000000;
-    --modal-background: rgba(0, 0, 0, 0.9);
-    --border-radius: 8px;
-    --padding-base: 1rem;
-    --padding-large: 2rem;
-    --margin-large: 2rem;
+    --border-color: rgba(255, 255, 255, 0.2);
+    --button-hover-bg: rgba(255, 64, 129, 0.8);
     --shadow-color: rgba(0, 0, 0, 0.5);
-    --transition-duration: 0.3s;
-    --title-font-size: 2rem;
-    --video-title-font-size: 2rem;
+    --accent-color: #ff4081;
+
+    /* Typography */
+    --font-family: 'Roboto', sans-serif;
+    --title-font-size: 3rem;
     --content-font-size: 1rem;
     --small-font-size: 0.875rem;
-    --video-title-animation-duration: 1s;
+
+    /* Spacing */
+    --padding-base: 1rem;
+    --padding-large: 2rem;
+    --margin-base: 1rem;
+    --margin-large: 2rem;
+
+    /* Transitions and Animations */
+    --transition-duration: 0.3s;
+    --animation-duration: 5s;
+
+    /* Borders and Radius */
+    --border-radius: 8px;
 }
 
 /* =========================================
-   Global Styles
+   Reset and Base Styles
 ========================================= */
-* {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
 
-body, html {
+html,
+body {
     height: 100%;
-    font-family: 'Roboto', sans-serif;
-    background-color: var(--background-color);
+    width: 100%;
+    font-family: var(--font-family);
     color: var(--text-color);
+    background-color: var(--background-color);
     overflow-x: hidden;
 }
 
-a {
-    color: inherit;
-    text-decoration: none;
+body {
+    display: flex;
+    flex-direction: column;
 }
 
-button {
-    font-family: inherit;
-    cursor: pointer;
+.page-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
 }
 
 /* =========================================
-   Canvas Background
+   Canvas Background Styling
 ========================================= */
 #techCanvas {
     position: fixed;
     top: 0;
     left: 0;
+    width: 100%;
+    height: 100%;
     z-index: -3; /* Behind all content */
     background: transparent;
     pointer-events: none; /* Allow interactions to pass through */
@@ -73,12 +96,6 @@ button {
     justify-content: center;
     align-items: center;
     box-shadow: 0 2px 4px var(--shadow-color);
-    transition: background-color var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
-}
-
-.title-bar.scrolled {
-    background-color: rgba(0, 0, 0, 0.95);
-    box-shadow: 0 4px 8px var(--shadow-color);
 }
 
 .container {
@@ -119,7 +136,6 @@ button {
 }
 
 .visualizer-wrapper {
-    display: none; /* Hidden by default, can be shown on larger screens */
     position: absolute;
     bottom: -20px; /* Adjust as needed */
     left: 50%;
@@ -132,13 +148,6 @@ button {
 .visualizer {
     width: 100%;
     height: 100%;
-}
-
-/* Show visualizer on larger screens */
-@media (min-width: 768px) {
-    .visualizer-wrapper {
-        display: block;
-    }
 }
 
 /* Menu Button */
@@ -440,19 +449,40 @@ button {
 }
 
 .video-title-container p {
-    font-size: var(--video-title-font-size); /* Increased font size */
+    font-size: 1.5rem; /* Increased font size */
     text-align: center;
-    transition: opacity 0.5s ease, transform 0.5s ease; /* Smooth transition for animations */
-    opacity: 1;
-    position: relative;
+    transition: font-size var(--transition-duration) ease;
 }
 
-.video-title-container p.animate-title {
+/* Fade-In and Fade-Out Animations */
+.fade-in {
+    animation: fadeIn 0.5s forwards;
+}
+
+.fade-out {
     animation: fadeOut 0.5s forwards;
 }
 
-.video-title-container p.fade-in {
-    animation: fadeIn 0.5s forwards;
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(10px);
+    }
 }
 
 .thumbnail-container {
@@ -461,29 +491,76 @@ button {
     max-width: 600px;
 }
 
-/* Redesigned SVG Progress Bar */
+.video-thumbnail {
+    width: 100%;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    transition: transform var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
+}
+
+.video-thumbnail:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
+}
+
+.offline-indicator {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 0, 0, 0.8);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    color: #ffffff;
+    font-size: var(--small-font-size);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .progress-bar-container {
     width: 100%;
     max-width: 600px;
-    height: 20px; /* Increased height for better visibility */
+    height: 10px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+    overflow: hidden;
     margin-top: 0.5rem;
+    position: relative;
 }
 
-.progress-bar-svg {
-    width: 100%;
+.progress-bar {
+    width: 0%;
     height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
 }
 
-.progress-bar-svg rect {
-    transition: width 0.3s ease;
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 10px;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.3);
+    animation: shimmer 2s infinite;
+    opacity: 0.5;
 }
 
-#progressBarSVGFill {
-    width: 0; /* Start with 0 width */
-    transition: width 0.3s ease;
+/* Shimmer Animation */
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
 }
 
-/* LIVE Indicator Positioned Below the Progress Bar */
+/* LIVE Indicator Enhancement */
 .live-indicator-container {
     margin-top: 0.5rem;
     display: flex;
@@ -502,6 +579,7 @@ button {
     display: flex; /* Use 'flex' to align properly */
 }
 
+/* Time Elapsed Display */
 .time-elapsed {
     font-size: 1rem; /* Slightly larger */
     display: flex;
@@ -579,6 +657,7 @@ button {
     justify-content: center;
     color: var(--text-color);
     font-size: var(--small-font-size);
+    /* Removed position: fixed; bottom: 0; left: 0; z-index: 100; */
 }
 
 .footer .container {
@@ -625,15 +704,10 @@ button {
     display: none;
     flex-direction: column;
     z-index: 3000;
-    transition: opacity var(--transition-duration) ease, visibility var(--transition-duration) ease;
-    opacity: 0;
-    visibility: hidden;
 }
 
 .chat-box.open {
     display: flex;
-    opacity: 1;
-    visibility: visible;
 }
 
 .chat-header {
@@ -866,29 +940,6 @@ button {
     }
 }
 
-/* Smooth Fade-In and Fade-Out for Video Title */
-@keyframes fadeOut {
-    from {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    to {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 /* =========================================
    Responsive Design
 ========================================= */
@@ -954,16 +1005,6 @@ button {
     .last-visit-message {
         font-size: 0.95rem;
     }
-
-    .live-indicator-container {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .live-icon {
-        width: 24px;
-        height: 24px;
-    }
 }
 
 @media (max-width: 480px) {
@@ -1008,24 +1049,6 @@ button {
 
     .last-visit-message {
         font-size: 0.85rem;
-    }
-
-    .toggle-description {
-        padding: 0.4rem 0.8rem;
-        font-size: 0.9rem;
-    }
-
-    .send-message {
-        padding: 0.4rem 0.8rem;
-        margin-left: 0.3rem;
-    }
-
-    .progress-bar-container {
-        height: 15px; /* Slightly smaller on very small screens */
-    }
-
-    .video-title-container h2 {
-        font-size: 1.5rem;
     }
 }
 
@@ -1094,32 +1117,4 @@ button {
 .footer {
     opacity: 0;
     transform: translateY(20px);
-}
-
-/* =========================================
-   Additional Styles for Animations
-========================================= */
-.video-title-container p.animate-title {
-    animation: fadeOut 0.5s forwards;
-}
-
-.video-title-container p.fade-in {
-    animation: fadeIn 0.5s forwards;
-}
-
-/* =========================================
-   Live Indicator Animation
-========================================= */
-.live-icon {
-    animation: glowPulse 2s infinite;
-}
-
-/* =========================================
-   Media Queries for Accessibility
-========================================= */
-@media (prefers-reduced-motion: reduce) {
-    * {
-        animation: none !important;
-        transition: none !important;
-    }
 }
