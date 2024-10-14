@@ -5,8 +5,8 @@
     /* Colors */
     --primary-color: #00c6ff; /* Neon Blue */
     --secondary-color: #ff4081; /* Neon Pink */
-    --background-color: transparent; /* Made transparent */
-    --canvas-background-color: #333333; /* Dark grey for canvas */
+    --background-color: transparent; /* Transparent to show canvas */
+    --canvas-background-color: #1a1a1a; /* Slightly darker grey */
     --modal-background: rgba(0, 0, 0, 0.85);
     --text-color: #ffffff;
     --border-color: rgba(255, 255, 255, 0.2);
@@ -51,7 +51,7 @@ body {
     width: 100%;
     font-family: var(--font-family);
     color: var(--text-color);
-    background-color: var(--background-color); /* Set to transparent */
+    background-color: var(--background-color); /* Transparent background */
     overflow-x: hidden;
 }
 
@@ -97,6 +97,7 @@ body {
     justify-content: center;
     align-items: center;
     box-shadow: 0 2px 4px var(--shadow-color);
+    transition: background-color var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
 }
 
 .container {
@@ -128,7 +129,7 @@ body {
     color: var(--primary-color);
     position: relative;
     z-index: 2; /* Above visualizer */
-    transition: color var(--transition-duration) ease;
+    transition: color var(--transition-duration) ease, text-shadow var(--transition-duration) ease;
 }
 
 .site-title:hover {
@@ -301,7 +302,7 @@ body {
     width: 100%;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
     transition: box-shadow var(--transition-duration) ease, transform var(--transition-duration) ease;
-    gap: 2rem; /* Added gap between sidebar and video section */
+    gap: 2rem; /* Gap between sidebar and video section */
 }
 
 .now-playing:hover {
@@ -955,25 +956,28 @@ body {
     }
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
+@keyframes firework {
+    0% {
         opacity: 1;
-        transform: translateY(0);
+        transform: scale(0);
+    }
+    70% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1);
     }
 }
 
-@keyframes fadeOut {
-    from {
+@keyframes explode {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
         opacity: 1;
-        transform: translateY(0);
     }
-    to {
+    100% {
+        transform: translate(-50%, -50%) scale(1);
         opacity: 0;
-        transform: translateY(10px);
     }
 }
 
@@ -1145,7 +1149,7 @@ button {
 }
 
 /* =========================================
-   Animations for Anime.js
+   Animations for Anime.js and Fireworks
 ========================================= */
 /* Initial state for animated elements */
 .now-playing,
@@ -1156,9 +1160,49 @@ button {
     transform: translateY(20px);
 }
 
-/* =========================================
-   Live Indicator Glow Pulse
-========================================= */
+/* Neon Glow for LIVE Indicator */
 .live-icon {
     animation: glowPulse 2s infinite;
+}
+
+/* Firework Styles */
+.firework {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    background: none;
+    pointer-events: none;
+}
+
+.firework .particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background-color: var(--secondary-color);
+    border-radius: 50%;
+    animation: explode 1s forwards;
+}
+
+/* Different colors for particles */
+.firework.blue .particle {
+    background-color: var(--primary-color);
+}
+
+.firework.pink .particle {
+    background-color: var(--secondary-color);
+}
+
+/* Explosion Animation */
+@keyframes explode {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(var(--x), var(--y)) scale(2);
+    }
 }
