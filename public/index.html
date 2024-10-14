@@ -700,6 +700,7 @@
             let isOffline = false;
             let currentVideoId = null;
             let videoInterval = null;
+            let browsingInterval = null; // For browsing presence
         
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
@@ -721,7 +722,7 @@
                 return number.toLocaleString();
             }
         
-            // Sync and format time elapsed
+            // Format time elapsed in a human-readable format
             function formatTimeElapsed(seconds) {
                 seconds = Math.floor(seconds); // Round down to the nearest whole number
         
@@ -738,8 +739,9 @@
                 }
             }
         
+            // Start counting video time elapsed
             function startVideoTimeElapsed(data) {
-                stopBrowsingTimeElapsed(); // Stop any browsing time counter
+                stopBrowsingTimeElapsed(); // Stop browsing time when switching to video
         
                 // Clear any existing video intervals
                 if (videoInterval) {
@@ -759,11 +761,21 @@
                 }, 1000); // Update every second
             }
         
+            // Stop browsing time elapsed
+            function stopBrowsingTimeElapsed() {
+                if (browsingInterval) {
+                    clearInterval(browsingInterval);
+                    browsingInterval = null; // Clear the interval
+                }
+            }
+        
+            // Sync video time when seeking
             function updateVideoTimeOnSeek(currentTime, duration) {
                 clearInterval(videoInterval); // Clear the interval to stop counting
                 startVideoTimeElapsed({ currentTime, duration }); // Restart counting from new currentTime
             }
         
+            // Save video state to localStorage
             function saveLastKnownData(videoData) {
                 const videoState = {
                     videoId: videoData.videoId,
@@ -773,6 +785,7 @@
                 localStorage.setItem('lastKnownVideoState', JSON.stringify(videoState)); // Save state to localStorage
             }
         
+            // Load last known video state from localStorage
             function loadLastKnownData() {
                 const savedData = localStorage.getItem('lastKnownVideoState');
                 if (savedData) {
@@ -784,6 +797,7 @@
                 }
             }
         
+            // Handle real-time progress updates
             function handleRealTimeProgress(data) {
                 const progressPercentage = (data.currentTime / data.duration) * 100;
                 progressBarElement.style.width = `${progressPercentage}%`;
@@ -868,9 +882,14 @@
             // Syncing video and browsing presence
             function displayBrowsingPresence(data) {
                 clearInterval(videoInterval); // Stop video time interval when switching to browsing
-        
                 timeElapsedElement.style.display = "none"; // Hide time elapsed during browsing
                 progressBarElement.style.width = "0%"; // Reset progress bar for browsing presence
+        
+                // Start browsing time interval if needed
+                browsingInterval = setInterval(() => {
+                    timeElapsedElement.textContent = `Browsing Time Elapsed: ${formatTimeElapsed(data.timeElapsed)}`;
+                    timeElapsedElement.style.display = "block";
+                }, 1000); // Update every second
             }
         
             // Sync with server
@@ -945,6 +964,8 @@
                     toggleDescriptionButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
                 }
             });
+
+
 
 
 
