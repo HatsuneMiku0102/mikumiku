@@ -753,8 +753,9 @@
                 // Start fade-out animation
                 videoInfoContainer.classList.add('fade-out');
             
-                videoInfoContainer.addEventListener('transitionend', function handler() {
-                    videoInfoContainer.removeEventListener('transitionend', handler);
+                const fadeOutListener = function () {
+                    // Remove event listener to avoid multiple triggers
+                    videoInfoContainer.removeEventListener('transitionend', fadeOutListener);
             
                     // Clear video information
                     videoTitleElement.textContent = "";
@@ -770,9 +771,11 @@
                     progressBarElement.style.width = "0%";
                     videoDescriptionElement.textContent = "";
             
-                    // Remove fade-out class
+                    // Remove fade-out class and trigger fade-in if necessary
                     videoInfoContainer.classList.remove('fade-out');
-                });
+                };
+            
+                videoInfoContainer.addEventListener('transitionend', fadeOutListener);
             }
 
             function reinitializeSession() {
@@ -803,9 +806,9 @@
                 // Start fade-out animation
                 videoInfoContainer.classList.add('fade-out');
             
-                // After fade-out, update content and fade-in
-                videoInfoContainer.addEventListener('transitionend', function handler() {
-                    videoInfoContainer.removeEventListener('transitionend', handler);
+                const fadeOutListener = function () {
+                    // Remove event listener after fade-out completes
+                    videoInfoContainer.removeEventListener('transitionend', fadeOutListener);
             
                     // Update video information
                     videoTitleElement.textContent = data.title || "Unknown Title";
@@ -856,7 +859,9 @@
                     // Start fade-in animation
                     videoInfoContainer.classList.remove('fade-out');
                     videoInfoContainer.classList.add('fade-in');
-                });
+                };
+            
+                videoInfoContainer.addEventListener('transitionend', fadeOutListener);
             }
 
 
