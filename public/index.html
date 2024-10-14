@@ -1081,32 +1081,32 @@
         <!-- Anime.js Canvas Animation Script -->
         <script>
             document.addEventListener('DOMContentLoaded', () => {
-                const canvas = document.getElementById('animationcanvas'); // Ensure the ID matches
+                const canvas = document.getElementById('animationCanvas'); // Correct ID
                 const ctx = canvas.getContext('2d');
-            
+
                 // Ensure the canvas exists
                 if (!canvas) {
                     console.error("Canvas element with ID 'animationCanvas' not found.");
                     return;
                 }
-            
+
                 // Set canvas size
                 function resizeCanvas() {
                     canvas.width = window.innerWidth;
                     canvas.height = window.innerHeight;
                     createTiles(); // Recreate tiles on resize to fit new dimensions
                 }
-            
+
                 window.addEventListener('resize', resizeCanvas);
                 resizeCanvas();
-            
+
                 // Tile configuration
                 const TILE_SIZE = 50;
                 const GAP = 5;
                 const COLORS = ['#FF00FF', '#00FFFF']; // Neon Pink and Neon Blue
-            
+
                 let tiles = []; // Declare tiles before using
-            
+
                 // Tile class
                 class Tile {
                     constructor(x, y, size) {
@@ -1120,31 +1120,31 @@
                         this.opacity = 0;
                         this.angle = Math.random() * Math.PI * 2; // Random angle for 3D effect
                     }
-            
+
                     draw(ctx) {
                         ctx.save();
                         ctx.translate(this.x, this.y);
                         ctx.rotate(this.angle);
-            
-                        // Apply glow
+
+                        // Apply shadow for depth
                         if (this.popOut) {
                             ctx.shadowColor = this.color;
                             ctx.shadowBlur = 20;
                         } else {
                             ctx.shadowBlur = 0;
                         }
-            
-                        // Create gradient for 3D effect
-                        const gradient = ctx.createLinearGradient(-this.currentSize / 2, -this.currentSize / 2, this.currentSize / 2, this.currentSize / 2);
+
+                        // Create radial gradient for realistic lighting
+                        const gradient = ctx.createRadialGradient(0, 0, this.currentSize * 0.3, 0, 0, this.currentSize);
                         gradient.addColorStop(0, this.color);
                         gradient.addColorStop(1, '#ffffff'); // Lighten to create a highlight
-            
+
                         ctx.fillStyle = gradient;
                         ctx.globalAlpha = this.opacity;
                         ctx.fillRect(-this.currentSize / 2, -this.currentSize / 2, this.currentSize, this.currentSize);
                         ctx.restore();
                     }
-            
+
                     animatePopOut() {
                         this.popOut = true;
                         anime.timeline({
@@ -1167,13 +1167,13 @@
                             });
                     }
                 }
-            
+
                 // Initialize tiles
                 function createTiles() {
                     tiles = []; // Reset tiles
                     const cols = Math.floor(canvas.width / (TILE_SIZE + GAP));
                     const rows = Math.floor(canvas.height / (TILE_SIZE + GAP));
-            
+
                     for (let i = 0; i < cols; i++) {
                         for (let j = 0; j < rows; j++) {
                             const x = i * (TILE_SIZE + GAP) + TILE_SIZE / 2 + GAP;
@@ -1182,34 +1182,34 @@
                         }
                     }
                 }
-            
+
                 createTiles();
-            
+
                 // Animation loop
                 function animate() {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+
                     tiles.forEach(tile => {
                         tile.draw(ctx);
                     });
-            
+
                     requestAnimationFrame(animate);
                 }
-            
+
                 animate();
-            
+
                 // Randomly trigger tile pop-outs
                 function triggerPopOut() {
                     const randomTile = tiles[Math.floor(Math.random() * tiles.length)];
                     if (!randomTile.popOut) {
                         randomTile.animatePopOut();
                     }
-            
+
                     // Schedule next pop-out
                     const nextPop = Math.random() * 2000 + 500; // 0.5s to 2.5s
                     setTimeout(triggerPopOut, nextPop);
                 }
-            
+
                 triggerPopOut();
             });
         </script>
