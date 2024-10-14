@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
@@ -35,7 +35,7 @@
                             <!-- Enhanced Visualizer SVG -->
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 100" class="visualizer">
                                 <g>
-                                    <!-- Bars with Animations -->
+                                    <!-- Bars as per your original design -->
                                     <rect x="10" y="70" width="15" height="30" fill="#00c6ff">
                                         <animate attributeName="height" values="30;60;30" dur="0.8s" repeatCount="indefinite" />
                                         <animate attributeName="y" values="70;40;70" dur="0.8s" repeatCount="indefinite" />
@@ -83,7 +83,7 @@
         <!-- End of Title Bar -->
 
         <!-- Fullscreen Overlay Menu -->
-        <nav class="overlay-menu" id="overlayMenu" aria-hidden="true">
+        <nav class="overlay-menu" id="overlayMenu">
             <button class="close-overlay" id="closeOverlay" aria-label="Close Menu">
                 <i class="fas fa-times"></i>
             </button>
@@ -164,9 +164,7 @@
                     <div class="progress-bar-container">
                         <svg id="progressBarSVG" class="progress-bar-svg" viewBox="0 0 100 10">
                             <rect x="0" y="0" width="100" height="10" fill="rgba(255, 255, 255, 0.2)" rx="5" ry="5"></rect>
-                            <rect id="progressBarSVGFill" x="0" y="0" width="0" height="10" fill="var(--primary-color)" rx="5" ry="5">
-                                <!-- Width will be updated via JavaScript -->
-                            </rect>
+                            <rect id="progressBarSVGFill" x="0" y="0" width="0" height="10" fill="var(--primary-color)" rx="5" ry="5"></rect>
                         </svg>
                     </div>
 
@@ -229,7 +227,7 @@
         <footer class="footer">
             <div class="container">
                 <p>&copy; 2024 MikuMiku. All rights reserved.</p>
-                <button id="manageConsentFooter" class="manage-consent-button" aria-label="Manage Cookie Preferences">
+                <button id="manageConsentFooter" class="manage-consent-button">
                     <i class="fas fa-cookie-bite"></i> Manage Cookie Preferences
                 </button>
             </div>
@@ -350,8 +348,6 @@
                 }
             });
         </script>
-
-        <!-- Main JavaScript for Animations and Functionality -->
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 // Function to add animation classes with staggered delays
@@ -505,8 +501,8 @@
             });
         </script>
 
-        <!-- Cookie Consent Script -->
         <script>
+            // [Cookie Consent Script]
             (function () {
                 'use strict';
 
@@ -695,8 +691,8 @@
             })();
         </script>
 
-        <!-- Now Playing Elements and Socket.IO Integration -->
         <script>
+            // Now Playing Elements and Socket.IO Integration
             const socket = io("https://mikumiku.dev");
             let lastHeartbeatReceived = Date.now();
             let isSessionExpired = false;
@@ -863,9 +859,11 @@
             function handleRealTimeProgress(data) {
                 if (data.duration && data.currentTime) {
                     const progressPercentage = (data.currentTime / data.duration) * 100;
-                    progressBarSVGFill.setAttribute('width', `${progressPercentage}`);
+                    // Ensure progressPercentage is between 0 and 100
+                    const clampedProgress = Math.max(0, Math.min(progressPercentage, 100));
+                    progressBarSVGFill.setAttribute('width', `${clampedProgress}%`);
                 } else {
-                    progressBarSVGFill.setAttribute('width', '0');
+                    progressBarSVGFill.setAttribute('width', '0%');
                 }
             }
 
@@ -887,7 +885,7 @@
                 videoThumbnailElement.style.display = "none";
                 channelNameElement.textContent = "Browsing...";
                 videoDescriptionElement.textContent = data.description || "Browsing videos on YouTube";
-                progressBarSVGFill.setAttribute('width', '0');
+                progressBarSVGFill.setAttribute('width', '0%');
 
                 if (data.timeElapsed !== undefined) {
                     timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(data.timeElapsed)}`;
@@ -1017,6 +1015,9 @@
                 const dayOfWeek = now.toLocaleDateString(undefined, { weekday: 'long' });
                 const dayOfWeekElement = document.getElementById('day-of-week');
                 if (dayOfWeekElement) dayOfWeekElement.innerHTML = `<i class="fas fa-calendar-day"></i> ${dayOfWeek}`;
+                const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                const timeZoneElement = document.getElementById('time-zone');
+                if (timeZoneElement) timeZoneElement.innerHTML = `<i class="fas fa-globe"></i> ${timeZone}`;
             }
 
             setInterval(updateClocks, 1000);
@@ -1066,8 +1067,8 @@
             fetchWeather();
         </script>
 
-        <!-- Canvas Animation Script -->
         <script>
+            // Canvas Animation Script
             document.addEventListener('DOMContentLoaded', function () {
                 const canvas = document.getElementById('techCanvas');
                 const ctx = canvas.getContext('2d');
