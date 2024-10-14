@@ -1009,264 +1009,8 @@
                     toggleDescriptionButton.textContent = ' Show Description';
                 }
             });
-        </script>
 
-        <script>
-            
-            document.addEventListener('DOMContentLoaded', function () {
-                const canvas = document.getElementById('techCanvas');
-                const ctx = canvas.getContext('2d');
 
-                // Set canvas size
-                function resizeCanvas() {
-                    canvas.width = window.innerWidth;
-                    canvas.height = window.innerHeight;
-                }
-
-                window.addEventListener('resize', resizeCanvas);
-                resizeCanvas();
-
-                // Utility function to generate random integer between min and max
-                function randomIntFromRange(min, max) {
-                    return Math.floor(Math.random() * (max - min + 1) + min);
-                }
-
-                // Utility function to generate random color from an array
-                function randomColor(colors) {
-                    return colors[Math.floor(Math.random() * colors.length)];
-                }
-
-                // Colors inspired by Hatsune Miku
-                const colors = [
-                    { r: 0, g: 198, b: 255, a: 0.5 },    // Neon Blue
-                    { r: 255, g: 64, b: 129, a: 0.5 },   // Neon Pink
-                    { r: 0, g: 255, b: 153, a: 0.5 },    // Mint Green
-                    { r: 255, g: 153, b: 255, a: 0.3 }   // Light Pink
-                ];
-
-                // Mouse position
-                const mouse = {
-                    x: null,
-                    y: null
-                };
-
-                window.addEventListener('mousemove', function (event) {
-                    mouse.x = event.clientX;
-                    mouse.y = event.clientY;
-                });
-
-                window.addEventListener('mouseout', function () {
-                    mouse.x = undefined;
-                    mouse.y = undefined;
-                });
-
-                // Classes for different elements
-                class MikuElement {
-                    constructor(x, y, radius, color, speed, direction) {
-                        this.x = x;
-                        this.y = y;
-                        this.radius = radius;
-                        this.color = color;
-                        this.speed = speed;
-                        this.direction = direction; // angle in radians
-                        this.opacity = color.a;
-                        this.alphaDecay = 0.005;
-                    }
-
-                    draw() {
-                        ctx.beginPath();
-                        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-                        ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity})`;
-                        ctx.fill();
-                    }
-
-                    update() {
-                        this.x += Math.cos(this.direction) * this.speed;
-                        this.y += Math.sin(this.direction) * this.speed;
-                        this.opacity -= this.alphaDecay;
-                    }
-
-                    isDone() {
-                        return this.opacity <= 0;
-                    }
-                }
-
-                class Particle {
-                    constructor(x, y, radius, color, speed, direction) {
-                        this.x = x;
-                        this.y = y;
-                        this.radius = radius;
-                        this.color = color;
-                        this.speed = speed;
-                        this.direction = direction;
-                        this.opacity = color.a;
-                        this.alphaDecay = 0.005;
-                    }
-
-                    draw() {
-                        ctx.beginPath();
-                        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-                        ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity})`;
-                        ctx.fill();
-                    }
-
-                    update() {
-                        this.x += Math.cos(this.direction) * this.speed;
-                        this.y += Math.sin(this.direction) * this.speed;
-                        this.opacity -= this.alphaDecay;
-                    }
-
-                    isDone() {
-                        return this.opacity <= 0;
-                    }
-                }
-
-                const particlesArray = [];
-                const mikuElements = [];
-                const maxParticles = 100;
-
-                // Function to create Miku-themed elements
-                function createMikuElements(x, y) {
-                    const numElements = 10;
-                    for (let i = 0; i < numElements; i++) {
-                        const radius = randomIntFromRange(2, 5);
-                        const color = randomColor(colors);
-                        const speed = Math.random() * 2 + 1;
-                        const direction = Math.random() * Math.PI * 2;
-                        mikuElements.push(new MikuElement(x, y, radius, color, speed, direction));
-                    }
-                }
-
-                // Function to create particles
-                function createParticles(x, y) {
-                    const numParticles = 5;
-                    for (let i = 0; i < numParticles; i++) {
-                        const radius = randomIntFromRange(1, 3);
-                        const color = randomColor(colors);
-                        const speed = Math.random() * 3 + 1;
-                        const direction = Math.random() * Math.PI * 2;
-                        particlesArray.push(new Particle(x, y, radius, color, speed, direction));
-                    }
-                }
-
-                // Handle mouse clicks
-                window.addEventListener('click', function (event) {
-                    const x = event.clientX;
-                    const y = event.clientY;
-                    createMikuElements(x, y);
-                    createParticles(x, y);
-                });
-
-                // Animation Loop
-                function animate() {
-                    ctx.fillStyle = 'rgba(51, 51, 51, 0.2)'; // Dark grey with transparency for trail effect
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    // Update and draw Miku elements
-                    for (let i = mikuElements.length - 1; i >= 0; i--) {
-                        const element = mikuElements[i];
-                        element.update();
-                        if (element.isDone()) {
-                            mikuElements.splice(i, 1);
-                            continue;
-                        }
-                        element.draw();
-                    }
-
-                    // Update and draw particles
-                    for (let i = particlesArray.length - 1; i >= 0; i--) {
-                        const particle = particlesArray[i];
-                        particle.update();
-                        if (particle.isDone()) {
-                            particlesArray.splice(i, 1);
-                            continue;
-                        }
-                        particle.draw();
-                    }
-
-                    requestAnimationFrame(animate);
-                }
-
-                animate();
-
-                // Initial Animation with Anime.js (Optional)
-                anime({
-                    targets: '#techCanvas',
-                    opacity: [0, 1],
-                    duration: 2000,
-                    easing: 'easeInOutQuad'
-                });
-
-                // Optional: Add subtle background elements like flowing lines or pigtails
-                class FlowingLine {
-                    constructor(x, y, length, angle, color, speed) {
-                        this.x = x;
-                        this.y = y;
-                        this.length = length;
-                        this.angle = angle;
-                        this.color = color;
-                        this.speed = speed;
-                        this.offset = 0;
-                        this.frequency = 0.02;
-                        this.amplitude = 20;
-                    }
-
-                    draw() {
-                        ctx.beginPath();
-                        ctx.moveTo(this.x, this.y);
-                        for (let i = 0; i < this.length; i++) {
-                            const dx = i;
-                            const dy = Math.sin(i * this.frequency + this.offset) * this.amplitude;
-                            ctx.lineTo(this.x + dx, this.y + dy);
-                        }
-                        ctx.strokeStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.5)`;
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
-                    }
-
-                    update() {
-                        this.offset += this.speed;
-                    }
-
-                    isDone() {
-                        return this.x > canvas.width;
-                    }
-                }
-
-                const flowingLines = [];
-
-                function createFlowingLine() {
-                    const x = 0;
-                    const y = randomIntFromRange(100, canvas.height - 100);
-                    const length = randomIntFromRange(100, 200);
-                    const angle = 0; // Horizontal lines
-                    const color = randomColor(colors);
-                    const speed = 0.5;
-                    flowingLines.push(new FlowingLine(x, y, length, angle, color, speed));
-                }
-
-                // Create flowing lines at intervals
-                setInterval(createFlowingLine, 3000); // Every 3 seconds
-
-                // Update and draw flowing lines
-                function animateFlowingLines() {
-                    for (let i = flowingLines.length - 1; i >= 0; i--) {
-                        const line = flowingLines[i];
-                        line.update();
-                        if (line.isDone()) {
-                            flowingLines.splice(i, 1);
-                            continue;
-                        }
-                        line.draw();
-                    }
-                    requestAnimationFrame(animateFlowingLines);
-                }
-
-                animateFlowingLines();
-            });
-        </script>
-
-        <script>
             // Clock Update Script
             function updateClocks() {
                 const now = new Date();
@@ -1326,6 +1070,183 @@
 
             setInterval(fetchWeather, 3600000); // Update every hour
             fetchWeather();
+        </script>
+
+        <script>
+            // Canvas Animation Script with Enhanced Visualizer and Fireworks
+            document.addEventListener('DOMContentLoaded', function () {
+                const canvas = document.getElementById('techCanvas');
+                const ctx = canvas.getContext('2d');
+
+                // Set canvas size
+                function resizeCanvas() {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                }
+
+                window.addEventListener('resize', resizeCanvas);
+                resizeCanvas();
+
+                // Adjust the canvas background to a slightly darker shade
+                const canvasBackgroundColor = '#1a1a1a'; // Slightly darker than #333333
+
+                // Visualizer Class
+                class Visualizer {
+                    constructor(x, y, color) {
+                        this.x = x;
+                        this.y = y;
+                        this.radius = 0;
+                        this.maxRadius = Math.min(canvas.width, canvas.height) / 2;
+                        this.color = color;
+                        this.opacity = 1;
+                        this.speed = 2;
+                        this.lineWidth = 2;
+                    }
+
+                    draw() {
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+                        ctx.strokeStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity})`;
+                        ctx.lineWidth = this.lineWidth;
+                        ctx.stroke();
+                    }
+
+                    update() {
+                        this.radius += this.speed;
+                        this.opacity -= 0.005;
+                    }
+
+                    isDone() {
+                        return this.radius > this.maxRadius || this.opacity <= 0;
+                    }
+                }
+
+                const visualizers = [];
+                const visualizerInterval = 500; // milliseconds
+
+                // Firework Class
+                class Firework {
+                    constructor(x, y, color) {
+                        this.x = x;
+                        this.y = y;
+                        this.particles = [];
+                        this.color = color;
+                        this.exploded = false;
+                        this.particleCount = 30;
+                        this.speed = 5;
+                        this.gravity = 0.05;
+
+                        for (let i = 0; i < this.particleCount; i++) {
+                            const angle = Math.random() * Math.PI * 2;
+                            const speed = Math.random() * this.speed + 2;
+                            this.particles.push({
+                                x: this.x,
+                                y: this.y,
+                                velocityX: Math.cos(angle) * speed,
+                                velocityY: Math.sin(angle) * speed,
+                                radius: Math.random() * 2 + 1,
+                                color: this.color,
+                                opacity: 1
+                            });
+                        }
+                    }
+
+                    draw() {
+                        this.particles.forEach(p => {
+                            ctx.beginPath();
+                            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2, false);
+                            ctx.fillStyle = `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${p.opacity})`;
+                            ctx.fill();
+                        });
+                    }
+
+                    update() {
+                        this.particles.forEach(p => {
+                            p.x += p.velocityX;
+                            p.y += p.velocityY;
+                            p.velocityY += this.gravity;
+                            p.opacity -= 0.02;
+                        });
+
+                        // Remove particles that are no longer visible
+                        this.particles = this.particles.filter(p => p.opacity > 0);
+                    }
+
+                    isDone() {
+                        return this.particles.length === 0;
+                    }
+                }
+
+                const fireworks = [];
+
+                // Create Visualizer Waves at Intervals
+                setInterval(() => {
+                    const x = canvas.width / 2;
+                    const y = canvas.height / 2;
+                    const colors = [
+                        { r: 255, g: 105, b: 180 }, // Neon Pink
+                        { r: 0, g: 198, b: 255 }   // Neon Blue
+                    ];
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    visualizers.push(new Visualizer(x, y, color));
+                }, visualizerInterval);
+
+                // Handle User Clicks for Fireworks
+                canvas.addEventListener('click', function (event) {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = event.clientX - rect.left;
+                    const y = event.clientY - rect.top;
+                    const colors = [
+                        { r: 255, g: 105, b: 180 }, // Neon Pink
+                        { r: 0, g: 198, b: 255 }   // Neon Blue
+                    ];
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    fireworks.push(new Firework(x, y, color));
+                });
+
+                // Animation Loop
+                function animate() {
+                    // Clear canvas with a slightly transparent fill to create trail effect
+                    ctx.fillStyle = `${canvasBackgroundColor}CC`; // 'CC' for 80% opacity
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Update and draw visualizers
+                    visualizers.forEach((viz, index) => {
+                        viz.draw();
+                        viz.update();
+                        if (viz.isDone()) {
+                            visualizers.splice(index, 1);
+                        }
+                    });
+
+                    // Update and draw fireworks
+                    fireworks.forEach((fw, index) => {
+                        fw.draw();
+                        fw.update();
+                        if (fw.isDone()) {
+                            fireworks.splice(index, 1);
+                        }
+                    });
+
+                    requestAnimationFrame(animate);
+                }
+
+                animate();
+
+                // Optional: Use Anime.js for additional effects (e.g., pulsating center)
+                anime({
+                    targets: '#techCanvas',
+                    scale: [1, 1.05],
+                    direction: 'alternate',
+                    easing: 'easeInOutSine',
+                    duration: 2000,
+                    loop: true
+                });
+            });
+        </script>
+
+
+
         </script>
     </div>
 </body>
