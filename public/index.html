@@ -1073,141 +1073,91 @@
         </script>
 
         <script>
-            // Canvas Animation Script
             document.addEventListener('DOMContentLoaded', function () {
                 const canvas = document.getElementById('techCanvas');
                 const ctx = canvas.getContext('2d');
-                let particlesArray = [];
-                const numberOfParticles = 100;
-
+        
                 // Set canvas size
                 function resizeCanvas() {
                     canvas.width = window.innerWidth;
                     canvas.height = window.innerHeight;
                 }
-
+        
                 window.addEventListener('resize', resizeCanvas);
                 resizeCanvas();
-
-                // Particle Class
-                class Particle {
-                    constructor() {
-                        this.x = Math.random() * canvas.width;
-                        this.y = canvas.height + Math.random() * canvas.height;
-                        this.size = Math.random() * 2 + 1;
-                        this.speed = Math.random() * 1 + 0.5;
-                        this.angle = Math.random() * Math.PI * 2;
-                        this.alpha = Math.random() * 0.5 + 0.3;
-                        this.color = `rgba(0, 198, 255, ${this.alpha})`;
-                    }
-
-                    update() {
-                        this.y -= this.speed;
-                        this.x += Math.sin(this.angle) * 0.5;
-                        // Reset particle when it moves off the top
-                        if (this.y < -this.size) {
-                            this.y = canvas.height + this.size;
-                            this.x = Math.random() * canvas.width;
+        
+                // Function to convert hex to rgb
+                function hexToRgb(hex) {
+                    // Remove '#' if present
+                    hex = hex.replace(/^#/, '');
+        
+                    // Parse r, g, b
+                    let bigint = parseInt(hex, 16);
+                    let r = (bigint >> 16) & 255;
+                    let g = (bigint >> 8) & 255;
+                    let b = bigint & 255;
+        
+                    return `${r}, ${g}, ${b}`;
+                }
+        
+                // Create sound waves using Anime.js
+                function createSoundWave(color, delay) {
+                    const wave = {
+                        radius: 0,
+                        opacity: 1
+                    };
+        
+                    anime({
+                        targets: wave,
+                        radius: Math.max(canvas.width, canvas.height) / 2,
+                        opacity: 0,
+                        easing: 'linear',
+                        duration: 4000,
+                        delay: delay,
+                        loop: true,
+                        update: function () {
+                            ctx.beginPath();
+                            ctx.arc(canvas.width / 2, canvas.height / 2, wave.radius, 0, Math.PI * 2, false);
+                            ctx.strokeStyle = `rgba(${hexToRgb(color)}, ${wave.opacity})`;
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+                        },
+                        complete: function () {
+                            wave.radius = 0;
+                            wave.opacity = 1;
                         }
-                    }
-
-                    draw() {
-                        ctx.beginPath();
-                        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
-                        ctx.fillStyle = this.color;
-                        ctx.fill();
-                    }
+                    });
                 }
-
-                // Initialize Particles
-                function init() {
-                    particlesArray = [];
-                    for (let i = 0; i < numberOfParticles; i++) {
-                        particlesArray.push(new Particle());
-                    }
+        
+                // Initialize multiple sound waves with different colors and delays
+                function initSoundWaves() {
+                    const colors = ['#00c6ff', '#ff4081']; // Neon blue and pink
+                    colors.forEach((color, index) => {
+                        createSoundWave(color, index * 1000); // Stagger the start time by 1s
+                    });
                 }
-
-                init();
-
-                // Animate Particles
+        
+                initSoundWaves();
+        
+                // Optional: Add a gradient overlay to enhance neon effect
+                const gradient = ctx.createRadialGradient(
+                    canvas.width / 2,
+                    canvas.height / 2,
+                    0,
+                    canvas.width / 2,
+                    canvas.height / 2,
+                    Math.max(canvas.width, canvas.height) / 2
+                );
+                gradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        
                 function animate() {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    for (let particle of particlesArray) {
-                        particle.update();
-                        particle.draw();
-                    }
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
                     requestAnimationFrame(animate);
                 }
-
+        
                 animate();
-
-                // Optional: Adjust particle count based on screen size
-                window.addEventListener('resize', () => {
-                    if (window.innerWidth < 600) {
-                        particlesArray.length = 50;
-                    } else {
-                        particlesArray.length = 100;
-                    }
-                });
-
-                // ==================================================
-                // Animations using Anime.js
-                // ==================================================
-
-                // Animate Now Playing Box
-                anime({
-                    targets: '#nowPlayingBox',
-                    translateY: [-50, 0],
-                    opacity: [0, 1],
-                    duration: 1000,
-                    easing: 'easeOutExpo'
-                });
-
-                // Animate Widgets (Clock, Weather, etc.)
-                anime({
-                    targets: ['.now-playing-sidebar', '.video-section', '.weather-section'],
-                    translateX: [-100, 0],
-                    opacity: [0, 1],
-                    delay: anime.stagger(200),
-                    duration: 1000,
-                    easing: 'easeOutExpo'
-                });
-
-                // Animate Footer
-                anime({
-                    targets: '.footer',
-                    translateY: [50, 0],
-                    opacity: [0, 1],
-                    duration: 1000,
-                    easing: 'easeOutExpo'
-                });
-
-                // Optional: Animate individual widgets within the now-playing box
-                anime({
-                    targets: '.now-playing-sidebar .sidebar-item',
-                    opacity: [0, 1],
-                    translateX: [-20, 0],
-                    easing: 'easeOutExpo',
-                    duration: 800,
-                    delay: anime.stagger(100, { start: 800 }) // Start after main animations
-                });
-
-                anime({
-                    targets: '.video-section .video-title-container h2',
-                    scale: [0.5, 1],
-                    opacity: [0, 1],
-                    easing: 'easeOutElastic(1, .8)',
-                    duration: 1000
-                });
-
-                anime({
-                    targets: '.video-section .thumbnail-container',
-                    scale: [0.8, 1],
-                    opacity: [0, 1],
-                    easing: 'easeOutExpo',
-                    duration: 1000,
-                    delay: 200
-                });
             });
         </script>
     </div>
