@@ -125,10 +125,10 @@
                     <div class="sidebar-item video-category">
                         <i class="fas fa-tag"></i> <span id="videoCategory">Loading...</span>
                     </div>
-
+        
                     <!-- Divider Between Channel Info and Clock -->
                     <hr class="animated-divider">
-
+        
                     <!-- Clock Section -->
                     <section class="clock-section">
                         <p id="greeting" class="greeting"><i class="fas fa-sun"></i> Good Morning!</p>
@@ -144,32 +144,32 @@
                         <p id="last-visit-message" class="last-visit-message"><i class="fas fa-history"></i> Welcome back!</p>
                     </section>
                 </aside>
-
+        
                 <!-- End of Channel Info -->
-
+        
                 <!-- Video Section in the Center -->
                 <div class="video-section">
                     <div class="video-title-container">
                         <h2>Currently Playing</h2>
                         <p id="videoTitle">Loading...</p>
                     </div>
-
+        
                     <div class="thumbnail-container">
                         <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls aria-label="Currently Playing Video">
                             Your browser does not support the video tag.
                         </video>
                         <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
                     </div>
-
+        
                     <div id="offline-indicator" class="offline-indicator">
                         <i class="fas fa-signal-slash"></i> I’m currently offline
                     </div>
-
+        
                     <!-- Progress Bar Container -->
                     <div class="progress-bar-container">
                         <div id="progressBar" class="progress-bar"></div>
                     </div>
-
+        
                     <!-- LIVE Indicator Positioned Below the Progress Bar -->
                     <div class="live-indicator-container">
                         <!-- Live Indicator SVG -->
@@ -179,27 +179,27 @@
                             <text x="50%" y="55%" text-anchor="middle" fill="#FFFFFF" font-size="12" font-family="Arial, sans-serif" dy=".3em">LIVE</text>
                         </svg>
                     </div>
-
+        
                     <!-- Time Elapsed Display -->
                     <div id="timeElapsedContainer" class="time-elapsed">
                         <i class="fas fa-clock"></i> <span id="timeElapsed">0s</span>
                     </div>
-
+        
                     <!-- Show Description Button -->
                     <button class="toggle-description" id="toggleDescriptionButton" aria-label="Toggle Description">
                         <i class="fas fa-info-circle"></i> Show Description
                     </button>
-
+        
                     <!-- Loading Spinner -->
                     <div id="loadingSpinner" class="loading-spinner" aria-label="Loading">
                         <i class="fas fa-spinner fa-spin"></i>
                     </div>
                 </div>
                 <!-- End of Video Section -->
-
+        
                 <!-- Divider Between Now Playing and Weather -->
                 <hr class="animated-divider">
-
+        
                 <!-- Weather Section on the Right Side -->
                 <aside class="weather-section">
                     <img id="weather-icon" src="" alt="Weather Icon" class="weather-icon" loading="lazy">
@@ -695,15 +695,13 @@
         </script>
 
         <script>
+            // Now Playing Elements and Socket.IO Integration
             const socket = io("https://mikumiku.dev");
             let lastHeartbeatReceived = Date.now();
-            let isOffline = false;
-            let currentVideoId = null;
-            let videoInterval = null;
+            let isSessionExpired = false;
+            let browsingStartTime = null;
             let browsingInterval = null;
-        
-            let videoPaused = false;
-        
+
             const nowPlayingBox = document.getElementById("nowPlayingBox");
             const videoTitleElement = document.getElementById("videoTitle");
             const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -717,21 +715,62 @@
             const videoCategoryElement = document.getElementById("videoCategory");
             const videoDescriptionElement = document.getElementById("descriptionModalDescription");
             const timeElapsedElement = document.getElementById("timeElapsed");
-            const liveIconElement = document.getElementById("liveIcon");
-        
-            // Format number with commas for readability
+            const liveIconElement = document.getElementById("liveIcon"); // LIVE Indicator
+
             function formatNumber(number) {
-                return number.toLocaleString();
+                if (typeof number === 'string') {
+                    number = number.replace(/,/g, '');
+                }
+                const num = Number(number);
+                return isNaN(num) ? "N/A" : num.toLocaleString();
             }
-        
-            // Format time elapsed in a human-readable format
+
+            function clearDisplay() {
+                nowPlayingBox.classList.add("offline");
+                offlineIndicatorElement.style.display = "flex";
+                videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
+                videoThumbnailImage.src = "";
+                videoThumbnailImage.style.display = "none";
+                videoThumbnailElement.src = "";
+                videoThumbnailElement.style.display = "none";
+                channelNameElement.textContent = "";
+                viewCountElement.textContent = "";
+                likeCountElement.textContent = "";
+                publishedDateElement.textContent = "";
+                videoCategoryElement.textContent = "";
+                progressBarElement.style.width = "0%";
+                videoDescriptionElement.textContent = "";
+                timeElapsedElement.style.display = "none";
+                liveIconElement.style.display = "none"; // Hide LIVE Icon
+            }
+
+            function clearVideoPresence() {
+                videoTitleElement.textContent = "";
+                videoThumbnailImage.src = "";
+                videoThumbnailImage.style.display = "none";
+                videoThumbnailElement.src = "";
+                videoThumbnailElement.style.display = "none";
+                channelNameElement.textContent = "";
+                viewCountElement.textContent = "";
+                likeCountElement.textContent = "";
+                publishedDateElement.textContent = "";
+                videoCategoryElement.textContent = "";
+                progressBarElement.style.width = "0%";
+                videoDescriptionElement.textContent = "";
+                liveIconElement.style.display = "none"; // Hide LIVE Icon
+            }
+
+            function reinitializeSession() {
+                console.warn("[Client] Reinitializing session due to mismatch or timeout.");
+                clearDisplay();
+                isSessionExpired = true;
+            }
+
             function formatTimeElapsed(seconds) {
-                seconds = Math.floor(seconds); // Round down to the nearest whole number
-        
                 const hours = Math.floor(seconds / 3600);
                 const minutes = Math.floor((seconds % 3600) / 60);
                 const remainingSeconds = seconds % 60;
-        
+
                 if (hours > 0) {
                     return `${hours}h ${minutes}m ${remainingSeconds}s`;
                 } else if (minutes > 0) {
@@ -740,227 +779,197 @@
                     return `${remainingSeconds}s`;
                 }
             }
-        
-            // Start counting video time elapsed and update the progress bar
-            function startVideoTimeElapsed(data) {
-                stopBrowsingTimeElapsed(); // Stop browsing time when switching to video
-        
-                if (videoInterval) {
-                    clearInterval(videoInterval);
-                }
-        
-                let currentTime = Math.floor(data.currentTime || 0); // Start from the current time
-                const duration = Math.floor(data.duration || 0); // Get the video duration
-        
-                videoInterval = setInterval(() => {
-                    if (!videoPaused) {
-                        currentTime += 1; // Increment time only if the video isn't paused
-                    }
-                    const progressPercentage = (currentTime / duration) * 100;
-                    progressBarElement.style.width = `${progressPercentage}%`;
-        
-                    timeElapsedElement.textContent = `Video Time Elapsed: ${formatTimeElapsed(currentTime)} / ${formatTimeElapsed(duration)}`;
-                    timeElapsedElement.style.display = "block";
-                }, 1000); // Update every second
-            }
-        
-            // Stop browsing time elapsed
-            function stopBrowsingTimeElapsed() {
-                if (browsingInterval) {
-                    clearInterval(browsingInterval);
-                    browsingInterval = null; // Clear the interval
-                }
-            }
-        
-            // Update video time when seeked or when the video resumes from pause
-            function updateVideoTimeOnSeek(newCurrentTime, duration) {
-                clearInterval(videoInterval); // Clear the interval to stop counting
-                videoPaused = false;
-                startVideoTimeElapsed({ currentTime: newCurrentTime, duration }); // Restart counting from the new time
-            }
-        
-            // Pause and resume logic
-            function pauseVideo() {
-                videoPaused = true;
-            }
-        
-            function resumeVideo() {
-                videoPaused = false;
-            }
-        
-            // Save video state to localStorage
-            function saveLastKnownData(videoData) {
-                const videoState = {
-                    videoId: videoData.videoId,
-                    currentTime: videoData.currentTime,
-                    duration: videoData.duration
-                };
-                localStorage.setItem('lastKnownVideoState', JSON.stringify(videoState)); // Save state to localStorage
-            }
-        
-            // Load last known video state from localStorage
-            function loadLastKnownData() {
-                const savedData = localStorage.getItem('lastKnownVideoState');
-                if (savedData) {
-                    const videoState = JSON.parse(savedData);
-                    if (videoState.videoId === currentVideoId) {
-                        startVideoTimeElapsed(videoState); // Use the saved time to resume progress
-                    }
-                }
-            }
-        
-            function comeOnline() {
-                nowPlayingBox.classList.remove("offline");
-                offlineIndicatorElement.style.display = "none";
-                progressBarElement.style.display = "block";
-            }
-        
-            function goOffline() {
-                nowPlayingBox.classList.add("offline");
-                offlineIndicatorElement.style.display = "flex";
-                progressBarElement.style.display = "none";
-                liveIconElement.style.display = "none";
-                isOffline = true;
-            }
-        
-            // Display video presence when received
+
             function displayVideoPresence(data) {
                 lastHeartbeatReceived = Date.now();
-                isOffline = false;
-                comeOnline();
-        
-                if (data.videoId !== currentVideoId) {
-                    currentVideoId = data.videoId;
-        
-                    videoTitleElement.textContent = data.title || "Unknown Title";
-                    channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-                    viewCountElement.textContent = formatNumber(data.viewCount) || "N/A";
-                    likeCountElement.textContent = formatNumber(data.likeCount) || "N/A";
-        
-                    if (data.publishedAt) {
-                        const publishedDate = new Date(data.publishedAt);
-                        publishedDateElement.textContent = `${publishedDate.toLocaleDateString()}` || "Published on: N/A";
-                    } else {
-                        publishedDateElement.textContent = "Published on: N/A";
-                    }
-        
-                    videoCategoryElement.textContent = `${data.category}` || "N/A";
-                    videoDescriptionElement.textContent = data.description || "No description available.";
-        
-                    // Update thumbnails
-                    if (data.thumbnail) {
-                        videoThumbnailImage.src = data.thumbnail;
-                        videoThumbnailImage.style.display = "block";
-                        videoThumbnailElement.style.display = "none";
-                    } else {
-                        videoThumbnailImage.src = "";
-                        videoThumbnailElement.style.display = "none";
-                    }
-        
-                    if (data.videoSrc) {
-                        videoThumbnailElement.src = data.videoSrc;
-                        videoThumbnailElement.style.display = "block";
-                        videoThumbnailImage.style.display = "none";
-                    } else {
-                        videoThumbnailElement.style.display = "none";
-                        videoThumbnailImage.style.display = "block";
-                    }
-        
-                    // Handle live status
-                    if (data.isLive) {
-                        liveIconElement.style.display = "flex";
-                    } else {
-                        liveIconElement.style.display = "none";
-                    }
-        
-                    // Start time elapsed counter
-                    startVideoTimeElapsed(data);
+                nowPlayingBox.classList.remove("offline");
+                offlineIndicatorElement.style.display = "none";
+            
+                videoTitleElement.textContent = data.title || "Unknown Title";
+            
+                if (data.thumbnail) {
+                    videoThumbnailImage.src = data.thumbnail;
+                    videoThumbnailImage.style.display = "block";
+                    videoThumbnailElement.style.display = "none";
+                } else {
+                    videoThumbnailImage.src = "";
+                    videoThumbnailElement.style.display = "none";
+                }
+            
+                channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+                viewCountElement.textContent = `${formatNumber(data.viewCount)}` || "N/A";
+                likeCountElement.textContent = `${formatNumber(data.likeCount)}` || "N/A";
+            
+                if (data.publishedAt) {
+                    const publishedDate = new Date(data.publishedAt);
+                    publishedDateElement.textContent = ` ${publishedDate.toLocaleDateString()}` || "Published on: N/A";
+                } else {
+                    publishedDateElement.textContent = "Published on: N/A";
+                }
+            
+                videoCategoryElement.textContent = `${data.category}` || "N/A";
+                videoDescriptionElement.textContent = data.description || "No description available.";
+                handleRealTimeProgress(data);
+                timeElapsedElement.style.display = "none";
+            
+                if (data.videoSrc) {
+                    videoThumbnailElement.src = data.videoSrc;
+                    videoThumbnailElement.style.display = "block";
+                    videoThumbnailImage.style.display = "none";
+                } else {
+                    videoThumbnailElement.style.display = "none";
+                    videoThumbnailImage.style.display = "block";
+                }
+            
+                // Handle Live Status
+                if (data.isLive) {
+                    liveIconElement.classList.add('active'); // Add active class to trigger animation
+                    liveIconElement.style.display = "flex"; // Use 'flex' to utilize CSS flex properties
+                } else {
+                    liveIconElement.classList.remove('active'); // Remove active class
+                    liveIconElement.style.display = "none"; // Hide the live icon when not live
                 }
             }
-        
-            // Syncing video and browsing presence
+
+
+            function handleRealTimeProgress(data) {
+                if (data.duration && data.currentTime) {
+                    const progressPercentage = (data.currentTime / data.duration) * 100;
+                    progressBarElement.style.width = `${progressPercentage}%`;
+                } else {
+                    progressBarElement.style.width = "0%";
+                }
+            }
+
             function displayBrowsingPresence(data) {
-                clearInterval(videoInterval); // Stop video time interval when switching to browsing
-                timeElapsedElement.style.display = "none"; // Hide time elapsed during browsing
-                progressBarElement.style.width = "0%"; // Reset progress bar for browsing presence
-        
+                lastHeartbeatReceived = Date.now();
+                nowPlayingBox.classList.remove("offline");
+                offlineIndicatorElement.style.display = "none";
+
+                clearVideoPresence();
+
+                videoTitleElement.textContent = data.title || "Browsing YouTube";
+                videoThumbnailImage.src = data.thumbnail || "";
+                videoThumbnailImage.style.display = "block";
+                videoThumbnailElement.style.display = "none";
+                channelNameElement.textContent = "Browsing...";
+                videoDescriptionElement.textContent = data.description || "Browsing videos on YouTube";
+                progressBarElement.style.width = "0%";
+
+                if (data.timeElapsed !== undefined) {
+                    timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(data.timeElapsed)}`;
+                    timeElapsedElement.style.display = "block";
+                }
+            }
+
+            function updateBrowsingPresence() {
+                if (browsingStartTime !== null) {
+                    const timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
+                    timeElapsedElement.textContent = `Time Elapsed: ${formatTimeElapsed(timeElapsed)}`;
+                    timeElapsedElement.style.display = "block";
+
+                    const browsingData = {
+                        title: 'YouTube',
+                        description: 'Browsing videos',
+                        thumbnail: '',
+                        timeElapsed: timeElapsed,
+                        presenceType: 'browsing'
+                    };
+                    socket.emit('updateBrowsingPresence', browsingData);
+                }
+            }
+
+            function startBrowsingPresence() {
+                if (browsingStartTime === null) {
+                    browsingStartTime = Date.now();
+                }
+                if (!browsingInterval) {
+                    browsingInterval = setInterval(updateBrowsingPresence, 5000);
+                }
+            }
+
+            function stopBrowsingPresence() {
                 if (browsingInterval) {
                     clearInterval(browsingInterval);
+                    browsingInterval = null;
                 }
-        
-                // Start browsing time interval if needed
-                browsingInterval = setInterval(() => {
-                    data.timeElapsed += 1; // Increment browsing time every second
-                    timeElapsedElement.textContent = `Browsing Time Elapsed: ${formatTimeElapsed(data.timeElapsed)}`;
-                    timeElapsedElement.style.display = "block";
-                }, 1000); // Update every second
+                browsingStartTime = null;
             }
-        
-            // Sync with server
+
             socket.on("connect", () => {
                 console.log("[Socket.IO] Connected to server.");
-                socket.emit('requestLatestData'); // Request the latest video state from the server
+                isSessionExpired = false;
+                socket.emit('requestLatestData');
             });
-        
-            socket.on("latestVideoState", (data) => {
-                if (data) {
-                    if (data.presenceType === 'video') {
-                        displayVideoPresence(data);
-                    } else if (data.presenceType === 'browsing') {
-                        displayBrowsingPresence(data);
-                    }
-                }
-            });
-        
-            // Handle presence update
+
             socket.on("presenceUpdate", (data) => {
+                if (isSessionExpired) {
+                    console.warn("[Client] Ignoring presenceUpdate due to expired session.");
+                    return;
+                }
+
+                console.log("[Socket.IO] Received presenceUpdate:", data);
+
                 if (data.presenceType === 'video') {
+                    stopBrowsingPresence();
                     displayVideoPresence(data);
                 } else if (data.presenceType === 'browsing') {
                     displayBrowsingPresence(data);
+                    startBrowsingPresence();
                 } else {
-                    goOffline();
+                    clearDisplay();
                 }
             });
-        
-            // Handle heartbeat timeout
-            setInterval(() => {
-                if (Date.now() - lastHeartbeatReceived > 60000 && !isOffline) {
-                    console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
-                    goOffline();
-                }
-            }, 5000); // Check every 5 seconds
-        
-            // Handle disconnect
+
+            socket.on("reinitializeSession", (data) => {
+                console.warn(`[Socket.IO] Received reinitializeSession: ${JSON.stringify(data)}`);
+                reinitializeSession();
+            });
+
+            socket.on("sessionExpired", (data) => {
+                console.warn(`[Socket.IO] Session expired for video ID: ${data.videoId}`);
+                reinitializeSession();
+            });
+
             socket.on("disconnect", () => {
                 console.warn("[Socket.IO] Disconnected from server.");
-                goOffline();
+                stopBrowsingPresence();
+                clearDisplay();
             });
-        
-            // Load video info from localStorage on page load
-            document.addEventListener('DOMContentLoaded', () => {
-                loadLastKnownData(); // Restore last known video data if available
-            });
-        
-            // Handle seeking events from the video player
-            socket.on('videoSeeked', (data) => {
-                updateVideoTimeOnSeek(data.newTime, data.duration);
-            });
-        
-            // Handle pause and resume events
-            socket.on('videoPaused', () => {
-                pauseVideo();
-            });
-        
-            socket.on('videoResumed', (data) => {
-                resumeVideo();
-                updateVideoTimeOnSeek(data.currentTime, data.duration);
-            });
-        
 
+            setInterval(() => {
+                if (Date.now() - lastHeartbeatReceived > 60000) {
+                    console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
+                    clearDisplay();
+                }
+            }, 5000);
 
-        
+            // Modal Toggle Logic
+            const descriptionModal = document.getElementById("descriptionModal");
+            const closeDescriptionButton = document.getElementById("closeDescriptionButton");
+            const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
 
+            toggleDescriptionButton.addEventListener("click", function () {
+                if (descriptionModal.classList.contains("active")) {
+                    descriptionModal.classList.remove("active");
+                    toggleDescriptionButton.textContent = ' Show Description';
+                } else {
+                    descriptionModal.classList.add("active");
+                    toggleDescriptionButton.textContent = ' Hide Description';
+                }
+            });
+
+            closeDescriptionButton.addEventListener("click", function () {
+                descriptionModal.classList.remove("active");
+                toggleDescriptionButton.textContent = ' Show Description';
+            });
+
+            window.addEventListener("click", function (event) {
+                if (event.target === descriptionModal) {
+                    descriptionModal.classList.remove("active");
+                    toggleDescriptionButton.textContent = ' Show Description';
+                }
+            });
 
 
             // Clock Update Script
