@@ -15,8 +15,8 @@
 </head>
 
 <body>
-    <!-- Canvas Background -->
-    <canvas id="techCanvas" aria-hidden="true"></canvas>
+    <!-- Canvas Background for Sound Waves -->
+    <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
 
     <div class="page-container">
         <!-- Title Bar -->
@@ -1076,6 +1076,109 @@
             fetchWeather();
         </script>
 
+        <!-- Sound Wave Animation Script -->
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                // Sound Wave Animation using Anime.js
+                const soundWaveCanvas = document.getElementById('soundWaveCanvas');
+                const ctx = soundWaveCanvas.getContext('2d');
+
+                // Set canvas size and handle responsiveness
+                function resizeSoundWaveCanvas() {
+                    soundWaveCanvas.width = window.innerWidth;
+                    soundWaveCanvas.height = window.innerHeight;
+                }
+
+                resizeSoundWaveCanvas();
+                window.addEventListener('resize', resizeSoundWaveCanvas);
+
+                // Define Wave properties with gradients
+                const waves = [
+                    {
+                        amplitude: 60,
+                        wavelength: 300,
+                        speed: 0.02,
+                        phase: 0,
+                        colorStart: 'rgba(0, 198, 255, 0.5)', // Neon Blue with opacity
+                        colorEnd: 'rgba(0, 198, 255, 0)',     // Transparent
+                        lineWidth: 2
+                    },
+                    {
+                        amplitude: 40,
+                        wavelength: 200,
+                        speed: 0.03,
+                        phase: 0,
+                        colorStart: 'rgba(255, 64, 129, 0.5)', // Neon Pink with opacity
+                        colorEnd: 'rgba(255, 64, 129, 0)',     // Transparent
+                        lineWidth: 2
+                    },
+                    {
+                        amplitude: 80,
+                        wavelength: 400,
+                        speed: 0.015,
+                        phase: 0,
+                        colorStart: 'rgba(0, 198, 255, 0.3)', // Lighter Neon Blue
+                        colorEnd: 'rgba(0, 198, 255, 0)',     // Transparent
+                        lineWidth: 2
+                    }
+                ];
+
+                // Animate wave phases using Anime.js
+                waves.forEach(wave => {
+                    anime({
+                        targets: wave,
+                        phase: 2 * Math.PI,
+                        easing: 'linear',
+                        duration: 20000 / wave.speed, // Adjust duration based on speed
+                        loop: true
+                    });
+                });
+
+                // Draw Waves with Gradients and Glow Effects
+                function drawWaves() {
+                    ctx.clearRect(0, 0, soundWaveCanvas.width, soundWaveCanvas.height);
+
+                    waves.forEach(wave => {
+                        ctx.beginPath();
+                        ctx.lineWidth = wave.lineWidth;
+
+                        // Create gradient for the wave
+                        const gradient = ctx.createLinearGradient(
+                            0, soundWaveCanvas.height / 2 - wave.amplitude,
+                            soundWaveCanvas.width, soundWaveCanvas.height / 2 + wave.amplitude
+                        );
+                        gradient.addColorStop(0, wave.colorStart);
+                        gradient.addColorStop(1, wave.colorEnd);
+                        ctx.strokeStyle = gradient;
+
+                        // Apply glow effect
+                        ctx.shadowColor = wave.colorStart;
+                        ctx.shadowBlur = 20;
+
+                        const yOffset = soundWaveCanvas.height / 2;
+
+                        ctx.moveTo(0, yOffset);
+
+                        for (let x = 0; x <= soundWaveCanvas.width; x += 1) {
+                            const y = wave.amplitude * Math.sin((2 * Math.PI / wave.wavelength) * x + wave.phase) + yOffset;
+                            ctx.lineTo(x, y);
+                        }
+
+                        ctx.stroke();
+
+                        // Reset shadow for next wave
+                        ctx.shadowBlur = 0;
+                    });
+
+                    requestAnimationFrame(drawWaves);
+                }
+
+                drawWaves();
+            });
+        </script>
+
+        <!-- Remove Existing Anime.js Tile Animation Script -->
+        <!--
         <script>
             document.addEventListener('DOMContentLoaded', () => {
               const canvas = document.getElementById('animationCanvas');
@@ -1197,10 +1300,8 @@
               triggerPopOut();
             });
         </script>
+        -->
 
-
-
-        </script>
     </div>
 </body>
 
