@@ -1078,6 +1078,7 @@
 
 
         <!-- Enhanced Sound Wave Animation Script -->
+
         <script>
             document.addEventListener('DOMContentLoaded', () => {
                 const soundWaveCanvas = document.getElementById('soundWaveCanvas');
@@ -1097,49 +1098,49 @@
                     {
                         amplitude: 30,
                         wavelength: 300,
-                        speed: 0.005, // Slowed down further for subtle movement
+                        speed: 0.002, // Slowed down for smooth movement
                         phase: 0,
-                        colorStart: 'rgba(0, 198, 255, 0.2)', // Reduced opacity
+                        colorStart: 'rgba(0, 198, 255, 0.3)', // Slightly higher opacity
                         colorEnd: 'rgba(0, 198, 255, 0)',     
-                        lineWidth: 1.5, // Slightly thinner lines
-                        amplitudeVariation: 3, // Further reduced variation
-                        wavelengthVariation: 20,
+                        lineWidth: 2, // Thicker lines for visibility
+                        amplitudeVariation: 5, // Increased variation for dynamic movement
+                        wavelengthVariation: 50,
                         opacity: 0.3
-                    },
-                    {
-                        amplitude: 20,
-                        wavelength: 200,
-                        speed: 0.007,
-                        phase: 0,
-                        colorStart: 'rgba(255, 64, 129, 0.2)', 
-                        colorEnd: 'rgba(255, 64, 129, 0)',     
-                        lineWidth: 1.5,
-                        amplitudeVariation: 2,
-                        wavelengthVariation: 15,
-                        opacity: 0.25
-                    },
-                    {
-                        amplitude: 40,
-                        wavelength: 400,
-                        speed: 0.004,
-                        phase: 0,
-                        colorStart: 'rgba(0, 198, 255, 0.15)', 
-                        colorEnd: 'rgba(0, 198, 255, 0)',     
-                        lineWidth: 1.2,
-                        amplitudeVariation: 4,
-                        wavelengthVariation: 25,
-                        opacity: 0.2
                     },
                     {
                         amplitude: 25,
                         wavelength: 250,
-                        speed: 0.006,
+                        speed: 0.003,
                         phase: 0,
-                        colorStart: 'rgba(255, 64, 129, 0.15)', 
+                        colorStart: 'rgba(255, 64, 129, 0.3)', 
                         colorEnd: 'rgba(255, 64, 129, 0)',     
-                        lineWidth: 1.2,
-                        amplitudeVariation: 2.5,
-                        wavelengthVariation: 18,
+                        lineWidth: 2,
+                        amplitudeVariation: 4,
+                        wavelengthVariation: 40,
+                        opacity: 0.25
+                    },
+                    {
+                        amplitude: 35,
+                        wavelength: 350,
+                        speed: 0.0015,
+                        phase: 0,
+                        colorStart: 'rgba(0, 198, 255, 0.2)', 
+                        colorEnd: 'rgba(0, 198, 255, 0)',     
+                        lineWidth: 1.8,
+                        amplitudeVariation: 6,
+                        wavelengthVariation: 60,
+                        opacity: 0.2
+                    },
+                    {
+                        amplitude: 20,
+                        wavelength: 200,
+                        speed: 0.0025,
+                        phase: 0,
+                        colorStart: 'rgba(255, 64, 129, 0.2)', 
+                        colorEnd: 'rgba(255, 64, 129, 0)',     
+                        lineWidth: 1.8,
+                        amplitudeVariation: 3,
+                        wavelengthVariation: 30,
                         opacity: 0.2
                     }
                 ];
@@ -1150,7 +1151,7 @@
                         targets: wave,
                         phase: 2 * Math.PI,
                         easing: 'linear',
-                        duration: 20000 / wave.speed, // Faster phase rotation for smoother waves
+                        duration: 60000 / wave.speed, // Adjusted duration for smoother waves
                         loop: true
                     });
                 });
@@ -1162,7 +1163,7 @@
                             targets: wave,
                             amplitude: wave.amplitude + wave.amplitudeVariation * 0.5,
                             wavelength: wave.wavelength + wave.wavelengthVariation * 0.5,
-                            duration: 5000 + Math.random() * 5000, // Random duration between 5s to 10s
+                            duration: 7000 + Math.random() * 7000, // Random duration between 7s to 14s
                             easing: 'easeInOutSine',
                             direction: 'alternate',
                             loop: true
@@ -1195,14 +1196,14 @@
         
                         // Apply subtle glow effect
                         ctx.shadowColor = wave.colorStart;
-                        ctx.shadowBlur = 10; // Further reduced for more subtlety
+                        ctx.shadowBlur = 15; // Increased for a gentle glow
         
                         const yOffset = soundWaveCanvas.height / 2;
         
                         ctx.moveTo(0, yOffset);
         
                         // Draw the sine wave with smoother transitions
-                        for (let x = 0; x <= soundWaveCanvas.width; x += 2) { // Increased step for performance
+                        for (let x = 0; x <= soundWaveCanvas.width; x += 1) { // Fine step for smoothness
                             const y = dynamicAmplitude * Math.sin((2 * Math.PI / dynamicWavelength) * x + wave.phase) + yOffset;
                             ctx.lineTo(x, y);
                         }
@@ -1238,7 +1239,7 @@
                 function updateWaveAmplitudes() {
                     waves.forEach(wave => {
                         // Smoothly interpolate amplitude based on amplitudeFactor
-                        wave.amplitude = 30 + amplitudeFactor * 30; // Range: 30 to 60
+                        wave.amplitude = 20 + amplitudeFactor * 40; // Range: 20 to 60
                     });
                 }
         
@@ -1253,133 +1254,6 @@
             });
         </script>
 
-
-
-
-        <!-- Remove Existing Anime.js Tile Animation Script -->
-        <!--
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-              const canvas = document.getElementById('animationCanvas');
-              const ctx = canvas.getContext('2d');
-            
-              // Set canvas size
-              function resizeCanvas() {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-              }
-            
-              resizeCanvas();
-              window.addEventListener('resize', resizeCanvas);
-            
-              // Tile configuration
-              const TILE_SIZE = 50;
-              const GAP = 5;
-              const COLORS = ['#FF00FF', '#00FFFF']; // Neon Pink and Neon Blue
-            
-              let tiles = [];
-            
-              // Tile class
-              class Tile {
-                constructor(x, y, size) {
-                  this.x = x;
-                  this.y = y;
-                  this.size = size;
-                  this.initialSize = size;
-                  this.currentSize = size;
-                  this.popOut = false;
-                  this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
-                  this.opacity = 0;
-                }
-            
-                draw(ctx) {
-                  ctx.save();
-                  ctx.translate(this.x, this.y);
-            
-                  // Apply glow
-                  if (this.popOut) {
-                    ctx.shadowColor = this.color;
-                    ctx.shadowBlur = 20;
-                  } else {
-                    ctx.shadowBlur = 0;
-                  }
-            
-                  ctx.fillStyle = this.color;
-                  ctx.globalAlpha = this.opacity;
-                  ctx.fillRect(-this.currentSize / 2, -this.currentSize / 2, this.currentSize, this.currentSize);
-                  ctx.restore();
-                }
-            
-                animatePopOut() {
-                  this.popOut = true;
-                  anime.timeline({
-                    targets: this,
-                    easing: 'easeOutExpo',
-                  })
-                  .add({
-                    currentSize: this.initialSize * 1.5,
-                    opacity: 1,
-                    duration: 500,
-                  })
-                  .add({
-                    currentSize: this.initialSize,
-                    opacity: 0,
-                    duration: 500,
-                    delay: 1000,
-                    complete: () => {
-                      this.popOut = false;
-                    }
-                  });
-                }
-              }
-            
-              // Initialize tiles
-              function createTiles() {
-                tiles = [];
-                const cols = Math.floor(canvas.width / (TILE_SIZE + GAP));
-                const rows = Math.floor(canvas.height / (TILE_SIZE + GAP));
-            
-                for (let i = 0; i < cols; i++) {
-                  for (let j = 0; j < rows; j++) {
-                    const x = i * (TILE_SIZE + GAP) + TILE_SIZE / 2 + GAP;
-                    const y = j * (TILE_SIZE + GAP) + TILE_SIZE / 2 + GAP;
-                    tiles.push(new Tile(x, y, TILE_SIZE));
-                  }
-                }
-              }
-            
-              createTiles();
-              window.addEventListener('resize', createTiles);
-            
-              // Animation loop
-              function animate() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-                tiles.forEach(tile => {
-                  tile.draw(ctx);
-                });
-            
-                requestAnimationFrame(animate);
-              }
-            
-              animate();
-            
-              // Randomly trigger tile pop-outs
-              function triggerPopOut() {
-                const randomTile = tiles[Math.floor(Math.random() * tiles.length)];
-                if (!randomTile.popOut) {
-                  randomTile.animatePopOut();
-                }
-            
-                // Schedule next pop-out
-                const nextPop = Math.random() * 2000 + 500; // 0.5s to 2.5s
-                setTimeout(triggerPopOut, nextPop);
-              }
-            
-              triggerPopOut();
-            });
-        </script>
-        -->
 
     </div>
 </body>
