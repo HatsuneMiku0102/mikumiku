@@ -1082,17 +1082,17 @@
                 // Sound Wave Animation using Anime.js
                 const soundWaveCanvas = document.getElementById('soundWaveCanvas');
                 const ctx = soundWaveCanvas.getContext('2d');
-
+        
                 // Set canvas size and handle responsiveness
                 function resizeSoundWaveCanvas() {
                     soundWaveCanvas.width = window.innerWidth;
                     soundWaveCanvas.height = window.innerHeight;
                 }
-
+        
                 resizeSoundWaveCanvas();
                 window.addEventListener('resize', resizeSoundWaveCanvas);
-
-                // Define Wave properties with gradients
+        
+                // Define Wave properties with gradients and dynamic factors
                 const waves = [
                     {
                         amplitude: 60,
@@ -1101,7 +1101,11 @@
                         phase: 0,
                         colorStart: 'rgba(0, 198, 255, 0.5)', // Neon Blue with opacity
                         colorEnd: 'rgba(0, 198, 255, 0)',     // Transparent
-                        lineWidth: 2
+                        lineWidth: 2,
+                        opacity: 0.5,
+                        // Dynamic properties
+                        amplitudeVariation: 10, // Max variation in amplitude
+                        wavelengthVariation: 50 // Max variation in wavelength
                     },
                     {
                         amplitude: 40,
@@ -1110,7 +1114,10 @@
                         phase: 0,
                         colorStart: 'rgba(255, 64, 129, 0.5)', // Neon Pink with opacity
                         colorEnd: 'rgba(255, 64, 129, 0)',     // Transparent
-                        lineWidth: 2
+                        lineWidth: 2,
+                        opacity: 0.4,
+                        amplitudeVariation: 5,
+                        wavelengthVariation: 30
                     },
                     {
                         amplitude: 80,
@@ -1119,10 +1126,13 @@
                         phase: 0,
                         colorStart: 'rgba(0, 198, 255, 0.3)', // Lighter Neon Blue
                         colorEnd: 'rgba(0, 198, 255, 0)',     // Transparent
-                        lineWidth: 2
+                        lineWidth: 2,
+                        opacity: 0.3,
+                        amplitudeVariation: 15,
+                        wavelengthVariation: 60
                     }
                 ];
-
+        
                 // Animate wave phases using Anime.js
                 waves.forEach(wave => {
                     anime({
@@ -1133,49 +1143,101 @@
                         loop: true
                     });
                 });
-
+        
+                // Function to generate random variation within a range
+                function getRandomVariation(maxVariation) {
+                    return (Math.random() - 0.5) * 2 * maxVariation; // Returns a value between -maxVariation and +maxVariation
+                }
+        
                 // Draw Waves with Gradients and Glow Effects
                 function drawWaves() {
                     ctx.clearRect(0, 0, soundWaveCanvas.width, soundWaveCanvas.height);
-
+        
                     waves.forEach(wave => {
                         ctx.beginPath();
                         ctx.lineWidth = wave.lineWidth;
-
+        
+                        // Apply dynamic variations
+                        const dynamicAmplitude = wave.amplitude + getRandomVariation(wave.amplitudeVariation);
+                        const dynamicWavelength = wave.wavelength + getRandomVariation(wave.wavelengthVariation);
+        
                         // Create gradient for the wave
                         const gradient = ctx.createLinearGradient(
-                            0, soundWaveCanvas.height / 2 - wave.amplitude,
-                            soundWaveCanvas.width, soundWaveCanvas.height / 2 + wave.amplitude
+                            0, soundWaveCanvas.height / 2 - dynamicAmplitude,
+                            soundWaveCanvas.width, soundWaveCanvas.height / 2 + dynamicAmplitude
                         );
                         gradient.addColorStop(0, wave.colorStart);
                         gradient.addColorStop(1, wave.colorEnd);
                         ctx.strokeStyle = gradient;
-
-                        // Apply glow effect
+        
+                        // Apply subtle glow effect
                         ctx.shadowColor = wave.colorStart;
-                        ctx.shadowBlur = 20;
-
+                        ctx.shadowBlur = 15; // Reduced for subtlety
+        
                         const yOffset = soundWaveCanvas.height / 2;
-
+        
                         ctx.moveTo(0, yOffset);
-
+        
+                        // Draw the sine wave
                         for (let x = 0; x <= soundWaveCanvas.width; x += 1) {
-                            const y = wave.amplitude * Math.sin((2 * Math.PI / wave.wavelength) * x + wave.phase) + yOffset;
+                            const y = dynamicAmplitude * Math.sin((2 * Math.PI / dynamicWavelength) * x + wave.phase) + yOffset;
                             ctx.lineTo(x, y);
                         }
-
+        
                         ctx.stroke();
-
+        
                         // Reset shadow for next wave
                         ctx.shadowBlur = 0;
                     });
-
+        
                     requestAnimationFrame(drawWaves);
                 }
-
+        
                 drawWaves();
+        
+                // Interactivity: Adjust waves based on mouse movement
+                let mouseX = soundWaveCanvas.width / 2;
+                let mouseY = soundWaveCanvas.height / 2;
+        
+                soundWaveCanvas.addEventListener('mousemove', (event) => {
+                    mouseX = event.clientX;
+                    mouseY = event.clientY;
+        
+                    // Example: Adjust amplitude based on mouse Y position
+                    const amplitudeFactor = (mouseY / soundWaveCanvas.height); // 0 (top) to 1 (bottom)
+                    waves.forEach(wave => {
+                        wave.amplitude = 40 + amplitudeFactor * 80; // Range: 40 to 120
+                    });
+                });
+        
+                // Touch support for mobile devices
+                soundWaveCanvas.addEventListener('touchmove', (event) => {
+                    const touch = event.touches[0];
+                    mouseX = touch.clientX;
+                    mouseY = touch.clientY;
+        
+                    // Example: Adjust amplitude based on touch Y position
+                    const amplitudeFactor = (mouseY / soundWaveCanvas.height); // 0 (top) to 1 (bottom)
+                    waves.forEach(wave => {
+                        wave.amplitude = 40 + amplitudeFactor * 80; // Range: 40 to 120
+                    });
+                }, { passive: true });
+        
+                // Optional: Smooth transitions for dynamic properties
+                // This can be implemented by gradually changing wave properties over time
+                setInterval(() => {
+                    waves.forEach(wave => {
+                        wave.amplitude += getRandomVariation(2); // Small random changes
+                        wave.wavelength += getRandomVariation(5);
+        
+                        // Clamp values to prevent extreme variations
+                        wave.amplitude = Math.max(20, Math.min(wave.amplitude, 120));
+                        wave.wavelength = Math.max(100, Math.min(wave.wavelength, 500));
+                    });
+                }, 1000); // Every second
             });
         </script>
+
 
         <!-- Remove Existing Anime.js Tile Animation Script -->
         <!--
