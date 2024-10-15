@@ -1076,10 +1076,10 @@
             fetchWeather();
         </script>
 
-        <!-- Sound Wave Animation Script -->
+
+        <!-- Enhanced Sound Wave Animation Script -->
         <script>
             document.addEventListener('DOMContentLoaded', () => {
-                // Sound Wave Animation using Anime.js
                 const soundWaveCanvas = document.getElementById('soundWaveCanvas');
                 const ctx = soundWaveCanvas.getContext('2d');
         
@@ -1095,72 +1095,84 @@
                 // Define Wave properties with gradients and dynamic factors
                 const waves = [
                     {
-                        amplitude: 50,
-                        wavelength: 350,
-                        speed: 0.01, // Slowed down
-                        phase: 0,
-                        colorStart: 'rgba(0, 198, 255, 0.4)', // Neon Blue with lower opacity
-                        colorEnd: 'rgba(0, 198, 255, 0)',     // Transparent
-                        lineWidth: 2,
-                        amplitudeVariation: 5, // Reduced variation for subtlety
-                        wavelengthVariation: 30,
-                        opacity: 0.5
-                    },
-                    {
                         amplitude: 30,
-                        wavelength: 250,
-                        speed: 0.015, // Slowed down
+                        wavelength: 300,
+                        speed: 0.005, // Slowed down further for subtle movement
                         phase: 0,
-                        colorStart: 'rgba(255, 64, 129, 0.4)', // Neon Pink with lower opacity
-                        colorEnd: 'rgba(255, 64, 129, 0)',     // Transparent
-                        lineWidth: 2,
-                        amplitudeVariation: 3,
+                        colorStart: 'rgba(0, 198, 255, 0.2)', // Reduced opacity
+                        colorEnd: 'rgba(0, 198, 255, 0)',     
+                        lineWidth: 1.5, // Slightly thinner lines
+                        amplitudeVariation: 3, // Further reduced variation
                         wavelengthVariation: 20,
-                        opacity: 0.4
-                    },
-                    {
-                        amplitude: 70,
-                        wavelength: 450,
-                        speed: 0.008, // Slowed down
-                        phase: 0,
-                        colorStart: 'rgba(0, 198, 255, 0.3)', // Lighter Neon Blue
-                        colorEnd: 'rgba(0, 198, 255, 0)',     // Transparent
-                        lineWidth: 2,
-                        amplitudeVariation: 7,
-                        wavelengthVariation: 40,
                         opacity: 0.3
                     },
                     {
-                        amplitude: 40,
-                        wavelength: 300,
-                        speed: 0.012, // Additional wave layer with slower speed
+                        amplitude: 20,
+                        wavelength: 200,
+                        speed: 0.007,
                         phase: 0,
-                        colorStart: 'rgba(255, 64, 129, 0.3)', // Lighter Neon Pink
-                        colorEnd: 'rgba(255, 64, 129, 0)',     // Transparent
-                        lineWidth: 2,
+                        colorStart: 'rgba(255, 64, 129, 0.2)', 
+                        colorEnd: 'rgba(255, 64, 129, 0)',     
+                        lineWidth: 1.5,
+                        amplitudeVariation: 2,
+                        wavelengthVariation: 15,
+                        opacity: 0.25
+                    },
+                    {
+                        amplitude: 40,
+                        wavelength: 400,
+                        speed: 0.004,
+                        phase: 0,
+                        colorStart: 'rgba(0, 198, 255, 0.15)', 
+                        colorEnd: 'rgba(0, 198, 255, 0)',     
+                        lineWidth: 1.2,
                         amplitudeVariation: 4,
                         wavelengthVariation: 25,
-                        opacity: 0.35
+                        opacity: 0.2
+                    },
+                    {
+                        amplitude: 25,
+                        wavelength: 250,
+                        speed: 0.006,
+                        phase: 0,
+                        colorStart: 'rgba(255, 64, 129, 0.15)', 
+                        colorEnd: 'rgba(255, 64, 129, 0)',     
+                        lineWidth: 1.2,
+                        amplitudeVariation: 2.5,
+                        wavelengthVariation: 18,
+                        opacity: 0.2
                     }
                 ];
         
-                // Animate wave phases using Anime.js
+                // Animate wave phases using Anime.js for smooth, continuous movement
                 waves.forEach(wave => {
                     anime({
                         targets: wave,
                         phase: 2 * Math.PI,
                         easing: 'linear',
-                        duration: 60000 / wave.speed, // Slowed down duration
+                        duration: 20000 / wave.speed, // Faster phase rotation for smoother waves
                         loop: true
                     });
                 });
         
-                // Function to generate random variation within a range
-                function getRandomVariation(maxVariation) {
-                    return (Math.random() - 0.5) * 2 * maxVariation; // Returns a value between -maxVariation and +maxVariation
+                // Function to smoothly oscillate wave properties instead of random jumps
+                function oscillateWaveProperties() {
+                    waves.forEach(wave => {
+                        anime({
+                            targets: wave,
+                            amplitude: wave.amplitude + wave.amplitudeVariation * 0.5,
+                            wavelength: wave.wavelength + wave.wavelengthVariation * 0.5,
+                            duration: 5000 + Math.random() * 5000, // Random duration between 5s to 10s
+                            easing: 'easeInOutSine',
+                            direction: 'alternate',
+                            loop: true
+                        });
+                    });
                 }
         
-                // Draw Waves with Gradients and Glow Effects
+                oscillateWaveProperties();
+        
+                // Draw Waves with Gradients and Subtle Glow Effects
                 function drawWaves() {
                     ctx.clearRect(0, 0, soundWaveCanvas.width, soundWaveCanvas.height);
         
@@ -1168,9 +1180,9 @@
                         ctx.beginPath();
                         ctx.lineWidth = wave.lineWidth;
         
-                        // Apply dynamic variations
-                        const dynamicAmplitude = wave.amplitude + getRandomVariation(wave.amplitudeVariation);
-                        const dynamicWavelength = wave.wavelength + getRandomVariation(wave.wavelengthVariation);
+                        // Dynamic variations are now smoothly oscillated
+                        const dynamicAmplitude = wave.amplitude;
+                        const dynamicWavelength = wave.wavelength;
         
                         // Create gradient for the wave
                         const gradient = ctx.createLinearGradient(
@@ -1183,14 +1195,14 @@
         
                         // Apply subtle glow effect
                         ctx.shadowColor = wave.colorStart;
-                        ctx.shadowBlur = 15; // Reduced for subtlety
+                        ctx.shadowBlur = 10; // Further reduced for more subtlety
         
                         const yOffset = soundWaveCanvas.height / 2;
         
                         ctx.moveTo(0, yOffset);
         
-                        // Draw the sine wave
-                        for (let x = 0; x <= soundWaveCanvas.width; x += 1) {
+                        // Draw the sine wave with smoother transitions
+                        for (let x = 0; x <= soundWaveCanvas.width; x += 2) { // Increased step for performance
                             const y = dynamicAmplitude * Math.sin((2 * Math.PI / dynamicWavelength) * x + wave.phase) + yOffset;
                             ctx.lineTo(x, y);
                         }
@@ -1207,47 +1219,40 @@
                 drawWaves();
         
                 // Interactivity: Adjust waves based on mouse movement
-                let mouseX = soundWaveCanvas.width / 2;
-                let mouseY = soundWaveCanvas.height / 2;
+                let amplitudeFactor = 0.5; // Neutral starting point
         
                 soundWaveCanvas.addEventListener('mousemove', (event) => {
-                    mouseX = event.clientX;
-                    mouseY = event.clientY;
-        
-                    // Example: Adjust amplitude based on mouse Y position
-                    const amplitudeFactor = (mouseY / soundWaveCanvas.height); // 0 (top) to 1 (bottom)
-                    waves.forEach(wave => {
-                        wave.amplitude = 40 + amplitudeFactor * 80; // Range: 40 to 120
-                    });
+                    const y = event.clientY;
+                    amplitudeFactor = 1 - (y / soundWaveCanvas.height); // Higher on screen = higher factor
+                    updateWaveAmplitudes();
                 });
         
                 // Touch support for mobile devices
                 soundWaveCanvas.addEventListener('touchmove', (event) => {
                     const touch = event.touches[0];
-                    mouseX = touch.clientX;
-                    mouseY = touch.clientY;
-        
-                    // Example: Adjust amplitude based on touch Y position
-                    const amplitudeFactor = (mouseY / soundWaveCanvas.height); // 0 (top) to 1 (bottom)
-                    waves.forEach(wave => {
-                        wave.amplitude = 40 + amplitudeFactor * 80; // Range: 40 to 120
-                    });
+                    const y = touch.clientY;
+                    amplitudeFactor = 1 - (y / soundWaveCanvas.height); 
+                    updateWaveAmplitudes();
                 }, { passive: true });
         
-                // Optional: Smooth transitions for dynamic properties
-                // Gradually change wave properties over time for more dynamic feel
-                setInterval(() => {
+                function updateWaveAmplitudes() {
                     waves.forEach(wave => {
-                        wave.amplitude += getRandomVariation(2); // Small random changes
-                        wave.wavelength += getRandomVariation(5);
-        
-                        // Clamp values to prevent extreme variations
-                        wave.amplitude = Math.max(20, Math.min(wave.amplitude, 120));
-                        wave.wavelength = Math.max(100, Math.min(wave.wavelength, 500));
+                        // Smoothly interpolate amplitude based on amplitudeFactor
+                        wave.amplitude = 30 + amplitudeFactor * 30; // Range: 30 to 60
                     });
-                }, 3000); // Every 3 seconds for slower variation
+                }
+        
+                // Initial amplitude setup
+                updateWaveAmplitudes();
+        
+                // Prevent sudden jumps when resizing
+                window.addEventListener('resize', () => {
+                    amplitudeFactor = 0.5; // Reset to neutral
+                    updateWaveAmplitudes();
+                });
             });
         </script>
+
 
 
 
