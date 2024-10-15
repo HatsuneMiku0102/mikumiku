@@ -6,7 +6,7 @@
     --primary-color: #00c6ff; /* Neon Blue */
     --secondary-color: #ff4081; /* Neon Pink */
     --background-color: transparent; /* Transparent to show canvas */
-    --canvas-background-color: transparent; /* Transparent for soundWaveCanvas */
+    --canvas-background-color: #2E2E2E; /* Dark Grey for canvas */
     --modal-background: rgba(0, 0, 0, 0.85);
     --text-color: #ffffff;
     --border-color: rgba(255, 255, 255, 0.2);
@@ -34,8 +34,8 @@
     --border-radius: 8px;
 
     /* Canvas Animations */
-    --wave-opacity: 0.5;
-    --wave-glow: 20px;
+    --wave-opacity: 0.6; /* Increased for better visibility */
+    --wave-glow: 25px; /* Enhanced glow effect */
 }
 
 /* =========================================
@@ -83,21 +83,71 @@ body {
     width: 100%;
     height: 100%;
     z-index: -4; /* Behind all content */
-    background: transparent; /* Transparent to overlay other elements */
+    background-color: var(--canvas-background-color); /* Dark Grey Background */
     pointer-events: none; /* Allow interactions to pass through */
     overflow: hidden;
-    opacity: 0;
-    animation: fadeInCanvas 2s ease-in-out forwards;
+    opacity: 1; /* Ensure canvas is fully visible */
+    animation: none; /* Removed fade-in animation for immediate visibility */
 }
 
-/* Fade-In Animation for Canvas */
-@keyframes fadeInCanvas {
-    from {
-        opacity: 0;
+#wave-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Allow interactions to pass through */
+    overflow: hidden;
+}
+
+#soundWaveCanvas {
+    mix-blend-mode: screen; /* Blends waves with background for a unique look */
+}
+
+/* Overlay for blending waves */
+#soundWaveCanvas::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(46, 46, 46, 0.5); /* Semi-transparent overlay */
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* =========================================
+   Sound Wave Visual Enhancements
+========================================= */
+.wave-layer {
+    /* Unique styles for different wave layers */
+    opacity: var(--wave-opacity);
+    filter: drop-shadow(0 0 var(--wave-glow) var(--primary-color));
+    transition: filter var(--transition-duration) ease, opacity var(--transition-duration) ease;
+}
+
+.wave-layer.secondary {
+    filter: drop-shadow(0 0 var(--wave-glow) var(--secondary-color));
+    mix-blend-mode: screen; /* Ensures colors blend well */
+}
+
+/* Pulsing Glow Effect */
+@keyframes pulseGlow {
+    0%, 100% {
+        filter: drop-shadow(0 0 var(--wave-glow) var(--primary-color));
     }
-    to {
-        opacity: 1;
+    50% {
+        filter: drop-shadow(0 0 calc(var(--wave-glow) * 1.5) var(--secondary-color));
     }
+}
+
+.wave-layer.primary {
+    animation: pulseGlow 5s infinite;
+}
+
+.wave-layer.secondary {
+    animation: pulseGlow 7s infinite;
 }
 
 /* =========================================
