@@ -7,7 +7,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="/styles.css" />
-  <!-- Your styles.css file remains as you previously defined -->
 </head>
 <body>
   <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
@@ -233,7 +232,6 @@
         </div>
       </div>
     </div>
-    <!-- External Libraries and Custom Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
@@ -387,7 +385,7 @@
       setInterval(fetchWeather, 3600000);
       fetchWeather();
     </script>
-    <!-- NEW: Digital Sound Wave Canvas Script -->
+    <!-- New: Digital Wave Animation (Pixelated Effect) -->
     <script>
       document.addEventListener('DOMContentLoaded', () => {
         const canvas = document.getElementById('soundWaveCanvas');
@@ -398,43 +396,29 @@
         }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
-        let analyzer;
-        async function setupAudio() {
-          try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const audioCtx = new AudioContext();
-            analyzer = audioCtx.createAnalyser();
-            const source = audioCtx.createMediaStreamSource(stream);
-            source.connect(analyzer);
-            analyzer.fftSize = 512;
-            digitalAnimate();
-          } catch (err) {
-            console.error("Error accessing microphone:", err);
-          }
-        }
-        function digitalAnimate() {
-          const bufferLength = analyzer.frequencyBinCount;
-          const dataArray = new Uint8Array(bufferLength);
-          const sliceWidth = canvas.width / bufferLength;
-          const barWidth = sliceWidth * 0.8;  // 80% of each slice is the bar; 20% gap
+        // Pixel grid size – adjust to change the "pixel" size
+        const pixelSize = 10;
+        let t = 0;
+        function animateDigitalWave() {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-          analyzer.getByteTimeDomainData(dataArray);
-          for (let i = 0; i < bufferLength; i++) {
-            // Use time-domain data: silence hovers around 128.
-            const sample = dataArray[i];
-            const amplitude = Math.abs(sample - 128);
-            const norm = amplitude / 128; // 0 to 1
-            let barHeight = norm * (canvas.height / 2);
-            // Round to nearest 10 for a digital, block-like look.
-            barHeight = Math.round(barHeight / 10) * 10;
-            const x = i * sliceWidth;
-            // Set a vibrant digital color (neon blue)
-            ctx.fillStyle = "rgb(0, 198, 255)";
-            ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+          // Number of columns based on pixel size
+          const columns = Math.floor(canvas.width / pixelSize);
+          // Amplitude controls the vertical range of the wave
+          const amplitude = canvas.height / 4;
+          for (let i = 0; i < columns; i++) {
+            const x = i * pixelSize;
+            // Compute a sine-based vertical offset that oscillates with time t
+            let y = canvas.height / 2 + amplitude * Math.sin((i / columns * 4 * Math.PI) + t);
+            // Round y to nearest multiple of pixelSize for a pixelated effect
+            y = Math.round(y / pixelSize) * pixelSize;
+            // Draw the pixel block as a filled rectangle
+            ctx.fillStyle = "#00C6FF";  // Neon blue for digital effect
+            ctx.fillRect(x, y, pixelSize * 0.8, pixelSize); // 80% width for a small gap
           }
-          requestAnimationFrame(digitalAnimate);
+          t += 0.1; // Increase time for wave motion
+          requestAnimationFrame(animateDigitalWave);
         }
-        setupAudio();
+        animateDigitalWave();
       });
     </script>
   </div>
