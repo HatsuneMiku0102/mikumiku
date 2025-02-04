@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Miku.dev | Home</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css" />
+  <!-- Your styles.css file remains as you previously defined -->
 </head>
 <body>
   <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
   <div class="page-container" id="pageContainer">
+    <!-- Title Bar -->
     <header class="title-bar" id="titleBar">
       <div class="container">
         <div class="left-section"></div>
@@ -88,7 +90,7 @@
           <div class="sidebar-item video-category">
             <i class="fas fa-tag"></i> <span id="videoCategory">Loading...</span>
           </div>
-          <hr class="animated-divider">
+          <hr class="animated-divider" />
           <section class="clock-section">
             <p id="greeting" class="greeting">
               <i class="fas fa-sun"></i>
@@ -115,7 +117,7 @@
               <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls aria-label="Currently Playing Video">
                 Your browser does not support the video tag.
               </video>
-              <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
+              <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy" />
             </div>
           </div>
           <div id="offline-indicator" class="offline-indicator">
@@ -141,9 +143,9 @@
             <i class="fas fa-spinner fa-spin"></i>
           </div>
         </div>
-        <hr class="animated-divider">
+        <hr class="animated-divider" />
         <aside class="weather-section">
-          <img id="weather-icon" src="" alt="Weather Icon" class="weather-icon" loading="lazy">
+          <img id="weather-icon" src="" alt="Weather Icon" class="weather-icon" loading="lazy" />
           <p id="weather-description" class="weather-description"><i class="fas fa-cloud-sun"></i> Loading...</p>
           <p id="temperature" class="temperature"><i class="fas fa-temperature-high"></i> --°C</p>
           <p id="humidity" class="humidity"><i class="fas fa-tint"></i> Humidity: --%</p>
@@ -336,23 +338,23 @@
       })();
     </script>
     <script>
-      var socket=io("https://mikumiku.dev");
-      var lastHeartbeatReceived=Date.now(), isSessionExpired=false, browsingStartTime=null, browsingInterval=null;
-      var nowPlayingBox=document.getElementById("nowPlayingBox"),
-          videoTitleElement=document.getElementById("videoTitle"),
-          videoThumbnailImage=document.getElementById("videoThumbnailImage"),
-          videoThumbnailElement=document.getElementById("videoThumbnail"),
-          offlineIndicatorElement=document.getElementById("offline-indicator"),
-          progressBarElement=document.getElementById("progressBar"),
-          channelNameElement=document.getElementById("channelName"),
-          viewCountElement=document.getElementById("viewCount"),
-          likeCountElement=document.getElementById("likeCount"),
-          publishedDateElement=document.getElementById("publishedDate"),
-          videoCategoryElement=document.getElementById("videoCategory"),
-          videoDescriptionElement=document.getElementById("descriptionModalDescription"),
-          timeElapsedElement=document.getElementById("timeElapsed"),
-          liveIconElement=document.getElementById("liveIcon"),
-          videoInfoContainer=document.getElementById('videoInfoContainer');
+      var socket = io("https://mikumiku.dev");
+      var lastHeartbeatReceived = Date.now(), isSessionExpired = false, browsingStartTime = null, browsingInterval = null;
+      var nowPlayingBox = document.getElementById("nowPlayingBox"),
+          videoTitleElement = document.getElementById("videoTitle"),
+          videoThumbnailImage = document.getElementById("videoThumbnailImage"),
+          videoThumbnailElement = document.getElementById("videoThumbnail"),
+          offlineIndicatorElement = document.getElementById("offline-indicator"),
+          progressBarElement = document.getElementById("progressBar"),
+          channelNameElement = document.getElementById("channelName"),
+          viewCountElement = document.getElementById("viewCount"),
+          likeCountElement = document.getElementById("likeCount"),
+          publishedDateElement = document.getElementById("publishedDate"),
+          videoCategoryElement = document.getElementById("videoCategory"),
+          videoDescriptionElement = document.getElementById("descriptionModalDescription"),
+          timeElapsedElement = document.getElementById("timeElapsed"),
+          liveIconElement = document.getElementById("liveIcon"),
+          videoInfoContainer = document.getElementById('videoInfoContainer');
       function formatNumber(number){if(typeof number==='string'){number=number.replace(/,/g,'');}var num=Number(number);return isNaN(num)?"N/A":num.toLocaleString();}
       function clearDisplay(){nowPlayingBox.classList.add("offline");offlineIndicatorElement.style.display="flex";videoTitleElement.textContent="I’m not on YouTube at the moment, soz :(";videoThumbnailImage.src="";videoThumbnailImage.style.display="none";videoThumbnailElement.src="";videoThumbnailElement.style.display="none";channelNameElement.textContent="";viewCountElement.textContent="";likeCountElement.textContent="";publishedDateElement.textContent="";videoCategoryElement.textContent="";progressBarElement.style.width="0%";videoDescriptionElement.textContent="";timeElapsedElement.style.display="none";liveIconElement.style.display="none";}
       function clearVideoPresence(){videoInfoContainer.classList.add('fade-out');setTimeout(function(){videoTitleElement.textContent="";videoThumbnailImage.src="";videoThumbnailImage.style.display="none";videoThumbnailElement.src="";videoThumbnailElement.style.display="none";channelNameElement.textContent="";viewCountElement.textContent="";likeCountElement.textContent="";publishedDateElement.textContent="";videoCategoryElement.textContent="";progressBarElement.style.width="0%";videoDescriptionElement.textContent="";videoInfoContainer.classList.remove('fade-out');},500);}
@@ -370,67 +372,69 @@
       socket.on("sessionExpired", function(data){console.warn("[Socket.IO] Session expired for video ID: " + data.videoId); reinitializeSession();});
       socket.on("disconnect", function(){console.warn("[Socket.IO] Disconnected from server."); stopBrowsingPresence(); clearDisplay();});
       setInterval(function(){if(Date.now()-lastHeartbeatReceived>60000){console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline."); clearDisplay();}},5000);
-      var descriptionModal=document.getElementById("descriptionModal"),
-          closeDescriptionButton=document.getElementById("closeDescriptionButton"),
-          toggleDescriptionButton=document.getElementById("toggleDescriptionButton");
+      var descriptionModal = document.getElementById("descriptionModal"),
+          closeDescriptionButton = document.getElementById("closeDescriptionButton"),
+          toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
       toggleDescriptionButton.addEventListener("click", function(){if(descriptionModal.classList.contains("active")){descriptionModal.classList.remove("active"); toggleDescriptionButton.textContent=' Show Description';} else {descriptionModal.classList.add("active"); toggleDescriptionButton.textContent=' Hide Description';}});
       closeDescriptionButton.addEventListener("click", function(){descriptionModal.classList.remove("active"); toggleDescriptionButton.textContent=' Show Description';});
       window.addEventListener("click", function(event){if(event.target===descriptionModal){descriptionModal.classList.remove("active"); toggleDescriptionButton.textContent=' Show Description';}});
-      function updateClocks(){var now=new Date(); var localTime=now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}); var localTimeElement=document.getElementById('local-time'); if(localTimeElement) localTimeElement.textContent=localTime; var currentDate=now.toLocaleDateString(undefined,{day:'2-digit', month:'long', year:'numeric'}); var currentDateElement=document.getElementById('current-date'); if(currentDateElement) currentDateElement.textContent=currentDate; var dayOfWeek=now.toLocaleDateString(undefined,{weekday:'long'}); var dayOfWeekElement=document.getElementById('day-of-week'); if(dayOfWeekElement) dayOfWeekElement.textContent=dayOfWeek; }
+      function updateClocks(){var now = new Date(); var localTime = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}); var localTimeElement = document.getElementById('local-time'); if(localTimeElement) localTimeElement.textContent = localTime; var currentDate = now.toLocaleDateString(undefined,{day:'2-digit', month:'long', year:'numeric'}); var currentDateElement = document.getElementById('current-date'); if(currentDateElement) currentDateElement.textContent = currentDate; var dayOfWeek = now.toLocaleDateString(undefined,{weekday:'long'}); var dayOfWeekElement = document.getElementById('day-of-week'); if(dayOfWeekElement) dayOfWeekElement.textContent = dayOfWeek; }
       setInterval(updateClocks, 1000);
       updateClocks();
-      var CITY_NAME='Leeds';
-      async function fetchWeather(){try{var response=await fetch('/api/weather?city='+encodeURIComponent(CITY_NAME)); var data=await response.json(); if(data.error){throw new Error(data.error);} displayWeather(data);} catch(error){console.error('Error fetching weather data:', error); var weatherIconElement=document.getElementById('weather-icon'); if(weatherIconElement) weatherIconElement.style.display='none'; document.getElementById('weather-description').innerText='Unable to fetch weather data.'; } }
-      function displayWeather(data){var description=data.weather[0].description, temperature=Math.round(data.main.temp), humidity=data.main.humidity, windSpeed=data.wind.speed, iconCode=data.weather[0].icon, iconUrl='https://openweathermap.org/img/wn/'+iconCode+'@2x.png'; document.getElementById('weather-description').innerText="Condition: "+description; document.getElementById('temperature').innerText="Temperature: "+temperature+"°C"; document.getElementById('humidity').innerText="Humidity: "+humidity+"%"; document.getElementById('wind-speed').innerText="Wind: "+windSpeed+" m/s"; var weatherIconElement=document.getElementById('weather-icon'); if(weatherIconElement){weatherIconElement.src=iconUrl; weatherIconElement.style.display='block';} }
+      var CITY_NAME = 'Leeds';
+      async function fetchWeather(){try{var response = await fetch('/api/weather?city='+encodeURIComponent(CITY_NAME)); var data = await response.json(); if(data.error){throw new Error(data.error);} displayWeather(data);} catch(error){console.error('Error fetching weather data:', error); var weatherIconElement = document.getElementById('weather-icon'); if(weatherIconElement) weatherIconElement.style.display='none'; document.getElementById('weather-description').innerText = 'Unable to fetch weather data.'; } }
+      function displayWeather(data){var description = data.weather[0].description, temperature = Math.round(data.main.temp), humidity = data.main.humidity, windSpeed = data.wind.speed, iconCode = data.weather[0].icon, iconUrl = 'https://openweathermap.org/img/wn/'+iconCode+'@2x.png'; document.getElementById('weather-description').innerText = "Condition: "+description; document.getElementById('temperature').innerText = "Temperature: "+temperature+"°C"; document.getElementById('humidity').innerText = "Humidity: "+humidity+"%"; document.getElementById('wind-speed').innerText = "Wind: "+windSpeed+" m/s"; var weatherIconElement = document.getElementById('weather-icon'); if(weatherIconElement){weatherIconElement.src = iconUrl; weatherIconElement.style.display='block';} }
       setInterval(fetchWeather, 3600000);
       fetchWeather();
     </script>
-    <!-- Updated Dynamic Sound Wave Canvas Script -->
+    <!-- NEW: Digital Sound Wave Canvas Script -->
     <script>
       document.addEventListener('DOMContentLoaded', () => {
         const canvas = document.getElementById('soundWaveCanvas');
         const ctx = canvas.getContext('2d');
-        function resize() {
+        function resizeCanvas() {
           canvas.width = window.innerWidth;
           canvas.height = window.innerHeight;
         }
-        resize();
-        window.addEventListener('resize', resize);
-        const waves = [
-          { baseAmplitude: 50, amplitude: 50, wavelength: 200, speed: 0.007, phase: 0, colorStart: 'rgba(0, 198, 255, 0.7)', colorEnd: 'rgba(0, 198, 255, 0.3)', lineWidth: 2.5 },
-          { baseAmplitude: 40, amplitude: 40, wavelength: 150, speed: 0.008, phase: 0, colorStart: 'rgba(255, 64, 129, 0.7)', colorEnd: 'rgba(255, 64, 129, 0.3)', lineWidth: 2.5 },
-          { baseAmplitude: 60, amplitude: 60, wavelength: 250, speed: 0.005, phase: 0, colorStart: 'rgba(0, 198, 255, 0.5)', colorEnd: 'rgba(0, 198, 255, 0.2)', lineWidth: 2.2 },
-          { baseAmplitude: 35, amplitude: 35, wavelength: 130, speed: 0.009, phase: 0, colorStart: 'rgba(255, 64, 129, 0.5)', colorEnd: 'rgba(255, 64, 129, 0.2)', lineWidth: 2.2 }
-        ];
-        function updateWave(wave, time, index) {
-          wave.phase = (time * wave.speed) % (2 * Math.PI);
-          wave.amplitude = wave.baseAmplitude + Math.sin(time * 0.002 + index) * 10;
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        let analyzer;
+        async function setupAudio() {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const audioCtx = new AudioContext();
+            analyzer = audioCtx.createAnalyser();
+            const source = audioCtx.createMediaStreamSource(stream);
+            source.connect(analyzer);
+            analyzer.fftSize = 512;
+            digitalAnimate();
+          } catch (err) {
+            console.error("Error accessing microphone:", err);
+          }
         }
-        function draw() {
+        function digitalAnimate() {
+          const bufferLength = analyzer.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
+          const sliceWidth = canvas.width / bufferLength;
+          const barWidth = sliceWidth * 0.8;  // 80% of each slice is the bar; 20% gap
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-          const time = Date.now();
-          waves.forEach((wave, index) => {
-            updateWave(wave, time, index);
-            ctx.beginPath();
-            ctx.lineWidth = wave.lineWidth;
-            const grad = ctx.createLinearGradient(0, canvas.height / 2 - wave.amplitude, 0, canvas.height / 2 + wave.amplitude);
-            grad.addColorStop(0, wave.colorStart);
-            grad.addColorStop(1, wave.colorEnd);
-            ctx.strokeStyle = grad;
-            ctx.shadowColor = wave.colorStart;
-            ctx.shadowBlur = 20;
-            const yOffset = canvas.height / 2;
-            ctx.moveTo(0, yOffset);
-            for (let x = 0; x <= canvas.width; x += 2) {
-              const y = wave.amplitude * Math.sin((2 * Math.PI / wave.wavelength) * x + wave.phase) + yOffset;
-              ctx.lineTo(x, y);
-            }
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-          });
-          requestAnimationFrame(draw);
+          analyzer.getByteTimeDomainData(dataArray);
+          for (let i = 0; i < bufferLength; i++) {
+            // Use time-domain data: silence hovers around 128.
+            const sample = dataArray[i];
+            const amplitude = Math.abs(sample - 128);
+            const norm = amplitude / 128; // 0 to 1
+            let barHeight = norm * (canvas.height / 2);
+            // Round to nearest 10 for a digital, block-like look.
+            barHeight = Math.round(barHeight / 10) * 10;
+            const x = i * sliceWidth;
+            // Set a vibrant digital color (neon blue)
+            ctx.fillStyle = "rgb(0, 198, 255)";
+            ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+          }
+          requestAnimationFrame(digitalAnimate);
         }
-        draw();
+        setupAudio();
       });
     </script>
   </div>
