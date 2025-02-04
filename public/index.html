@@ -11,7 +11,6 @@
 <body>
   <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
   <div class="page-container" id="pageContainer">
-    <!-- Title Bar -->
     <header class="title-bar" id="titleBar">
       <div class="container">
         <div class="left-section"></div>
@@ -385,7 +384,7 @@
       setInterval(fetchWeather, 3600000);
       fetchWeather();
     </script>
-    <!-- New: Digital Wave Animation (Pixelated Effect) -->
+    <!-- New: Eagle-Eye Digital Wave Animation -->
     <script>
       document.addEventListener('DOMContentLoaded', () => {
         const canvas = document.getElementById('soundWaveCanvas');
@@ -396,26 +395,36 @@
         }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
-        // Pixel grid size – adjust to change the "pixel" size
-        const pixelSize = 10;
+        const pixelSize = 10; // size of each "pixel" block
         let t = 0;
         function animateDigitalWave() {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-          // Number of columns based on pixel size
+          // Apply a slight tilt transform to simulate a top-down eagle-eye view
+          ctx.save();
+          ctx.translate(canvas.width/2, canvas.height/2);
+          ctx.rotate(-Math.PI/12); // rotate about 15° counterclockwise
+          ctx.translate(-canvas.width/2, -canvas.height/2);
           const columns = Math.floor(canvas.width / pixelSize);
-          // Amplitude controls the vertical range of the wave
-          const amplitude = canvas.height / 4;
+          const amplitude = canvas.height / 5; // adjust amplitude as needed
           for (let i = 0; i < columns; i++) {
             const x = i * pixelSize;
-            // Compute a sine-based vertical offset that oscillates with time t
-            let y = canvas.height / 2 + amplitude * Math.sin((i / columns * 4 * Math.PI) + t);
-            // Round y to nearest multiple of pixelSize for a pixelated effect
+            let y = canvas.height / 2 + amplitude * Math.sin((i/columns * 4 * Math.PI) + t);
+            // For a digital pixelated look, round y to nearest pixelSize multiple
             y = Math.round(y / pixelSize) * pixelSize;
-            // Draw the pixel block as a filled rectangle
-            ctx.fillStyle = "#00C6FF";  // Neon blue for digital effect
-            ctx.fillRect(x, y, pixelSize * 0.8, pixelSize); // 80% width for a small gap
+            // Apply perspective scaling based on y (simulate distance from camera)
+            // Assume that the top of the canvas is closer and the bottom farther away.
+            const maxScale = 1.3, minScale = 0.7;
+            const scale = maxScale - ((y / canvas.height) * (maxScale - minScale));
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+            // For a digital look, fill a block with a neon blue color.
+            ctx.fillStyle = "#00C6FF";
+            ctx.fillRect(0, 0, pixelSize * 0.8, pixelSize);
+            ctx.restore();
           }
-          t += 0.1; // Increase time for wave motion
+          ctx.restore();
+          t += 0.1; // controls the speed of the wave oscillation
           requestAnimationFrame(animateDigitalWave);
         }
         animateDigitalWave();
