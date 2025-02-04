@@ -5,11 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Miku.dev | Home</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="/styles.css" />
   <style>
-    /* Canvas for our advanced circuit board light animation */
+    /* Canvas for existing effects */
+    #soundWaveCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -2;
+      background-color: transparent;
+    }
+    /* Canvas for our digital stage background */
+    #stageCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -3;
+      background-color: #000;
+    }
+    /* NEW: Canvas for the circuit board light animation */
     #circuitCanvas {
       position: fixed;
       top: 0;
@@ -18,18 +37,17 @@
       height: 100%;
       z-index: -4;
       background-color: #000;
-    }
-    /* Ensure other canvases (if any) are layered above or below as needed */
-    #soundWaveCanvas {
-      z-index: -3;
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
-  <!-- Existing canvases (if any) -->
+  <!-- Existing canvases -->
   <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
-  <!-- New Circuit Canvas -->
+  <canvas id="stageCanvas" aria-hidden="true"></canvas>
+  <!-- NEW: Circuit Board Canvas -->
   <canvas id="circuitCanvas" aria-hidden="true"></canvas>
+  
   <div class="page-container" id="pageContainer">
     <!-- Title Bar -->
     <header class="title-bar" id="titleBar">
@@ -725,13 +743,13 @@
     }, 5000);
   </script>
   
-  <!-- New: Pixel-Styled Shooting Star Canvas Script -->
+  <!-- NEW: Pixel-Styled Shooting Star Canvas Script -->
   <script>
-    // Pixel-styled shooting star effect with detailed, layered trail
+    // Pixel-styled shooting star with layered trail effect
     document.addEventListener('DOMContentLoaded', () => {
       const canvas = document.getElementById('shootingStarCanvas');
       const ctx = canvas.getContext('2d');
-      const pixelSize = 5; // pixel block size
+      const pixelSize = 5;
       let star = {
         x: -50,
         y: Math.random() * canvas.height * 0.5,
@@ -749,9 +767,7 @@
         star.x += star.vx;
         star.y += star.vy;
         star.trail.push({ x: star.x, y: star.y, opacity: 1 });
-        if (star.trail.length > 30) {
-          star.trail.shift();
-        }
+        if (star.trail.length > 30) star.trail.shift();
         if (star.x - 50 > canvas.width || star.y - 50 > canvas.height) {
           star.x = -50;
           star.y = Math.random() * canvas.height * 0.5;
@@ -760,14 +776,12 @@
       }
       function drawStar() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // Draw trail (oldest first)
         for (let i = 0; i < star.trail.length; i++) {
           const pos = star.trail[i];
           const opacity = pos.opacity * ((i + 1) / star.trail.length);
           ctx.fillStyle = `rgba(255, 105, 180, ${opacity})`;
           ctx.fillRect(pos.x, pos.y, pixelSize, pixelSize);
         }
-        // Draw the shooting star itself
         ctx.fillStyle = "#FF69B4";
         ctx.fillRect(star.x, star.y, pixelSize, pixelSize);
       }
@@ -784,20 +798,11 @@
     });
   </script>
   
-  <!-- New: Circuit Board Light Animation Canvas Script -->
+  <!-- NEW: Circuit Board Light Animation Canvas Script -->
   <script>
-    // This script creates an advanced circuit animation that resembles light traveling through wires.
-    // It uses neon blue (#00C6FF) and neon pink (#FF4081) on a circuit board style movement.
+    // Circuit board animation: light traveling through wires in a circuit board style.
     document.addEventListener('DOMContentLoaded', () => {
-      const canvas = document.createElement('canvas');
-      canvas.id = "circuitCanvas";
-      canvas.style.position = "fixed";
-      canvas.style.top = "0";
-      canvas.style.left = "0";
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
-      canvas.style.zIndex = "-5";
-      document.body.appendChild(canvas);
+      const canvas = document.getElementById('circuitCanvas');
       const ctx = canvas.getContext('2d');
       function resizeCanvas() {
         canvas.width = window.innerWidth;
@@ -806,12 +811,9 @@
       resizeCanvas();
       window.addEventListener('resize', resizeCanvas);
       
-      // Define circuit nodes and wires for dynamic movement
+      // Generate random nodes for circuit layout
       const nodes = [];
-      const wires = [];
       const numNodes = 15;
-      
-      // Initialize random nodes in a grid-like layout
       for (let i = 0; i < numNodes; i++) {
         nodes.push({
           x: Math.random() * canvas.width * 0.8 + canvas.width * 0.1,
@@ -819,7 +821,8 @@
         });
       }
       
-      // Create wires connecting random nodes
+      // Create wires between nodes
+      const wires = [];
       for (let i = 0; i < numNodes; i++) {
         let start = nodes[i];
         let end = nodes[(i + Math.floor(Math.random() * (numNodes - 1)) + 1) % numNodes];
@@ -828,13 +831,12 @@
       
       function drawCircuit() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // Fill background with dark color
-        ctx.fillStyle = "#01010A";
+        ctx.fillStyle = "#000";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        // Draw wires (static circuit layout)
+        
+        // Draw static wires with gradient
         ctx.lineWidth = 2;
         wires.forEach(wire => {
-          // Create gradient for each wire using neon blue and neon pink
           const grad = ctx.createLinearGradient(wire.start.x, wire.start.y, wire.end.x, wire.end.y);
           grad.addColorStop(0, "#00C6FF");
           grad.addColorStop(1, "#FF4081");
@@ -845,21 +847,17 @@
           ctx.stroke();
         });
         
-        // Animate light pulses traveling along wires
+        // Animate light pulses along wires
         wires.forEach(wire => {
-          // Calculate current point along the wire based on progress
           const x = wire.start.x + (wire.end.x - wire.start.x) * wire.progress;
           const y = wire.start.y + (wire.end.y - wire.start.y) * wire.progress;
-          // Draw light pulse (glowing circle)
-          const pulseRadius = 8;
           ctx.beginPath();
-          ctx.arc(x, y, pulseRadius, 0, Math.PI * 2);
+          ctx.arc(x, y, 8, 0, Math.PI * 2);
           ctx.fillStyle = "#FF4081";
           ctx.shadowColor = "#FF4081";
           ctx.shadowBlur = 20;
           ctx.fill();
           ctx.shadowBlur = 0;
-          // Update progress
           wire.progress += 0.005;
           if (wire.progress > 1) wire.progress = 0;
         });
@@ -867,6 +865,81 @@
       }
       drawCircuit();
     });
+  </script>
+  
+  <!-- Chat Box and Additional Utility Scripts -->
+  <script>
+    var descriptionModal = document.getElementById("descriptionModal"),
+        closeDescriptionButton = document.getElementById("closeDescriptionButton"),
+        toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
+    toggleDescriptionButton.addEventListener("click", function() {
+      if (descriptionModal.classList.contains("active")) {
+        descriptionModal.classList.remove("active");
+        toggleDescriptionButton.textContent = ' Show Description';
+      } else {
+        descriptionModal.classList.add("active");
+        toggleDescriptionButton.textContent = ' Hide Description';
+      }
+    });
+    closeDescriptionButton.addEventListener("click", function() {
+      descriptionModal.classList.remove("active");
+      toggleDescriptionButton.textContent = ' Show Description';
+    });
+    window.addEventListener("click", function(event) {
+      if (event.target === descriptionModal) {
+        descriptionModal.classList.remove("active");
+        toggleDescriptionButton.textContent = ' Show Description';
+      }
+    });
+    function updateClocks() {
+      var now = new Date();
+      var localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      var localTimeElement = document.getElementById('local-time');
+      if (localTimeElement) localTimeElement.textContent = localTime;
+      var currentDate = now.toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' });
+      var currentDateElement = document.getElementById('current-date');
+      if (currentDateElement) currentDateElement.textContent = currentDate;
+      var dayOfWeek = now.toLocaleDateString(undefined, { weekday: 'long' });
+      var dayOfWeekElement = document.getElementById('day-of-week');
+      if (dayOfWeekElement) dayOfWeekElement.textContent = dayOfWeek;
+    }
+    setInterval(updateClocks, 1000);
+    updateClocks();
+    var CITY_NAME = 'Leeds';
+    async function fetchWeather() {
+      try {
+        var response = await fetch('/api/weather?city=' + encodeURIComponent(CITY_NAME));
+        var data = await response.json();
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        displayWeather(data);
+      } catch (error) {
+        console.error('Error fetching weather data:', error);
+        var weatherIconElement = document.getElementById('weather-icon');
+        if (weatherIconElement) weatherIconElement.style.display = 'none';
+        document.getElementById('weather-description').innerText = 'Unable to fetch weather data.';
+      }
+    }
+    function displayWeather(data) {
+      var description = data.weather[0].description,
+          temperature = Math.round(data.main.temp),
+          humidity = data.main.humidity,
+          windSpeed = data.wind.speed,
+          iconCode = data.weather[0].icon,
+          iconUrl = 'https://openweathermap.org/img/wn/' + iconCode + '@2x.png';
+      document.getElementById('weather-description').innerText = "Condition: " + description;
+      document.getElementById('temperature').innerText = "Temperature: " + temperature + "°C";
+      document.getElementById('humidity').innerText = "Humidity: " + humidity + "%";
+      document.getElementById('wind-speed').innerText = "Wind: " + windSpeed + " m/s";
+      var weatherIconElement = document.getElementById('weather-icon');
+      if (weatherIconElement) {
+        weatherIconElement.src = iconUrl;
+        weatherIconElement.style.display = 'block';
+      }
+    }
+    setInterval(fetchWeather, 3600000);
+    fetchWeather();
   </script>
 </body>
 </html>
