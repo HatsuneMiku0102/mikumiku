@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="/styles.css">
   <style>
+    /* Minimal inline styles; most styling remains in styles.css */
     body, html {
       margin: 0;
       padding: 0;
@@ -15,6 +16,7 @@
       background: #000;
       font-family: 'Roboto', sans-serif;
     }
+    /* The canvas now displays our space-and-stars scene */
     #techCanvas {
       position: fixed;
       top: 0;
@@ -28,10 +30,10 @@
       position: relative;
       z-index: 10;
     }
-    /* Additional styling for header, overlay menu, now-playing, footer, etc. can be added in /styles.css */
   </style>
 </head>
 <body>
+  <!-- Our canvas now uses the new space & stars animation -->
   <canvas id="techCanvas" aria-hidden="true"></canvas>
   <div class="page-container" id="pageContainer">
     <header class="title-bar" id="titleBar">
@@ -259,10 +261,12 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
   <script>
+    // Page load effect
     window.addEventListener("load", function() {
       document.getElementById("pageContainer").classList.add("loaded");
     });
     document.addEventListener('DOMContentLoaded', function () {
+      // Header scroll effect
       var titleBar = document.getElementById('titleBar');
       if (titleBar) {
         window.addEventListener('scroll', function () {
@@ -273,6 +277,7 @@
           }
         });
       }
+      // Menu functionality
       var menuButton = document.getElementById('menuButton'),
           overlayMenu = document.getElementById('overlayMenu'),
           closeOverlay = document.getElementById('closeOverlay');
@@ -296,6 +301,7 @@
           document.body.classList.remove('overlay-active');
         }
       });
+      // Personality buttons
       var personalityButtons = document.querySelectorAll('.personality-button'),
           siteTitle = document.querySelector('.site-title');
       if (personalityButtons.length > 0 && siteTitle) {
@@ -323,6 +329,7 @@
         });
       }
     });
+    // Cookie consent functionality
     (function(){
       'use strict';
       var CONFIG = {
@@ -479,6 +486,7 @@
       }
       document.addEventListener('DOMContentLoaded', init);
     })();
+    // Socket.IO and presence functionality
     var socket = io("https://mikumiku.dev");
     var lastHeartbeatReceived = Date.now(), isSessionExpired = false, browsingStartTime = null, browsingInterval = null;
     var nowPlayingBox = document.getElementById("nowPlayingBox"),
@@ -710,25 +718,27 @@
       var descriptionModal = document.getElementById("descriptionModal"),
           closeDescriptionButton = document.getElementById("closeDescriptionButton"),
           toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
-      toggleDescriptionButton.addEventListener("click", function(){
-        if (descriptionModal.classList.contains("active")) {
+      if (toggleDescriptionButton && descriptionModal && closeDescriptionButton) {
+        toggleDescriptionButton.addEventListener("click", function(){
+          if (descriptionModal.classList.contains("active")) {
+            descriptionModal.classList.remove("active");
+            toggleDescriptionButton.textContent = ' Show Description';
+          } else {
+            descriptionModal.classList.add("active");
+            toggleDescriptionButton.textContent = ' Hide Description';
+          }
+        });
+        closeDescriptionButton.addEventListener("click", function(){
           descriptionModal.classList.remove("active");
           toggleDescriptionButton.textContent = ' Show Description';
-        } else {
-          descriptionModal.classList.add("active");
-          toggleDescriptionButton.textContent = ' Hide Description';
-        }
-      });
-      closeDescriptionButton.addEventListener("click", function(){
-        descriptionModal.classList.remove("active");
-        toggleDescriptionButton.textContent = ' Show Description';
-      });
-      window.addEventListener("click", function(event){
-        if (event.target === descriptionModal) {
-          descriptionModal.classList.remove("active");
-          toggleDescriptionButton.textContent = ' Show Description';
-        }
-      });
+        });
+        window.addEventListener("click", function(event){
+          if (event.target === descriptionModal) {
+            descriptionModal.classList.remove("active");
+            toggleDescriptionButton.textContent = ' Show Description';
+          }
+        });
+      }
       function updateClocks() {
         var now = new Date();
         var localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -748,9 +758,7 @@
         try {
           var response = await fetch('/api/weather?city=' + encodeURIComponent(CITY_NAME));
           var data = await response.json();
-          if (data.error) {
-            throw new Error(data.error);
-          }
+          if (data.error) { throw new Error(data.error); }
           displayWeather(data);
         } catch (error) {
           console.error('Error fetching weather data:', error);
@@ -779,6 +787,7 @@
       setInterval(fetchWeather, 3600000);
       fetchWeather();
     });
+    /* New Space and Stars Canvas Animation */
     (function(){
       var canvas = document.getElementById('techCanvas');
       if (!canvas) {
@@ -786,86 +795,55 @@
         return;
       }
       var ctx = canvas.getContext('2d');
-      var width = canvas.width = window.innerWidth;
-      var height = canvas.height = window.innerHeight;
+      // Set canvas to full-window dimensions
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        initStars();
+      }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
       
-      window.addEventListener('resize', function(){
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
-        nodes = [];
-        wires = [];
-        generateNodes();
-        generateWires();
-      });
-      
-      var nodes = [];
-      var wires = [];
-      var numNodes = 30;
-      var numWires = 50;
-      
-      function generateNodes(){
-        for (var i = 0; i < numNodes; i++){
-          nodes.push({ 
-            x: Math.random() * width, 
-            y: Math.random() * height 
+      var stars = [];
+      var starCount = Math.floor((canvas.width * canvas.height) / 8000);
+      function initStars() {
+        stars = [];
+        starCount = Math.floor((canvas.width * canvas.height) / 8000);
+        for (let i = 0; i < starCount; i++) {
+          stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: Math.random() * 1.2 + 0.2,
+            alpha: Math.random(),
+            alphaChange: (Math.random() * 0.005 + 0.002) * (Math.random() < 0.5 ? -1 : 1)
           });
         }
       }
-      
-      function generateWires(){
-        for (var i = 0; i < numWires; i++){
-          var start = nodes[Math.floor(Math.random() * nodes.length)];
-          var end = nodes[Math.floor(Math.random() * nodes.length)];
-          wires.push({ 
-            start: start, 
-            end: end, 
-            progress: Math.random(), 
-            speed: 0.005 + Math.random() * 0.005 
-          });
-        }
+      initStars();
+      function drawBackground() {
+        // Create a vertical gradient to simulate deep space
+        var gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, "#000033");
+        gradient.addColorStop(1, "#000");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
-      
-      generateNodes();
-      generateWires();
-      
-      function draw(){
-        // Clear the canvas with a slightly more opaque fill for a clearer trail effect.
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-        ctx.fillRect(0, 0, width, height);
-        
-        wires.forEach(function(wire){
-          // Draw the connecting wire.
+      function animateStars() {
+        drawBackground();
+        stars.forEach(function(star) {
           ctx.beginPath();
-          ctx.moveTo(wire.start.x, wire.start.y);
-          ctx.lineTo(wire.end.x, wire.end.y);
-          var grad = ctx.createLinearGradient(wire.start.x, wire.start.y, wire.end.x, wire.end.y);
-          grad.addColorStop(0, '#00C6FF');
-          grad.addColorStop(1, '#FF4081');
-          ctx.strokeStyle = grad;
-          ctx.lineWidth = 2;
-          ctx.stroke();
-          
-          // Update beam progress and reset if necessary.
-          wire.progress += wire.speed;
-          if (wire.progress > 1) { 
-            wire.progress = 0; 
-          }
-          var beamX = wire.start.x + (wire.end.x - wire.start.x) * wire.progress;
-          var beamY = wire.start.y + (wire.end.y - wire.start.y) * wire.progress;
-          
-          // Draw the beam as a glowing circle.
-          ctx.beginPath();
-          ctx.arc(beamX, beamY, 6, 0, Math.PI * 2);
-          var beamGrad = ctx.createRadialGradient(beamX, beamY, 0, beamX, beamY, 6);
-          beamGrad.addColorStop(0, '#FFFFFF');
-          beamGrad.addColorStop(1, '#FF4081');
-          ctx.fillStyle = beamGrad;
+          ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255, 255, 255, " + star.alpha.toFixed(2) + ")";
           ctx.fill();
+          // Update star alpha for a twinkling effect
+          star.alpha += star.alphaChange;
+          if (star.alpha <= 0 || star.alpha >= 1) {
+            star.alphaChange = -star.alphaChange;
+          }
         });
-        requestAnimationFrame(draw);
+        requestAnimationFrame(animateStars);
       }
-      
-      draw();
+      animateStars();
     })();
   </script>
 </body>
