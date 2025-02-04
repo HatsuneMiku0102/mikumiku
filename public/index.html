@@ -390,43 +390,62 @@
     document.addEventListener('DOMContentLoaded', () => {
       const canvas = document.getElementById('soundWaveCanvas');
       const ctx = canvas.getContext('2d');
+    
       function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
       }
       resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
-      const columns = Math.floor(canvas.width / 20);
-      const drops = new Array(columns).fill(0);
+      window.addEventListener('resize', () => {
+        resizeCanvas();
+        columns = Math.floor(canvas.width / fontSize);
+        drops = new Array(columns).fill(0);
+        speeds = Array.from({ length: columns }, () => Math.random() * 0.5 + 0.3);
+      });
+    
       const fontSize = 20;
+      let columns = Math.floor(canvas.width / fontSize);
+      let drops = new Array(columns).fill(0);
+      let speeds = Array.from({ length: columns }, () => Math.random() * 0.5 + 0.3);
       const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()";
-      const colors = ["#00C6FF", "#ff4081"];  
-      const speedFactor = 0.3;
+      const colors = ["#00C6FF", "#ff4081"];
+      const mikuEasterEggs = ["Miku", "Hatsune", "39", "Vocaloid", "Future Pop"];
+    
       function drawMatrix() {
-        // Use a subtle fill to create the fade effect
-        ctx.fillStyle = "rgba(0, 0, 0, 0.07)";
+        ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.font = fontSize + "px monospace";
+        
         for (let i = 0; i < drops.length; i++) {
-          const text = characters.charAt(Math.floor(Math.random() * characters.length));
+          let text;
+          // Introduce a random chance for a Miku-themed easter egg
+          if (Math.random() < 0.005) { // approximately 0.5% chance per column per frame
+            text = mikuEasterEggs[Math.floor(Math.random() * mikuEasterEggs.length)];
+            // Use a distinct color for easter eggs
+            ctx.fillStyle = "#FF69B4"; 
+          } else {
+            text = characters.charAt(Math.floor(Math.random() * characters.length));
+            // Alternate colors based on column index for consistency
+            ctx.fillStyle = colors[i % colors.length];
+          }
+          
           const x = i * fontSize;
           const y = Math.floor(drops[i]) * fontSize;
-          // Alternate colors based on the column index
-          const color = colors[i % colors.length];
-          ctx.fillStyle = color;
-          // Draw text without extra shadows for a subtler effect
           ctx.fillText(text, x, y);
-          // Reset drop after reaching the bottom, with a slight randomness
+          
+          // Reset drop to top at random when it goes beyond the canvas height
           if (y > canvas.height && Math.random() > 0.98) {
             drops[i] = 0;
+            speeds[i] = Math.random() * 0.5 + 0.3;
           }
-          drops[i] += speedFactor;
+          drops[i] += speeds[i];
         }
         requestAnimationFrame(drawMatrix);
       }
       drawMatrix();
     });
     </script>
+
 
 
 
