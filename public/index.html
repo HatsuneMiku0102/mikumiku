@@ -400,22 +400,24 @@
       const drops = new Array(columns).fill(0);
       const fontSize = 20;
       const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()";
-      const colors = ["#00C6FF", "#ff4081"];
-      const speedFactor = 0.5;
+      const colors = ["#00C6FF", "#ff4081"];  
+      const speedFactor = 0.3;
       function drawMatrix() {
-        ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
+        // Use a subtle fill to create the fade effect
+        ctx.fillStyle = "rgba(0, 0, 0, 0.07)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.font = fontSize + "px monospace";
         for (let i = 0; i < drops.length; i++) {
           const text = characters.charAt(Math.floor(Math.random() * characters.length));
           const x = i * fontSize;
           const y = Math.floor(drops[i]) * fontSize;
-          const color = colors[Math.floor(Math.random() * colors.length)];
+          // Alternate colors based on the column index
+          const color = colors[i % colors.length];
           ctx.fillStyle = color;
-          ctx.shadowColor = color;
-          ctx.shadowBlur = 10;
+          // Draw text without extra shadows for a subtler effect
           ctx.fillText(text, x, y);
-          if (y > canvas.height && Math.random() > 0.975) {
+          // Reset drop after reaching the bottom, with a slight randomness
+          if (y > canvas.height && Math.random() > 0.98) {
             drops[i] = 0;
           }
           drops[i] += speedFactor;
@@ -425,6 +427,7 @@
       drawMatrix();
     });
     </script>
+
 
 
   </div>
