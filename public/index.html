@@ -387,42 +387,42 @@
     </script>
     <!-- New: Eagle-Eye Digital Matrix Animation -->
     <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        const canvas = document.getElementById('soundWaveCanvas');
-        const ctx = canvas.getContext('2d');
-        function resizeCanvas() {
-          canvas.width = window.innerWidth;
-          canvas.height = window.innerHeight;
-        }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-        // Settings for a digital matrix effect:
-        const columns = Math.floor(canvas.width / 20);
-        const drops = new Array(columns).fill(0);
-        const fontSize = 18;
-        const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()*&^%";
-        function drawMatrix() {
-          ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.fillStyle = "#00C6FF";
-          ctx.font = fontSize + "px monospace";
-          for (let i = 0; i < drops.length; i++) {
-            const text = characters.charAt(Math.floor(Math.random() * characters.length));
-            const x = i * 20;
-            const y = drops[i] * fontSize;
-            // Draw digital pixelated text block
-            ctx.fillText(text, x, y);
-            // Reset drop randomly or move it down
-            if (y > canvas.height && Math.random() > 0.975) {
-              drops[i] = 0;
-            }
-            drops[i]++;
+    document.addEventListener('DOMContentLoaded', () => {
+      const canvas = document.getElementById('soundWaveCanvas');
+      const ctx = canvas.getContext('2d');
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      const columns = Math.floor(canvas.width / 20);
+      const drops = new Array(columns).fill(0);
+      const fontSize = 20;
+      const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()";
+      const colors = ["#00C6FF", "#ff4081"];
+      function drawMatrix() {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.font = fontSize + "px monospace";
+        for (let i = 0; i < drops.length; i++) {
+          const text = characters.charAt(Math.floor(Math.random() * characters.length));
+          const x = i * fontSize;
+          const y = drops[i] * fontSize;
+          const color = colors[Math.floor(Math.random() * colors.length)];
+          ctx.fillStyle = color;
+          ctx.fillText(text, x, y);
+          if (y > canvas.height && Math.random() > 0.975) {
+            drops[i] = 0;
           }
-          requestAnimationFrame(drawMatrix);
+          drops[i]++;
         }
-        drawMatrix();
-      });
+        requestAnimationFrame(drawMatrix);
+      }
+      drawMatrix();
+    });
     </script>
+
   </div>
 </body>
 </html>
