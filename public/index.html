@@ -18,7 +18,7 @@
       z-index: -3;
       background-color: #000;
     }
-    /* Ensure soundWaveCanvas is below other content */
+    /* Ensure soundWaveCanvas appears above the stage if used */
     #soundWaveCanvas {
       z-index: -2;
     }
@@ -334,7 +334,7 @@
     });
   </script>
   
-  <!-- Consent and Other Utility Scripts -->
+  <!-- Consent and Utility Scripts -->
   <script>
     (function(){
       'use strict';
@@ -725,65 +725,77 @@
     }, 5000);
   </script>
   
-  <!-- Hatsune Miku Themed Digital Pixel Stage Scenery Background Script -->
+  <!-- New: Hatsune Miku Themed Digital Pixel Stage Scenery Background Script (Polished) -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const canvas = document.getElementById('stageCanvas');
       const ctx = canvas.getContext('2d');
+      let lastTime = 0;
       let offsetY = 0;
+      const scrollSpeed = 30; // pixels per second for smooth scrolling
       function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
       }
       resizeCanvas();
       window.addEventListener('resize', resizeCanvas);
-      // Parameters for the grid
+      // Set grid parameters
       const cols = 20;
       const rows = 30;
       const cellWidth = canvas.width / cols;
-      const cellHeight = canvas.height / rows;
-      // Vanishing point near top-center for perspective
+      // Vanishing point near top-center
       const vanishX = canvas.width / 2;
       const vanishY = canvas.height * 0.3;
-      function drawStage() {
-        // Clear canvas and fill with black
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#000";
+      
+      function drawStage(time) {
+        if (!lastTime) lastTime = time;
+        const deltaTime = (time - lastTime) / 1000;
+        lastTime = time;
+        // Update vertical offset based on elapsed time
+        offsetY += scrollSpeed * deltaTime;
+        const cellHeight = canvas.height / rows;
+        if (offsetY >= cellHeight) offsetY -= cellHeight;
+        
+        // Clear canvas with a translucent fill for smooth trailing effect
+        ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        // Set glow for grid lines
+        
+        // Set glow effect for grid lines
         ctx.strokeStyle = "#00C6FF";
         ctx.lineWidth = 2;
         ctx.shadowColor = "#00C6FF";
-        ctx.shadowBlur = 8;
-        // Draw horizontal lines with vertical offset for scrolling effect
+        ctx.shadowBlur = 10;
+        
+        // Draw horizontal grid lines with scrolling offset
         for (let i = 0; i <= rows; i++) {
-          let y = vanishY + (canvas.height - vanishY) * (i / rows) + offsetY;
+          let y = vanishY + ((canvas.height - vanishY) * (i / rows)) + offsetY;
           if (y > canvas.height) y = vanishY + (y - canvas.height);
           ctx.beginPath();
           ctx.moveTo(0, y);
           ctx.lineTo(canvas.width, y);
           ctx.stroke();
         }
-        // Draw vertical lines converging at the vanishing point
+        
+        // Draw vertical grid lines converging to vanishing point
+        const cellWidthDynamic = canvas.width / cols;
         for (let i = 0; i <= cols; i++) {
-          let x = i * cellWidth;
+          let x = i * cellWidthDynamic;
           ctx.beginPath();
           ctx.moveTo(x, canvas.height);
           ctx.lineTo(vanishX, vanishY);
           ctx.stroke();
         }
-        // Reset shadow settings
+        
+        // Reset shadow settings for next frame
         ctx.shadowBlur = 0;
-        // Update offset for scrolling effect
-        offsetY += 1;
-        if (offsetY > cellHeight) offsetY = 0;
+        
         requestAnimationFrame(drawStage);
       }
-      drawStage();
+      requestAnimationFrame(drawStage);
     });
   </script>
   
-  <!-- Chat Box and Additional Scripts (Consent, Socket.IO, etc.) -->
+  <!-- Chat Box and Additional Scripts -->
   <script>
     var descriptionModal = document.getElementById("descriptionModal"),
         closeDescriptionButton = document.getElementById("closeDescriptionButton"),
