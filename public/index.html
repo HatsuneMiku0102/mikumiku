@@ -7,10 +7,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="/styles.css" />
+  <!-- In your styles.css ensure that #soundWaveCanvas does NOT have pointer-events: none -->
 </head>
 <body>
   <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
   <div class="page-container" id="pageContainer">
+    <!-- Title Bar -->
     <header class="title-bar" id="titleBar">
       <div class="container">
         <div class="left-section"></div>
@@ -384,7 +386,7 @@
       setInterval(fetchWeather, 3600000);
       fetchWeather();
     </script>
-    <!-- New: Outward Ripple Effect from Mouse Click -->
+    <!-- Outward Ripple Effect Script -->
     <script>
       document.addEventListener('DOMContentLoaded', () => {
         const canvas = document.getElementById('soundWaveCanvas');
@@ -396,18 +398,19 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
         let ripples = [];
-        // When the canvas is clicked, add a new ripple at the click position
+        // Listen for click events on the canvas
         canvas.addEventListener('click', (e) => {
           const rect = canvas.getBoundingClientRect();
           const x = e.clientX - rect.left;
           const y = e.clientY - rect.top;
+          // Add a new ripple at the click position
           ripples.push({ x, y, radius: 0, alpha: 1 });
         });
         function animateRipples() {
-          // Clear canvas with a slight transparency for a trailing effect
+          // Clear canvas with a subtle background fill for trail effect
           ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
-          // Draw each ripple as an expanding circle with decreasing opacity
+          // Draw each ripple
           for (let i = ripples.length - 1; i >= 0; i--) {
             const ripple = ripples[i];
             ctx.beginPath();
@@ -415,7 +418,7 @@
             ctx.strokeStyle = `rgba(0, 198, 255, ${ripple.alpha})`;
             ctx.lineWidth = 3;
             ctx.stroke();
-            ripple.radius += 4;
+            ripple.radius += 5;
             ripple.alpha -= 0.02;
             if (ripple.alpha <= 0) {
               ripples.splice(i, 1);
