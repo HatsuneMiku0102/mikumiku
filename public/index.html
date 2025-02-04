@@ -11,6 +11,7 @@
 <body>
   <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
   <div class="page-container" id="pageContainer">
+    <!-- The rest of your HTML content remains unchanged -->
     <header class="title-bar" id="titleBar">
       <div class="container">
         <div class="left-section"></div>
@@ -365,7 +366,7 @@
       function stopBrowsingPresence(){if(browsingInterval){clearInterval(browsingInterval);browsingInterval=null;}browsingStartTime=null;}
       socket.on("connect", function(){console.log("[Socket.IO] Connected to server."); isSessionExpired=false; socket.emit('requestLatestData');});
       socket.on("presenceUpdate", function(data){if(isSessionExpired){console.warn("[Client] Ignoring presenceUpdate due to expired session."); return;} console.log("[Socket.IO] Received presenceUpdate:", data); if(data.presenceType==='video'){stopBrowsingPresence(); displayVideoPresence(data);} else if(data.presenceType==='browsing'){displayBrowsingPresence(data); startBrowsingPresence();} else {clearDisplay();}});
-      socket.on("reinitializeSession", function(data){console.warn("[Socket.IO] Received reinitializeSession: " + JSON.stringify(data)); reinitializeSession();});
+      socket.on("reinitializeSession", function(data){console.warn("[Socket.IO] Received presenceUpdate: " + JSON.stringify(data)); reinitializeSession();});
       socket.on("sessionExpired", function(data){console.warn("[Socket.IO] Session expired for video ID: " + data.videoId); reinitializeSession();});
       socket.on("disconnect", function(){console.warn("[Socket.IO] Disconnected from server."); stopBrowsingPresence(); clearDisplay();});
       setInterval(function(){if(Date.now()-lastHeartbeatReceived>60000){console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline."); clearDisplay();}},5000);
@@ -384,7 +385,7 @@
       setInterval(fetchWeather, 3600000);
       fetchWeather();
     </script>
-    <!-- New: Eagle-Eye Digital Wave Animation -->
+    <!-- New: Eagle-Eye Digital Matrix Animation -->
     <script>
       document.addEventListener('DOMContentLoaded', () => {
         const canvas = document.getElementById('soundWaveCanvas');
@@ -395,39 +396,31 @@
         }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
-        const pixelSize = 10; // size of each "pixel" block
-        let t = 0;
-        function animateDigitalWave() {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          // Apply a slight tilt transform to simulate a top-down eagle-eye view
-          ctx.save();
-          ctx.translate(canvas.width/2, canvas.height/2);
-          ctx.rotate(-Math.PI/12); // rotate about 15° counterclockwise
-          ctx.translate(-canvas.width/2, -canvas.height/2);
-          const columns = Math.floor(canvas.width / pixelSize);
-          const amplitude = canvas.height / 5; // adjust amplitude as needed
-          for (let i = 0; i < columns; i++) {
-            const x = i * pixelSize;
-            let y = canvas.height / 2 + amplitude * Math.sin((i/columns * 4 * Math.PI) + t);
-            // For a digital pixelated look, round y to nearest pixelSize multiple
-            y = Math.round(y / pixelSize) * pixelSize;
-            // Apply perspective scaling based on y (simulate distance from camera)
-            // Assume that the top of the canvas is closer and the bottom farther away.
-            const maxScale = 1.3, minScale = 0.7;
-            const scale = maxScale - ((y / canvas.height) * (maxScale - minScale));
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.scale(scale, scale);
-            // For a digital look, fill a block with a neon blue color.
-            ctx.fillStyle = "#00C6FF";
-            ctx.fillRect(0, 0, pixelSize * 0.8, pixelSize);
-            ctx.restore();
+        // Settings for a digital matrix effect:
+        const columns = Math.floor(canvas.width / 20);
+        const drops = new Array(columns).fill(0);
+        const fontSize = 18;
+        const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()*&^%";
+        function drawMatrix() {
+          ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = "#00C6FF";
+          ctx.font = fontSize + "px monospace";
+          for (let i = 0; i < drops.length; i++) {
+            const text = characters.charAt(Math.floor(Math.random() * characters.length));
+            const x = i * 20;
+            const y = drops[i] * fontSize;
+            // Draw digital pixelated text block
+            ctx.fillText(text, x, y);
+            // Reset drop randomly or move it down
+            if (y > canvas.height && Math.random() > 0.975) {
+              drops[i] = 0;
+            }
+            drops[i]++;
           }
-          ctx.restore();
-          t += 0.1; // controls the speed of the wave oscillation
-          requestAnimationFrame(animateDigitalWave);
+          requestAnimationFrame(drawMatrix);
         }
-        animateDigitalWave();
+        drawMatrix();
       });
     </script>
   </div>
