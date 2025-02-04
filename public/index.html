@@ -1,15 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Miku.dev | Home</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <link rel="stylesheet" href="/styles.css">
   <style>
-    /* Define all canvas elements and their stacking order */
-    #circuitCanvas {
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      background: #000;
+      font-family: 'Roboto', sans-serif;
+    }
+    #techCanvas {
       position: fixed;
       top: 0;
       left: 0;
@@ -17,47 +23,17 @@
       height: 100%;
       z-index: -5;
       background-color: #000;
-      pointer-events: none;
     }
-    #stageCanvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -4;
-      background-color: #000;
+    .page-container {
+      position: relative;
+      z-index: 10;
     }
-    #shootingStarCanvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -3;
-      background-color: transparent;
-      pointer-events: none;
-    }
-    #soundWaveCanvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -2;
-      background-color: transparent;
-    }
+    /* Additional styling for header, overlay menu, now-playing, footer, etc. can be added in /styles.css */
   </style>
 </head>
 <body>
-  <!-- All required canvas elements are included in the markup -->
-  <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
-  <canvas id="stageCanvas" aria-hidden="true"></canvas>
-  <canvas id="circuitCanvas" aria-hidden="true"></canvas>
-  <canvas id="shootingStarCanvas" aria-hidden="true"></canvas>
-  
+  <canvas id="techCanvas" aria-hidden="true"></canvas>
   <div class="page-container" id="pageContainer">
-    <!-- Title Bar -->
     <header class="title-bar" id="titleBar">
       <div class="container">
         <div class="left-section"></div>
@@ -103,7 +79,6 @@
         </div>
       </div>
     </header>
-    
     <nav class="overlay-menu" id="overlayMenu">
       <button class="close-overlay" id="closeOverlay" aria-label="Close Menu">
         <i class="fas fa-times"></i>
@@ -118,7 +93,6 @@
         </div>
       </div>
     </nav>
-    
     <section class="now-playing-container">
       <div id="nowPlayingBox" class="now-playing">
         <aside class="now-playing-sidebar">
@@ -137,7 +111,7 @@
           <div class="sidebar-item video-category">
             <i class="fas fa-tag"></i> <span id="videoCategory">Loading...</span>
           </div>
-          <hr class="animated-divider" />
+          <hr class="animated-divider">
           <section class="clock-section">
             <p id="greeting" class="greeting">
               <i class="fas fa-sun"></i>
@@ -164,7 +138,7 @@
               <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls aria-label="Currently Playing Video">
                 Your browser does not support the video tag.
               </video>
-              <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy" />
+              <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy">
             </div>
           </div>
           <div id="offline-indicator" class="offline-indicator">
@@ -176,7 +150,7 @@
           <div class="live-indicator-container">
             <svg id="liveIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="30" height="30" aria-label="Live Stream Indicator" class="live-icon" role="img" aria-labelledby="liveTitle">
               <title id="liveTitle">Live Stream Indicator</title>
-              <circle cx="50" cy="50" r="40" fill="#FF0000" opacity="0.9" />
+              <circle cx="50" cy="50" r="40" fill="#FF0000" opacity="0.9"></circle>
               <text x="50%" y="55%" text-anchor="middle" fill="#FFFFFF" font-size="12" font-family="Arial, sans-serif" dy=".3em">LIVE</text>
             </svg>
           </div>
@@ -190,9 +164,9 @@
             <i class="fas fa-spinner fa-spin"></i>
           </div>
         </div>
-        <hr class="animated-divider" />
+        <hr class="animated-divider">
         <aside class="weather-section">
-          <img id="weather-icon" src="" alt="Weather Icon" class="weather-icon" loading="lazy" />
+          <img id="weather-icon" src="" alt="Weather Icon" class="weather-icon" loading="lazy">
           <p id="weather-description" class="weather-description"><i class="fas fa-cloud-sun"></i> Loading...</p>
           <p id="temperature" class="temperature"><i class="fas fa-temperature-high"></i> --°C</p>
           <p id="humidity" class="humidity"><i class="fas fa-tint"></i> Humidity: --%</p>
@@ -220,13 +194,13 @@
       <div class="chat-header">
         <div class="chat-logo">
           <svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 10 H90 V70 H70 L50 90 L30 70 H10 Z" fill="#ffffff" stroke="#007BFF" stroke-width="5" />
+            <path d="M10 10 H90 V70 H70 L50 90 L30 70 H10 Z" fill="#ffffff" stroke="#007BFF" stroke-width="5"/>
           </svg>
         </div>
         <h3 id="chatHeader">Haru AI</h3>
         <button id="close-chat" class="close-chat" aria-label="Close Chat">
           <svg width="24" height="24" viewBox="0 0 20 20" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 8.586L3.536 2.122 2.122 3.536 8.586 10l-6.464 6.464 1.414 1.414L18.344 17.656C19.792 16.208 20.688 14.21 20.688 12c0-5.514-4.486-10-10-10zm0 14l-3-3H5v-2h4v2zm0-4H5v-2h4v2zm6-4h-8v2h8V8z" />
+            <path d="M10 8.586L3.536 2.122 2.122 3.536 8.586 10l-6.464 6.464 1.414 1.414L18.344 17.656C19.792 16.208 20.688 14.21 20.688 12c0-5.514-4.486-10-10-10zm0 14l-3-3H5v-2h4v2zm0-4H5v-2h4v2zm6-4h-8v2h8V8z"/>
           </svg>
         </button>
       </div>
@@ -234,7 +208,7 @@
         <div class="message bot-message">
           <div class="message-content">
             <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="#007BFF" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10c2.21 0 4.208-.896 5.656-2.344L20 18.414V20h1.586l-1.414-1.414L18.344 17.656C19.792 16.208 20.688 14.21 20.688 12c0-5.514-4.486-10-10-10zm-1 14H7v-2h4v2zm0-4H7v-2h4v2zm6-4h-8v2h8V8z" />
+              <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10c2.21 0 4.208-.896 5.656-2.344L20 18.414V20h1.586l-1.414-1.414L18.344 17.656C19.792 16.208 20.688 14.21 20.688 12c0-5.514-4.486-10-10-10zm-1 14H7v-2h4v2zm0-4H7v-2h4v2zm6-4h-8v2h8V8z"/>
             </svg>
             Hi! I'm Haru, how can I help you today?
           </div>
@@ -250,14 +224,14 @@
         <input type="text" id="chat-input" class="chat-input" placeholder="Type your message..." aria-label="Chat Input">
         <button id="send-message" class="send-message" aria-label="Send Message">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
-            <path d="M2.01 21L23 12 2.01 3v7l15 2-15 2z" />
+            <path d="M2.01 21L23 12 2.01 3v7l15 2-15 2z"/>
           </svg>
         </button>
       </div>
     </div>
     <button id="open-chat" class="open-chat-button" aria-label="Open Chat">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
-        <path d="M20 2H4C2.897 2 2 2.897 2 4v12c0 1.103.897 2 2 2h5l4 4 4-4h5c1.103 0 2-.897 2-2V4c0-1.103-.897-2-2-2zm0 14l-3-3H5V4h15v12z" />
+        <path d="M20 2H4C2.897 2 2 2.897 2 4v12c0 1.103.897 2 2 2h5l4 4 4-4h5c1.103 0 2-.897 2-2V4c0-1.103-.897-2-2-2zm0 14l-3-3H5V4h15v12z"/>
       </svg>
     </button>
     <div id="descriptionModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="descriptionModalTitle" aria-describedby="descriptionModalDescription">
@@ -281,22 +255,13 @@
       </div>
     </div>
   </div>
-  
-  <!-- External Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-  <script src="haru.js"></script>
-  <script src="clockwork.js"></script>
-  
   <script>
     window.addEventListener("load", function() {
       document.getElementById("pageContainer").classList.add("loaded");
     });
-  </script>
-  
-  <!-- Site Functionality Scripts -->
-  <script>
     document.addEventListener('DOMContentLoaded', function () {
       var titleBar = document.getElementById('titleBar');
       if (titleBar) {
@@ -358,10 +323,6 @@
         });
       }
     });
-  </script>
-  
-  <!-- Consent and Utility Scripts -->
-  <script>
     (function(){
       'use strict';
       var CONFIG = {
@@ -518,10 +479,6 @@
       }
       document.addEventListener('DOMContentLoaded', init);
     })();
-  </script>
-  
-  <!-- Socket.IO and Presence Scripts -->
-  <script>
     var socket = io("https://mikumiku.dev");
     var lastHeartbeatReceived = Date.now(), isSessionExpired = false, browsingStartTime = null, browsingInterval = null;
     var nowPlayingBox = document.getElementById("nowPlayingBox"),
@@ -749,246 +706,139 @@
         clearDisplay();
       }
     }, 5000);
-  </script>
-  
-  <!-- NEW: Polished Stage Scenery Background Script -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const canvas = document.getElementById('stageCanvas');
-      const ctx = canvas.getContext('2d');
-      let lastTime = 0;
-      let offsetY = 0;
-      const scrollSpeed = 30; // pixels per second
-      function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-      }
-      resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
-      const cols = 20;
-      const rows = 30;
-      const cellHeight = canvas.height / rows;
-      const vanishX = canvas.width / 2;
-      const vanishY = canvas.height * 0.3;
-      function drawStage(time) {
-        if (!lastTime) lastTime = time;
-        const deltaTime = (time - lastTime) / 1000;
-        lastTime = time;
-        offsetY = (offsetY + scrollSpeed * deltaTime) % cellHeight;
-        ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = "#00C6FF";
-        ctx.lineWidth = 2;
-        ctx.shadowColor = "#00C6FF";
-        ctx.shadowBlur = 10;
-        for (let i = 0; i <= rows; i++) {
-          let y = vanishY + ((canvas.height - vanishY) * (i / rows)) + offsetY;
-          if (y > canvas.height) y = vanishY + (y - canvas.height);
-          ctx.beginPath();
-          ctx.moveTo(0, y);
-          ctx.lineTo(canvas.width, y);
-          ctx.stroke();
+    document.addEventListener('DOMContentLoaded', function(){
+      var descriptionModal = document.getElementById("descriptionModal"),
+          closeDescriptionButton = document.getElementById("closeDescriptionButton"),
+          toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
+      toggleDescriptionButton.addEventListener("click", function(){
+        if (descriptionModal.classList.contains("active")) {
+          descriptionModal.classList.remove("active");
+          toggleDescriptionButton.textContent = ' Show Description';
+        } else {
+          descriptionModal.classList.add("active");
+          toggleDescriptionButton.textContent = ' Hide Description';
         }
-        for (let i = 0; i <= cols; i++) {
-          let x = i * (canvas.width / cols);
-          ctx.beginPath();
-          ctx.moveTo(x, canvas.height);
-          ctx.lineTo(vanishX, vanishY);
-          ctx.stroke();
+      });
+      closeDescriptionButton.addEventListener("click", function(){
+        descriptionModal.classList.remove("active");
+        toggleDescriptionButton.textContent = ' Show Description';
+      });
+      window.addEventListener("click", function(event){
+        if (event.target === descriptionModal) {
+          descriptionModal.classList.remove("active");
+          toggleDescriptionButton.textContent = ' Show Description';
         }
-        ctx.shadowBlur = 0;
-        requestAnimationFrame(drawStage);
+      });
+      function updateClocks() {
+        var now = new Date();
+        var localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        var localTimeElement = document.getElementById('local-time');
+        if (localTimeElement) localTimeElement.textContent = localTime;
+        var currentDate = now.toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' });
+        var currentDateElement = document.getElementById('current-date');
+        if (currentDateElement) currentDateElement.textContent = currentDate;
+        var dayOfWeek = now.toLocaleDateString(undefined, { weekday: 'long' });
+        var dayOfWeekElement = document.getElementById('day-of-week');
+        if (dayOfWeekElement) dayOfWeekElement.textContent = dayOfWeek;
       }
-      requestAnimationFrame(drawStage);
+      setInterval(updateClocks, 1000);
+      updateClocks();
+      var CITY_NAME = 'Leeds';
+      async function fetchWeather() {
+        try {
+          var response = await fetch('/api/weather?city=' + encodeURIComponent(CITY_NAME));
+          var data = await response.json();
+          if (data.error) {
+            throw new Error(data.error);
+          }
+          displayWeather(data);
+        } catch (error) {
+          console.error('Error fetching weather data:', error);
+          var weatherIconElement = document.getElementById('weather-icon');
+          if (weatherIconElement) weatherIconElement.style.display = 'none';
+          document.getElementById('weather-description').innerText = 'Unable to fetch weather data.';
+        }
+      }
+      function displayWeather(data) {
+        var description = data.weather[0].description,
+            temperature = Math.round(data.main.temp),
+            humidity = data.main.humidity,
+            windSpeed = data.wind.speed,
+            iconCode = data.weather[0].icon,
+            iconUrl = 'https://openweathermap.org/img/wn/' + iconCode + '@2x.png';
+        document.getElementById('weather-description').innerText = "Condition: " + description;
+        document.getElementById('temperature').innerText = "Temperature: " + temperature + "°C";
+        document.getElementById('humidity').innerText = "Humidity: " + humidity + "%";
+        document.getElementById('wind-speed').innerText = "Wind: " + windSpeed + " m/s";
+        var weatherIconElement = document.getElementById('weather-icon');
+        if (weatherIconElement) {
+          weatherIconElement.src = iconUrl;
+          weatherIconElement.style.display = 'block';
+        }
+      }
+      setInterval(fetchWeather, 3600000);
+      fetchWeather();
     });
-  </script>
-  
-  <!-- NEW: Pixel-Styled Shooting Star Canvas Script -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const canvas = document.getElementById('shootingStarCanvas');
-      const ctx = canvas.getContext('2d');
-      const pixelSize = 5;
-      let star = {
-        x: -50,
-        y: Math.random() * canvas.height * 0.5,
-        vx: 8,
-        vy: 2,
-        trail: []
-      };
-      function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-      }
-      resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
-      function updateStar() {
-        star.x += star.vx;
-        star.y += star.vy;
-        star.trail.push({ x: star.x, y: star.y, opacity: 1 });
-        if (star.trail.length > 30) star.trail.shift();
-        if (star.x - 50 > canvas.width || star.y - 50 > canvas.height) {
-          star.x = -50;
-          star.y = Math.random() * canvas.height * 0.5;
-          star.trail = [];
+    (function(){
+      var canvas = document.getElementById('techCanvas');
+      var ctx = canvas.getContext('2d');
+      var width = canvas.width = window.innerWidth;
+      var height = canvas.height = window.innerHeight;
+      window.addEventListener('resize', function(){
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        nodes = [];
+        wires = [];
+        generateNodes();
+        generateWires();
+      });
+      var nodes = [];
+      var wires = [];
+      var numNodes = 30;
+      var numWires = 50;
+      function generateNodes(){
+        for(var i = 0; i < numNodes; i++){
+          nodes.push({ x: Math.random() * width, y: Math.random() * height });
         }
       }
-      function drawStar() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        for (let i = 0; i < star.trail.length; i++) {
-          const pos = star.trail[i];
-          const opacity = pos.opacity * ((i + 1) / star.trail.length);
-          ctx.fillStyle = `rgba(255, 105, 180, ${opacity})`;
-          ctx.fillRect(pos.x, pos.y, pixelSize, pixelSize);
+      function generateWires(){
+        for(var i = 0; i < numWires; i++){
+          var start = nodes[Math.floor(Math.random() * nodes.length)];
+          var end = nodes[Math.floor(Math.random() * nodes.length)];
+          wires.push({ start: start, end: end, progress: Math.random(), speed: 0.005 + Math.random() * 0.005 });
         }
-        ctx.fillStyle = "#FF69B4";
-        ctx.fillRect(star.x, star.y, pixelSize, pixelSize);
       }
-      function updateTrail() {
-        star.trail.forEach(pixel => pixel.opacity -= 0.03);
-      }
-      function animateShootingStar() {
-        updateStar();
-        updateTrail();
-        drawStar();
-        requestAnimationFrame(animateShootingStar);
-      }
-      animateShootingStar();
-    });
-  </script>
-  
-  <!-- NEW: Circuit Board Light Animation Canvas Script -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const canvas = document.getElementById('circuitCanvas');
-      const ctx = canvas.getContext('2d');
-      function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-      }
-      resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
-      const nodes = [];
-      const wires = [];
-      const numNodes = 15;
-      for (let i = 0; i < numNodes; i++) {
-        nodes.push({
-          x: Math.random() * canvas.width * 0.8 + canvas.width * 0.1,
-          y: Math.random() * canvas.height * 0.8 + canvas.height * 0.1
-        });
-      }
-      for (let i = 0; i < numNodes; i++) {
-        let start = nodes[i];
-        let end = nodes[(i + Math.floor(Math.random() * (numNodes - 1)) + 1) % numNodes];
-        wires.push({ start, end, progress: Math.random() });
-      }
-      function drawCircuit() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#01010A";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.lineWidth = 2;
-        wires.forEach(wire => {
-          const grad = ctx.createLinearGradient(wire.start.x, wire.start.y, wire.end.x, wire.end.y);
-          grad.addColorStop(0, "#00C6FF");
-          grad.addColorStop(1, "#FF4081");
-          ctx.strokeStyle = grad;
+      generateNodes();
+      generateWires();
+      function draw(){
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+        ctx.fillRect(0, 0, width, height);
+        wires.forEach(function(wire){
           ctx.beginPath();
           ctx.moveTo(wire.start.x, wire.start.y);
           ctx.lineTo(wire.end.x, wire.end.y);
+          var grad = ctx.createLinearGradient(wire.start.x, wire.start.y, wire.end.x, wire.end.y);
+          grad.addColorStop(0, '#00C6FF');
+          grad.addColorStop(1, '#FF4081');
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = 1;
           ctx.stroke();
-        });
-        wires.forEach(wire => {
-          const x = wire.start.x + (wire.end.x - wire.start.x) * wire.progress;
-          const y = wire.start.y + (wire.end.y - wire.start.y) * wire.progress;
+          wire.progress += wire.speed;
+          if(wire.progress > 1){ wire.progress = 0; }
+          var beamX = wire.start.x + (wire.end.x - wire.start.x) * wire.progress;
+          var beamY = wire.start.y + (wire.end.y - wire.start.y) * wire.progress;
           ctx.beginPath();
-          ctx.arc(x, y, 8, 0, Math.PI * 2);
-          ctx.fillStyle = "#FF4081";
-          ctx.shadowColor = "#FF4081";
-          ctx.shadowBlur = 20;
+          ctx.arc(beamX, beamY, 4, 0, Math.PI * 2);
+          var beamGrad = ctx.createRadialGradient(beamX, beamY, 0, beamX, beamY, 4);
+          beamGrad.addColorStop(0, '#FFFFFF');
+          beamGrad.addColorStop(1, '#FF4081');
+          ctx.fillStyle = beamGrad;
           ctx.fill();
-          ctx.shadowBlur = 0;
-          wire.progress += 0.005;
-          if (wire.progress > 1) wire.progress = 0;
         });
-        requestAnimationFrame(drawCircuit);
+        requestAnimationFrame(draw);
       }
-      drawCircuit();
-    });
-  </script>
-  
-  <!-- Chat Box and Additional Utility Scripts -->
-  <script>
-    var descriptionModal = document.getElementById("descriptionModal"),
-        closeDescriptionButton = document.getElementById("closeDescriptionButton"),
-        toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
-    toggleDescriptionButton.addEventListener("click", function() {
-      if (descriptionModal.classList.contains("active")) {
-        descriptionModal.classList.remove("active");
-        toggleDescriptionButton.textContent = ' Show Description';
-      } else {
-        descriptionModal.classList.add("active");
-        toggleDescriptionButton.textContent = ' Hide Description';
-      }
-    });
-    closeDescriptionButton.addEventListener("click", function() {
-      descriptionModal.classList.remove("active");
-      toggleDescriptionButton.textContent = ' Show Description';
-    });
-    window.addEventListener("click", function(event) {
-      if (event.target === descriptionModal) {
-        descriptionModal.classList.remove("active");
-        toggleDescriptionButton.textContent = ' Show Description';
-      }
-    });
-    function updateClocks() {
-      var now = new Date();
-      var localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      var localTimeElement = document.getElementById('local-time');
-      if (localTimeElement) localTimeElement.textContent = localTime;
-      var currentDate = now.toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' });
-      var currentDateElement = document.getElementById('current-date');
-      if (currentDateElement) currentDateElement.textContent = currentDate;
-      var dayOfWeek = now.toLocaleDateString(undefined, { weekday: 'long' });
-      var dayOfWeekElement = document.getElementById('day-of-week');
-      if (dayOfWeekElement) dayOfWeekElement.textContent = dayOfWeek;
-    }
-    setInterval(updateClocks, 1000);
-    updateClocks();
-    var CITY_NAME = 'Leeds';
-    async function fetchWeather() {
-      try {
-        var response = await fetch('/api/weather?city=' + encodeURIComponent(CITY_NAME));
-        var data = await response.json();
-        if (data.error) {
-          throw new Error(data.error);
-        }
-        displayWeather(data);
-      } catch (error) {
-        console.error('Error fetching weather data:', error);
-        var weatherIconElement = document.getElementById('weather-icon');
-        if (weatherIconElement) weatherIconElement.style.display = 'none';
-        document.getElementById('weather-description').innerText = 'Unable to fetch weather data.';
-      }
-    }
-    function displayWeather(data) {
-      var description = data.weather[0].description,
-          temperature = Math.round(data.main.temp),
-          humidity = data.main.humidity,
-          windSpeed = data.wind.speed,
-          iconCode = data.weather[0].icon,
-          iconUrl = 'https://openweathermap.org/img/wn/' + iconCode + '@2x.png';
-      document.getElementById('weather-description').innerText = "Condition: " + description;
-      document.getElementById('temperature').innerText = "Temperature: " + temperature + "°C";
-      document.getElementById('humidity').innerText = "Humidity: " + humidity + "%";
-      document.getElementById('wind-speed').innerText = "Wind: " + windSpeed + " m/s";
-      var weatherIconElement = document.getElementById('weather-icon');
-      if (weatherIconElement) {
-        weatherIconElement.src = iconUrl;
-        weatherIconElement.style.display = 'block';
-      }
-    }
-    setInterval(fetchWeather, 3600000);
-    fetchWeather();
+      draw();
+    })();
   </script>
 </body>
 </html>
