@@ -18,7 +18,7 @@
       z-index: -3;
       background-color: #000;
     }
-    /* Ensure the other canvases appear above the stage if needed */
+    /* Ensure soundWaveCanvas is below other content */
     #soundWaveCanvas {
       z-index: -2;
     }
@@ -269,7 +269,7 @@
     });
   </script>
   
-  <!-- Site Functionality Scripts (menu, chat, clock, weather, etc.) -->
+  <!-- Site Functionality Scripts -->
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       var titleBar = document.getElementById('titleBar');
@@ -334,9 +334,398 @@
     });
   </script>
   
-  <!-- (Consent, Socket.IO, Chat, etc. scripts remain unchanged) -->
+  <!-- Consent and Other Utility Scripts -->
+  <script>
+    (function(){
+      'use strict';
+      var CONFIG = {
+        consentCookieName: 'cookieConsent',
+        consentCookieExpiryDays: 365,
+        consentCookiePath: '/',
+        consentModalId: 'consentModal',
+        acceptButtonId: 'acceptConsent',
+        declineButtonId: 'declineConsent',
+        manageButtonIds: ['manageConsentModal', 'manageConsentFooter'],
+        closeButtonId: 'closeConsentModal',
+        cookieCategories: {
+          necessary: {
+            enabled: true,
+            description: 'Necessary cookies enable core functionalities and security features of the website.'
+          }
+        },
+        focusableSelectors: 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      };
+      var consentModal = document.getElementById(CONFIG.consentModalId),
+          acceptButton = document.getElementById(CONFIG.acceptButtonId),
+          declineButton = document.getElementById(CONFIG.declineButtonId),
+          closeButton = document.getElementById(CONFIG.closeButtonId),
+          manageConsentButtons = CONFIG.manageButtonIds.map(function(id){ return document.getElementById(id); });
+      function setCookie(name, value, days, path) {
+        var expires = "";
+        if (days) {
+          var date = new Date();
+          date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+          expires = "; expires=" + date.toUTCString();
+        }
+        var secure = location.protocol === 'https:' ? "; Secure" : "";
+        var sameSite = "; SameSite=Lax";
+        document.cookie = name + "=" + (value || "") + expires + "; path=" + path + secure + sameSite;
+      }
+      function getCookie(name) {
+        var nameEQ = name + "=";
+        var ca = document.cookie.split(';');
+        for (var i = 0; i < ca.length; i++) {
+          var c = ca[i].trim();
+          if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+      }
+      function eraseCookie(name, path) {
+        document.cookie = name + '=; Max-Age=-99999999; path=' + path + ';';
+      }
+      function trapFocus(modal) {
+        var focusableElements = modal.querySelectorAll(CONFIG.focusableSelectors);
+        if (focusableElements.length === 0) return;
+        var firstFocusableElement = focusableElements[0],
+            lastFocusableElement = focusableElements[focusableElements.length - 1];
+        function handleFocus(event) {
+          if (event.key === 'Tab') {
+            if (event.shiftKey) {
+              if (document.activeElement === firstFocusableElement) {
+                event.preventDefault();
+                lastFocusableElement.focus();
+              }
+            } else {
+              if (document.activeElement === lastFocusableElement) {
+                event.preventDefault();
+                firstFocusableElement.focus();
+              }
+            }
+          }
+          if (event.key === 'Escape') {
+            event.preventDefault();
+          }
+        }
+        modal.addEventListener('keydown', handleFocus);
+      }
+      function showModal() {
+        consentModal.classList.add('active');
+        document.body.classList.add('modal-active');
+        consentModal.setAttribute('aria-hidden', 'false');
+        var focusableElements = consentModal.querySelectorAll(CONFIG.focusableSelectors);
+        if (focusableElements.length) {
+          focusableElements[0].focus();
+        }
+        trapFocus(consentModal);
+      }
+      function hideModal() {
+        consentModal.classList.remove('active');
+        document.body.classList.remove('modal-active');
+        consentModal.setAttribute('aria-hidden', 'true');
+      }
+      function initConsentModal() {
+        var existingConsent = getCookie(CONFIG.consentCookieName);
+        if (!existingConsent) {
+          showModal();
+        } else {
+          applyConsent(existingConsent);
+        }
+        acceptButton.addEventListener('click', function() {
+          setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: true }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
+          hideModal();
+          initializeCookies();
+        });
+        declineButton.addEventListener('click', function() {
+          setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: false }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
+          hideModal();
+          disableCookies();
+        });
+        manageConsentButtons.forEach(function(button) {
+          if (button) {
+            button.addEventListener('click', function(event) {
+              event.preventDefault();
+              showModal();
+            });
+          }
+        });
+        closeButton.addEventListener('click', function() {
+          alert('Please make a choice regarding cookie usage.');
+        });
+        window.addEventListener('click', function(event) {
+          if (event.target === consentModal) {
+            alert('Please make a choice regarding cookie usage.');
+          }
+        });
+      }
+      function applyConsent(consentValue) {
+        try {
+          var consent = JSON.parse(consentValue);
+          if (consent.necessary) {
+            initializeCookies(consent);
+          } else {
+            disableCookies();
+          }
+        } catch (error) {
+          console.error('Error parsing consent cookie:', error);
+          showModal();
+        }
+      }
+      function initializeCookies(consent) {
+        console.log('Necessary cookies enabled.');
+      }
+      function disableCookies() {
+        console.log('Necessary cookies disabled.');
+      }
+      function areCookiesEnabled() {
+        var testCookie = 'test_cookie_consent';
+        setCookie(testCookie, 'test', 1);
+        var result = getCookie(testCookie) === 'test';
+        eraseCookie(testCookie);
+        return result;
+      }
+      function init() {
+        if (areCookiesEnabled()) {
+          initConsentModal();
+        } else {
+          console.warn('Cookies are disabled in this browser. Consent modal will not be displayed.');
+        }
+      }
+      document.addEventListener('DOMContentLoaded', init);
+    })();
+  </script>
   
-  <!-- New: Hatsune Miku Themed Digital Pixel Stage Scenery Background Script -->
+  <!-- Socket.IO and Presence Scripts -->
+  <script>
+    var socket = io("https://mikumiku.dev");
+    var lastHeartbeatReceived = Date.now(), isSessionExpired = false, browsingStartTime = null, browsingInterval = null;
+    var nowPlayingBox = document.getElementById("nowPlayingBox"),
+        videoTitleElement = document.getElementById("videoTitle"),
+        videoThumbnailImage = document.getElementById("videoThumbnailImage"),
+        videoThumbnailElement = document.getElementById("videoThumbnail"),
+        offlineIndicatorElement = document.getElementById("offline-indicator"),
+        progressBarElement = document.getElementById("progressBar"),
+        channelNameElement = document.getElementById("channelName"),
+        viewCountElement = document.getElementById("viewCount"),
+        likeCountElement = document.getElementById("likeCount"),
+        publishedDateElement = document.getElementById("publishedDate"),
+        videoCategoryElement = document.getElementById("videoCategory"),
+        videoDescriptionElement = document.getElementById("descriptionModalDescription"),
+        timeElapsedElement = document.getElementById("timeElapsed"),
+        liveIconElement = document.getElementById("liveIcon"),
+        videoInfoContainer = document.getElementById('videoInfoContainer');
+    function formatNumber(number) {
+      if (typeof number === 'string') {
+        number = number.replace(/,/g, '');
+      }
+      var num = Number(number);
+      return isNaN(num) ? "N/A" : num.toLocaleString();
+    }
+    function clearDisplay() {
+      nowPlayingBox.classList.add("offline");
+      offlineIndicatorElement.style.display = "flex";
+      videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
+      videoThumbnailImage.src = "";
+      videoThumbnailImage.style.display = "none";
+      videoThumbnailElement.src = "";
+      videoThumbnailElement.style.display = "none";
+      channelNameElement.textContent = "";
+      viewCountElement.textContent = "";
+      likeCountElement.textContent = "";
+      publishedDateElement.textContent = "";
+      videoCategoryElement.textContent = "";
+      progressBarElement.style.width = "0%";
+      videoDescriptionElement.textContent = "";
+      timeElapsedElement.style.display = "none";
+      liveIconElement.style.display = "none";
+    }
+    function clearVideoPresence() {
+      videoInfoContainer.classList.add('fade-out');
+      setTimeout(function() {
+        videoTitleElement.textContent = "";
+        videoThumbnailImage.src = "";
+        videoThumbnailImage.style.display = "none";
+        videoThumbnailElement.src = "";
+        videoThumbnailElement.style.display = "none";
+        channelNameElement.textContent = "";
+        viewCountElement.textContent = "";
+        likeCountElement.textContent = "";
+        publishedDateElement.textContent = "";
+        videoCategoryElement.textContent = "";
+        progressBarElement.style.width = "0%";
+        videoDescriptionElement.textContent = "";
+        videoInfoContainer.classList.remove('fade-out');
+      }, 500);
+    }
+    function reinitializeSession() {
+      console.warn("[Client] Reinitializing session due to mismatch or timeout.");
+      clearDisplay();
+      isSessionExpired = true;
+    }
+    function formatTimeElapsed(seconds) {
+      var hours = Math.floor(seconds / 3600),
+          minutes = Math.floor((seconds % 3600) / 60),
+          remainingSeconds = seconds % 60;
+      if (hours > 0) {
+        return hours + "h " + minutes + "m " + remainingSeconds + "s";
+      } else if (minutes > 0) {
+        return minutes + "m " + remainingSeconds + "s";
+      } else {
+        return remainingSeconds + "s";
+      }
+    }
+    function displayVideoPresence(data) {
+      lastHeartbeatReceived = Date.now();
+      nowPlayingBox.classList.remove("offline");
+      offlineIndicatorElement.style.display = "none";
+      if (videoTitleElement.textContent !== data.title || videoThumbnailImage.src !== data.thumbnail) {
+        videoInfoContainer.classList.add('fade-out');
+        setTimeout(function() {
+          videoTitleElement.textContent = data.title || "Unknown Title";
+          if (data.thumbnail) {
+            videoThumbnailImage.src = data.thumbnail;
+            videoThumbnailImage.style.display = "block";
+            videoThumbnailElement.style.display = "none";
+          } else {
+            videoThumbnailImage.src = "";
+            videoThumbnailElement.style.display = "none";
+          }
+          channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+          viewCountElement.textContent = formatNumber(data.viewCount) || "N/A";
+          likeCountElement.textContent = formatNumber(data.likeCount) || "N/A";
+          if (data.publishedAt) {
+            var publishedDate = new Date(data.publishedAt);
+            publishedDateElement.textContent = publishedDate.toLocaleDateString() || "Published on: N/A";
+          } else {
+            publishedDateElement.textContent = "Published on: N/A";
+          }
+          videoCategoryElement.textContent = data.category || "N/A";
+          videoDescriptionElement.textContent = data.description || "No description available.";
+          timeElapsedElement.style.display = "none";
+          if (data.videoSrc) {
+            videoThumbnailElement.src = data.videoSrc;
+            videoThumbnailElement.style.display = "block";
+            videoThumbnailImage.style.display = "none";
+          } else {
+            videoThumbnailElement.style.display = "none";
+            videoThumbnailImage.style.display = "block";
+          }
+          if (data.isLive) {
+            liveIconElement.classList.add('active');
+            liveIconElement.style.display = "flex";
+          } else {
+            liveIconElement.classList.remove('active');
+            liveIconElement.style.display = "none";
+          }
+          videoInfoContainer.classList.remove('fade-out');
+          videoInfoContainer.classList.add('fade-in');
+        }, 500);
+      }
+      handleRealTimeProgress(data);
+    }
+    function handleRealTimeProgress(data) {
+      if (data.duration && data.currentTime) {
+        var progressPercentage = (data.currentTime / data.duration) * 100;
+        progressBarElement.style.width = progressPercentage + "%";
+      } else {
+        progressBarElement.style.width = "0%";
+      }
+    }
+    function displayBrowsingPresence(data) {
+      lastHeartbeatReceived = Date.now();
+      nowPlayingBox.classList.remove("offline");
+      offlineIndicatorElement.style.display = "none";
+      if (videoTitleElement.textContent !== data.title || videoThumbnailImage.src !== data.thumbnail) {
+        videoInfoContainer.classList.add('fade-out');
+        setTimeout(function() {
+          videoTitleElement.textContent = data.title || "Browsing YouTube";
+          videoThumbnailImage.src = data.thumbnail || "";
+          videoThumbnailImage.style.display = data.thumbnail ? "block" : "none";
+          videoThumbnailElement.style.display = "none";
+          channelNameElement.textContent = "Browsing...";
+          videoDescriptionElement.textContent = data.description || "Browsing videos on YouTube";
+          progressBarElement.style.width = "0%";
+          videoInfoContainer.classList.remove('fade-out');
+          videoInfoContainer.classList.add('fade-in');
+        }, 500);
+      }
+      if (data.timeElapsed !== undefined) {
+        timeElapsedElement.textContent = "Time Elapsed: " + formatTimeElapsed(data.timeElapsed);
+        timeElapsedElement.style.display = "block";
+      }
+    }
+    function updateBrowsingPresence() {
+      if (browsingStartTime !== null) {
+        var timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
+        timeElapsedElement.textContent = "Time Elapsed: " + formatTimeElapsed(timeElapsed);
+        timeElapsedElement.style.display = "block";
+        var browsingData = {
+          title: 'YouTube',
+          description: 'Browsing videos',
+          thumbnail: '',
+          timeElapsed: timeElapsed,
+          presenceType: 'browsing'
+        };
+        socket.emit('updateBrowsingPresence', browsingData);
+      }
+    }
+    function startBrowsingPresence() {
+      if (browsingStartTime === null) {
+        browsingStartTime = Date.now();
+      }
+      if (!browsingInterval) {
+        browsingInterval = setInterval(updateBrowsingPresence, 5000);
+      }
+    }
+    function stopBrowsingPresence() {
+      if (browsingInterval) {
+        clearInterval(browsingInterval);
+        browsingInterval = null;
+      }
+      browsingStartTime = null;
+    }
+    socket.on("connect", function() {
+      console.log("[Socket.IO] Connected to server.");
+      isSessionExpired = false;
+      socket.emit('requestLatestData');
+    });
+    socket.on("presenceUpdate", function(data) {
+      if (isSessionExpired) {
+        console.warn("[Client] Ignoring presenceUpdate due to expired session.");
+        return;
+      }
+      console.log("[Socket.IO] Received presenceUpdate:", data);
+      if (data.presenceType === 'video') {
+        stopBrowsingPresence();
+        displayVideoPresence(data);
+      } else if (data.presenceType === 'browsing') {
+        displayBrowsingPresence(data);
+        startBrowsingPresence();
+      } else {
+        clearDisplay();
+      }
+    });
+    socket.on("reinitializeSession", function(data) {
+      console.warn("[Socket.IO] Received presenceUpdate: " + JSON.stringify(data));
+      reinitializeSession();
+    });
+    socket.on("sessionExpired", function(data) {
+      console.warn("[Socket.IO] Session expired for video ID: " + data.videoId);
+      reinitializeSession();
+    });
+    socket.on("disconnect", function() {
+      console.warn("[Socket.IO] Disconnected from server.");
+      stopBrowsingPresence();
+      clearDisplay();
+    });
+    setInterval(function() {
+      if (Date.now() - lastHeartbeatReceived > 60000) {
+        console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
+        clearDisplay();
+      }
+    }, 5000);
+  </script>
+  
+  <!-- Hatsune Miku Themed Digital Pixel Stage Scenery Background Script -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const canvas = document.getElementById('stageCanvas');
@@ -353,16 +742,20 @@
       const rows = 30;
       const cellWidth = canvas.width / cols;
       const cellHeight = canvas.height / rows;
-      // Vanishing point near top-center
+      // Vanishing point near top-center for perspective
       const vanishX = canvas.width / 2;
       const vanishY = canvas.height * 0.3;
       function drawStage() {
+        // Clear canvas and fill with black
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "#000";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        // Draw horizontal lines with vertical offset (scrolling effect)
+        // Set glow for grid lines
         ctx.strokeStyle = "#00C6FF";
         ctx.lineWidth = 2;
+        ctx.shadowColor = "#00C6FF";
+        ctx.shadowBlur = 8;
+        // Draw horizontal lines with vertical offset for scrolling effect
         for (let i = 0; i <= rows; i++) {
           let y = vanishY + (canvas.height - vanishY) * (i / rows) + offsetY;
           if (y > canvas.height) y = vanishY + (y - canvas.height);
@@ -379,12 +772,90 @@
           ctx.lineTo(vanishX, vanishY);
           ctx.stroke();
         }
+        // Reset shadow settings
+        ctx.shadowBlur = 0;
+        // Update offset for scrolling effect
         offsetY += 1;
         if (offsetY > cellHeight) offsetY = 0;
         requestAnimationFrame(drawStage);
       }
       drawStage();
     });
+  </script>
+  
+  <!-- Chat Box and Additional Scripts (Consent, Socket.IO, etc.) -->
+  <script>
+    var descriptionModal = document.getElementById("descriptionModal"),
+        closeDescriptionButton = document.getElementById("closeDescriptionButton"),
+        toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
+    toggleDescriptionButton.addEventListener("click", function() {
+      if (descriptionModal.classList.contains("active")) {
+        descriptionModal.classList.remove("active");
+        toggleDescriptionButton.textContent = ' Show Description';
+      } else {
+        descriptionModal.classList.add("active");
+        toggleDescriptionButton.textContent = ' Hide Description';
+      }
+    });
+    closeDescriptionButton.addEventListener("click", function() {
+      descriptionModal.classList.remove("active");
+      toggleDescriptionButton.textContent = ' Show Description';
+    });
+    window.addEventListener("click", function(event) {
+      if (event.target === descriptionModal) {
+        descriptionModal.classList.remove("active");
+        toggleDescriptionButton.textContent = ' Show Description';
+      }
+    });
+    function updateClocks() {
+      var now = new Date();
+      var localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      var localTimeElement = document.getElementById('local-time');
+      if (localTimeElement) localTimeElement.textContent = localTime;
+      var currentDate = now.toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' });
+      var currentDateElement = document.getElementById('current-date');
+      if (currentDateElement) currentDateElement.textContent = currentDate;
+      var dayOfWeek = now.toLocaleDateString(undefined, { weekday: 'long' });
+      var dayOfWeekElement = document.getElementById('day-of-week');
+      if (dayOfWeekElement) dayOfWeekElement.textContent = dayOfWeek;
+    }
+    setInterval(updateClocks, 1000);
+    updateClocks();
+    var CITY_NAME = 'Leeds';
+    async function fetchWeather() {
+      try {
+        var response = await fetch('/api/weather?city=' + encodeURIComponent(CITY_NAME));
+        var data = await response.json();
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        displayWeather(data);
+      } catch (error) {
+        console.error('Error fetching weather data:', error);
+        var weatherIconElement = document.getElementById('weather-icon');
+        if (weatherIconElement) weatherIconElement.style.display = 'none';
+        document.getElementById('weather-description').innerText = 'Unable to fetch weather data.';
+      }
+    }
+    function displayWeather(data) {
+      var description = data.weather[0].description,
+          temperature = Math.round(data.main.temp),
+          humidity = data.main.humidity,
+          windSpeed = data.wind.speed,
+          iconCode = data.weather[0].icon,
+          iconUrl = 'https://openweathermap.org/img/wn/' + iconCode + '@2x.png';
+      document.getElementById('weather-description').innerText = "Condition: " + description;
+      document.getElementById('temperature').innerText = "Temperature: " + temperature + "°C";
+      document.getElementById('humidity').innerText = "Humidity: " + humidity + "%";
+      document.getElementById('wind-speed').innerText = "Wind: " + windSpeed + " m/s";
+      var weatherIconElement = document.getElementById('weather-icon');
+      if (weatherIconElement) {
+        weatherIconElement.src = iconUrl;
+        weatherIconElement.style.display = 'block';
+      }
+    }
+    setInterval(fetchWeather, 3600000);
+    fetchWeather();
   </script>
 </body>
 </html>
