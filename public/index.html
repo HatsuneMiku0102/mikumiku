@@ -781,9 +781,14 @@
     });
     (function(){
       var canvas = document.getElementById('techCanvas');
+      if (!canvas) {
+        console.error("techCanvas element not found.");
+        return;
+      }
       var ctx = canvas.getContext('2d');
       var width = canvas.width = window.innerWidth;
       var height = canvas.height = window.innerHeight;
+      
       window.addEventListener('resize', function(){
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
@@ -792,28 +797,44 @@
         generateNodes();
         generateWires();
       });
+      
       var nodes = [];
       var wires = [];
       var numNodes = 30;
       var numWires = 50;
+      
       function generateNodes(){
-        for(var i = 0; i < numNodes; i++){
-          nodes.push({ x: Math.random() * width, y: Math.random() * height });
+        for (var i = 0; i < numNodes; i++){
+          nodes.push({ 
+            x: Math.random() * width, 
+            y: Math.random() * height 
+          });
         }
       }
+      
       function generateWires(){
-        for(var i = 0; i < numWires; i++){
+        for (var i = 0; i < numWires; i++){
           var start = nodes[Math.floor(Math.random() * nodes.length)];
           var end = nodes[Math.floor(Math.random() * nodes.length)];
-          wires.push({ start: start, end: end, progress: Math.random(), speed: 0.005 + Math.random() * 0.005 });
+          wires.push({ 
+            start: start, 
+            end: end, 
+            progress: Math.random(), 
+            speed: 0.005 + Math.random() * 0.005 
+          });
         }
       }
+      
       generateNodes();
       generateWires();
+      
       function draw(){
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+        // Clear the canvas with a slightly more opaque fill for a clearer trail effect.
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
         ctx.fillRect(0, 0, width, height);
+        
         wires.forEach(function(wire){
+          // Draw the connecting wire.
           ctx.beginPath();
           ctx.moveTo(wire.start.x, wire.start.y);
           ctx.lineTo(wire.end.x, wire.end.y);
@@ -821,15 +842,21 @@
           grad.addColorStop(0, '#00C6FF');
           grad.addColorStop(1, '#FF4081');
           ctx.strokeStyle = grad;
-          ctx.lineWidth = 1;
+          ctx.lineWidth = 2;
           ctx.stroke();
+          
+          // Update beam progress and reset if necessary.
           wire.progress += wire.speed;
-          if(wire.progress > 1){ wire.progress = 0; }
+          if (wire.progress > 1) { 
+            wire.progress = 0; 
+          }
           var beamX = wire.start.x + (wire.end.x - wire.start.x) * wire.progress;
           var beamY = wire.start.y + (wire.end.y - wire.start.y) * wire.progress;
+          
+          // Draw the beam as a glowing circle.
           ctx.beginPath();
-          ctx.arc(beamX, beamY, 4, 0, Math.PI * 2);
-          var beamGrad = ctx.createRadialGradient(beamX, beamY, 0, beamX, beamY, 4);
+          ctx.arc(beamX, beamY, 6, 0, Math.PI * 2);
+          var beamGrad = ctx.createRadialGradient(beamX, beamY, 0, beamX, beamY, 6);
           beamGrad.addColorStop(0, '#FFFFFF');
           beamGrad.addColorStop(1, '#FF4081');
           ctx.fillStyle = beamGrad;
@@ -837,6 +864,7 @@
         });
         requestAnimationFrame(draw);
       }
+      
       draw();
     })();
   </script>
