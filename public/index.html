@@ -401,6 +401,7 @@
       const fontSize = 20;
       const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()";
       const colors = ["#00C6FF", "#ff4081"];
+      const speedFactor = 0.5;
       function drawMatrix() {
         ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -408,20 +409,23 @@
         for (let i = 0; i < drops.length; i++) {
           const text = characters.charAt(Math.floor(Math.random() * characters.length));
           const x = i * fontSize;
-          const y = drops[i] * fontSize;
+          const y = Math.floor(drops[i]) * fontSize;
           const color = colors[Math.floor(Math.random() * colors.length)];
           ctx.fillStyle = color;
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 10;
           ctx.fillText(text, x, y);
           if (y > canvas.height && Math.random() > 0.975) {
             drops[i] = 0;
           }
-          drops[i]++;
+          drops[i] += speedFactor;
         }
         requestAnimationFrame(drawMatrix);
       }
       drawMatrix();
     });
     </script>
+
 
   </div>
 </body>
