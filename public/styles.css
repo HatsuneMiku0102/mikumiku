@@ -55,69 +55,28 @@ body {
     position: relative;
     z-index: 1;
     opacity: 0;
+    animation: fadeInPage 0.8s ease-out forwards;
 }
 
-#soundWaveCanvas {
+@keyframes fadeInPage {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+#techCanvas {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: -4;
+    z-index: -5;
     background-color: var(--canvas-background-color);
     pointer-events: none;
     overflow: hidden;
-    opacity: 1;
-    animation: none;
     mix-blend-mode: screen;
 }
 
-#wave-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    overflow: hidden;
-}
-
-#soundWaveCanvas::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(46, 46, 46, 0.5);
-    pointer-events: none;
-    z-index: -1;
-}
-
-.wave-layer {
-    opacity: var(--wave-opacity);
-    filter: drop-shadow(0 0 var(--wave-glow) var(--primary-color));
-    transition: filter var(--transition-duration) ease, opacity var(--transition-duration) ease;
-}
-
-.wave-layer.secondary {
-    filter: drop-shadow(0 0 var(--wave-glow) var(--secondary-color));
-    mix-blend-mode: screen;
-}
-
-@keyframes pulseGlow {
-    0%, 100% { filter: drop-shadow(0 0 var(--wave-glow) var(--primary-color)); }
-    50% { filter: drop-shadow(0 0 calc(var(--wave-glow) * 1.5) var(--secondary-color)); }
-}
-
-.wave-layer.primary {
-    animation: pulseGlow 5s infinite;
-}
-
-.wave-layer.secondary {
-    animation: pulseGlow 7s infinite;
-}
-
+/* Header and Navigation */
 .title-bar {
     background-color: rgba(0, 0, 0, 0.8);
     padding: var(--padding-base);
@@ -196,9 +155,6 @@ body {
     50% { filter: drop-shadow(0 0 20px var(--secondary-color)); }
 }
 
-.right-section {
-}
-
 .menu-button {
     background: rgba(255, 255, 255, 0.1);
     border: none;
@@ -218,7 +174,7 @@ body {
 }
 
 .menu-button:hover {
-    background-color: rgba(255, 64, 129, 0.8);
+    background-color: var(--button-hover-bg);
     transform: scale(1.1);
 }
 
@@ -240,9 +196,9 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 2000;
-    transition: opacity var(--transition-duration) ease, visibility var(--transition-duration) ease;
     opacity: 0;
     visibility: hidden;
+    transition: opacity var(--transition-duration) ease, visibility var(--transition-duration) ease;
 }
 
 .overlay-menu.active {
@@ -309,16 +265,14 @@ body {
     transition: background-color var(--transition-duration) ease, transform var(--transition-duration) ease;
 }
 
-.personality-button:hover {
-    background-color: var(--secondary-color);
-    transform: scale(1.05);
-}
-
+.personality-button:hover,
 .personality-button.active {
     background-color: var(--secondary-color);
     border-color: var(--secondary-color);
+    transform: scale(1.05);
 }
 
+/* Now Playing Section */
 .now-playing-container {
     flex: 1;
     display: flex;
@@ -362,8 +316,8 @@ body {
 }
 
 .now-playing-sidebar:hover,
-.weather-section:hover,
-.video-section:hover {
+.video-section:hover,
+.weather-section:hover {
     background: rgba(255, 255, 255, 0.1);
     box-shadow: inset 0 0 15px var(--shadow-color);
 }
@@ -438,63 +392,18 @@ body {
     animation: fadeInUp 1s ease forwards;
 }
 
-.clock-section .greeting {
-    font-size: 1.2rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    opacity: 0;
-    animation: fadeIn 1s ease forwards;
-    animation-delay: 0.5s;
-}
-
-.clocks-container {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    animation: fadeIn 1s ease forwards;
-    animation-delay: 1s;
-}
-
-.digital-clock p {
-    font-size: 1.5rem;
-    margin: 0.3rem 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    opacity: 0;
-    animation: fadeIn 1s ease forwards;
-    animation-delay: 1.5s;
-}
-
-.digital-clock p i {
-    color: var(--primary-color);
-    font-size: 1.2rem;
-}
-
-.time-zone {
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    opacity: 0;
-    animation: fadeIn 1s ease forwards;
-    animation-delay: 2s;
-}
-
+.clock-section .greeting,
+.clocks-container,
+.digital-clock p,
+.time-zone,
 .last-visit-message {
-    font-size: var(--small-font-size);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    text-align: center;
     opacity: 0;
     animation: fadeIn 1s ease forwards;
-    animation-delay: 2.5s;
+}
+
+.digital-clock p i,
+.time-zone i {
+    color: var(--primary-color);
 }
 
 @keyframes fadeIn {
@@ -543,19 +452,18 @@ body {
 }
 
 .offline-indicator {
-    display: none;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     background: rgba(255, 0, 0, 0.8);
     padding: 0.5rem 1rem;
     border-radius: var(--border-radius);
     color: #ffffff;
     font-size: var(--small-font-size);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     animation: fadeIn 1s ease forwards;
     animation-delay: 5.5s;
 }
@@ -943,9 +851,9 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 4000;
-    transition: opacity var(--transition-duration) ease, visibility var(--transition-duration) ease;
     opacity: 0;
     visibility: hidden;
+    transition: opacity var(--transition-duration) ease, visibility var(--transition-duration) ease;
 }
 
 .modal.active {
@@ -1018,6 +926,7 @@ body {
     transform: scale(1.05);
 }
 
+/* Utility Classes */
 .center {
     display: flex;
     align-items: center;
@@ -1028,32 +937,11 @@ body {
     display: none;
 }
 
-.chat-content,
-.overlay-menu .overlay-content {
-    scrollbar-width: thin;
-    scrollbar-color: var(--primary-color) rgba(0, 0, 0, 0.5);
-}
-
-.chat-content::-webkit-scrollbar,
-.overlay-menu .overlay-content::-webkit-scrollbar {
-    width: 8px;
-}
-
-.chat-content::-webkit-scrollbar-track,
-.overlay-menu .overlay-content::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.1);
-}
-
-.chat-content::-webkit-scrollbar-thumb,
-.overlay-menu .overlay-content::-webkit-scrollbar-thumb {
-    background-color: var(--primary-color);
-    border-radius: 4px;
-}
-
 a, button {
     transition: all var(--transition-duration) ease;
 }
 
+/* Responsive Styles */
 @media (max-width: 1200px) {
     .now-playing {
         flex-direction: column;
@@ -1140,18 +1028,4 @@ a, button {
     .last-visit-message {
         font-size: 0.85rem;
     }
-}
-
-/* Fade-In Page Loading Effect - Updated for Faster & Polished Animation */
-.page-container {
-    opacity: 0;
-}
-
-.page-container.loaded {
-    animation: fadeInPage 0.8s ease-out forwards;
-}
-
-@keyframes fadeInPage {
-    from { opacity: 0; }
-    to { opacity: 1; }
 }
