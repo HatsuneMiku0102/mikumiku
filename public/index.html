@@ -11,7 +11,7 @@
 <body>
   <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
   <div class="page-container" id="pageContainer">
-    <!-- The rest of your HTML content remains unchanged -->
+    <!-- Main Header -->
     <header class="title-bar" id="titleBar">
       <div class="container">
         <div class="left-section"></div>
@@ -57,6 +57,8 @@
         </div>
       </div>
     </header>
+
+    <!-- Overlay Menu -->
     <nav class="overlay-menu" id="overlayMenu">
       <button class="close-overlay" id="closeOverlay" aria-label="Close Menu">
         <i class="fas fa-times"></i>
@@ -71,6 +73,8 @@
         </div>
       </div>
     </nav>
+
+    <!-- Now Playing Section -->
     <section class="now-playing-container">
       <div id="nowPlayingBox" class="now-playing">
         <aside class="now-playing-sidebar">
@@ -135,9 +139,15 @@
           <div id="timeElapsedContainer" class="time-elapsed">
             <i class="fas fa-clock"></i> <span id="timeElapsed">0s</span>
           </div>
+          <!-- Toggle button to show/hide description -->
           <button class="toggle-description" id="toggleDescriptionButton" aria-label="Toggle Description">
             <i class="fas fa-info-circle"></i> Show Description
           </button>
+          <!-- Description box embedded inside video section -->
+          <div id="descriptionModal">
+            <h2 id="descriptionModalTitle">Description</h2>
+            <p id="descriptionModalDescription">Loading description...</p>
+          </div>
           <div id="loadingSpinner" class="loading-spinner" aria-label="Loading">
             <i class="fas fa-spinner fa-spin"></i>
           </div>
@@ -152,6 +162,8 @@
         </aside>
       </div>
     </section>
+
+    <!-- About Section -->
     <section class="content-wrapper">
       <div class="now-playing-about-wrapper">
         <div class="about" id="aboutMe">
@@ -160,6 +172,8 @@
         </div>
       </div>
     </section>
+
+    <!-- Footer -->
     <footer class="footer">
       <div class="container">
         <p>&copy; 2024 MikuMiku. All rights reserved.</p>
@@ -168,6 +182,8 @@
         </button>
       </div>
     </footer>
+
+    <!-- Chat Box -->
     <div id="chat-box" class="chat-box closed" role="dialog" aria-labelledby="chatHeader" aria-modal="true">
       <div class="chat-header">
         <div class="chat-logo">
@@ -212,13 +228,8 @@
         <path d="M20 2H4C2.897 2 2 2.897 2 4v12c0 1.103.897 2 2 2h5l4 4 4-4h5c1.103 0 2-.897 2-2V4c0-1.103-.897-2-2-2zm0 14l-3-3H5V4h15v12z" />
       </svg>
     </button>
-    <div id="descriptionModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="descriptionModalTitle" aria-describedby="descriptionModalDescription">
-      <div class="modal-content">
-        <button class="close-button" id="closeDescriptionButton" aria-label="Close Description Modal"><i class="fas fa-times"></i></button>
-        <h2 id="descriptionModalTitle">Description</h2>
-        <p id="descriptionModalDescription">Loading description...</p>
-      </div>
-    </div>
+    
+    <!-- Consent Modal (unchanged) -->
     <div id="consentModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="consentModalTitle" aria-describedby="consentModalDescription">
       <div class="modal-content">
         <button class="close-button" id="closeConsentModal" aria-label="Close Consent Modal"><i class="fas fa-times"></i></button>
@@ -232,6 +243,8 @@
         </div>
       </div>
     </div>
+    
+    <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
@@ -354,13 +367,13 @@
           liveIconElement = document.getElementById("liveIcon"),
           videoInfoContainer = document.getElementById('videoInfoContainer');
       function formatNumber(number){if(typeof number==='string'){number=number.replace(/,/g,'');}var num=Number(number);return isNaN(num)?"N/A":num.toLocaleString();}
-      function clearDisplay(){nowPlayingBox.classList.add("offline");offlineIndicatorElement.style.display="flex";videoTitleElement.textContent="I’m not on YouTube at the moment, soz :(";videoThumbnailImage.src="";videoThumbnailImage.style.display="none";videoThumbnailElement.src="";videoThumbnailElement.style.display="none";channelNameElement.textContent="";viewCountElement.textContent="";likeCountElement.textContent="";publishedDateElement.textContent="";videoCategoryElement.textContent="";progressBarElement.style.width="0%";videoDescriptionElement.textContent="";timeElapsedElement.style.display="none";liveIconElement.style.display="none";}
-      function clearVideoPresence(){videoInfoContainer.classList.add('fade-out');setTimeout(function(){videoTitleElement.textContent="";videoThumbnailImage.src="";videoThumbnailImage.style.display="none";videoThumbnailElement.src="";videoThumbnailElement.style.display="none";channelNameElement.textContent="";viewCountElement.textContent="";likeCountElement.textContent="";publishedDateElement.textContent="";videoCategoryElement.textContent="";progressBarElement.style.width="0%";videoDescriptionElement.textContent="";videoInfoContainer.classList.remove('fade-out');},500);}
+      function clearDisplay(){nowPlayingBox.classList.add("offline");offlineIndicatorElement.style.display="flex";videoTitleElement.textContent="I’m not on YouTube at the moment, soz :(";videoThumbnailImage.src="";videoThumbnailImage.style.display="none";videoThumbnailElement.src="";videoThumbnailElement.style.display="none";channelNameElement.textContent="";viewCountElement.textContent="";likeCountElement.textContent="";publishedDateElement.textContent="";videoCategoryElement.textContent="";progressBarElement.style.width="0%";document.getElementById("descriptionModal").querySelector("p").textContent="";timeElapsedElement.style.display="none";liveIconElement.style.display="none";}
+      function clearVideoPresence(){videoInfoContainer.classList.add('fade-out');setTimeout(function(){videoTitleElement.textContent="";videoThumbnailImage.src="";videoThumbnailImage.style.display="none";videoThumbnailElement.src="";videoThumbnailElement.style.display="none";channelNameElement.textContent="";viewCountElement.textContent="";likeCountElement.textContent="";publishedDateElement.textContent="";videoCategoryElement.textContent="";progressBarElement.style.width="0%";document.getElementById("descriptionModal").querySelector("p").textContent="";videoInfoContainer.classList.remove('fade-out');},500);}
       function reinitializeSession(){console.warn("[Client] Reinitializing session due to mismatch or timeout.");clearDisplay();isSessionExpired=true;}
       function formatTimeElapsed(seconds){var hours=Math.floor(seconds/3600), minutes=Math.floor((seconds%3600)/60), remainingSeconds=seconds%60; if(hours>0){return hours+"h "+minutes+"m "+remainingSeconds+"s";}else if(minutes>0){return minutes+"m "+remainingSeconds+"s";}else{return remainingSeconds+"s";}}
-      function displayVideoPresence(data){lastHeartbeatReceived=Date.now();nowPlayingBox.classList.remove("offline");offlineIndicatorElement.style.display="none";if(videoTitleElement.textContent!==data.title || videoThumbnailImage.src!==data.thumbnail){videoInfoContainer.classList.add('fade-out');setTimeout(function(){videoTitleElement.textContent=data.title||"Unknown Title";if(data.thumbnail){videoThumbnailImage.src=data.thumbnail;videoThumbnailImage.style.display="block";videoThumbnailElement.style.display="none";}else{videoThumbnailImage.src="";videoThumbnailElement.style.display="none";}channelNameElement.textContent=data.channelTitle||"Unknown Channel";viewCountElement.textContent=formatNumber(data.viewCount)||"N/A";likeCountElement.textContent=formatNumber(data.likeCount)||"N/A";if(data.publishedAt){var publishedDate=new Date(data.publishedAt);publishedDateElement.textContent=publishedDate.toLocaleDateString()||"Published on: N/A";}else{publishedDateElement.textContent="Published on: N/A";}videoCategoryElement.textContent=data.category||"N/A";videoDescriptionElement.textContent=data.description||"No description available.";timeElapsedElement.style.display="none";if(data.videoSrc){videoThumbnailElement.src=data.videoSrc;videoThumbnailElement.style.display="block";videoThumbnailImage.style.display="none";}else{videoThumbnailElement.style.display="none";videoThumbnailImage.style.display="block";}if(data.isLive){liveIconElement.classList.add('active');liveIconElement.style.display="flex";}else{liveIconElement.classList.remove('active');liveIconElement.style.display="none";}videoInfoContainer.classList.remove('fade-out');videoInfoContainer.classList.add('fade-in');},500);}handleRealTimeProgress(data);}
+      function displayVideoPresence(data){lastHeartbeatReceived=Date.now();nowPlayingBox.classList.remove("offline");offlineIndicatorElement.style.display="none";if(videoTitleElement.textContent!==data.title || videoThumbnailImage.src!==data.thumbnail){videoInfoContainer.classList.add('fade-out');setTimeout(function(){videoTitleElement.textContent=data.title||"Unknown Title";if(data.thumbnail){videoThumbnailImage.src=data.thumbnail;videoThumbnailImage.style.display="block";videoThumbnailElement.style.display="none";}else{videoThumbnailImage.src="";videoThumbnailElement.style.display="none";}channelNameElement.textContent=data.channelTitle||"Unknown Channel";viewCountElement.textContent=formatNumber(data.viewCount)||"N/A";likeCountElement.textContent=formatNumber(data.likeCount)||"N/A";if(data.publishedAt){var publishedDate=new Date(data.publishedAt);publishedDateElement.textContent=publishedDate.toLocaleDateString()||"Published on: N/A";}else{publishedDateElement.textContent="Published on: N/A";}videoCategoryElement.textContent=data.category||"N/A";document.getElementById("descriptionModal").querySelector("p").textContent=data.description||"No description available.";timeElapsedElement.style.display="none";if(data.videoSrc){videoThumbnailElement.src=data.videoSrc;videoThumbnailElement.style.display="block";videoThumbnailImage.style.display="none";}else{videoThumbnailElement.style.display="none";videoThumbnailImage.style.display="block";}if(data.isLive){liveIconElement.classList.add('active');liveIconElement.style.display="flex";}else{liveIconElement.classList.remove('active');liveIconElement.style.display="none";}videoInfoContainer.classList.remove('fade-out');videoInfoContainer.classList.add('fade-in');},500);}handleRealTimeProgress(data);}
       function handleRealTimeProgress(data){if(data.duration && data.currentTime){var progressPercentage=(data.currentTime/data.duration)*100;progressBarElement.style.width=progressPercentage+"%";}else{progressBarElement.style.width="0%";}}
-      function displayBrowsingPresence(data){lastHeartbeatReceived=Date.now();nowPlayingBox.classList.remove("offline");offlineIndicatorElement.style.display="none";if(videoTitleElement.textContent!==data.title || videoThumbnailImage.src!==data.thumbnail){videoInfoContainer.classList.add('fade-out');setTimeout(function(){videoTitleElement.textContent=data.title||"Browsing YouTube";videoThumbnailImage.src=data.thumbnail||"";videoThumbnailImage.style.display=data.thumbnail?"block":"none";videoThumbnailElement.style.display="none";channelNameElement.textContent="Browsing...";videoDescriptionElement.textContent=data.description||"Browsing videos on YouTube";progressBarElement.style.width="0%";videoInfoContainer.classList.remove('fade-out');videoInfoContainer.classList.add('fade-in');},500);}if(data.timeElapsed!==undefined){timeElapsedElement.textContent="Time Elapsed: "+formatTimeElapsed(data.timeElapsed);timeElapsedElement.style.display="block";}}
+      function displayBrowsingPresence(data){lastHeartbeatReceived=Date.now();nowPlayingBox.classList.remove("offline");offlineIndicatorElement.style.display="none";if(videoTitleElement.textContent!==data.title || videoThumbnailImage.src!==data.thumbnail){videoInfoContainer.classList.add('fade-out');setTimeout(function(){videoTitleElement.textContent=data.title||"Browsing YouTube";videoThumbnailImage.src=data.thumbnail||"";videoThumbnailImage.style.display=data.thumbnail?"block":"none";videoThumbnailElement.style.display="none";channelNameElement.textContent="Browsing...";document.getElementById("descriptionModal").querySelector("p").textContent=data.description||"Browsing videos on YouTube";progressBarElement.style.width="0%";videoInfoContainer.classList.remove('fade-out');videoInfoContainer.classList.add('fade-in');},500);}if(data.timeElapsed!==undefined){timeElapsedElement.textContent="Time Elapsed: "+formatTimeElapsed(data.timeElapsed);timeElapsedElement.style.display="block";}}
       function updateBrowsingPresence(){if(browsingStartTime!==null){var timeElapsed=Math.floor((Date.now()-browsingStartTime)/1000);timeElapsedElement.textContent="Time Elapsed: "+formatTimeElapsed(timeElapsed);timeElapsedElement.style.display="block";var browsingData={title:'YouTube', description:'Browsing videos', thumbnail:'', timeElapsed:timeElapsed, presenceType:'browsing'};socket.emit('updateBrowsingPresence', browsingData);}}
       function startBrowsingPresence(){if(browsingStartTime===null){browsingStartTime=Date.now();}if(!browsingInterval){browsingInterval=setInterval(updateBrowsingPresence,5000);}}
       function stopBrowsingPresence(){if(browsingInterval){clearInterval(browsingInterval);browsingInterval=null;}browsingStartTime=null;}
@@ -374,7 +387,8 @@
           closeDescriptionButton = document.getElementById("closeDescriptionButton"),
           toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
       toggleDescriptionButton.addEventListener("click", function(){if(descriptionModal.classList.contains("active")){descriptionModal.classList.remove("active"); toggleDescriptionButton.textContent=' Show Description';} else {descriptionModal.classList.add("active"); toggleDescriptionButton.textContent=' Hide Description';}});
-      closeDescriptionButton.addEventListener("click", function(){descriptionModal.classList.remove("active"); toggleDescriptionButton.textContent=' Show Description';});
+      // Note: If you wish to have a close button for the description box, uncomment the following lines and ensure an element with id "closeDescriptionButton" exists.
+      // closeDescriptionButton.addEventListener("click", function(){descriptionModal.classList.remove("active"); toggleDescriptionButton.textContent=' Show Description';});
       window.addEventListener("click", function(event){if(event.target===descriptionModal){descriptionModal.classList.remove("active"); toggleDescriptionButton.textContent=' Show Description';}});
       function updateClocks(){var now = new Date(); var localTime = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}); var localTimeElement = document.getElementById('local-time'); if(localTimeElement) localTimeElement.textContent = localTime; var currentDate = now.toLocaleDateString(undefined,{day:'2-digit', month:'long', year:'numeric'}); var currentDateElement = document.getElementById('current-date'); if(currentDateElement) currentDateElement.textContent = currentDate; var dayOfWeek = now.toLocaleDateString(undefined,{weekday:'long'}); var dayOfWeekElement = document.getElementById('day-of-week'); if(dayOfWeekElement) dayOfWeekElement.textContent = dayOfWeek; }
       setInterval(updateClocks, 1000);
@@ -385,7 +399,7 @@
       setInterval(fetchWeather, 3600000);
       fetchWeather();
     </script>
-    <!-- New: Eagle-Eye Digital Matrix Animation -->
+    <!-- Eagle-Eye Digital Matrix Animation -->
     <script>
     document.addEventListener('DOMContentLoaded', () => {
       const canvas = document.getElementById('soundWaveCanvas');
@@ -419,13 +433,11 @@
         for (let i = 0; i < drops.length; i++) {
           let text;
           // Introduce a random chance for a Miku-themed easter egg
-          if (Math.random() < 0.005) { // approximately 0.5% chance per column per frame
+          if (Math.random() < 0.005) {
             text = mikuEasterEggs[Math.floor(Math.random() * mikuEasterEggs.length)];
-            // Use a distinct color for easter eggs
             ctx.fillStyle = "#FF69B4"; 
           } else {
             text = characters.charAt(Math.floor(Math.random() * characters.length));
-            // Alternate colors based on column index for consistency
             ctx.fillStyle = colors[i % colors.length];
           }
           
@@ -433,7 +445,6 @@
           const y = Math.floor(drops[i]) * fontSize;
           ctx.fillText(text, x, y);
           
-          // Reset drop to top at random when it goes beyond the canvas height
           if (y > canvas.height && Math.random() > 0.98) {
             drops[i] = 0;
             speeds[i] = Math.random() * 0.5 + 0.3;
@@ -445,10 +456,6 @@
       drawMatrix();
     });
     </script>
-
-
-
-
   </div>
 </body>
 </html>
