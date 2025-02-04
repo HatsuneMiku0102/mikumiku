@@ -8,7 +8,36 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="/styles.css" />
   <style>
-    /* Canvas for existing effects */
+    /* Define all canvas elements and their stacking order */
+    #circuitCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -5;
+      background-color: #000;
+      pointer-events: none;
+    }
+    #stageCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -4;
+      background-color: #000;
+    }
+    #shootingStarCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -3;
+      background-color: transparent;
+      pointer-events: none;
+    }
     #soundWaveCanvas {
       position: fixed;
       top: 0;
@@ -18,35 +47,14 @@
       z-index: -2;
       background-color: transparent;
     }
-    /* Canvas for our digital stage background */
-    #stageCanvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -3;
-      background-color: #000;
-    }
-    /* NEW: Canvas for the circuit board light animation */
-    #circuitCanvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -4;
-      background-color: #000;
-      pointer-events: none;
-    }
   </style>
 </head>
 <body>
-  <!-- Existing canvases -->
+  <!-- All required canvas elements are included in the markup -->
   <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
   <canvas id="stageCanvas" aria-hidden="true"></canvas>
-  <!-- NEW: Circuit Board Canvas -->
   <canvas id="circuitCanvas" aria-hidden="true"></canvas>
+  <canvas id="shootingStarCanvas" aria-hidden="true"></canvas>
   
   <div class="page-container" id="pageContainer">
     <!-- Title Bar -->
@@ -743,9 +751,60 @@
     }, 5000);
   </script>
   
+  <!-- NEW: Polished Stage Scenery Background Script -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const canvas = document.getElementById('stageCanvas');
+      const ctx = canvas.getContext('2d');
+      let lastTime = 0;
+      let offsetY = 0;
+      const scrollSpeed = 30; // pixels per second
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      const cols = 20;
+      const rows = 30;
+      const cellHeight = canvas.height / rows;
+      const vanishX = canvas.width / 2;
+      const vanishY = canvas.height * 0.3;
+      function drawStage(time) {
+        if (!lastTime) lastTime = time;
+        const deltaTime = (time - lastTime) / 1000;
+        lastTime = time;
+        offsetY = (offsetY + scrollSpeed * deltaTime) % cellHeight;
+        ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "#00C6FF";
+        ctx.lineWidth = 2;
+        ctx.shadowColor = "#00C6FF";
+        ctx.shadowBlur = 10;
+        for (let i = 0; i <= rows; i++) {
+          let y = vanishY + ((canvas.height - vanishY) * (i / rows)) + offsetY;
+          if (y > canvas.height) y = vanishY + (y - canvas.height);
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(canvas.width, y);
+          ctx.stroke();
+        }
+        for (let i = 0; i <= cols; i++) {
+          let x = i * (canvas.width / cols);
+          ctx.beginPath();
+          ctx.moveTo(x, canvas.height);
+          ctx.lineTo(vanishX, vanishY);
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+        requestAnimationFrame(drawStage);
+      }
+      requestAnimationFrame(drawStage);
+    });
+  </script>
+  
   <!-- NEW: Pixel-Styled Shooting Star Canvas Script -->
   <script>
-    // Pixel-styled shooting star with layered trail effect
     document.addEventListener('DOMContentLoaded', () => {
       const canvas = document.getElementById('shootingStarCanvas');
       const ctx = canvas.getContext('2d');
@@ -800,7 +859,6 @@
   
   <!-- NEW: Circuit Board Light Animation Canvas Script -->
   <script>
-    // Circuit board animation: light traveling through wires in a circuit board style.
     document.addEventListener('DOMContentLoaded', () => {
       const canvas = document.getElementById('circuitCanvas');
       const ctx = canvas.getContext('2d');
@@ -810,9 +868,8 @@
       }
       resizeCanvas();
       window.addEventListener('resize', resizeCanvas);
-      
-      // Generate random nodes for circuit layout
       const nodes = [];
+      const wires = [];
       const numNodes = 15;
       for (let i = 0; i < numNodes; i++) {
         nodes.push({
@@ -820,21 +877,15 @@
           y: Math.random() * canvas.height * 0.8 + canvas.height * 0.1
         });
       }
-      
-      // Create wires between nodes
-      const wires = [];
       for (let i = 0; i < numNodes; i++) {
         let start = nodes[i];
         let end = nodes[(i + Math.floor(Math.random() * (numNodes - 1)) + 1) % numNodes];
         wires.push({ start, end, progress: Math.random() });
       }
-      
       function drawCircuit() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#000";
+        ctx.fillStyle = "#01010A";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw static wires with gradient
         ctx.lineWidth = 2;
         wires.forEach(wire => {
           const grad = ctx.createLinearGradient(wire.start.x, wire.start.y, wire.end.x, wire.end.y);
@@ -846,8 +897,6 @@
           ctx.lineTo(wire.end.x, wire.end.y);
           ctx.stroke();
         });
-        
-        // Animate light pulses along wires
         wires.forEach(wire => {
           const x = wire.start.x + (wire.end.x - wire.start.x) * wire.progress;
           const y = wire.start.y + (wire.end.y - wire.start.y) * wire.progress;
