@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="/styles.css" />
   <style>
-    /* Inline styles for description modal display and a fallback for pause indicator */
+    /* Inline styles for description modal display */
     #descriptionModal { display: none; }
     #descriptionModal.active { display: block; }
   </style>
@@ -136,7 +136,7 @@
               <text x="50%" y="55%" text-anchor="middle" fill="#FFFFFF" font-size="12" font-family="Arial, sans-serif" dy=".3em">LIVE</text>
             </svg>
           </div>
-          <!-- CSS-based Pause Indicator -->
+          <!-- CSS-based Pause Indicator (no image used) -->
           <div class="pause-indicator" id="pauseIndicator"></div>
           <div class="description-and-time">
             <button class="toggle-description" id="toggleDescriptionButton" aria-label="Toggle Description">
@@ -466,11 +466,13 @@
             timeElapsedElement = document.getElementById("timeElapsed"),
             liveIconElement = document.getElementById("liveIcon"),
             videoInfoContainer = document.getElementById('videoInfoContainer');
+
       function formatNumber(number) {
         if (typeof number === 'string') number = number.replace(/,/g, '');
         const num = Number(number);
         return isNaN(num) ? "N/A" : num.toLocaleString();
       }
+
       function clearDisplay() {
         nowPlayingBox.classList.add("offline");
         offlineIndicatorElement.style.display = "flex";
@@ -492,6 +494,7 @@
         liveIconElement.style.display = "none";
         document.getElementById("pauseIndicator").style.display = "none";
       }
+
       function clearVideoPresence() {
         videoInfoContainer.classList.add('fade-out');
         setTimeout(function () {
@@ -511,11 +514,13 @@
           videoInfoContainer.classList.remove('fade-out');
         }, 500);
       }
+
       function reinitializeSession() {
         console.warn("[Client] Reinitializing session due to mismatch or timeout.");
         clearDisplay();
         isSessionExpired = true;
       }
+
       function formatTimeElapsed(seconds) {
         const hours = Math.floor(seconds / 3600),
               minutes = Math.floor((seconds % 3600) / 60),
@@ -524,6 +529,7 @@
         else if (minutes > 0) return minutes + "m " + remainingSeconds + "s";
         else return remainingSeconds + "s";
       }
+
       function displayVideoPresence(data) {
         lastHeartbeatReceived = Date.now();
         nowPlayingBox.classList.remove("offline");
@@ -562,32 +568,27 @@
               videoThumbnailElement.style.display = "none";
               videoThumbnailImage.style.display = "block";
             }
-            if (data.isLive) {
+            // Check for paused state first
+            if (data.isPaused) {
+              liveIconElement.style.display = "none";
+              const pauseIndicator = document.getElementById("pauseIndicator");
+              console.log("Video is paused. Displaying pause indicator.");
+              pauseIndicator.style.display = "flex";
+              pauseIndicator.style.opacity = "1";
+            } else if (data.isLive) {
               liveIconElement.style.display = "flex";
               document.getElementById("pauseIndicator").style.display = "none";
-            if (data.isPaused) {
-                // If the video is paused, show the pause indicator regardless of live status.
-                liveIconElement.style.display = "none";
-                const pauseIndicator = document.getElementById("pauseIndicator");
-                console.log("Video is paused. Displaying pause indicator.");
-                pauseIndicator.style.display = "flex";
-                pauseIndicator.style.opacity = "1";
-            } else if (data.isLive) {
-                // If not paused and the video is live, show the live indicator.
-                liveIconElement.style.display = "flex";
-                document.getElementById("pauseIndicator").style.display = "none";
             } else {
-                // Otherwise, hide both indicators.
-                liveIconElement.style.display = "none";
-                document.getElementById("pauseIndicator").style.display = "none";
+              liveIconElement.style.display = "none";
+              document.getElementById("pauseIndicator").style.display = "none";
             }
-
             videoInfoContainer.classList.remove('fade-out');
             videoInfoContainer.classList.add('fade-in');
           }, 500);
         }
         handleRealTimeProgress(data);
       }
+
       function handleRealTimeProgress(data) {
         if (data.duration && data.currentTime) {
           const progressPercentage = (data.currentTime / data.duration) * 100;
@@ -596,6 +597,7 @@
           progressBarElement.style.width = "0%";
         }
       }
+
       function displayBrowsingPresence(data) {
         lastHeartbeatReceived = Date.now();
         nowPlayingBox.classList.remove("offline");
@@ -620,6 +622,7 @@
           timeElapsedElement.style.display = "block";
         }
       }
+
       function updateBrowsingPresence() {
         if (browsingStartTime !== null) {
           const timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
@@ -629,10 +632,12 @@
           socket.emit('updateBrowsingPresence', browsingData);
         }
       }
+
       function startBrowsingPresence() {
         if (browsingStartTime === null) browsingStartTime = Date.now();
         if (!browsingInterval) browsingInterval = setInterval(updateBrowsingPresence, 5000);
       }
+
       function stopBrowsingPresence() {
         if (browsingInterval) {
           clearInterval(browsingInterval);
@@ -640,11 +645,13 @@
         }
         browsingStartTime = null;
       }
+
       socket.on("connect", function(){
         console.log("[Socket.IO] Connected to server.");
         isSessionExpired = false;
         socket.emit('requestLatestData');
       });
+
       socket.on("presenceUpdate", function(data){
         if (isSessionExpired) {
           console.warn("[Client] Ignoring presenceUpdate due to expired session.");
@@ -661,25 +668,30 @@
           clearDisplay();
         }
       });
+
       socket.on("reinitializeSession", function(data){
         console.warn("[Socket.IO] Received presenceUpdate: " + JSON.stringify(data));
         reinitializeSession();
       });
+
       socket.on("sessionExpired", function(data){
         console.warn("[Socket.IO] Session expired for video ID: " + data.videoId);
         reinitializeSession();
       });
+
       socket.on("disconnect", function(){
         console.warn("[Socket.IO] Disconnected from server.");
         stopBrowsingPresence();
         clearDisplay();
       });
+
       setInterval(function(){
         if (Date.now() - lastHeartbeatReceived > 60000) {
           console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
           clearDisplay();
         }
       }, 5000);
+
       const descriptionModal = document.getElementById("descriptionModal");
       const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
       descriptionModal.classList.remove("active");
@@ -700,6 +712,292 @@
           toggleDescriptionButton.textContent = ' Show Description';
         }
       });
+
+      // Utility function to wait for a DOM element to appear
+      function waitForElement(selector, timeout = 5000) {
+        return new Promise((resolve) => {
+          const element = document.querySelector(selector);
+          if (element) {
+            return resolve(element);
+          }
+          const observer = new MutationObserver(() => {
+            const el = document.querySelector(selector);
+            if (el) {
+              resolve(el);
+              observer.disconnect();
+            }
+          });
+          observer.observe(document.body, { childList: true, subtree: true });
+          setTimeout(() => {
+            observer.disconnect();
+            resolve(null);
+          }, timeout);
+        });
+      }
+
+      // Function to extract the video ID from the URL
+      function getVideoIdFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('v');
+      }
+
+      // Function to check if an ad is currently playing
+      function isAdPlaying() {
+        const player = document.querySelector('.html5-video-player');
+        return player && player.classList.contains('ad-showing');
+      }
+
+      // Function to determine if the user is on a non-video page
+      function isOnHomePage() {
+        return window.location.pathname === '/' || window.location.pathname === '/feed/trending' || window.location.pathname === '/feed/library';
+      }
+
+      // Remove previous video event listeners
+      function clearOldVideoListeners() {
+        if (videoElement) {
+          videoElement.removeEventListener('timeupdate', handleRealTimeUpdates);
+          videoElement.removeEventListener('play', updatePlaybackStatus);
+          videoElement.removeEventListener('pause', updatePlaybackStatus);
+        }
+      }
+
+      // Clear previous video data from the backend
+      function clearPreviousVideoData() {
+        enqueueMessage({ action: "clearPreviousVideoData" });
+      }
+
+      // Extract presence data (video or browsing)
+      async function extractPresenceData() {
+        if (isExtracting) {
+          console.log("[Content Script] Extraction already in progress.");
+          return;
+        }
+        isExtracting = true;
+        const videoId = getVideoIdFromUrl();
+        if (!videoId || isOnHomePage()) {
+          handleBrowsingPresence();
+          isExtracting = false;
+          return;
+        }
+        if (videoId === lastVideoId) {
+          console.log("[Content Script] Video ID unchanged. Skipping extraction.");
+          isExtracting = false;
+          return;
+        }
+        if (isAdPlaying()) {
+          console.log("[Content Script] Ad is playing. Waiting for ad to finish...");
+          setTimeout(extractPresenceData, 1000);
+          isExtracting = false;
+          return;
+        }
+        clearOldVideoListeners();
+        if (lastVideoId) {
+          console.log("[Content Script] New video detected. Clearing previous video data.");
+          clearPreviousVideoData();
+        }
+        lastVideoId = videoId;
+        console.log("[Content Script] Detected a new video with ID: " + videoId);
+        try {
+          videoElement = await waitForElement('video', 10000);
+          if (!videoElement) {
+            console.warn("[Content Script] Video element not found. Retrying...");
+            retryExtraction();
+            return;
+          }
+          const videoDetails = await requestVideoDetails(videoId);
+          if (!videoDetails) {
+            console.warn("[Content Script] Failed to fetch video details. Retrying...");
+            retryExtraction();
+            return;
+          }
+          sendVideoDataToBackground(videoDetails);
+          currentVideo = {
+            videoId: videoDetails.videoId,
+            title: videoDetails.title,
+            description: videoDetails.description,
+            channelTitle: videoDetails.channelTitle,
+            viewCount: videoDetails.viewCount,
+            likeCount: videoDetails.likeCount,
+            publishedAt: videoDetails.publishedAt,
+            category: videoDetails.category,
+            thumbnail: videoDetails.thumbnail,
+            duration: videoDetails.duration,
+            currentTime: videoElement.currentTime,
+            isPaused: videoElement.paused,
+            isLive: videoDetails.isLive
+          };
+          videoElement.addEventListener('timeupdate', handleRealTimeUpdates);
+          videoElement.addEventListener('play', updatePlaybackStatus);
+          videoElement.addEventListener('pause', updatePlaybackStatus);
+        } catch (error) {
+          console.error("[Content Script] Error during video data extraction:", error);
+        } finally {
+          isExtracting = false;
+        }
+      }
+
+      // Handle browsing presence
+      function handleBrowsingPresence() {
+        console.log("[Content Script] Browsing presence detected. Sending browsing data.");
+        const browsingData = {
+          presenceType: 'browsing',
+          title: 'YouTube',
+          description: 'Browsing videos',
+          thumbnail: 'https://www.youtube.com/img/desktop/yt_1200.png'
+        };
+        clearVideoDisplay();
+        enqueueMessage({ action: "sendPresenceData", presenceData: browsingData });
+        currentVideo = null;
+      }
+
+      // Clear video display elements
+      function clearVideoDisplay() {
+        const elements = getDOMElements();
+        if (elements.videoTitleElement) {
+          elements.videoTitleElement.textContent = "Browsing YouTube...";
+        }
+        if (elements.videoThumbnailElement) {
+          elements.videoThumbnailElement.src = "https://www.youtube.com/img/desktop/yt_1200.png";
+        }
+        if (elements.channelNameElement) {
+          elements.channelNameElement.textContent = "Browsing...";
+        }
+        if (elements.viewCountElement) {
+          elements.viewCountElement.textContent = "";
+        }
+        if (elements.likeCountElement) {
+          elements.likeCountElement.textContent = "";
+        }
+        if (elements.publishedDateElement) {
+          elements.publishedDateElement.textContent = "";
+        }
+        if (elements.videoCategoryElement) {
+          elements.videoCategoryElement.textContent = "";
+        }
+        if (elements.videoDescriptionElement) {
+          elements.videoDescriptionElement.textContent = "Browsing videos on YouTube.";
+        }
+        if (elements.progressBarElement) {
+          elements.progressBarElement.style.width = "0%";
+        }
+        if (elements.timeElapsedElement) {
+          elements.timeElapsedElement.textContent = "0s";
+        }
+      }
+
+      // Retry extraction after a delay
+      function retryExtraction() {
+        setTimeout(() => {
+          isExtracting = false;
+          extractPresenceData();
+        }, 1000);
+      }
+
+      // Send video data to background script
+      function sendVideoDataToBackground(videoData) {
+        const completeVideoData = {
+          videoId: videoData.videoId,
+          title: videoData.title,
+          description: videoData.description,
+          channelTitle: videoData.channelTitle,
+          viewCount: videoData.viewCount,
+          likeCount: videoData.likeCount,
+          publishedAt: videoData.publishedAt,
+          category: videoData.category,
+          thumbnail: videoData.thumbnail,
+          duration: videoData.duration,
+          currentTime: videoElement.currentTime,
+          isPaused: videoElement.paused,
+          isLive: videoData.isLive
+        };
+        if (videoElement.paused) {
+          completeVideoData.pauseIcon = PAUSE_ICON_URL;
+        }
+        enqueueMessage({ action: "sendPresenceData", presenceData: completeVideoData });
+      }
+
+      // Request video details from background script
+      async function requestVideoDetails(videoId) {
+        return new Promise((resolve) => {
+          chrome.runtime.sendMessage({ action: "fetchVideoDetails", videoId }, (response) => {
+            if (chrome.runtime.lastError) {
+              console.error("[Content Script] Failed to retrieve video details:", chrome.runtime.lastError);
+              resolve(null);
+            } else if (response && response.videoDetails) {
+              resolve(response.videoDetails);
+            } else {
+              resolve(null);
+            }
+          });
+        });
+      }
+
+      // Real-time video update handler
+      let lastVideoUpdateTime = 0;
+      function handleRealTimeUpdates() {
+        const now = Date.now();
+        if (now - lastVideoUpdateTime < 3000) return;
+        lastVideoUpdateTime = now;
+        if (!currentVideo) {
+          console.warn("[Content Script] currentVideo is not defined. Skipping real-time update.");
+          return;
+        }
+        const realTimeData = {
+          videoId: lastVideoId,
+          currentTime: videoElement.currentTime,
+          duration: videoElement.duration,
+          isPaused: videoElement.paused,
+          isLive: currentVideo.isLive
+        };
+        if (videoElement.paused) {
+          realTimeData.pauseIcon = PAUSE_ICON_URL;
+        }
+        enqueueMessage({ action: "sendVideoProgress", videoData: realTimeData });
+      }
+
+      // Playback status update handler
+      function updatePlaybackStatus() {
+        if (!currentVideo) {
+          console.warn("[Content Script] currentVideo is not defined. Skipping playback status update.");
+          return;
+        }
+        const statusData = {
+          videoId: lastVideoId,
+          currentTime: videoElement.currentTime,
+          duration: videoElement.duration,
+          isPaused: videoElement.paused,
+          isLive: currentVideo.isLive
+        };
+        if (videoElement.paused) {
+          statusData.pauseIcon = PAUSE_ICON_URL;
+        }
+        enqueueMessage({ action: "sendVideoProgress", videoData: statusData });
+      }
+
+      // Monitor URL changes (for SPA behavior on YouTube)
+      (function () {
+        const originalPushState = history.pushState;
+        const originalReplaceState = history.replaceState;
+        history.pushState = function (...args) {
+          originalPushState.apply(this, args);
+          window.dispatchEvent(new Event('locationchange'));
+        };
+        history.replaceState = function (...args) {
+          originalReplaceState.apply(this, args);
+          window.dispatchEvent(new Event('locationchange'));
+        };
+        window.addEventListener('popstate', () => {
+          window.dispatchEvent(new Event('locationchange'));
+        });
+      })();
+
+      window.addEventListener('locationchange', extractPresenceData);
+      window.addEventListener('yt-navigate-finish', extractPresenceData);
+      window.addEventListener('yt-page-data-updated', extractPresenceData);
+      setInterval(extractPresenceData, 5000);
+      extractPresenceData();
+
+    })();
     </script>
     <script>
       function updateClocks(){
