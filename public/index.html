@@ -502,14 +502,15 @@
         // Utility logging function for consistent logging.
         const log = (message) => console.log(`[Haru.js] ${message}`);
       
-        // Initialize Socket.IO connection.
+        // Establish a connection to the Socket.IO server.
         const socket = io("https://mikumiku.dev");
+      
         let lastHeartbeatReceived = Date.now();
         let isSessionExpired = false;
         let browsingStartTime = null;
         let browsingInterval = null;
       
-        // Grab DOM elements.
+        // Grab required DOM elements.
         const nowPlayingBox = document.getElementById("nowPlayingBox");
         const videoTitleElement = document.getElementById("videoTitle");
         const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -523,7 +524,9 @@
         const videoCategoryElement = document.getElementById("videoCategory");
         const videoDescriptionElement = document.getElementById("descriptionModalDescription");
         const timeElapsedElement = document.getElementById("timeElapsed");
-        const liveIconElement = document.getElementById("liveIcon");
+        // For the live indicator, we use its container.
+        const liveIndicatorContainer = document.querySelector('.live-indicator-container');
+        // For the pause indicator, we use its element.
         const pauseIndicatorElement = document.getElementById("pauseIndicator");
         const videoInfoContainer = document.getElementById("videoInfoContainer");
       
@@ -534,7 +537,7 @@
           return isNaN(num) ? "N/A" : num.toLocaleString();
         }
       
-        // Clears the entire display.
+        // Clears all display elements and hides both indicators.
         function clearDisplay() {
           nowPlayingBox.classList.add("offline");
           offlineIndicatorElement.style.display = "flex";
@@ -553,35 +556,36 @@
           descModal.querySelector("p").textContent = "";
           descModal.classList.remove("active");
           timeElapsedElement.style.display = "none";
-          liveIconElement.style.display = "none";
-          pauseIndicatorElement.style.display = "none";
+          if (liveIndicatorContainer) liveIndicatorContainer.classList.remove("active");
+          if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
           log("Display cleared.");
         }
       
-        // Updates the progress bar and indicators based on real-time video data.
+        // Updates the progress bar and toggles the live and pause indicators.
         function handleRealTimeProgress(data) {
           if (data.duration && data.currentTime !== undefined) {
             const progressPercentage = (data.currentTime / data.duration) * 100;
             progressBarElement.style.width = progressPercentage + "%";
             log(`handleRealTimeProgress: isLive=${data.isLive}, isPaused=${data.isPaused}, progress=${progressPercentage.toFixed(2)}%`);
       
-            // In case both flags are true, prioritize live indicator.
+            // In case both flags are true, log the conflict and prioritize the live indicator.
             if (data.isLive && data.isPaused) {
               log("Conflict: Both isLive and isPaused are true. Prioritizing live indicator.");
             }
       
             if (data.isLive) {
-              liveIconElement.style.display = "block";
-              pauseIndicatorElement.style.display = "none";
-              log("Live indicator displayed.");
+              // Toggle the live indicator container's active class.
+              if (liveIndicatorContainer) liveIndicatorContainer.classList.add("active");
+              if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
+              log("Live stream indicator activated.");
             } else if (data.isPaused) {
-              liveIconElement.style.display = "none";
-              pauseIndicatorElement.style.display = "block";
-              log("Pause indicator displayed.");
+              if (liveIndicatorContainer) liveIndicatorContainer.classList.remove("active");
+              if (pauseIndicatorElement) pauseIndicatorElement.classList.add("active");
+              log("Pause indicator activated.");
             } else {
-              liveIconElement.style.display = "none";
-              pauseIndicatorElement.style.display = "none";
-              log("Both indicators hidden.");
+              if (liveIndicatorContainer) liveIndicatorContainer.classList.remove("active");
+              if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
+              log("Both indicators deactivated.");
             }
           } else {
             progressBarElement.style.width = "0%";
@@ -596,6 +600,7 @@
           offlineIndicatorElement.style.display = "none";
           log("Updating video presence...");
       
+          // If new video data is detected, fade out the container and update the information.
           if (videoTitleElement.textContent !== data.title || videoThumbnailImage.src !== data.thumbnail) {
             videoInfoContainer.classList.add("fade-out");
             setTimeout(function () {
@@ -635,6 +640,7 @@
               log("Video presence updated in UI.");
             }, 500);
           }
+          // Update the progress and indicator statuses.
           handleRealTimeProgress(data);
         }
       
@@ -652,13 +658,12 @@
           }
           log("Received presenceUpdate: " + JSON.stringify(data));
           if (data.presenceType === "video") {
-            // Stop any browsing presence update.
             clearInterval(browsingInterval);
             browsingInterval = null;
             displayVideoPresence(data);
           } else if (data.presenceType === "browsing") {
-            // (Optional) Implement browsing presence handling here.
             log("Browsing presence update received.");
+            // (Optional) Add browsing presence update logic here.
           } else {
             clearDisplay();
           }
@@ -669,7 +674,7 @@
           clearDisplay();
         });
       
-        // Check heartbeat periodically.
+        // Check for heartbeat timeout.
         setInterval(function () {
           if (Date.now() - lastHeartbeatReceived > 60000) {
             log("No heartbeat received in 60 seconds. Marking as offline.");
