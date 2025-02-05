@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="/styles.css" />
   <style>
+    /* Inline styles for description modal display and a fallback for pause indicator */
     #descriptionModal { display: none; }
     #descriptionModal.active { display: block; }
   </style>
@@ -135,6 +136,7 @@
               <text x="50%" y="55%" text-anchor="middle" fill="#FFFFFF" font-size="12" font-family="Arial, sans-serif" dy=".3em">LIVE</text>
             </svg>
           </div>
+          <!-- CSS-based Pause Indicator -->
           <div class="pause-indicator" id="pauseIndicator"></div>
           <div class="description-and-time">
             <button class="toggle-description" id="toggleDescriptionButton" aria-label="Toggle Description">
@@ -237,7 +239,7 @@
         </div>
       </div>
     </div>
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="haru.js"></script>
@@ -446,149 +448,251 @@
       })();
     </script>
     <script>
-      (function () {
-        let lastVideoId = null;
-        let isExtracting = false;
-        let videoElement = null;
-        let currentVideoData = null;
-        const socket = io();
-        socket.on('connect', () => {
-          console.log('Connected to server via Socket.IO');
-        });
-        socket.on('presenceUpdate', (data) => {
-          if (data.presenceType === 'video') {
-            currentVideoData = data;
-            document.getElementById("videoTitle").textContent = data.title || "Playing Video";
-            document.getElementById("channelName").textContent = data.channelTitle || "Channel";
-            document.getElementById("viewCount").textContent = data.viewCount || "0";
-            document.getElementById("likeCount").textContent = data.likeCount || "0";
-            document.getElementById("publishedDate").textContent = data.publishedAt || "";
-            document.getElementById("videoCategory").textContent = data.category || "";
-          } else if (data.presenceType === 'browsing') {
-            currentVideoData = null;
-            document.getElementById("videoTitle").textContent = data.title || "Browsing YouTube";
-            document.getElementById("channelName").textContent = "Browsing";
-          } else if (data.presenceType === 'offline') {
-            currentVideoData = null;
-            document.getElementById("videoTitle").textContent = "Offline";
-          }
-        });
-        function extractPresenceData() {
-          if (isExtracting) return;
-          isExtracting = true;
-          const videoId = new URLSearchParams(window.location.search).get('v');
-          if (!videoId) {
-            socket.emit('updateBrowsingPresence', { presenceType: 'browsing', title: 'YouTube', description: 'Browsing videos' });
-            isExtracting = false;
-            return;
-          }
-          if (videoId === lastVideoId) {
-            isExtracting = false;
-            return;
-          }
-          lastVideoId = videoId;
-          waitForElement('video', 10000).then((elem) => {
-            if (!elem) {
-              retryExtraction();
-              return;
+      const socket = io("https://mikumiku.dev");
+      let lastHeartbeatReceived = Date.now(), isSessionExpired = false;
+      let browsingStartTime = null, browsingInterval = null;
+      const nowPlayingBox = document.getElementById("nowPlayingBox"),
+            videoTitleElement = document.getElementById("videoTitle"),
+            videoThumbnailImage = document.getElementById("videoThumbnailImage"),
+            videoThumbnailElement = document.getElementById("videoThumbnail"),
+            offlineIndicatorElement = document.getElementById("offline-indicator"),
+            progressBarElement = document.getElementById("progressBar"),
+            channelNameElement = document.getElementById("channelName"),
+            viewCountElement = document.getElementById("viewCount"),
+            likeCountElement = document.getElementById("likeCount"),
+            publishedDateElement = document.getElementById("publishedDate"),
+            videoCategoryElement = document.getElementById("videoCategory"),
+            videoDescriptionElement = document.getElementById("descriptionModalDescription"),
+            timeElapsedElement = document.getElementById("timeElapsed"),
+            liveIconElement = document.getElementById("liveIcon"),
+            videoInfoContainer = document.getElementById('videoInfoContainer');
+      function formatNumber(number) {
+        if (typeof number === 'string') number = number.replace(/,/g, '');
+        const num = Number(number);
+        return isNaN(num) ? "N/A" : num.toLocaleString();
+      }
+      function clearDisplay() {
+        nowPlayingBox.classList.add("offline");
+        offlineIndicatorElement.style.display = "flex";
+        videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
+        videoThumbnailImage.src = "";
+        videoThumbnailImage.style.display = "none";
+        videoThumbnailElement.src = "";
+        videoThumbnailElement.style.display = "none";
+        channelNameElement.textContent = "";
+        viewCountElement.textContent = "";
+        likeCountElement.textContent = "";
+        publishedDateElement.textContent = "";
+        videoCategoryElement.textContent = "";
+        progressBarElement.style.width = "0%";
+        const descModal = document.getElementById("descriptionModal");
+        descModal.querySelector("p").textContent = "";
+        descModal.classList.remove("active");
+        timeElapsedElement.style.display = "none";
+        liveIconElement.style.display = "none";
+        document.getElementById("pauseIndicator").style.display = "none";
+      }
+      function clearVideoPresence() {
+        videoInfoContainer.classList.add('fade-out');
+        setTimeout(function () {
+          videoTitleElement.textContent = "";
+          videoThumbnailImage.src = "";
+          videoThumbnailImage.style.display = "none";
+          videoThumbnailElement.src = "";
+          videoThumbnailElement.style.display = "none";
+          channelNameElement.textContent = "";
+          viewCountElement.textContent = "";
+          likeCountElement.textContent = "";
+          publishedDateElement.textContent = "";
+          videoCategoryElement.textContent = "";
+          progressBarElement.style.width = "0%";
+          const descModal = document.getElementById("descriptionModal");
+          descModal.querySelector("p").textContent = "";
+          videoInfoContainer.classList.remove('fade-out');
+        }, 500);
+      }
+      function reinitializeSession() {
+        console.warn("[Client] Reinitializing session due to mismatch or timeout.");
+        clearDisplay();
+        isSessionExpired = true;
+      }
+      function formatTimeElapsed(seconds) {
+        const hours = Math.floor(seconds / 3600),
+              minutes = Math.floor((seconds % 3600) / 60),
+              remainingSeconds = seconds % 60;
+        if (hours > 0) return hours + "h " + minutes + "m " + remainingSeconds + "s";
+        else if (minutes > 0) return minutes + "m " + remainingSeconds + "s";
+        else return remainingSeconds + "s";
+      }
+      function displayVideoPresence(data) {
+        lastHeartbeatReceived = Date.now();
+        nowPlayingBox.classList.remove("offline");
+        offlineIndicatorElement.style.display = "none";
+        if (videoTitleElement.textContent !== data.title || videoThumbnailImage.src !== data.thumbnail) {
+          videoInfoContainer.classList.add('fade-out');
+          setTimeout(function () {
+            videoTitleElement.textContent = data.title || "Unknown Title";
+            if (data.thumbnail) {
+              videoThumbnailImage.src = data.thumbnail;
+              videoThumbnailImage.style.display = "block";
+              videoThumbnailElement.style.display = "none";
+            } else {
+              videoThumbnailImage.src = "";
+              videoThumbnailElement.style.display = "none";
             }
-            videoElement = elem;
-            requestVideoDetails(videoId).then((details) => {
-              if (!details) {
-                retryExtraction();
-                return;
-              }
-              socket.emit('updateVideoProgress', details);
-              currentVideoData = details;
-              videoElement.addEventListener('timeupdate', handleRealTimeUpdates);
-              videoElement.addEventListener('play', updatePlaybackStatus);
-              videoElement.addEventListener('pause', updatePlaybackStatus);
-              isExtracting = false;
-            });
-          }).catch(() => { isExtracting = false; });
+            channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+            viewCountElement.textContent = formatNumber(data.viewCount) || "N/A";
+            likeCountElement.textContent = formatNumber(data.likeCount) || "N/A";
+            if (data.publishedAt) {
+              const publishedDate = new Date(data.publishedAt);
+              publishedDateElement.textContent = publishedDate.toLocaleDateString() || "Published on: N/A";
+            } else {
+              publishedDateElement.textContent = "Published on: N/A";
+            }
+            videoCategoryElement.textContent = data.category || "N/A";
+            const descModal = document.getElementById("descriptionModal");
+            descModal.querySelector("p").textContent = data.description || "No description available.";
+            descModal.classList.remove("active");
+            timeElapsedElement.style.display = "none";
+            if (data.videoSrc) {
+              videoThumbnailElement.src = data.videoSrc;
+              videoThumbnailElement.style.display = "block";
+              videoThumbnailImage.style.display = "none";
+            } else {
+              videoThumbnailElement.style.display = "none";
+              videoThumbnailImage.style.display = "block";
+            }
+            if (data.isLive) {
+              liveIconElement.style.display = "flex";
+              document.getElementById("pauseIndicator").style.display = "none";
+            } else if (data.isPaused) {
+              liveIconElement.style.display = "none";
+              const pauseIndicator = document.getElementById("pauseIndicator");
+              console.log("Video is paused. Displaying pause indicator.");
+              pauseIndicator.style.display = "flex";
+            } else {
+              liveIconElement.style.display = "none";
+              document.getElementById("pauseIndicator").style.display = "none";
+            }
+
+            videoInfoContainer.classList.remove('fade-out');
+            videoInfoContainer.classList.add('fade-in');
+          }, 500);
         }
-        function retryExtraction() {
-          setTimeout(() => {
-            isExtracting = false;
-            extractPresenceData();
-          }, 1000);
+        handleRealTimeProgress(data);
+      }
+      function handleRealTimeProgress(data) {
+        if (data.duration && data.currentTime) {
+          const progressPercentage = (data.currentTime / data.duration) * 100;
+          progressBarElement.style.width = progressPercentage + "%";
+        } else {
+          progressBarElement.style.width = "0%";
         }
-        function waitForElement(selector, timeout) {
-          return new Promise((resolve) => {
-            const interval = 100;
-            let elapsedTime = 0;
-            const timer = setInterval(() => {
-              const element = document.querySelector(selector);
-              if (element) {
-                clearInterval(timer);
-                resolve(element);
-              }
-              elapsedTime += interval;
-              if (elapsedTime >= timeout) {
-                clearInterval(timer);
-                resolve(null);
-              }
-            }, interval);
-          });
+      }
+      function displayBrowsingPresence(data) {
+        lastHeartbeatReceived = Date.now();
+        nowPlayingBox.classList.remove("offline");
+        offlineIndicatorElement.style.display = "none";
+        if (videoTitleElement.textContent !== data.title || videoThumbnailImage.src !== data.thumbnail) {
+          videoInfoContainer.classList.add('fade-out');
+          setTimeout(function () {
+            videoTitleElement.textContent = data.title || "Browsing YouTube";
+            videoThumbnailImage.src = data.thumbnail || "";
+            videoThumbnailImage.style.display = data.thumbnail ? "block" : "none";
+            videoThumbnailElement.style.display = "none";
+            channelNameElement.textContent = "Browsing...";
+            const descModal = document.getElementById("descriptionModal");
+            descModal.querySelector("p").textContent = data.description || "Browsing videos on YouTube";
+            progressBarElement.style.width = "0%";
+            videoInfoContainer.classList.remove('fade-out');
+            videoInfoContainer.classList.add('fade-in');
+          }, 500);
         }
-        async function requestVideoDetails(videoId) {
-          return new Promise((resolve) => {
-            socket.emit('fetchVideoDetails', { videoId }, (response) => {
-              if (response && response.videoDetails) {
-                resolve(response.videoDetails);
-              } else {
-                resolve(null);
-              }
-            });
-          });
+        if (data.timeElapsed !== undefined) {
+          timeElapsedElement.textContent = "Time Elapsed: " + formatTimeElapsed(data.timeElapsed);
+          timeElapsedElement.style.display = "block";
         }
-        let lastVideoUpdateTime = 0;
-        function handleRealTimeUpdates() {
-          const now = Date.now();
-          if (now - lastVideoUpdateTime < 3000) return;
-          lastVideoUpdateTime = now;
-          if (!videoElement) return;
-          const realTimeData = {
-            videoId: lastVideoId,
-            currentTime: videoElement.currentTime,
-            duration: videoElement.duration,
-            isPaused: videoElement.paused,
-            isLive: currentVideoData ? currentVideoData.isLive : false
-          };
-          socket.emit('updateVideoProgress', realTimeData);
+      }
+      function updateBrowsingPresence() {
+        if (browsingStartTime !== null) {
+          const timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
+          timeElapsedElement.textContent = "Time Elapsed: " + formatTimeElapsed(timeElapsed);
+          timeElapsedElement.style.display = "block";
+          const browsingData = { title: 'YouTube', description: 'Browsing videos', thumbnail: '', timeElapsed: timeElapsed, presenceType: 'browsing' };
+          socket.emit('updateBrowsingPresence', browsingData);
         }
-        function updatePlaybackStatus() {
-          if (!videoElement) return;
-          const statusData = {
-            videoId: lastVideoId,
-            currentTime: videoElement.currentTime,
-            duration: videoElement.duration,
-            isPaused: videoElement.paused,
-            isLive: currentVideoData ? currentVideoData.isLive : false
-          };
-          socket.emit('updateVideoProgress', statusData);
+      }
+      function startBrowsingPresence() {
+        if (browsingStartTime === null) browsingStartTime = Date.now();
+        if (!browsingInterval) browsingInterval = setInterval(updateBrowsingPresence, 5000);
+      }
+      function stopBrowsingPresence() {
+        if (browsingInterval) {
+          clearInterval(browsingInterval);
+          browsingInterval = null;
         }
-        (function () {
-          const originalPushState = history.pushState;
-          const originalReplaceState = history.replaceState;
-          history.pushState = function (...args) {
-            originalPushState.apply(this, args);
-            window.dispatchEvent(new Event('locationchange'));
-          };
-          history.replaceState = function (...args) {
-            originalReplaceState.apply(this, args);
-            window.dispatchEvent(new Event('locationchange'));
-          };
-          window.addEventListener('popstate', () => {
-            window.dispatchEvent(new Event('locationchange'));
-          });
-        })();
-        window.addEventListener('locationchange', extractPresenceData);
-        window.addEventListener('yt-navigate-finish', extractPresenceData);
-        window.addEventListener('yt-page-data-updated', extractPresenceData);
-        setInterval(extractPresenceData, 5000);
-        extractPresenceData();
-      })();
+        browsingStartTime = null;
+      }
+      socket.on("connect", function(){
+        console.log("[Socket.IO] Connected to server.");
+        isSessionExpired = false;
+        socket.emit('requestLatestData');
+      });
+      socket.on("presenceUpdate", function(data){
+        if (isSessionExpired) {
+          console.warn("[Client] Ignoring presenceUpdate due to expired session.");
+          return;
+        }
+        console.log("[Socket.IO] Received presenceUpdate:", data);
+        if (data.presenceType === 'video') {
+          stopBrowsingPresence();
+          displayVideoPresence(data);
+        } else if (data.presenceType === 'browsing') {
+          displayBrowsingPresence(data);
+          startBrowsingPresence();
+        } else {
+          clearDisplay();
+        }
+      });
+      socket.on("reinitializeSession", function(data){
+        console.warn("[Socket.IO] Received presenceUpdate: " + JSON.stringify(data));
+        reinitializeSession();
+      });
+      socket.on("sessionExpired", function(data){
+        console.warn("[Socket.IO] Session expired for video ID: " + data.videoId);
+        reinitializeSession();
+      });
+      socket.on("disconnect", function(){
+        console.warn("[Socket.IO] Disconnected from server.");
+        stopBrowsingPresence();
+        clearDisplay();
+      });
+      setInterval(function(){
+        if (Date.now() - lastHeartbeatReceived > 60000) {
+          console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
+          clearDisplay();
+        }
+      }, 5000);
+      const descriptionModal = document.getElementById("descriptionModal");
+      const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
+      descriptionModal.classList.remove("active");
+      toggleDescriptionButton.textContent = ' Show Description';
+      toggleDescriptionButton.addEventListener("click", function(e) {
+        e.stopPropagation();
+        if (descriptionModal.classList.contains("active")) {
+          descriptionModal.classList.remove("active");
+          toggleDescriptionButton.textContent = ' Show Description';
+        } else {
+          descriptionModal.classList.add("active");
+          toggleDescriptionButton.textContent = ' Hide Description';
+        }
+      });
+      document.addEventListener("click", function(e) {
+        if (!descriptionModal.contains(e.target) && e.target !== toggleDescriptionButton) {
+          descriptionModal.classList.remove("active");
+          toggleDescriptionButton.textContent = ' Show Description';
+        }
+      });
     </script>
     <script>
       function updateClocks(){
@@ -730,3 +834,4 @@
   </div>
 </body>
 </html>
+
