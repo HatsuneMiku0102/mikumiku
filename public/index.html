@@ -471,14 +471,17 @@
         let isSocketConnected = false;
 
         // Listen for socket status updates from background script
-        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-          if (message.type === "socketStatus") {
-            isSocketConnected = message.isConnected;
-            if (isSocketConnected) {
-              processMessageQueue();
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+          chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+            if (message.type === "socketStatus") {
+              isSocketConnected = message.isConnected;
+              if (isSocketConnected) {
+                processMessageQueue();
+              }
             }
-          }
-        });
+          });
+        }
+
 
         // Function to enqueue messages
         function enqueueMessage(message, retries = 5, delay = 1000) {
