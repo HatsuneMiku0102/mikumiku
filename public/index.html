@@ -599,9 +599,17 @@
                 videoThumbnailImage.style.display = "block";
               }
         
-
-              // Updated logic for live and pause indicators
-              if (data.isPaused) {
+              // Normalize the isPaused value
+              let isPaused = false;
+              if (typeof data.isPaused === "boolean") {
+                isPaused = data.isPaused;
+              } else if (typeof data.isPaused === "string") {
+                isPaused = data.isPaused.toLowerCase() === "true";
+              } else {
+                isPaused = Boolean(data.isPaused);
+              }
+        
+              if (isPaused) {
                 console.log("Video is paused, showing pause indicator.");
                 liveIconElement.style.display = "none";
                 document.getElementById("pauseIndicator").style.display = "block";
@@ -614,7 +622,6 @@
                 liveIconElement.style.display = "none";
                 document.getElementById("pauseIndicator").style.display = "none";
               }
-
         
               videoInfoContainer.classList.remove("fade-out");
               videoInfoContainer.classList.add("fade-in");
@@ -622,7 +629,6 @@
           }
           handleRealTimeProgress(data);
         }
-
         function handleRealTimeProgress(data) {
           if (data.duration && data.currentTime) {
             const progressPercentage = (data.currentTime / data.duration) * 100;
