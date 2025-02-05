@@ -817,12 +817,14 @@
         drops = new Array(columns).fill(0);
         speeds = Array.from({ length: columns }, () => Math.random() * 0.05 + 0.05);
         phraseCounters = new Array(columns).fill(0);
+        currentDigits = new Array(columns).fill('0');
       });
       const fontSize = 20;
       let columns = Math.floor(canvas.width / fontSize);
       let drops = new Array(columns).fill(0);
       let speeds = Array.from({ length: columns }, () => Math.random() * 0.05 + 0.05);
       let phraseCounters = new Array(columns).fill(0);
+      let currentDigits = new Array(columns).fill('0');
       const binaryChars = "01";
       const colors = ["#00C6FF", "#ff4081"];
       const mikuPhrases = [
@@ -858,7 +860,10 @@
             phraseCounters[i] = 180;
             dropIncrement = speeds[i] * 0.2;
           } else {
-            text = binaryChars.charAt(Math.floor(Math.random() * binaryChars.length));
+            if (Math.random() < 0.1) {
+              currentDigits[i] = binaryChars.charAt(Math.floor(Math.random() * binaryChars.length));
+            }
+            text = currentDigits[i];
             ctx.fillStyle = colors[i % colors.length];
           }
           const x = i * fontSize;
@@ -875,6 +880,7 @@
             drops[i] = 0;
             speeds[i] = Math.random() * 0.05 + 0.05;
             phraseCounters[i] = 0;
+            currentDigits[i] = '0';
           }
           drops[i] += dropIncrement;
         }
@@ -883,6 +889,7 @@
       drawMatrix();
     });
     </script>
+
 
 
 
