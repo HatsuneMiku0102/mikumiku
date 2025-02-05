@@ -78,19 +78,37 @@ mongoose.connect(mongoUrl, {
     logger.info('Connected to MongoDB');
 }).catch((err) => {
     logger.error(`Error connecting to MongoDB: ${err}`);
-    process.exit(1);
+    process.exit(1); // Exit if unable to connect
 });
 
 // ----------------------
 // Define Mongoose Schemas and Models
 // ----------------------
 const GeoDataSchema = new mongoose.Schema({
-    ip: { type: String, required: true, unique: true },
-    city: { type: String, default: 'Unknown' },
-    region: { type: String, default: 'Unknown' },
-    country: { type: String, default: 'Unknown' },
-    timestamp: { type: Date, default: Date.now },
+    ip: {
+        type: String,
+        required: true,
+        unique: true, // Assuming one entry per IP
+    },
+    city: {
+        type: String,
+        default: 'Unknown',
+    },
+    region: {
+        type: String,
+        default: 'Unknown',
+    },
+    country: {
+        type: String,
+        default: 'Unknown',
+    },
+    timestamp: {
+        type: Date,
+        default: Date.now,
+    },
 });
+
+// Explicitly set the collection name to 'geodatas'
 const GeoData = mongoose.model('GeoData', GeoDataSchema, 'geodatas');
 
 const userSchema = new mongoose.Schema({
@@ -104,6 +122,7 @@ const userSchema = new mongoose.Schema({
     refresh_token: { type: String, required: true },
     token_expiry: { type: Date, required: true }
 });
+
 const User = mongoose.model('User', userSchema);
 
 const pendingMemberSchema = new mongoose.Schema({
@@ -111,16 +130,18 @@ const pendingMemberSchema = new mongoose.Schema({
     displayName: { type: String, required: true },
     joinDate: { type: Date, required: true }
 });
+
 const PendingMember = mongoose.model('PendingMember', pendingMemberSchema);
 
 const sessionSchema = new mongoose.Schema({
     state: { type: String, required: true, unique: true },
     user_id: { type: String, required: true },
     session_id: { type: String, required: true },
-    created_at: { type: Date, default: Date.now, expires: 86400 },
+    created_at: { type: Date, default: Date.now, expires: 86400 }, // Expires after 1 day
     ip_address: { type: String },
     user_agent: { type: String }
 });
+
 const Session = mongoose.model('Session', sessionSchema, 'sessions');
 
 const commentSchema = new mongoose.Schema({
@@ -129,6 +150,7 @@ const commentSchema = new mongoose.Schema({
     timestamp: { type: Date, default: Date.now },
     approved: { type: Boolean, default: true }
 });
+
 const Comment = mongoose.model('Comment', commentSchema);
 
 // ----------------------
@@ -137,11 +159,17 @@ const Comment = mongoose.model('Comment', commentSchema);
 const sessionStore = MongoStore.create({
     mongoUrl: mongoUrl,
     collectionName: 'sessions',
-    ttl: 14 * 24 * 60 * 60,
+    ttl: 14 * 24 * 60 * 60, // 14 days
     autoRemove: 'native'
 });
-sessionStore.on('connected', () => { logger.info('Session store connected to MongoDB'); });
-sessionStore.on('error', (error) => { logger.error(`Session store error: ${error}`); });
+
+sessionStore.on('connected', () => {
+    logger.info('Session store connected to MongoDB');
+});
+
+sessionStore.on('error', (error) => {
+    logger.error(`Session store error: ${error}`);
+});
 
 // ----------------------
 // Configure Express Middlewares
@@ -154,26 +182,81 @@ app.use(
     helmet.contentSecurityPolicy({
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com", "https://www.youtube.com", "https://unpkg.com", "https://cdn.jsdelivr.net", "https://cdn.skypack.dev", "https://cdn.socket.io"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
-            imgSrc: ["'self'", "'blob:'", "data:", "https://i.ytimg.com", "https://img.youtube.com", "https://openweathermap.org", "https://i.postimg.cc", "https://threejs.org", "https://www.youtube.com", "https://raw.githubusercontent.com"],
-            fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
-            connectSrc: ["'self'", "'blob:'", "https://www.googleapis.com", "https://*.youtube.com", "https://api.openweathermap.org", "https://cdn.socket.io", "https://mikumiku.dev"],
-            frameSrc: ["'self'", "https://discord.com", "https://www.youtube.com"],
-            mediaSrc: ["'self'", "https://www.youtube.com"],
-            frameAncestors: ["'self'", "https://discord.com"],
+            scriptSrc: [
+                "'self'",
+                "'unsafe-inline'",
+                "https://fonts.googleapis.com",
+                "https://cdnjs.cloudflare.com",
+                "https://www.youtube.com",
+                "https://unpkg.com",
+                "https://cdn.jsdelivr.net",
+                "https://cdn.skypack.dev",
+                "https://cdn.socket.io"
+            ],
+            styleSrc: [
+                "'self'",
+                "'unsafe-inline'",
+                "https://fonts.googleapis.com",
+                "https://cdnjs.cloudflare.com"
+            ],
+            imgSrc: [
+                "'self'",
+                "'blob:'",
+                "data:",
+                "https://i.ytimg.com",
+                "https://img.youtube.com",
+                "https://openweathermap.org",
+                "https://i.postimg.cc",
+                "https://threejs.org",
+                "https://www.youtube.com",
+                "https://raw.githubusercontent.com"
+            ],
+            fontSrc: [
+                "'self'",
+                "https://fonts.gstatic.com",
+                "https://cdnjs.cloudflare.com"
+            ],
+            connectSrc: [
+                "'self'",
+                "'blob:'",
+                "https://www.googleapis.com",
+                "https://*.youtube.com",
+                "https://api.openweathermap.org",
+                "https://cdn.socket.io",
+                "https://mikumiku.dev"
+            ],
+            frameSrc: [
+                "'self'",
+                "https://discord.com",
+                "https://www.youtube.com"
+            ],
+            mediaSrc: [
+                "'self'",
+                "https://www.youtube.com"
+            ],
+            frameAncestors: [
+                "'self'",
+                "https://discord.com"
+            ],
             upgradeInsecureRequests: []
         }
     })
 );
+
 app.set('trust proxy', true);
-app.use(express.static(path.join(__dirname, 'public'), { etag: false, maxAge: 0, lastModified: false }));
+
+app.use(express.static(path.join(__dirname, 'public'), {
+    etag: false,
+    maxAge: 0,
+    lastModified: false
+}));
 
 const adminSessionStore = MongoStore.create({
     mongoUrl: process.env.MONGO_URL,
     collectionName: 'admin_sessions',
-    ttl: 14 * 24 * 60 * 60
+    ttl: 14 * 24 * 60 * 60 // 14 days
 });
+
 app.use(session({
     name: 'admin_session_cookie',
     secret: process.env.SESSION_SECRET || 'your-session-secret',
@@ -184,7 +267,7 @@ app.use(session({
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         sameSite: 'strict',
-        maxAge: 60 * 60 * 1000
+        maxAge: 60 * 60 * 1000 // 1 hour
     }
 }));
 
@@ -235,6 +318,7 @@ async function getBungieToken(code) {
         'Content-Type': 'application/x-www-form-urlencoded',
         'X-API-Key': process.env.X_API_KEY
     };
+
     try {
         const response = await axios.post(url, payload.toString(), { headers });
         logger.info(`Token Response: ${JSON.stringify(response.data)}`);
@@ -266,6 +350,7 @@ async function refreshBungieToken(refreshToken) {
         'Content-Type': 'application/x-www-form-urlencoded',
         'X-API-Key': process.env.X_API_KEY
     };
+
     try {
         const response = await axios.post(url, payload.toString(), { headers });
         logger.info(`Refresh Token Response: ${JSON.stringify(response.data)}`);
@@ -292,6 +377,7 @@ async function getBungieUserInfo(accessToken) {
         'X-API-Key': process.env.X_API_KEY,
         'User-Agent': 'axios/0.21.4'
     };
+
     try {
         const response = await axios.get(url, { headers });
         logger.info(`User Info Response: ${JSON.stringify(response.data)}`);
@@ -315,6 +401,7 @@ async function getBungieUserInfo(accessToken) {
 // Membership Mapping Functions
 // ----------------------
 const membershipFilePath = path.join(__dirname, 'membership_mapping.json');
+
 function updateMembershipMapping(discordId, userInfo) {
     let membershipMapping = {};
     if (fs.existsSync(membershipFilePath)) {
@@ -336,12 +423,14 @@ function updateMembershipMapping(discordId, userInfo) {
         "registration_date": new Date(),
         "clan_id": "4900827"
     };
+
     try {
         fs.writeFileSync(membershipFilePath, JSON.stringify(membershipMapping, null, 2), 'utf8');
         logger.info(`Updated membership mapping file: ${JSON.stringify(membershipMapping, null, 2)}`);
     } catch (err) {
         logger.error(`Error writing to membership mapping file: ${err.message}`);
     }
+
     try {
         const updatedData = fs.readFileSync(membershipFilePath, 'utf8');
         logger.info(`Verified membership mapping file content: ${updatedData}`);
@@ -352,20 +441,24 @@ function updateMembershipMapping(discordId, userInfo) {
 
 async function sendUserInfoToDiscordBot(discordId, userInfo) {
     logger.info(`User info ready to be sent to Discord bot: ${JSON.stringify(userInfo)}`);
-    // Implement sending logic
+    // Implement the logic to send user info to your Discord bot here
 }
 
 // ----------------------
 // Geolocation Functions
 // ----------------------
 const IPINFO_API_KEY = process.env.IPINFO_API_KEY;
+
 if (!IPINFO_API_KEY) {
     logger.error("IPINFO_API_KEY environment variable is not set.");
     process.exit(1);
 }
+
 const getClientIp = (req) => {
     const forwardedFor = req.headers['x-forwarded-for'];
-    if (forwardedFor) return forwardedFor.split(',')[0].trim();
+    if (forwardedFor) {
+        return forwardedFor.split(',')[0].trim();
+    }
     return req.connection.remoteAddress;
 };
 
@@ -375,7 +468,12 @@ async function getGeoLocation(ip) {
         return locationData;
     } catch (error) {
         logger.error(`Error in getGeoLocation: ${error.message}`);
-        return { city: 'Unknown', region: 'Unknown', country: 'Unknown', ip: ip };
+        return {
+            city: 'Unknown',
+            region: 'Unknown',
+            country: 'Unknown',
+            ip: ip
+        };
     }
 }
 
@@ -388,7 +486,9 @@ async function getAccurateGeoLocation(ip) {
         if (maxMindApiKey) {
             try {
                 const maxMindApiResponse = await axios.get(`https://geoip.maxmind.com/geoip/v2.1/city/${ip}`, {
-                    headers: { 'Authorization': `Bearer ${maxMindApiKey}` }
+                    headers: {
+                        'Authorization': `Bearer ${maxMindApiKey}`
+                    }
                 });
                 maxMindData = maxMindApiResponse.data;
             } catch (maxMindError) {
@@ -428,7 +528,14 @@ app.get('/login', async (req, res) => {
     const user_id = req.query.user_id;
     const ip_address = getClientIp(req);
     const user_agent = req.get('User-Agent');
-    const sessionData = new Session({ state, user_id, session_id: req.session.id, ip_address, user_agent });
+    const sessionData = new Session({
+        state,
+        user_id,
+        session_id: req.session.id,
+        ip_address,
+        user_agent
+    });
+
     try {
         await sessionData.save();
         logger.info(`Generated state: ${state}`);
@@ -444,46 +551,62 @@ app.get('/login', async (req, res) => {
 app.get('/callback', async (req, res) => {
     const state = req.query.state;
     const code = req.query.code;
+
     logger.info(`Received state: ${state}`);
     logger.info(`Received code: ${code}`);
+
     try {
         const sessionData = await Session.findOne({ state });
         logger.info(`Session data from DB: ${JSON.stringify(sessionData)}`);
+
         if (!sessionData) {
             logger.warn("State mismatch. Potential CSRF attack.");
             return res.status(400).send('State mismatch. Potential CSRF attack.');
         }
+
         const tokenData = await getBungieToken(code);
         logger.info(`Token data: ${JSON.stringify(tokenData)}`);
+
         if (!tokenData.access_token) {
             throw new Error('Failed to obtain access token');
         }
+
         const accessToken = tokenData.access_token;
         const refreshToken = tokenData.refresh_token;
         const expiresIn = tokenData.expires_in;
         const tokenExpiry = DateTime.now().plus({ seconds: expiresIn }).toJSDate();
+
         const userInfo = await getBungieUserInfo(accessToken);
         logger.info(`User Info Response: ${JSON.stringify(userInfo)}`);
+
         if (!userInfo.Response || !userInfo.Response.destinyMemberships) {
             logger.error(`Incomplete user info response: ${JSON.stringify(userInfo)}`);
             throw new Error('Failed to obtain user information');
         }
+
         const bungieGlobalDisplayName = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayName;
         const bungieGlobalDisplayNameCode = userInfo.Response.bungieNetUser.cachedBungieGlobalDisplayNameCode.toString().padStart(4, '0');
         const bungieName = `${bungieGlobalDisplayName}#${bungieGlobalDisplayNameCode}`;
+
         let primaryMembership = userInfo.Response.destinyMemberships.find(
             membership => membership.membershipId === userInfo.Response.primaryMembershipId
         );
+
         if (!primaryMembership) {
             primaryMembership = userInfo.Response.destinyMemberships[0];
         }
+
         if (!primaryMembership) {
             throw new Error('Failed to obtain platform-specific membership ID');
         }
+
         const membershipId = primaryMembership.membershipId;
         const platformType = primaryMembership.membershipType;
+
         logger.info(`Extracted bungieName: ${bungieName}, membershipId: ${membershipId}, platformType: ${platformType}`);
+
         const discordId = sessionData.user_id;
+
         const user = await User.findOneAndUpdate(
             { membership_id: membershipId },
             {
@@ -498,9 +621,13 @@ app.get('/callback', async (req, res) => {
             },
             { upsert: true, new: true }
         );
+
         await sendUserInfoToDiscordBot(discordId, { bungieName, platformType, membershipId });
+
         updateMembershipMapping(discordId, { bungieName, platformType, membershipId });
+
         await Session.deleteOne({ state });
+
         res.redirect(`/confirmation.html?token=${user.token}`);
     } catch (error) {
         logger.error(`Error during callback: ${error.message}`);
@@ -523,11 +650,13 @@ app.get('/confirmation.html', (req, res) => {
 
 app.get('/api/bungie-name', async (req, res) => {
     const token = req.query.token;
+
     try {
         const user = await User.findOne({ token });
         if (!user) {
             return res.status(400).send({ error: 'Invalid token' });
         }
+
         res.send({ bungie_name: user.bungie_name });
     } catch (err) {
         logger.error(`Error fetching Bungie name: ${err.message}`);
@@ -541,20 +670,26 @@ app.get('/api/bungie-name', async (req, res) => {
 app.post('/login', loginLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
+
         const adminUsername = process.env.ADMIN_USERNAME;
-        const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
+        const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH; // Bcrypt hashed password
+
         if (username !== adminUsername) {
             logger.warn(`Failed login attempt for username: ${username} from IP: ${getClientIp(req)}`);
             return res.status(401).json({ auth: false, message: 'Invalid username or password' });
         }
+
         const isPasswordValid = await bcrypt.compare(password, adminPasswordHash);
+
         if (!isPasswordValid) {
             logger.warn(`Failed login attempt for username: ${username} from IP: ${getClientIp(req)}`);
             return res.status(401).json({ auth: false, message: 'Invalid username or password' });
         }
+
         const token = jwt.sign({ id: adminUsername }, process.env.JWT_SECRET || 'your-jwt-secret-key', {
-            expiresIn: 86400
+            expiresIn: 86400 // 24 hours
         });
+
         res.cookie('token', token, {
             httpOnly: false,
             secure: process.env.NODE_ENV === 'production',
@@ -562,6 +697,7 @@ app.post('/login', loginLimiter, async (req, res) => {
             path: '/',
             maxAge: 86400 * 1000
         });
+
         req.session.save((err) => {
             if (err) {
                 logger.error(`Error saving session: ${err.message}`);
@@ -588,12 +724,14 @@ app.post('/logout', (req, res) => {
             logger.error(`Error destroying session: ${err.message}`);
             return res.status(500).json({ message: 'Error logging out' });
         }
+        
         res.clearCookie('admin_session_cookie', {
             path: '/', 
             httpOnly: true, 
             secure: process.env.NODE_ENV === 'production', 
             sameSite: 'strict'
         });
+
         res.redirect('/auth');
     });
 });
@@ -695,9 +833,11 @@ app.post('/track', async (req, res) => {
         }
         const existingEntry = await GeoData.findOne({ ip: location.ip });
         if (existingEntry) {
-            const hasChanged = (existingEntry.city !== location.city ||
-                                existingEntry.region !== location.region ||
-                                existingEntry.country !== location.country);
+            const hasChanged = (
+                existingEntry.city !== location.city ||
+                existingEntry.region !== location.region ||
+                existingEntry.country !== location.country
+            );
             if (!hasChanged) {
                 logger.info(`No changes detected for IP: ${ip}, skipping update.`);
                 return res.json({ message: 'No changes detected, update skipped.', ip, location });
@@ -727,7 +867,7 @@ app.post('/track', async (req, res) => {
 // ----------------------
 const ipBanSchema = new mongoose.Schema({
     ip: { type: String, required: true, unique: true },
-    blockedAt: { type: Date, default: Date.now }
+    blockedAt: { type: Date, default: Date.now },
 });
 const IPbans = mongoose.model('IPbans', ipBanSchema);
 const HEARTBEAT_TIMEOUT = 60000;
@@ -782,24 +922,30 @@ app.post('/api/unblock-user', async (req, res) => {
 
 io.on('connection', async (socket) => {
     logger.info(`[Socket.IO] Client connected: ${socket.id}`);
+
     const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
     const connectionType = socket.handshake.query.connectionType || 'website';
+
     if (blockedIps.has(ip)) {
         logger.warn(`Blocked connection from IP: ${ip}`);
         socket.disconnect();
         return;
     }
+
     logger.info(`Connection from IP: ${ip}, Type: ${connectionType}`);
+
     if (!activeUsers.has(ip)) {
         activeUsers.set(ip, { id: socket.id, ip, connectionTypes: new Set() });
     }
     activeUsers.get(ip).connectionTypes.add(connectionType);
+
     io.emit('activeUsersUpdate', {
         users: Array.from(activeUsers.values()).map(user => ({
             ip: user.ip,
             connectionTypes: Array.from(user.connectionTypes)
         }))
     });
+
     emitCurrentPresence(socket);
 
     socket.on('presenceUpdate', (data) => {
@@ -869,6 +1015,7 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('updateVideoProgress', (data) => {
+        // Emit presence with 'paused' type if video is paused
         handleVideoPresence(data);
         io.emit('presenceUpdate', { presenceType: currentVideo.isPaused ? 'paused' : 'video', ...currentVideo });
     });
@@ -930,7 +1077,7 @@ function emitCurrentPresence(socket) {
     }
 }
 
-// Modified handleVideoPresence function to set presenceType to 'paused' if video is paused.
+// Modified handleVideoPresence to include pause detection
 function handleVideoPresence(data) {
     const {
         videoId,
@@ -948,7 +1095,7 @@ function handleVideoPresence(data) {
         isLive
     } = data;
 
-    // Determine presence type based on isPaused property.
+    // Set presence type to 'paused' if isPaused is true, otherwise 'video'
     const newPresenceType = isPaused ? 'paused' : 'video';
 
     if (currentVideo && currentVideo.videoId === videoId) {
@@ -988,7 +1135,6 @@ function handleVideoPresence(data) {
         currentBrowsing = null;
         logger.info(`[Socket.IO] New video detected: "${title}" (Presence: ${newPresenceType})`);
     }
-    // Emit updated progress (including isPaused info) to clients.
     handleRealTimeProgress(data);
 }
 
