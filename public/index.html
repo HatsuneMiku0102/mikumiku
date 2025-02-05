@@ -499,33 +499,42 @@
         })();
       </script>
       <script>
+        // Utility logging function for consistent logging.
+        const log = (message) => console.log(`[Haru.js] ${message}`);
+      
+        // Initialize Socket.IO connection.
         const socket = io("https://mikumiku.dev");
-        let lastHeartbeatReceived = Date.now(),
-          isSessionExpired = false;
-        let browsingStartTime = null,
-          browsingInterval = null;
-        let lastCurrentTime = -1;
-        let lastProgressTime = Date.now();
-        const nowPlayingBox = document.getElementById("nowPlayingBox"),
-          videoTitleElement = document.getElementById("videoTitle"),
-          videoThumbnailImage = document.getElementById("videoThumbnailImage"),
-          videoThumbnailElement = document.getElementById("videoThumbnail"),
-          offlineIndicatorElement = document.getElementById("offline-indicator"),
-          progressBarElement = document.getElementById("progressBar"),
-          channelNameElement = document.getElementById("channelName"),
-          viewCountElement = document.getElementById("viewCount"),
-          likeCountElement = document.getElementById("likeCount"),
-          publishedDateElement = document.getElementById("publishedDate"),
-          videoCategoryElement = document.getElementById("videoCategory"),
-          videoDescriptionElement = document.getElementById("descriptionModalDescription"),
-          timeElapsedElement = document.getElementById("timeElapsed"),
-          liveIconElement = document.getElementById("liveIcon"),
-          videoInfoContainer = document.getElementById("videoInfoContainer");
+        let lastHeartbeatReceived = Date.now();
+        let isSessionExpired = false;
+        let browsingStartTime = null;
+        let browsingInterval = null;
+      
+        // Grab DOM elements.
+        const nowPlayingBox = document.getElementById("nowPlayingBox");
+        const videoTitleElement = document.getElementById("videoTitle");
+        const videoThumbnailImage = document.getElementById("videoThumbnailImage");
+        const videoThumbnailElement = document.getElementById("videoThumbnail");
+        const offlineIndicatorElement = document.getElementById("offline-indicator");
+        const progressBarElement = document.getElementById("progressBar");
+        const channelNameElement = document.getElementById("channelName");
+        const viewCountElement = document.getElementById("viewCount");
+        const likeCountElement = document.getElementById("likeCount");
+        const publishedDateElement = document.getElementById("publishedDate");
+        const videoCategoryElement = document.getElementById("videoCategory");
+        const videoDescriptionElement = document.getElementById("descriptionModalDescription");
+        const timeElapsedElement = document.getElementById("timeElapsed");
+        const liveIconElement = document.getElementById("liveIcon");
+        const pauseIndicatorElement = document.getElementById("pauseIndicator");
+        const videoInfoContainer = document.getElementById("videoInfoContainer");
+      
+        // Utility function to format numbers.
         function formatNumber(number) {
           if (typeof number === "string") number = number.replace(/,/g, "");
           const num = Number(number);
           return isNaN(num) ? "N/A" : num.toLocaleString();
         }
+      
+        // Clears the entire display.
         function clearDisplay() {
           nowPlayingBox.classList.add("offline");
           offlineIndicatorElement.style.display = "flex";
@@ -545,44 +554,48 @@
           descModal.classList.remove("active");
           timeElapsedElement.style.display = "none";
           liveIconElement.style.display = "none";
-          document.getElementById("pauseIndicator").style.display = "none";
+          pauseIndicatorElement.style.display = "none";
+          log("Display cleared.");
         }
-        function clearVideoPresence() {
-          videoInfoContainer.classList.add("fade-out");
-          setTimeout(function () {
-            videoTitleElement.textContent = "";
-            videoThumbnailImage.src = "";
-            videoThumbnailImage.style.display = "none";
-            videoThumbnailElement.src = "";
-            videoThumbnailElement.style.display = "none";
-            channelNameElement.textContent = "";
-            viewCountElement.textContent = "";
-            likeCountElement.textContent = "";
-            publishedDateElement.textContent = "";
-            videoCategoryElement.textContent = "";
+      
+        // Updates the progress bar and indicators based on real-time video data.
+        function handleRealTimeProgress(data) {
+          if (data.duration && data.currentTime !== undefined) {
+            const progressPercentage = (data.currentTime / data.duration) * 100;
+            progressBarElement.style.width = progressPercentage + "%";
+            log(`handleRealTimeProgress: isLive=${data.isLive}, isPaused=${data.isPaused}, progress=${progressPercentage.toFixed(2)}%`);
+      
+            // In case both flags are true, prioritize live indicator.
+            if (data.isLive && data.isPaused) {
+              log("Conflict: Both isLive and isPaused are true. Prioritizing live indicator.");
+            }
+      
+            if (data.isLive) {
+              liveIconElement.style.display = "block";
+              pauseIndicatorElement.style.display = "none";
+              log("Live indicator displayed.");
+            } else if (data.isPaused) {
+              liveIconElement.style.display = "none";
+              pauseIndicatorElement.style.display = "block";
+              log("Pause indicator displayed.");
+            } else {
+              liveIconElement.style.display = "none";
+              pauseIndicatorElement.style.display = "none";
+              log("Both indicators hidden.");
+            }
+          } else {
             progressBarElement.style.width = "0%";
-            const descModal = document.getElementById("descriptionModal");
-            descModal.querySelector("p").textContent = "";
-            videoInfoContainer.classList.remove("fade-out");
-          }, 500);
+            log("handleRealTimeProgress: Invalid data received.");
+          }
         }
-        function reinitializeSession() {
-          console.warn("[Client] Reinitializing session due to mismatch or timeout.");
-          clearDisplay();
-          isSessionExpired = true;
-        }
-        function formatTimeElapsed(seconds) {
-          const hours = Math.floor(seconds / 3600),
-            minutes = Math.floor((seconds % 3600) / 60),
-            remainingSeconds = seconds % 60;
-          if (hours > 0) return hours + "h " + minutes + "m " + remainingSeconds + "s";
-          else if (minutes > 0) return minutes + "m " + remainingSeconds + "s";
-          else return remainingSeconds + "s";
-        }
+      
+        // Updates the video presence display.
         function displayVideoPresence(data) {
           lastHeartbeatReceived = Date.now();
           nowPlayingBox.classList.remove("offline");
           offlineIndicatorElement.style.display = "none";
+          log("Updating video presence...");
+      
           if (videoTitleElement.textContent !== data.title || videoThumbnailImage.src !== data.thumbnail) {
             videoInfoContainer.classList.add("fade-out");
             setTimeout(function () {
@@ -619,115 +632,47 @@
               }
               videoInfoContainer.classList.remove("fade-out");
               videoInfoContainer.classList.add("fade-in");
+              log("Video presence updated in UI.");
             }, 500);
           }
           handleRealTimeProgress(data);
         }
-        function handleRealTimeProgress(data) {
-          if (data.duration && data.currentTime !== undefined) {
-            const progressPercentage = (data.currentTime / data.duration) * 100;
-            progressBarElement.style.width = progressPercentage + "%";
-            if (data.isLive) {
-              liveIconElement.style.display = "block";
-              document.getElementById("pauseIndicator").style.display = "none";
-            } else if (data.isPaused) {
-              liveIconElement.style.display = "none";
-              document.getElementById("pauseIndicator").style.display = "block";
-            } else {
-              liveIconElement.style.display = "none";
-              document.getElementById("pauseIndicator").style.display = "none";
-            }
-          } else {
-            progressBarElement.style.width = "0%";
-          }
-        }
-        function displayBrowsingPresence(data) {
-          lastHeartbeatReceived = Date.now();
-          nowPlayingBox.classList.remove("offline");
-          offlineIndicatorElement.style.display = "none";
-          if (videoTitleElement.textContent !== data.title || videoThumbnailImage.src !== data.thumbnail) {
-            videoInfoContainer.classList.add("fade-out");
-            setTimeout(function () {
-              videoTitleElement.textContent = data.title || "Browsing YouTube";
-              videoThumbnailImage.src = data.thumbnail || "";
-              videoThumbnailImage.style.display = data.thumbnail ? "block" : "none";
-              videoThumbnailElement.style.display = "none";
-              channelNameElement.textContent = "Browsing...";
-              const descModal = document.getElementById("descriptionModal");
-              descModal.querySelector("p").textContent = data.description || "Browsing videos on YouTube";
-              progressBarElement.style.width = "0%";
-              videoInfoContainer.classList.remove("fade-out");
-              videoInfoContainer.classList.add("fade-in");
-            }, 500);
-          }
-          if (data.timeElapsed !== undefined) {
-            timeElapsedElement.textContent = "Time Elapsed: " + formatTimeElapsed(data.timeElapsed);
-            timeElapsedElement.style.display = "block";
-          }
-        }
-        function updateBrowsingPresence() {
-          if (browsingStartTime !== null) {
-            const timeElapsed = Math.floor((Date.now() - browsingStartTime) / 1000);
-            timeElapsedElement.textContent = "Time Elapsed: " + formatTimeElapsed(timeElapsed);
-            timeElapsedElement.style.display = "block";
-            const browsingData = {
-              title: "YouTube",
-              description: "Browsing videos",
-              thumbnail: "",
-              timeElapsed: timeElapsed,
-              presenceType: "browsing"
-            };
-            socket.emit("updateBrowsingPresence", browsingData);
-          }
-        }
-        function startBrowsingPresence() {
-          if (browsingStartTime === null) browsingStartTime = Date.now();
-          if (!browsingInterval) browsingInterval = setInterval(updateBrowsingPresence, 5000);
-        }
-        function stopBrowsingPresence() {
-          if (browsingInterval) {
-            clearInterval(browsingInterval);
-            browsingInterval = null;
-          }
-          browsingStartTime = null;
-        }
+      
+        // Socket event listeners.
         socket.on("connect", function () {
-          console.log("[Socket.IO] Connected to server.");
+          log("Connected to server via Socket.IO.");
           isSessionExpired = false;
           socket.emit("requestLatestData");
         });
+      
         socket.on("presenceUpdate", function (data) {
           if (isSessionExpired) {
-            console.warn("[Client] Ignoring presenceUpdate due to expired session.");
+            log("Ignoring presenceUpdate due to expired session.");
             return;
           }
-          console.log("[Socket.IO] Received presenceUpdate:", data);
+          log("Received presenceUpdate: " + JSON.stringify(data));
           if (data.presenceType === "video") {
-            stopBrowsingPresence();
+            // Stop any browsing presence update.
+            clearInterval(browsingInterval);
+            browsingInterval = null;
             displayVideoPresence(data);
           } else if (data.presenceType === "browsing") {
-            displayBrowsingPresence(data);
-            startBrowsingPresence();
+            // (Optional) Implement browsing presence handling here.
+            log("Browsing presence update received.");
           } else {
             clearDisplay();
           }
         });
-        socket.on("reinitializeSession", function (data) {
-          console.warn("[Socket.IO] Received presenceUpdate: " + JSON.stringify(data));
-          reinitializeSession();
-        });
-        socket.on("sessionExpired", function (data) {
-          console.warn("[Socket.IO] Session expired for video ID: " + data.videoId);
-          reinitializeSession();
-        });
+      
         socket.on("disconnect", function () {
-          console.warn("[Socket.IO] Disconnected from server.");
-          stopBrowsingPresence();
+          log("Disconnected from server.");
           clearDisplay();
         });
+      
+        // Check heartbeat periodically.
         setInterval(function () {
           if (Date.now() - lastHeartbeatReceived > 60000) {
-            console.warn("[Heartbeat] No heartbeat received in the last 60 seconds. Marking as offline.");
+            log("No heartbeat received in 60 seconds. Marking as offline.");
             clearDisplay();
           }
         }, 5000);
