@@ -504,7 +504,6 @@
           isSessionExpired = false;
         let browsingStartTime = null,
           browsingInterval = null;
-        // Global variables for progress-based pause detection:
         let lastCurrentTime = -1;
         let lastProgressTime = Date.now();
         const nowPlayingBox = document.getElementById("nowPlayingBox"),
@@ -624,12 +623,10 @@
           }
           handleRealTimeProgress(data);
         }
-        // New approach: using currentTime progress to detect pause.
         function handleRealTimeProgress(data) {
           if (data.duration && data.currentTime !== undefined) {
             const progressPercentage = (data.currentTime / data.duration) * 100;
             progressBarElement.style.width = progressPercentage + "%";
-        
             if (data.isLive) {
               liveIconElement.style.display = "block";
               document.getElementById("pauseIndicator").style.display = "none";
@@ -643,8 +640,6 @@
           } else {
             progressBarElement.style.width = "0%";
           }
-        }
-
         }
         function displayBrowsingPresence(data) {
           lastHeartbeatReceived = Date.now();
@@ -680,7 +675,7 @@
               description: "Browsing videos",
               thumbnail: "",
               timeElapsed: timeElapsed,
-              presenceType: "browsing",
+              presenceType: "browsing"
             };
             socket.emit("updateBrowsingPresence", browsingData);
           }
