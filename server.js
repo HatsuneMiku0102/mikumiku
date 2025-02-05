@@ -1261,15 +1261,11 @@ function handleVideoPresence(data) {
         isLive
     } = data;
 
-    // Define the pause icon URL if the video is paused; adjust this URL as needed.
-    const pauseIconUrl = isPaused ? 'https://example.com/path/to/pause_icon.png' : null;
-
     if (currentVideo && currentVideo.videoId === videoId) {
         Object.assign(currentVideo, {
             currentTime,
             duration,
             isPaused,
-            pauseIcon: pauseIconUrl,
             title,
             description,
             channelTitle,
@@ -1295,7 +1291,6 @@ function handleVideoPresence(data) {
             currentTime,
             duration,
             isPaused,
-            pauseIcon: pauseIconUrl,
             isLive,
             presenceType: 'video'
         };
