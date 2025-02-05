@@ -599,7 +599,7 @@
                 videoThumbnailImage.style.display = "block";
               }
         
-              // Normalize the isPaused value
+              // Normalize isPaused and update the indicators via requestAnimationFrame
               let isPaused = false;
               if (typeof data.isPaused === "boolean") {
                 isPaused = data.isPaused;
@@ -609,19 +609,25 @@
                 isPaused = Boolean(data.isPaused);
               }
         
-              if (isPaused) {
-                console.log("Video is paused, showing pause indicator.");
-                liveIconElement.style.display = "none";
-                document.getElementById("pauseIndicator").style.display = "block";
-              } else if (data.isLive) {
-                console.log("Video is live and not paused, showing live indicator.");
-                liveIconElement.style.display = "block";
-                document.getElementById("pauseIndicator").style.display = "none";
-              } else {
-                console.log("Video is neither live nor paused; hiding both indicators.");
-                liveIconElement.style.display = "none";
-                document.getElementById("pauseIndicator").style.display = "none";
-              }
+              requestAnimationFrame(function () {
+                // Clear any inline styles
+                document.getElementById("pauseIndicator").removeAttribute("style");
+                liveIconElement.removeAttribute("style");
+        
+                if (isPaused) {
+                  console.log("Video is paused, showing pause indicator.");
+                  liveIconElement.style.display = "none";
+                  document.getElementById("pauseIndicator").style.display = "block";
+                } else if (data.isLive) {
+                  console.log("Video is live and not paused, showing live indicator.");
+                  liveIconElement.style.display = "block";
+                  document.getElementById("pauseIndicator").style.display = "none";
+                } else {
+                  console.log("Video is neither live nor paused; hiding both indicators.");
+                  liveIconElement.style.display = "none";
+                  document.getElementById("pauseIndicator").style.display = "none";
+                }
+              });
         
               videoInfoContainer.classList.remove("fade-out");
               videoInfoContainer.classList.add("fade-in");
