@@ -802,77 +802,76 @@
       fetchWeather();
     </script>
     <!-- Eagle-Eye Digital Matrix Animation (Using Japanese Kanji, Slowed, and Polished) -->
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const canvas = document.getElementById('soundWaveCanvas');
-      const ctx = canvas.getContext('2d');
+    <<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const canvas = document.getElementById('soundWaveCanvas');
+  const ctx = canvas.getContext('2d');
+  
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  
+  resizeCanvas();
+  window.addEventListener('resize', () => {
+    resizeCanvas();
+    columns = Math.floor(canvas.width / fontSize);
+    drops = new Array(columns).fill(0);
+    // Update speeds: slower range (0.05 to 0.1)
+    speeds = Array.from({ length: columns }, () => Math.random() * 0.05 + 0.05);
+  });
+  
+  const fontSize = 20;
+  let columns = Math.floor(canvas.width / fontSize);
+  let drops = new Array(columns).fill(0);
+  // Slower speeds: from 0.05 to 0.1
+  let speeds = Array.from({ length: columns }, () => Math.random() * 0.05 + 0.05);
+  
+  // Use a set of Japanese Kanji characters for the main rain effect
+  const kanji = "日月火水木金土神風空心夢永流光影音";
+  const colors = ["#00C6FF", "#ff4081"];
+  // Easter egg texts (in English)
+  const mikuEasterEggs = ["Miku", "Hatsune", "39", "VOCALOID", "Future Pop"];
+  
+  function drawMatrix() {
+    // Use a slightly higher alpha for the background clear to reduce the trail
+    ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = fontSize + "px monospace";
+    
+    for (let i = 0; i < drops.length; i++) {
+      let text, dropIncrement = speeds[i];
       
-      function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+      // Lower chance for easter egg text (0.1% chance)
+      if (Math.random() < 0.001) {
+        text = mikuEasterEggs[Math.floor(Math.random() * mikuEasterEggs.length)];
+        ctx.fillStyle = "#FF69B4";
+        // Slow the easter egg down so it stays on screen longer (nearly stationary)
+        dropIncrement = speeds[i] * 0.05;
+      } else {
+        // Pick a random Kanji character from the string
+        text = kanji.charAt(Math.floor(Math.random() * kanji.length));
+        ctx.fillStyle = colors[i % colors.length];
       }
       
-      resizeCanvas();
-      window.addEventListener('resize', () => {
-        resizeCanvas();
-        columns = Math.floor(canvas.width / fontSize);
-        drops = new Array(columns).fill(0);
-        // Update speeds: slower range (0.05 to 0.1)
-        speeds = Array.from({ length: columns }, () => Math.random() * 0.05 + 0.05);
-      });
+      const x = i * fontSize;
+      const y = Math.floor(drops[i]) * fontSize;
+      ctx.fillText(text, x, y);
       
-      const fontSize = 20;
-      let columns = Math.floor(canvas.width / fontSize);
-      let drops = new Array(columns).fill(0);
-      // Slower speeds: from 0.05 to 0.1
-      let speeds = Array.from({ length: columns }, () => Math.random() * 0.05 + 0.05);
-      
-      // Use a set of Japanese Kanji characters for the main rain effect
-      const kanji = "日月火水木金土神風空心夢永流光影音";
-      const colors = ["#00C6FF", "#ff4081"];
-      // Easter egg texts (in English)
-      const mikuEasterEggs = ["Miku", "Hatsune", "39", "VOCALOID", "Future Pop"];
-      
-      function drawMatrix() {
-        // Use a slightly higher alpha for the background clear to reduce the trail
-        ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.font = fontSize + "px monospace";
-        
-        for (let i = 0; i < drops.length; i++) {
-          let text, dropIncrement = speeds[i];
-          
-          // Lower chance for easter egg text (0.1% chance)
-          if (Math.random() < 0.001) {
-            text = mikuEasterEggs[Math.floor(Math.random() * mikuEasterEggs.length)];
-            ctx.fillStyle = "#FF69B4";
-            // Slow the easter egg down so it stays on screen longer (nearly stationary)
-            dropIncrement = speeds[i] * 0.05;
-          } else {
-            // Pick a random Kanji character from the string
-            text = kanji.charAt(Math.floor(Math.random() * kanji.length));
-            ctx.fillStyle = colors[i % colors.length];
-          }
-          
-          const x = i * fontSize;
-          const y = Math.floor(drops[i]) * fontSize;
-          ctx.fillText(text, x, y);
-          
-          // Reset drop if it goes off the bottom with a chance
-          if (y > canvas.height && Math.random() > 0.995) {
-            drops[i] = 0;
-            speeds[i] = Math.random() * 0.05 + 0.05;
-          }
-          drops[i] += dropIncrement;
-        }
-        
-        requestAnimationFrame(drawMatrix);
+      // Reset drop if it goes off the bottom with a chance
+      if (y > canvas.height && Math.random() > 0.995) {
+        drops[i] = 0;
+        speeds[i] = Math.random() * 0.05 + 0.05;
       }
-      
-      drawMatrix();
-    });
-    </script>
-
+      drops[i] += dropIncrement;
+    }
+    
+    requestAnimationFrame(drawMatrix);
+  }
+  
+  drawMatrix();
+});
+</script>
   </div>
 </body>
 </html>
