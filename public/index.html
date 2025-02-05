@@ -629,28 +629,22 @@
           if (data.duration && data.currentTime !== undefined) {
             const progressPercentage = (data.currentTime / data.duration) * 100;
             progressBarElement.style.width = progressPercentage + "%";
-            const now = Date.now();
-            // If progress hasn't advanced significantly (threshold 0.01 seconds)
-            if (Math.abs(data.currentTime - lastCurrentTime) < 0.01) {
-              if (now - lastProgressTime > 4000) {
-                // Considered paused: hide live indicator and show pause indicator.
-                liveIconElement.style.display = "none";
-                document.getElementById("pauseIndicator").style.display = "block";
-              }
-            } else {
-              lastCurrentTime = data.currentTime;
-              lastProgressTime = now;
-              // Resume normal behavior.
+        
+            if (data.isLive) {
+              liveIconElement.style.display = "block";
               document.getElementById("pauseIndicator").style.display = "none";
-              if (data.isLive) {
-                liveIconElement.style.display = "block";
-              } else {
-                liveIconElement.style.display = "none";
-              }
+            } else if (data.isPaused) {
+              liveIconElement.style.display = "none";
+              document.getElementById("pauseIndicator").style.display = "block";
+            } else {
+              liveIconElement.style.display = "none";
+              document.getElementById("pauseIndicator").style.display = "none";
             }
           } else {
             progressBarElement.style.width = "0%";
           }
+        }
+
         }
         function displayBrowsingPresence(data) {
           lastHeartbeatReceived = Date.now();
