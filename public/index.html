@@ -6,7 +6,7 @@
   <title>Miku.dev | Home</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <!-- External stylesheet includes dynamic progress bar styling, etc. -->
+  <!-- Your external CSS (/styles.css) must include the progress bar animation styles -->
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
@@ -252,7 +252,7 @@
     <script src="haru.js"></script>
     <script src="clockwork.js"></script>
     <script>
-      // On window load, reveal the page container
+      // Reveal page on load
       window.addEventListener("load", function() {
         document.getElementById("pageContainer").classList.add("loaded");
       });
@@ -263,11 +263,7 @@
         const titleBar = document.getElementById('titleBar');
         if (titleBar) {
           window.addEventListener('scroll', function () {
-            if (window.scrollY > 50) {
-              titleBar.classList.add('scrolled');
-            } else {
-              titleBar.classList.remove('scrolled');
-            }
+            titleBar.classList.toggle('scrolled', window.scrollY > 50);
           });
         }
         const menuButton = document.getElementById('menuButton');
@@ -293,26 +289,17 @@
             document.body.classList.remove('overlay-active');
           }
         });
-        // Personality button behavior
+        // Personality buttons
         const personalityButtons = document.querySelectorAll('.personality-button');
         const siteTitle = document.querySelector('.site-title');
         if (personalityButtons.length > 0 && siteTitle) {
-          personalityButtons.forEach(function (button) {
+          personalityButtons.forEach(button => {
             button.addEventListener('click', function () {
               const personality = button.textContent.trim();
-              switch (personality) {
-                case 'Melody':
-                  siteTitle.style.color = '#ff4081';
-                  break;
-                case 'Harmony':
-                  siteTitle.style.color = '#00c6ff';
-                  break;
-                case 'Rhythm':
-                  siteTitle.style.color = '#ffffff';
-                  break;
-                default:
-                  siteTitle.style.color = '#00c6ff';
-              }
+              if (personality === 'Melody') siteTitle.style.color = '#ff4081';
+              else if (personality === 'Harmony') siteTitle.style.color = '#00c6ff';
+              else if (personality === 'Rhythm') siteTitle.style.color = '#ffffff';
+              else siteTitle.style.color = '#00c6ff';
               personalityButtons.forEach(btn => btn.classList.remove('active'));
               button.classList.add('active');
             });
@@ -371,7 +358,7 @@
         }
         function trapFocus(modal) {
           const focusableElements = modal.querySelectorAll(CONFIG.focusableSelectors);
-          if (focusableElements.length === 0) return;
+          if (!focusableElements.length) return;
           const firstFocusableElement = focusableElements[0],
                 lastFocusableElement = focusableElements[focusableElements.length - 1];
           modal.addEventListener('keydown', function(event) {
@@ -701,7 +688,7 @@
       // Description box toggle
       const descriptionModal = document.getElementById("descriptionModal");
       const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
-      // Ensure the description box is hidden initially
+      // Ensure description box is hidden on load
       descriptionModal.classList.remove("active");
       toggleDescriptionButton.textContent = ' Show Description';
       toggleDescriptionButton.addEventListener("click", function(){
@@ -721,7 +708,7 @@
       });
     </script>
     <script>
-      // Update clocks
+      // Clock update
       function updateClocks(){
         const now = new Date();
         const localTime = now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
@@ -748,7 +735,7 @@
         } catch(error){
           console.error('Error fetching weather data:', error);
           const weatherIconElement = document.getElementById('weather-icon');
-          if(weatherIconElement) weatherIconElement.style.display = 'none';
+          if (weatherIconElement) weatherIconElement.style.display = 'none';
           document.getElementById('weather-description').innerText = 'Unable to fetch weather data.';
         }
       }
@@ -764,7 +751,7 @@
         document.getElementById('humidity').innerText = "Humidity: " + humidity + "%";
         document.getElementById('wind-speed').innerText = "Wind: " + windSpeed + " m/s";
         const weatherIconElement = document.getElementById('weather-icon');
-        if(weatherIconElement){
+        if (weatherIconElement) {
           weatherIconElement.src = iconUrl;
           weatherIconElement.style.display = 'block';
         }
@@ -773,7 +760,7 @@
       fetchWeather();
     </script>
     <script>
-      // Digital Matrix animation for binary code (with Miku-themed easter eggs)
+      // Digital Matrix animation (binary code with Miku-themed easter eggs)
       document.addEventListener('DOMContentLoaded', () => {
         const canvas = document.getElementById('soundWaveCanvas');
         const ctx = canvas.getContext('2d');
