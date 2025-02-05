@@ -16,6 +16,7 @@
     />
     <link rel="stylesheet" href="/styles.css" />
     <style>
+      /* Temporary inline style for description modal toggling */
       #descriptionModal {
         display: none;
       }
@@ -175,13 +176,12 @@
                 <h2 id="descriptionModalTitle">Description</h2>
                 <p id="descriptionModalDescription">Loading description...</p>
               </div>
+              <!-- Centered time elapsed display -->
               <div id="timeElapsedContainer" class="time-elapsed">
                 <i class="fas fa-clock"></i> <span id="timeElapsed">0s</span>
               </div>
             </div>
-            <div id="loadingSpinner" class="loading-spinner" aria-label="Loading">
-              <i class="fas fa-spinner fa-spin"></i>
-            </div>
+            <!-- Removed the loading spinner (spinning circle) -->
           </div>
           <hr class="animated-divider" />
           <aside class="weather-section">
@@ -589,6 +589,12 @@
             progressBarElement.style.width = "0%";
             log("handleRealTimeProgress: Invalid data received.");
           }
+          // Toggle continuous playing animation on the video title.
+          if (!data.isPaused && !data.isLive) {
+            videoTitleElement.classList.add("playing");
+          } else {
+            videoTitleElement.classList.remove("playing");
+          }
         }
       
         // Updates the video presence display.
@@ -603,6 +609,11 @@
             videoInfoContainer.classList.add("fade-out");
             setTimeout(function () {
               videoTitleElement.textContent = data.title || "Unknown Title";
+              // Trigger title change animation:
+              videoTitleElement.classList.remove("video-title-changed");
+              void videoTitleElement.offsetWidth;
+              videoTitleElement.classList.add("video-title-changed");
+      
               if (data.thumbnail) {
                 videoThumbnailImage.src = data.thumbnail;
                 videoThumbnailImage.style.display = "block";
@@ -624,7 +635,7 @@
               const descModal = document.getElementById("descriptionModal");
               descModal.querySelector("p").textContent = data.description || "No description available.";
               descModal.classList.remove("active");
-              timeElapsedElement.style.display = "none";
+              timeElapsedElement.style.display = "block";
               if (data.videoSrc) {
                 videoThumbnailElement.src = data.videoSrc;
                 videoThumbnailElement.style.display = "block";
