@@ -17,7 +17,6 @@
   --padding-large: 2rem;
   --margin-base: 1rem;
   --margin-large: 2rem;
-  /* Speed up transitions and animations */
   --transition-duration: 0.25s;
   --animation-duration: 0.6s;
   --border-radius: 8px;
@@ -446,7 +445,6 @@ body {
   align-items: center;
   gap: 1rem;
   animation: fadeInUp 0.6s ease-out forwards;
-  /* Reduced delay for quicker load */
   animation-delay: 0.2s;
 }
 
@@ -571,46 +569,62 @@ body {
   animation-delay: 0.9s;
 }
 
+/* Live Indicator */
+.live-indicator-container {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: none; /* Hidden by default */
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: rgba(255, 0, 0, 0.9); /* Bright red background */
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 1rem;
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+  transition: opacity 0.3s ease;
+}
 
-/* CSS-based Pause Indicator – Super Visible for Testing */
+.live-indicator-container.active {
+  display: flex;
+  opacity: 1;
+}
+
+.live-indicator-container .live-icon {
+  width: 32px;
+  height: 32px;
+  margin-right: 0.5rem;
+  filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.8));
+}
+
+/* Pause Indicator */
 .pause-indicator {
   position: absolute;
   top: 10px;
   right: 10px;
+  display: none; /* Hidden by default */
   width: 60px;
   height: 60px;
-  z-index: 10;
-  background: rgba(255, 64, 129, 0.85);
+  background: rgba(255, 64, 129, 0.9);
   border-radius: 8px;
-  display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
+  box-shadow: 0 0 10px rgba(255, 64, 129, 0.8);
   transition: opacity 0.3s ease;
 }
 
-.pause-indicator.show {
+.pause-indicator::after {
+  content: "PAUSED";
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.pause-indicator.active {
+  display: flex;
   opacity: 1;
 }
-
-.pause-indicator::before,
-.pause-indicator::after {
-  content: "";
-  width: 10px;
-  height: 70%;
-  background: #ffffff;
-  border-radius: 2px;
-  transition: background 0.3s ease;
-}
-
-.pause-indicator::before {
-  margin-right: 4px;
-}
-
-.pause-indicator::after {
-  margin-left: 4px;
-}
-
 
 /* Futuristic Progress Bar */
 .progress-bar-container {
@@ -660,98 +674,6 @@ body {
   0% { transform: translateX(-100%); opacity: 0; }
   50% { opacity: 1; }
   100% { transform: translateX(100%); opacity: 0; }
-}
-
-/* Live Indicator */
-.live-indicator-container {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.live-indicator-container.show {
-  opacity: 1;
-}
-
-.live-icon {
-  width: 32px;
-  height: 32px;
-  border: 2px solid var(--secondary-color);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: glowPulse 2s ease-in-out infinite;
-  transition: transform 0.3s ease;
-}
-
-.live-icon.active {
-  display: flex;
-  opacity: 1;
-}
-
-@keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 5px var(--primary-color); }
-  50% { box-shadow: 0 0 15px var(--secondary-color); }
-}
-
-/* Time Elapsed */
-.time-elapsed {
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  opacity: 0;
-  animation: fadeIn 0.6s ease-out forwards;
-  animation-delay: 0.8s;
-}
-
-/* Toggle Description */
-.toggle-description {
-  background: var(--primary-color);
-  border: none;
-  color: var(--text-color);
-  padding: 0.5rem 1rem;
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: background-color var(--transition-duration) ease, transform var(--transition-duration) ease;
-  opacity: 0;
-  animation: fadeIn 0.6s ease-out forwards;
-  animation-delay: 0.9s;
-}
-
-.toggle-description:hover {
-  background-color: var(--secondary-color);
-  transform: scale(1.05);
-}
-
-/* Loading Spinner */
-.loading-spinner {
-  display: none;
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top: 4px solid var(--secondary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-top: 1rem;
-}
-
-.loading-spinner.active {
-  display: block;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 /* Video Info Container Animations */
