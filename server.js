@@ -1261,11 +1261,15 @@ function handleVideoPresence(data) {
         isLive
     } = data;
 
+    // Define the pause icon URL if the video is paused; adjust this URL as needed.
+    const pauseIconUrl = isPaused ? 'https://example.com/path/to/pause_icon.png' : null;
+
     if (currentVideo && currentVideo.videoId === videoId) {
         Object.assign(currentVideo, {
             currentTime,
             duration,
             isPaused,
+            pauseIcon: pauseIconUrl,
             title,
             description,
             channelTitle,
@@ -1276,7 +1280,7 @@ function handleVideoPresence(data) {
             thumbnail,
             isLive
         });
-        logger.info(`[Socket.IO] Updated video: "${title}" (Live: ${isLive})`);
+        logger.info(`[Socket.IO] Updated video: "${title}" (Live: ${isLive}, Paused: ${isPaused})`);
     } else {
         currentVideo = {
             videoId,
@@ -1291,13 +1295,15 @@ function handleVideoPresence(data) {
             currentTime,
             duration,
             isPaused,
+            pauseIcon: pauseIconUrl,
             isLive,
             presenceType: 'video'
         };
         currentBrowsing = null;
-        logger.info(`[Socket.IO] New video detected: "${title}" (Live: ${isLive})`);
+        logger.info(`[Socket.IO] New video detected: "${title}" (Live: ${isLive}, Paused: ${isPaused})`);
     }
 }
+
 
 function handleOfflinePresence() {
     currentVideo = null;
