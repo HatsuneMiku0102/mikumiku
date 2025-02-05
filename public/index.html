@@ -6,8 +6,18 @@
   <title>Miku.dev | Home</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <!-- Your external CSS (/styles.css) must include the progress bar animation styles -->
+  <!-- External stylesheet including progress bar animation and other styles -->
   <link rel="stylesheet" href="/styles.css" />
+  <!-- Inline CSS to enforce the description box behavior -->
+  <style>
+    /* Ensure description box is hidden by default */
+    #descriptionModal {
+      display: none;
+    }
+    #descriptionModal.active {
+      display: block;
+    }
+  </style>
 </head>
 <body>
   <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
@@ -233,7 +243,9 @@
     <!-- Consent Modal -->
     <div id="consentModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="consentModalTitle" aria-describedby="consentModalDescription">
       <div class="modal-content">
-        <button class="close-button" id="closeConsentModal" aria-label="Close Consent Modal"><i class="fas fa-times"></i></button>
+        <button class="close-button" id="closeConsentModal" aria-label="Close Consent Modal">
+          <i class="fas fa-times"></i>
+        </button>
         <h2 id="consentModalTitle"><i class="fas fa-cookie"></i> Cookie Consent</h2>
         <p id="consentModalDescription">
           I use cookies stored in your browser to enhance your experience on my personal website. These cookies are essential for the website's functionality. By clicking "Accept," you consent to their use. You can also manage your cookie preferences in the "Manage Cookie Preferences" section.
@@ -252,13 +264,13 @@
     <script src="haru.js"></script>
     <script src="clockwork.js"></script>
     <script>
-      // Reveal page on load
+      // Reveal the page container on window load
       window.addEventListener("load", function() {
         document.getElementById("pageContainer").classList.add("loaded");
       });
     </script>
     <script>
-      // Header scrolling behavior and overlay menu toggle
+      // Header scroll behavior and overlay menu toggle
       document.addEventListener('DOMContentLoaded', function () {
         const titleBar = document.getElementById('titleBar');
         if (titleBar) {
@@ -292,7 +304,7 @@
         // Personality buttons
         const personalityButtons = document.querySelectorAll('.personality-button');
         const siteTitle = document.querySelector('.site-title');
-        if (personalityButtons.length > 0 && siteTitle) {
+        if (personalityButtons.length && siteTitle) {
           personalityButtons.forEach(button => {
             button.addEventListener('click', function () {
               const personality = button.textContent.trim();
@@ -691,7 +703,8 @@
       // Ensure description box is hidden on load
       descriptionModal.classList.remove("active");
       toggleDescriptionButton.textContent = ' Show Description';
-      toggleDescriptionButton.addEventListener("click", function(){
+      toggleDescriptionButton.addEventListener("click", function(e) {
+        e.stopPropagation();
         if (descriptionModal.classList.contains("active")) {
           descriptionModal.classList.remove("active");
           toggleDescriptionButton.textContent = ' Show Description';
@@ -700,8 +713,9 @@
           toggleDescriptionButton.textContent = ' Hide Description';
         }
       });
-      window.addEventListener("click", function(event){
-        if (event.target === descriptionModal) {
+      // Hide the description if clicking outside of it (except on the button)
+      document.addEventListener("click", function(e) {
+        if (!descriptionModal.contains(e.target) && e.target !== toggleDescriptionButton) {
           descriptionModal.classList.remove("active");
           toggleDescriptionButton.textContent = ' Show Description';
         }
@@ -760,7 +774,7 @@
       fetchWeather();
     </script>
     <script>
-      // Digital Matrix animation (binary code with Miku-themed easter eggs)
+      // Digital Matrix animation for binary code with Miku-themed easter eggs
       document.addEventListener('DOMContentLoaded', () => {
         const canvas = document.getElementById('soundWaveCanvas');
         const ctx = canvas.getContext('2d');
