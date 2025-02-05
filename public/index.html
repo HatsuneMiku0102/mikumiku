@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Miku.dev | Home</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -615,43 +618,34 @@
                 videoThumbnailElement.style.display = "none";
                 videoThumbnailImage.style.display = "block";
               }
-        
-              // For this approach, we do not use an isPaused flag.
-              // Instead, we rely on the progress (currentTime) being stagnant.
-              // The indicator logic will be handled in handleRealTimeProgress.
-        
               videoInfoContainer.classList.remove("fade-out");
               videoInfoContainer.classList.add("fade-in");
             }, 500);
           }
           handleRealTimeProgress(data);
         }
-        // In this approach, we use the progress (data.currentTime) to detect pauses.
+        // New approach: using currentTime progress to detect pause.
         function handleRealTimeProgress(data) {
           if (data.duration && data.currentTime !== undefined) {
             const progressPercentage = (data.currentTime / data.duration) * 100;
             progressBarElement.style.width = progressPercentage + "%";
-        
             const now = Date.now();
-            // Check if currentTime has changed significantly (threshold 0.01 seconds)
+            // If progress hasn't advanced significantly (threshold 0.01 seconds)
             if (Math.abs(data.currentTime - lastCurrentTime) < 0.01) {
-              // If progress hasn't moved and more than 4 seconds have elapsed, mark as paused.
               if (now - lastProgressTime > 4000) {
-                // Show pause indicator, hide live icon.
+                // Considered paused: hide live indicator and show pause indicator.
                 liveIconElement.style.display = "none";
                 document.getElementById("pauseIndicator").style.display = "block";
               }
             } else {
-              // Progress is moving; update the trackers.
               lastCurrentTime = data.currentTime;
               lastProgressTime = now;
-              // If the video is live, show the live indicator; otherwise, hide both.
+              // Resume normal behavior.
+              document.getElementById("pauseIndicator").style.display = "none";
               if (data.isLive) {
                 liveIconElement.style.display = "block";
-                document.getElementById("pauseIndicator").style.display = "none";
               } else {
                 liveIconElement.style.display = "none";
-                document.getElementById("pauseIndicator").style.display = "none";
               }
             }
           } else {
