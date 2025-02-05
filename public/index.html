@@ -806,7 +806,6 @@
     document.addEventListener('DOMContentLoaded', () => {
       const canvas = document.getElementById('soundWaveCanvas');
       const ctx = canvas.getContext('2d');
-    
       function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -819,13 +818,12 @@
         speeds = Array.from({ length: columns }, () => Math.random() * 0.05 + 0.05);
         phraseCounters = new Array(columns).fill(0);
       });
-    
       const fontSize = 20;
       let columns = Math.floor(canvas.width / fontSize);
       let drops = new Array(columns).fill(0);
       let speeds = Array.from({ length: columns }, () => Math.random() * 0.05 + 0.05);
       let phraseCounters = new Array(columns).fill(0);
-      const kanji = "日月火水木金土神風空心夢永流光影音";
+      const binaryChars = "01";
       const colors = ["#00C6FF", "#ff4081"];
       const mikuPhrases = [
         "Hatsune Miku",
@@ -844,7 +842,6 @@
         ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.font = fontSize + "px monospace";
-        // Add a shadow to enhance readability
         ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
         ctx.shadowBlur = 4;
         const trailLength = 6;
@@ -861,7 +858,7 @@
             phraseCounters[i] = 180;
             dropIncrement = speeds[i] * 0.2;
           } else {
-            text = kanji.charAt(Math.floor(Math.random() * kanji.length));
+            text = binaryChars.charAt(Math.floor(Math.random() * binaryChars.length));
             ctx.fillStyle = colors[i % colors.length];
           }
           const x = i * fontSize;
@@ -872,7 +869,7 @@
             if (ty < 0) break;
             let alpha = 1 - j / trailLength;
             ctx.fillStyle = hexToRGBA(colors[i % colors.length], alpha);
-            ctx.fillText(kanji.charAt(Math.floor(Math.random() * kanji.length)), x, ty);
+            ctx.fillText(binaryChars.charAt(Math.floor(Math.random() * binaryChars.length)), x, ty);
           }
           if (y > canvas.height && Math.random() > 0.995) {
             drops[i] = 0;
@@ -886,6 +883,7 @@
       drawMatrix();
     });
     </script>
+
 
 
 
