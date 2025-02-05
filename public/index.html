@@ -565,16 +565,23 @@
             if (data.isLive) {
               liveIconElement.style.display = "flex";
               document.getElementById("pauseIndicator").style.display = "none";
-            } else if (data.isPaused) {
-              liveIconElement.style.display = "none";
-              const pauseIndicator = document.getElementById("pauseIndicator");
-              console.log("Video is paused. Displaying pause indicator.");
-              pauseIndicator.style.display = "flex";
-              pauseIndicator.style.opacity = "1";
+            if (data.isPaused) {
+                // If the video is paused, show the pause indicator regardless of live status.
+                liveIconElement.style.display = "none";
+                const pauseIndicator = document.getElementById("pauseIndicator");
+                console.log("Video is paused. Displaying pause indicator.");
+                pauseIndicator.style.display = "flex";
+                pauseIndicator.style.opacity = "1";
+            } else if (data.isLive) {
+                // If not paused and the video is live, show the live indicator.
+                liveIconElement.style.display = "flex";
+                document.getElementById("pauseIndicator").style.display = "none";
             } else {
-              liveIconElement.style.display = "none";
-              document.getElementById("pauseIndicator").style.display = "none";
+                // Otherwise, hide both indicators.
+                liveIconElement.style.display = "none";
+                document.getElementById("pauseIndicator").style.display = "none";
             }
+
             videoInfoContainer.classList.remove('fade-out');
             videoInfoContainer.classList.add('fade-in');
           }, 500);
