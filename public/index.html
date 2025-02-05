@@ -8,9 +8,16 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="/styles.css" />
   <style>
-    /* Add or override description box styling */
+    /* Override description box styling for a neater display */
     #descriptionModal {
       display: none;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 1rem;
+      border-radius: var(--border-radius);
+      text-align: left;
+      line-height: 1.4;
+      max-height: 150px;
+      overflow-y: auto;
     }
     #descriptionModal.active {
       display: block;
@@ -330,31 +337,159 @@
     <script>
       (function(){
         'use strict';
-        var CONFIG={consentCookieName:'cookieConsent',consentCookieExpiryDays:365,consentCookiePath:'/',consentModalId:'consentModal',acceptButtonId:'acceptConsent',declineButtonId:'declineConsent',manageButtonIds:['manageConsentModal','manageConsentFooter'],closeButtonId:'closeConsentModal',cookieCategories:{necessary:{enabled:true,description:'Necessary cookies enable core functionalities and security features of the website.'}},focusableSelectors:'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'};
-        var consentModal=document.getElementById(CONFIG.consentModalId),
-            acceptButton=document.getElementById(CONFIG.acceptButtonId),
-            declineButton=document.getElementById(CONFIG.declineButtonId),
-            closeButton=document.getElementById(CONFIG.closeButtonId),
-            manageConsentButtons=CONFIG.manageButtonIds.map(function(id){return document.getElementById(id);});
-        function setCookie(name,value,days,path){var expires="";if(days){var date=new Date();date.setTime(date.getTime()+(days*24*60*60*1000));expires="; expires="+date.toUTCString();}var secure=location.protocol==='https:'?"; Secure":"";var sameSite="; SameSite=Lax";document.cookie=name+"="+(value||"")+expires+"; path="+path+secure+sameSite;}
-        function getCookie(name){var nameEQ=name+"=";var ca=document.cookie.split(';');for(var i=0;i<ca.length;i++){var c=ca[i].trim();if(c.indexOf(nameEQ)===0)return c.substring(nameEQ.length,c.length);}return null;}
-        function eraseCookie(name,path){document.cookie=name+'=; Max-Age=-99999999; path='+path+';';}
-        function trapFocus(modal){var focusableElements=modal.querySelectorAll(CONFIG.focusableSelectors);if(focusableElements.length===0)return;var firstFocusableElement=focusableElements[0],lastFocusableElement=focusableElements[focusableElements.length-1];function handleFocus(event){if(event.key==='Tab'){if(event.shiftKey){if(document.activeElement===firstFocusableElement){event.preventDefault();lastFocusableElement.focus();}}else{if(document.activeElement===lastFocusableElement){event.preventDefault();firstFocusableElement.focus();}}}if(event.key==='Escape'){event.preventDefault();}}modal.addEventListener('keydown',handleFocus);}
-        function showModal(){consentModal.classList.add('active');document.body.classList.add('modal-active');consentModal.setAttribute('aria-hidden','false');var focusableElements=consentModal.querySelectorAll(CONFIG.focusableSelectors);if(focusableElements.length){focusableElements[0].focus();}trapFocus(consentModal);}
-        function hideModal(){consentModal.classList.remove('active');document.body.classList.remove('modal-active');consentModal.setAttribute('aria-hidden','true');}
-        function initConsentModal(){var existingConsent=getCookie(CONFIG.consentCookieName);if(!existingConsent){showModal();}else{applyConsent(existingConsent);}
-        acceptButton.addEventListener('click',function(){setCookie(CONFIG.consentCookieName,JSON.stringify({necessary:true}),CONFIG.consentCookieExpiryDays,CONFIG.consentCookiePath);hideModal();initializeCookies();});
-        declineButton.addEventListener('click',function(){setCookie(CONFIG.consentCookieName,JSON.stringify({necessary:false}),CONFIG.consentCookieExpiryDays,CONFIG.consentCookiePath);hideModal();disableCookies();});
-        manageConsentButtons.forEach(function(button){if(button){button.addEventListener('click',function(event){event.preventDefault();showModal();});}});
-        closeButton.addEventListener('click',function(){alert('Please make a choice regarding cookie usage.');});
-        window.addEventListener('click',function(event){if(event.target===consentModal){alert('Please make a choice regarding cookie usage.');}});
+        var CONFIG = {
+          consentCookieName: 'cookieConsent',
+          consentCookieExpiryDays: 365,
+          consentCookiePath: '/',
+          consentModalId: 'consentModal',
+          acceptButtonId: 'acceptConsent',
+          declineButtonId: 'declineConsent',
+          manageButtonIds: ['manageConsentModal','manageConsentFooter'],
+          closeButtonId: 'closeConsentModal',
+          cookieCategories: {
+            necessary: {
+              enabled: true,
+              description: 'Necessary cookies enable core functionalities and security features of the website.'
+            }
+          },
+          focusableSelectors: 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        };
+        var consentModal = document.getElementById(CONFIG.consentModalId),
+            acceptButton = document.getElementById(CONFIG.acceptButtonId),
+            declineButton = document.getElementById(CONFIG.declineButtonId),
+            closeButton = document.getElementById(CONFIG.closeButtonId),
+            manageConsentButtons = CONFIG.manageButtonIds.map(function(id){ return document.getElementById(id); });
+        function setCookie(name, value, days, path) {
+          var expires = "";
+          if (days) {
+            var date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            expires = "; expires=" + date.toUTCString();
+          }
+          var secure = location.protocol === 'https:' ? "; Secure" : "";
+          var sameSite = "; SameSite=Lax";
+          document.cookie = name + "=" + (value || "") + expires + "; path=" + path + secure + sameSite;
         }
-        function applyConsent(consentValue){try{var consent=JSON.parse(consentValue);if(consent.necessary){initializeCookies(consent);}else{disableCookies();}}catch(error){console.error('Error parsing consent cookie:',error);showModal();}}
-        function initializeCookies(consent){console.log('Necessary cookies enabled.');}
-        function disableCookies(){console.log('Necessary cookies disabled.');}
-        function areCookiesEnabled(){var testCookie='test_cookie_consent';setCookie(testCookie,'test',1);var result=getCookie(testCookie)==='test';eraseCookie(testCookie);return result;}
-        function init(){if(areCookiesEnabled()){initConsentModal();}else{console.warn('Cookies are disabled in this browser. Consent modal will not be displayed.');}}
-        document.addEventListener('DOMContentLoaded',init);
+        function getCookie(name) {
+          var nameEQ = name + "=";
+          var ca = document.cookie.split(';');
+          for (var i = 0; i < ca.length; i++) {
+            var c = ca[i].trim();
+            if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+          }
+          return null;
+        }
+        function eraseCookie(name, path) {
+          document.cookie = name + '=; Max-Age=-99999999; path=' + path + ';';
+        }
+        function trapFocus(modal) {
+          var focusableElements = modal.querySelectorAll(CONFIG.focusableSelectors);
+          if (focusableElements.length === 0) return;
+          var firstFocusableElement = focusableElements[0],
+              lastFocusableElement = focusableElements[focusableElements.length - 1];
+          function handleFocus(event) {
+            if (event.key === 'Tab') {
+              if (event.shiftKey) {
+                if (document.activeElement === firstFocusableElement) {
+                  event.preventDefault();
+                  lastFocusableElement.focus();
+                }
+              } else {
+                if (document.activeElement === lastFocusableElement) {
+                  event.preventDefault();
+                  firstFocusableElement.focus();
+                }
+              }
+            }
+            if (event.key === 'Escape') {
+              event.preventDefault();
+            }
+          }
+          modal.addEventListener('keydown', handleFocus);
+        }
+        function showModal() {
+          consentModal.classList.add('active');
+          document.body.classList.add('modal-active');
+          consentModal.setAttribute('aria-hidden', 'false');
+          var focusableElements = consentModal.querySelectorAll(CONFIG.focusableSelectors);
+          if (focusableElements.length) {
+            focusableElements[0].focus();
+          }
+          trapFocus(consentModal);
+        }
+        function hideModal() {
+          consentModal.classList.remove('active');
+          document.body.classList.remove('modal-active');
+          consentModal.setAttribute('aria-hidden', 'true');
+        }
+        function initConsentModal() {
+          var existingConsent = getCookie(CONFIG.consentCookieName);
+          if (!existingConsent) {
+            showModal();
+          } else {
+            applyConsent(existingConsent);
+          }
+          acceptButton.addEventListener('click', function () {
+            setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: true }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
+            hideModal();
+            initializeCookies();
+          });
+          declineButton.addEventListener('click', function () {
+            setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: false }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
+            hideModal();
+            disableCookies();
+          });
+          manageConsentButtons.forEach(function (button) {
+            if (button) {
+              button.addEventListener('click', function (event) {
+                event.preventDefault();
+                showModal();
+              });
+            }
+          });
+          closeButton.addEventListener('click', function () {
+            alert('Please make a choice regarding cookie usage.');
+          });
+          window.addEventListener('click', function (event) {
+            if (event.target === consentModal) {
+              alert('Please make a choice regarding cookie usage.');
+            }
+          });
+        }
+        function applyConsent(consentValue) {
+          try {
+            var consent = JSON.parse(consentValue);
+            if (consent.necessary) {
+              initializeCookies(consent);
+            } else {
+              disableCookies();
+            }
+          } catch (error) {
+            console.error('Error parsing consent cookie:', error);
+            showModal();
+          }
+        }
+        function initializeCookies(consent) {
+          console.log('Necessary cookies enabled.');
+        }
+        function disableCookies() {
+          console.log('Necessary cookies disabled.');
+        }
+        function areCookiesEnabled() {
+          var testCookie = 'test_cookie_consent';
+          setCookie(testCookie, 'test', 1);
+          var result = getCookie(testCookie) === 'test';
+          eraseCookie(testCookie);
+          return result;
+        }
+        function init() {
+          if (areCookiesEnabled()) {
+            initConsentModal();
+          } else {
+            console.warn('Cookies are disabled in this browser. Consent modal will not be displayed.');
+          }
+        }
+        document.addEventListener('DOMContentLoaded', init);
       })();
     </script>
     <script>
@@ -464,10 +599,11 @@
               publishedDateElement.textContent = "Published on: N/A";
             }
             videoCategoryElement.textContent = data.category || "N/A";
-            // Update description but keep the box hidden by default
             var descModal = document.getElementById("descriptionModal");
+            // Update description but do not automatically display the box; let toggle control it.
             descModal.querySelector("p").textContent = data.description || "No description available.";
-            // Do not force display of description; let the toggle control visibility.
+            // Hide the description box by default
+            descModal.classList.remove("active");
             timeElapsedElement.style.display = "none";
             if(data.videoSrc){
               videoThumbnailElement.src = data.videoSrc;
@@ -654,7 +790,7 @@
       setInterval(fetchWeather, 3600000);
       fetchWeather();
     </script>
-    <!-- Eagle-Eye Digital Matrix Animation (Polished, Slowed Further, and Readable) -->
+    <!-- Eagle-Eye Digital Matrix Animation (Using Japanese Kanji) -->
     <script>
     document.addEventListener('DOMContentLoaded', () => {
       const canvas = document.getElementById('soundWaveCanvas');
@@ -675,27 +811,29 @@
       const fontSize = 20;
       let columns = Math.floor(canvas.width / fontSize);
       let drops = new Array(columns).fill(0);
-      // Slower speeds for a more relaxed effect (0.1 to 0.3)
+      // Further slowed speeds for a relaxed effect (0.1 to 0.3)
       let speeds = Array.from({ length: columns }, () => Math.random() * 0.2 + 0.1);
-      const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()";
+      // Use a set of Japanese Kanji characters:
+      const kanji = "日月火水木金土神風空心夢永流光影音";
       const colors = ["#00C6FF", "#ff4081"];
-      // Reduce easter egg frequency and slow its descent further
-      const mikuEasterEggs = ["Miku", "Hatsune", "39", "Vocaloid", "Future Pop"];
+      // Lower chance for easter egg text and slow it further
+      const mikuEasterEggs = ["初音", "未来", "39", "VOCALOID", "メルト"];
     
       function drawMatrix() {
-        ctx.fillStyle = "rgba(0, 0, 0, 0.04)";
+        ctx.fillStyle = "rgba(0, 0, 0, 0.04)"; // very subtle fade
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.font = fontSize + "px monospace";
     
         for (let i = 0; i < drops.length; i++) {
           let text, dropIncrement = speeds[i];
-          // Lower chance for easter egg text and slow it down further
+          // Lower chance for easter egg text (0.1% chance)
           if (Math.random() < 0.001) {
             text = mikuEasterEggs[Math.floor(Math.random() * mikuEasterEggs.length)];
             ctx.fillStyle = "#FF69B4";
-            dropIncrement = speeds[i] * 0.2; 
+            dropIncrement = speeds[i] * 0.2;  // slow the easter egg down further
           } else {
-            text = characters.charAt(Math.floor(Math.random() * characters.length));
+            // Pick a random Kanji from the string
+            text = kanji.charAt(Math.floor(Math.random() * kanji.length));
             ctx.fillStyle = colors[i % colors.length];
           }
     
