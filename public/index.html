@@ -10,17 +10,34 @@
   <style>
     #descriptionModal { display: none; }
     #descriptionModal.active { display: block; }
-    /* Optional: Style for the paused icon */
-    .pause-indicator-container {
-      display: none;
+    /* CSS Pause Icon */
+    .pause-indicator {
+      display: none; /* Hidden by default; will be toggled via JavaScript */
       position: absolute;
       top: 10px;
       right: 10px;
-      z-index: 10;
-    }
-    .pause-indicator-container img.pause-icon {
       width: 40px;
       height: 40px;
+      z-index: 10;
+      /* Center the bars */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pause-indicator::before,
+    .pause-indicator::after {
+      content: "";
+      display: block;
+      width: 8px;
+      height: 100%;
+      background: var(--secondary-color);
+      border-radius: 2px;
+    }
+    .pause-indicator::before {
+      margin-right: 4px;
+    }
+    .pause-indicator::after {
+      margin-left: 4px;
     }
   </style>
 </head>
@@ -147,10 +164,8 @@
               <text x="50%" y="55%" text-anchor="middle" fill="#FFFFFF" font-size="12" font-family="Arial, sans-serif" dy=".3em">LIVE</text>
             </svg>
           </div>
-          <!-- Paused Icon Container -->
-          <div class="pause-indicator-container" id="pauseIndicator">
-            <img src="https://example.com/path/to/pause_icon.png" alt="Paused" class="pause-icon" />
-          </div>
+          <!-- CSS-based Pause Indicator -->
+          <div class="pause-indicator" id="pauseIndicator"></div>
           <div class="description-and-time">
             <button class="toggle-description" id="toggleDescriptionButton" aria-label="Toggle Description">
               <i class="fas fa-info-circle"></i> Show Description
@@ -582,7 +597,7 @@
               liveIconElement.style.display = "none";
               const pauseIndicator = document.getElementById("pauseIndicator");
               pauseIndicator.style.display = "flex";
-              pauseIndicator.querySelector("img").src = data.pauseIcon;
+              /* For CSS-based pause icon, no need to set src */
             } else {
               liveIconElement.style.display = "none";
               document.getElementById("pauseIndicator").style.display = "none";
