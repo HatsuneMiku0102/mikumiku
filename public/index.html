@@ -8,7 +8,15 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="/styles.css" />
   <style>
-    /* Override description box styling for a neater display */
+    /* New styling for description and time elapsed container */
+    .description-and-time {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    /* Ensure the description box is hidden by default */
     #descriptionModal {
       display: none;
       background: rgba(0, 0, 0, 0.75);
@@ -152,17 +160,21 @@
               <text x="50%" y="55%" text-anchor="middle" fill="#FFFFFF" font-size="12" font-family="Arial, sans-serif" dy=".3em">LIVE</text>
             </svg>
           </div>
-          <div id="timeElapsedContainer" class="time-elapsed">
-            <i class="fas fa-clock"></i> <span id="timeElapsed">0s</span>
-          </div>
-          <!-- Toggle button to show/hide description -->
-          <button class="toggle-description" id="toggleDescriptionButton" aria-label="Toggle Description">
-            <i class="fas fa-info-circle"></i> Show Description
-          </button>
-          <!-- Description box embedded inside video section (hidden by default) -->
-          <div id="descriptionModal">
-            <h2 id="descriptionModalTitle">Description</h2>
-            <p id="descriptionModalDescription">Loading description...</p>
+          <!-- Container for description and time elapsed -->
+          <div class="description-and-time">
+            <!-- Toggle button to show/hide description -->
+            <button class="toggle-description" id="toggleDescriptionButton" aria-label="Toggle Description">
+              <i class="fas fa-info-circle"></i> Show Description
+            </button>
+            <!-- Description box (hidden by default) -->
+            <div id="descriptionModal">
+              <h2 id="descriptionModalTitle">Description</h2>
+              <p id="descriptionModalDescription">Loading description...</p>
+            </div>
+            <!-- Time elapsed icon, now positioned to the right -->
+            <div id="timeElapsedContainer" class="time-elapsed">
+              <i class="fas fa-clock"></i> <span id="timeElapsed">0s</span>
+            </div>
           </div>
           <div id="loadingSpinner" class="loading-spinner" aria-label="Loading">
             <i class="fas fa-spinner fa-spin"></i>
@@ -600,9 +612,8 @@
             }
             videoCategoryElement.textContent = data.category || "N/A";
             var descModal = document.getElementById("descriptionModal");
-            // Update description but do not automatically display the box; let toggle control it.
             descModal.querySelector("p").textContent = data.description || "No description available.";
-            // Hide the description box by default
+            // Ensure the description box remains hidden until toggled
             descModal.classList.remove("active");
             timeElapsedElement.style.display = "none";
             if(data.videoSrc){
@@ -790,7 +801,7 @@
       setInterval(fetchWeather, 3600000);
       fetchWeather();
     </script>
-    <!-- Eagle-Eye Digital Matrix Animation (Using Japanese Kanji) -->
+    <!-- Eagle-Eye Digital Matrix Animation (Using Japanese Kanji, Slowed, and Polished) -->
     <script>
     document.addEventListener('DOMContentLoaded', () => {
       const canvas = document.getElementById('soundWaveCanvas');
@@ -811,16 +822,17 @@
       const fontSize = 20;
       let columns = Math.floor(canvas.width / fontSize);
       let drops = new Array(columns).fill(0);
-      // Further slowed speeds for a relaxed effect (0.1 to 0.3)
+      // Use a slower speed range (0.1 to 0.2)
       let speeds = Array.from({ length: columns }, () => Math.random() * 0.2 + 0.1);
-      // Use a set of Japanese Kanji characters:
+      // Use a set of Japanese Kanji characters
       const kanji = "日月火水木金土神風空心夢永流光影音";
       const colors = ["#00C6FF", "#ff4081"];
-      // Lower chance for easter egg text and slow it further
+      // Lower chance for easter egg text
       const mikuEasterEggs = ["初音", "未来", "39", "VOCALOID", "メルト"];
     
       function drawMatrix() {
-        ctx.fillStyle = "rgba(0, 0, 0, 0.04)"; // very subtle fade
+        // Use a very subtle fade so text remains visible longer
+        ctx.fillStyle = "rgba(0, 0, 0, 0.02)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.font = fontSize + "px monospace";
     
@@ -830,9 +842,9 @@
           if (Math.random() < 0.001) {
             text = mikuEasterEggs[Math.floor(Math.random() * mikuEasterEggs.length)];
             ctx.fillStyle = "#FF69B4";
-            dropIncrement = speeds[i] * 0.2;  // slow the easter egg down further
+            dropIncrement = speeds[i] * 0.2;  // slow the easter egg further
           } else {
-            // Pick a random Kanji from the string
+            // Choose a random Kanji from the string
             text = kanji.charAt(Math.floor(Math.random() * kanji.length));
             ctx.fillStyle = colors[i % colors.length];
           }
