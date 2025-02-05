@@ -157,17 +157,16 @@
             <div id="offline-indicator" class="offline-indicator">
               <i class="fas fa-signal-slash"></i> I’m currently offline
             </div>
-            <div class="progress-bar-container">
-              <div id="progressBar" class="progress-bar"></div>
+            <!-- New Progress Bar & Indicator Area -->
+            <div class="progress-container">
+              <div class="progress-bar-container">
+                <div id="progressBar" class="progress-bar"></div>
+              </div>
+              <div class="indicator-container">
+                <span id="liveIndicator" class="indicator live">Live</span>
+                <span id="pauseIndicator" class="indicator paused">Paused</span>
+              </div>
             </div>
-            <div class="live-indicator-container">
-              <svg id="liveIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="30" height="30" aria-label="Live Stream Indicator" class="live-icon" role="img" aria-labelledby="liveTitle">
-                <title id="liveTitle">Live Stream Indicator</title>
-                <circle cx="50" cy="50" r="40" fill="#FF0000" opacity="0.9" />
-                <text x="50%" y="55%" text-anchor="middle" fill="#FFFFFF" font-size="12" font-family="Arial, sans-serif" dy=".3em">LIVE</text>
-              </svg>
-            </div>
-            <div class="pause-indicator" id="pauseIndicator"></div>
             <div class="description-and-time">
               <button class="toggle-description" id="toggleDescriptionButton" aria-label="Toggle Description">
                 <i class="fas fa-info-circle"></i> Show Description
@@ -524,9 +523,9 @@
         const videoCategoryElement = document.getElementById("videoCategory");
         const videoDescriptionElement = document.getElementById("descriptionModalDescription");
         const timeElapsedElement = document.getElementById("timeElapsed");
-        // For the live indicator, we use its container.
-        const liveIndicatorContainer = document.querySelector('.live-indicator-container');
-        // For the pause indicator, we use its element.
+        // For the live indicator, we now use the new element with id "liveIndicator"
+        const liveIndicatorElement = document.getElementById("liveIndicator");
+        // For the pause indicator, we now use the new element with id "pauseIndicator"
         const pauseIndicatorElement = document.getElementById("pauseIndicator");
         const videoInfoContainer = document.getElementById("videoInfoContainer");
       
@@ -556,7 +555,7 @@
           descModal.querySelector("p").textContent = "";
           descModal.classList.remove("active");
           timeElapsedElement.style.display = "none";
-          if (liveIndicatorContainer) liveIndicatorContainer.classList.remove("active");
+          if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
           if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
           log("Display cleared.");
         }
@@ -574,16 +573,15 @@
             }
       
             if (data.isLive) {
-              // Toggle the live indicator container's active class.
-              if (liveIndicatorContainer) liveIndicatorContainer.classList.add("active");
+              if (liveIndicatorElement) liveIndicatorElement.classList.add("active");
               if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
               log("Live stream indicator activated.");
             } else if (data.isPaused) {
-              if (liveIndicatorContainer) liveIndicatorContainer.classList.remove("active");
+              if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
               if (pauseIndicatorElement) pauseIndicatorElement.classList.add("active");
               log("Pause indicator activated.");
             } else {
-              if (liveIndicatorContainer) liveIndicatorContainer.classList.remove("active");
+              if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
               if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
               log("Both indicators deactivated.");
             }
@@ -681,6 +679,7 @@
             clearDisplay();
           }
         }, 5000);
+      
         const descriptionModal = document.getElementById("descriptionModal");
         const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
         descriptionModal.classList.remove("active");
@@ -839,6 +838,5 @@
           drawMatrix();
         });
       </script>
-    </div>
   </body>
 </html>
