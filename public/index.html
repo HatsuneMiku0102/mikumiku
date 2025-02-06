@@ -34,15 +34,13 @@
     </style>
   </head>
   <body>
-    <!-- Socket.IO must be loaded before any script that uses io() -->
+    <!-- Load external libraries first -->
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js"
       crossorigin="anonymous"
       referrerpolicy="no-referrer"
     ></script>
-    <!-- Mapbox GL JS -->
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.js"></script>
-    <!-- Other external libraries -->
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"
       crossorigin="anonymous"
@@ -50,7 +48,10 @@
     ></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     
+    <!-- Canvas for sound waves -->
     <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
+    
+    <!-- Page Container -->
     <div class="page-container" id="pageContainer">
       <!-- Header -->
       <header class="title-bar" id="titleBar">
@@ -60,11 +61,7 @@
             <a href="/" aria-label="Home" class="logo-link">
               <span class="site-title">Miku.dev</span>
               <div class="visualizer-wrapper">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 150 100"
-                  class="visualizer"
-                >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 100" class="visualizer">
                   <g>
                     <rect x="10" y="70" width="15" height="30" fill="#00c6ff">
                       <animate attributeName="height" values="30;60;30" dur="0.8s" repeatCount="indefinite" />
@@ -102,6 +99,7 @@
           </div>
         </div>
       </header>
+      
       <!-- Overlay Menu -->
       <nav class="overlay-menu" id="overlayMenu">
         <button class="close-overlay" id="closeOverlay" aria-label="Close Menu">
@@ -127,6 +125,7 @@
           </div>
         </div>
       </nav>
+      
       <!-- Now Playing Container -->
       <section class="now-playing-container">
         <div id="nowPlayingBox" class="now-playing">
@@ -219,7 +218,7 @@
                 <h2 id="descriptionModalTitle">Description</h2>
                 <p id="descriptionModalDescription">Loading description...</p>
               </div>
-              <!-- Centered time elapsed display -->
+              <!-- Centered time elapsed display (only shown when browsing presence) -->
               <div id="timeElapsedContainer" class="time-elapsed">
                 <i class="fas fa-clock"></i> <span id="timeElapsed">0s</span>
               </div>
@@ -387,195 +386,32 @@
       </div>
     </div>
     
-    <!-- Combined Scripts with IIFEs to avoid duplicate global declarations -->
+    <!-- Initialize Mapbox Map & Socket.IO -->
     <script>
       (function() {
-        // Add "loaded" class to page container on load.
         document.addEventListener("DOMContentLoaded", function () {
-          document.getElementById("pageContainer").classList.add("loaded");
-        });
-      })();
-
-      (function() {
-        // Header scroll effect and menu toggle.
-        document.addEventListener("DOMContentLoaded", function () {
-          const titleBar = document.getElementById("titleBar");
-          if (titleBar) {
-            window.addEventListener("scroll", function () {
-              titleBar.classList.toggle("scrolled", window.scrollY > 50);
-            });
-          }
-          const menuButton = document.getElementById("menuButton");
-          const overlayMenu = document.getElementById("overlayMenu");
-          const closeOverlay = document.getElementById("closeOverlay");
-          if (menuButton && overlayMenu && closeOverlay) {
-            menuButton.addEventListener("click", function (e) {
-              e.stopPropagation();
-              overlayMenu.classList.add("active");
-              document.body.classList.add("overlay-active");
-            });
-            closeOverlay.addEventListener("click", function (e) {
-              e.stopPropagation();
-              overlayMenu.classList.remove("active");
-              document.body.classList.remove("overlay-active");
-            });
-            window.addEventListener("click", function (event) {
-              if (event.target === overlayMenu) {
-                overlayMenu.classList.remove("active");
-                document.body.classList.remove("overlay-active");
-              }
-            });
-          }
-        });
-      })();
-
-      (function() {
-        // Personality button styling.
-        document.addEventListener("DOMContentLoaded", function () {
-          const personalityButtons = document.querySelectorAll(".personality-button");
-          const siteTitle = document.querySelector(".site-title");
-          if (personalityButtons && siteTitle) {
-            personalityButtons.forEach((button) => {
-              button.addEventListener("click", function () {
-                const personality = button.textContent.trim();
-                if (personality === "Melody") siteTitle.style.color = "#ff4081";
-                else if (personality === "Harmony") siteTitle.style.color = "#00c6ff";
-                else if (personality === "Rhythm") siteTitle.style.color = "#ffffff";
-                else siteTitle.style.color = "#00c6ff";
-                personalityButtons.forEach((btn) => btn.classList.remove("active"));
-                button.classList.add("active");
-              });
-            });
-          }
-        });
-      })();
-
-      (function() {
-        // Consent modal functionality.
-        document.addEventListener("DOMContentLoaded", function () {
-          const CONFIG = {
-            consentCookieName: "cookieConsent",
-            consentCookieExpiryDays: 365,
-            consentCookiePath: "/",
-            consentModalId: "consentModal",
-            acceptButtonId: "acceptConsent",
-            declineButtonId: "declineConsent",
-            manageButtonIds: ["manageConsentModal", "manageConsentFooter"],
-            closeButtonId: "closeConsentModal",
-            focusableSelectors: "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])"
-          };
-          const consentModal = document.getElementById(CONFIG.consentModalId);
-          const acceptButton = document.getElementById(CONFIG.acceptButtonId);
-          const declineButton = document.getElementById(CONFIG.declineButtonId);
-          const closeButton = document.getElementById(CONFIG.closeButtonId);
-          const manageConsentButtons = CONFIG.manageButtonIds.map(id => document.getElementById(id));
+          // Initialize Mapbox
+          mapboxgl.accessToken = 'pk.eyJ1IjoiYXJ0ZW1pczExNyIsImEiOiJjbTZzeHQ2bGowOHlnMm9yM3k4ZTl4cHptIn0.n1AdgsyV2iA7X1PwGvDTlA';
+          const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v12',
+            center: [0, 20],
+            zoom: 2
+          });
+          map.addControl(new mapboxgl.NavigationControl());
+          const visitorMarkers = {};
           
-          function setCookie(name, value, days, path) {
-            let expires = "";
-            if (days) {
-              const date = new Date();
-              date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
-              expires = "; expires=" + date.toUTCString();
-            }
-            const secure = location.protocol === "https:" ? "; Secure" : "";
-            const sameSite = "; SameSite=Lax";
-            document.cookie = name + "=" + (value || "") + expires + "; path=" + path + secure + sameSite;
-          }
-          function getCookie(name) {
-            const nameEQ = name + "=";
-            const ca = document.cookie.split(";");
-            for (let c of ca) {
-              c = c.trim();
-              if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length);
-            }
-            return null;
-          }
-          function eraseCookie(name, path) {
-            document.cookie = name + '=; Max-Age=-99999999; path=' + path + ';';
-          }
-          function trapFocus(modal) {
-            const focusableElements = modal.querySelectorAll(CONFIG.focusableSelectors);
-            if (!focusableElements.length) return;
-            const firstFocusableElement = focusableElements[0],
-                  lastFocusableElement = focusableElements[focusableElements.length - 1];
-            modal.addEventListener("keydown", function (event) {
-              if (event.key === "Tab") {
-                if (event.shiftKey) {
-                  if (document.activeElement === firstFocusableElement) {
-                    event.preventDefault();
-                    lastFocusableElement.focus();
-                  }
-                } else {
-                  if (document.activeElement === lastFocusableElement) {
-                    event.preventDefault();
-                    firstFocusableElement.focus();
-                  }
-                }
-              }
-              if (event.key === "Escape") {
-                event.preventDefault();
-              }
-            });
-          }
-          function showModal() {
-            consentModal.classList.add("active");
-            document.body.classList.add("modal-active");
-            consentModal.setAttribute("aria-hidden", "false");
-            const focusableElements = consentModal.querySelectorAll(CONFIG.focusableSelectors);
-            if (focusableElements.length) focusableElements[0].focus();
-            trapFocus(consentModal);
-          }
-          function hideModal() {
-            consentModal.classList.remove("active");
-            document.body.classList.remove("modal-active");
-            consentModal.setAttribute("aria-hidden", "true");
-          }
-          function initConsentModal() {
-            const existingConsent = getCookie(CONFIG.consentCookieName);
-            if (!existingConsent) {
-              showModal();
-            }
-            acceptButton.addEventListener("click", function () {
-              setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: true }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
-              hideModal();
-            });
-            declineButton.addEventListener("click", function () {
-              setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: false }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
-              hideModal();
-            });
-            manageConsentButtons.forEach((button) => {
-              if (button) {
-                button.addEventListener("click", function (event) {
-                  event.preventDefault();
-                  showModal();
-                });
-              }
-            });
-            if (closeButton) {
-              closeButton.addEventListener("click", function () {
-                alert("Please make a choice regarding cookie usage.");
-              });
-            }
-            window.addEventListener("click", function (event) {
-              if (event.target === consentModal) {
-                alert("Please make a choice regarding cookie usage.");
-              }
-            });
-          }
-          initConsentModal();
-        });
-      })();
-
-      (function() {
-        // Socket and UI code.
-        document.addEventListener("DOMContentLoaded", function () {
-          const log = (message) => console.log(`[Haru.js] ${message}`);
+          // Utility log function.
+          const log = (msg) => console.log(`[Haru.js] ${msg}`);
+          
+          // Initialize Socket.IO connection.
           const socket = io("https://mikumiku.dev");
           let lastHeartbeatReceived = Date.now();
           let isSessionExpired = false;
           let browsingStartTime = null;
           let browsingInterval = null;
-
+          
+          // Grab required DOM elements.
           const nowPlayingBox = document.getElementById("nowPlayingBox");
           const videoTitleElement = document.getElementById("videoTitle");
           const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -592,13 +428,15 @@
           const liveIndicatorElement = document.getElementById("liveIndicator");
           const pauseIndicatorElement = document.getElementById("pauseIndicator");
           const videoInfoContainer = document.getElementById("videoInfoContainer");
-
+          
+          // Format numbers.
           function formatNumber(number) {
             if (typeof number === "string") number = number.replace(/,/g, "");
             const num = Number(number);
             return isNaN(num) ? "N/A" : num.toLocaleString();
           }
-
+          
+          // Format elapsed time (H:MM:SS).
           function formatElapsedTime(seconds) {
             const hrs = Math.floor(seconds / 3600);
             const mins = Math.floor((seconds % 3600) / 60);
@@ -607,14 +445,16 @@
             else if (mins > 0) return `${mins}m ${secs}s`;
             else return `${secs}s`;
           }
-
+          
+          // Update browsing elapsed timer.
           function updateBrowsingElapsed() {
             if (browsingStartTime) {
               const elapsedSec = Math.floor((Date.now() - browsingStartTime) / 1000);
               timeElapsedContainer.innerHTML = `<i class="fas fa-clock"></i> ${formatElapsedTime(elapsedSec)}`;
             }
           }
-
+          
+          // Clear display.
           function clearDisplay() {
             nowPlayingBox.classList.add("offline");
             offlineIndicatorElement.style.display = "flex";
@@ -640,19 +480,20 @@
             browsingStartTime = null;
             log("Display cleared.");
           }
-
+          
+          // Handle real-time progress (for video and browsing).
           function handleRealTimeProgress(data) {
             if (data.duration && data.currentTime !== undefined) {
               const progressPercentage = (data.currentTime / data.duration) * 100;
               progressBarElement.style.width = progressPercentage + "%";
-              log(`handleRealTimeProgress: isLive=${data.isLive}, isPaused=${data.isPaused}, progress=${progressPercentage.toFixed(2)}%`);
+              log(`Progress: ${progressPercentage.toFixed(2)}% (Live: ${data.isLive}, Paused: ${data.isPaused})`);
               if (data.isLive && data.isPaused) {
                 log("Conflict: Both isLive and isPaused are true. Prioritizing live indicator.");
               }
               if (data.isLive) {
                 liveIndicatorElement.classList.add("active");
                 pauseIndicatorElement.classList.remove("active");
-                log("Live stream indicator activated.");
+                log("Live indicator activated.");
               } else if (data.isPaused) {
                 liveIndicatorElement.classList.remove("active");
                 pauseIndicatorElement.classList.add("active");
@@ -660,11 +501,11 @@
               } else {
                 liveIndicatorElement.classList.remove("active");
                 pauseIndicatorElement.classList.remove("active");
-                log("Both indicators deactivated.");
+                log("No indicator active.");
               }
             } else {
               progressBarElement.style.width = "0%";
-              log("handleRealTimeProgress: Invalid data received.");
+              log("Invalid progress data received.");
             }
             if (!data.isPaused && !data.isLive) {
               videoTitleElement.classList.add("playing");
@@ -672,7 +513,8 @@
               videoTitleElement.classList.remove("playing");
             }
           }
-
+          
+          // Display video presence.
           function displayVideoPresence(data) {
             lastHeartbeatReceived = Date.now();
             nowPlayingBox.classList.remove("offline");
@@ -683,7 +525,7 @@
               setTimeout(() => {
                 videoTitleElement.textContent = data.title || "Unknown Title";
                 videoTitleElement.classList.remove("video-title-changed");
-                void videoTitleElement.offsetWidth;
+                void videoTitleElement.offsetWidth; // Force reflow.
                 videoTitleElement.classList.add("video-title-changed");
                 if (data.thumbnail) {
                   videoThumbnailImage.src = data.thumbnail;
@@ -706,7 +548,8 @@
                 const descModal = document.getElementById("descriptionModal");
                 descModal.querySelector("p").textContent = data.description || "No description available.";
                 descModal.classList.remove("active");
-                timeElapsedContainer.classList.add("active");
+                // Hide time elapsed when video presence is active.
+                timeElapsedContainer.classList.remove("active");
                 if (data.videoSrc) {
                   videoThumbnailElement.src = data.videoSrc;
                   videoThumbnailElement.style.display = "block";
@@ -722,13 +565,15 @@
             }
             handleRealTimeProgress(data);
           }
-
+          
+          // Display browsing presence.
           function displayBrowsingPresence(data) {
             lastHeartbeatReceived = Date.now();
             nowPlayingBox.classList.remove("offline");
             offlineIndicatorElement.style.display = "none";
             log("Updating browsing presence...");
             const defaultThumbnail = "https://www.youtube.com/img/desktop/yt_1200.png";
+            // Update the thumbnail only if it differs to prevent flickering.
             if (videoThumbnailImage.src !== defaultThumbnail) {
               videoThumbnailImage.src = data.thumbnail || defaultThumbnail;
               videoThumbnailImage.style.display = "block";
@@ -746,6 +591,7 @@
             if (!browsingStartTime) {
               browsingStartTime = Date.now();
             }
+            // Show time elapsed for browsing.
             timeElapsedContainer.classList.add("active");
             updateBrowsingElapsed();
             if (!browsingInterval) {
@@ -758,13 +604,14 @@
             videoInfoContainer.classList.add("fade-in");
             log("Browsing presence updated in UI.");
           }
-
+          
+          // Socket event listeners.
           socket.on("connect", function () {
             log("Connected to server via Socket.IO.");
             isSessionExpired = false;
             socket.emit("requestLatestData");
           });
-
+          
           socket.on("presenceUpdate", function (data) {
             if (isSessionExpired) {
               log("Ignoring presenceUpdate due to expired session.");
@@ -783,18 +630,35 @@
               clearDisplay();
             }
           });
-
+          
           socket.on("disconnect", function () {
             log("Disconnected from server.");
             clearDisplay();
           });
-
+          
           setInterval(function () {
             if (Date.now() - lastHeartbeatReceived > 60000) {
               log("No heartbeat received in 60 seconds. Marking as offline.");
               clearDisplay();
             }
           }, 5000);
+          
+          // Listen for visitor location events and update Mapbox markers.
+          socket.on("visitorLocation", function (data) {
+            log(`Received visitor location: ${JSON.stringify(data)}`);
+            const { id, latitude, longitude, info } = data;
+            if (visitorMarkers[id]) {
+              visitorMarkers[id].setLngLat([longitude, latitude]);
+            } else {
+              const marker = new mapboxgl.Marker({ color: "#ff4081" })
+                .setLngLat([longitude, latitude])
+                .addTo(map);
+              if (info) {
+                marker.setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<strong>${info}</strong>`));
+              }
+              visitorMarkers[id] = marker;
+            }
+          });
         });
       })();
 
