@@ -4,83 +4,101 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Miku.dev | Home</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/styles.css" />
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.css" rel="stylesheet" />
     <style>
-      /* General styles */
+      /* General */
       #descriptionModal {
         display: none;
       }
       #descriptionModal.active {
         display: block;
       }
-      /* Map container adjustments */
+      /* Map Container */
       #map {
         width: 400px;
         height: 400px;
         border-radius: var(--border-radius);
       }
-      /* Now Playing Section Layout */
+      /* Now Playing Container (vertical stacking) */
       .now-playing {
         display: flex;
+        flex-direction: column;
         gap: 1rem;
         padding: 1rem;
         background: rgba(255, 255, 255, 0.05);
-        border-radius: var(--border-radius);
+        border-radius: 8px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        flex-wrap: wrap;
       }
+      /* Now Playing Sidebar */
       .now-playing-sidebar {
-        flex: 0 0 250px;
+        width: 100%;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 8px;
         display: flex;
         flex-direction: column;
-        justify-content: space-evenly;
-        padding: 1rem;
-        background: rgba(0, 0, 0, 0.05);
-        border-radius: var(--border-radius);
+        gap: 1rem;
       }
       .now-playing-sidebar .sidebar-item {
-        margin-bottom: 1rem;
+        padding: 0.5rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        transition: background 0.3s ease;
       }
-      .now-playing-sidebar .sidebar-item:last-child {
-        margin-bottom: 0;
+      .now-playing-sidebar .sidebar-item:hover {
+        background: rgba(255, 255, 255, 0.2);
       }
+      /* Video Section */
       .video-section {
-        flex: 1;
+        width: 100%;
         padding: 1rem;
         background: rgba(0, 0, 0, 0.05);
-        border-radius: var(--border-radius);
-        min-width: 300px;
+        border-radius: 8px;
       }
       .video-title-container h2 {
         margin-bottom: 0.5rem;
       }
+      /* Progress Bar and Indicator */
       .progress-container {
         margin-top: 1rem;
       }
+      .indicator {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        transition: transform 0.3s ease;
+      }
+      .indicator.live {
+        background: #00c6ff;
+        color: #fff;
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+      }
+      .indicator.paused {
+        background: #ff4081;
+        color: #fff;
+      }
+      /* Sidebar Extra - Weather & Map */
       .sidebar-extra {
-        margin-top: 1rem;
         display: flex;
+        flex-direction: column;
         gap: 1rem;
-        flex-wrap: wrap;
       }
       .sidebar-extra aside {
-        flex: 1;
+        width: 100%;
         padding: 1rem;
         background: rgba(0, 0, 0, 0.05);
-        border-radius: var(--border-radius);
-        min-width: 250px;
+        border-radius: 8px;
       }
+      /* Animated Divider */
       .animated-divider {
         border: none;
         height: 1px;
@@ -88,9 +106,15 @@
         margin: 1rem 0;
         width: 100%;
       }
-      /* Hide time elapsed container by default (only shown for browsing presence) */
+      /* Time Elapsed Container */
       #timeElapsedContainer {
         display: none;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+      }
+      #timeElapsedContainer.show {
+        display: block;
+        opacity: 1;
       }
     </style>
   </head>
@@ -249,7 +273,7 @@
                 <h2 id="descriptionModalTitle">Description</h2>
                 <p id="descriptionModalDescription">Loading description...</p>
               </div>
-              <!-- Time elapsed container appears only in browsing presence -->
+              <!-- Time elapsed container appears only during browsing presence -->
               <div id="timeElapsedContainer" class="time-elapsed">
                 <i class="fas fa-clock"></i> <span id="timeElapsed">0s</span>
               </div>
