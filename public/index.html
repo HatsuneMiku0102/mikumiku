@@ -536,12 +536,25 @@
           return isNaN(num) ? "N/A" : num.toLocaleString();
         }
       
+        // Function to format elapsed time (seconds to H:MM:SS).
+        function formatElapsedTime(seconds) {
+          const hrs = Math.floor(seconds / 3600);
+          const mins = Math.floor((seconds % 3600) / 60);
+          const secs = seconds % 60;
+          if (hrs > 0) {
+            return `${hrs}h ${mins}m ${secs}s`;
+          } else if (mins > 0) {
+            return `${mins}m ${secs}s`;
+          } else {
+            return `${secs}s`;
+          }
+        }
+      
         // Function to update browsing elapsed time.
         function updateBrowsingElapsed() {
           if (browsingStartTime) {
             const elapsedSec = Math.floor((Date.now() - browsingStartTime) / 1000);
-            // Update the inner HTML of the container.
-            timeElapsedContainer.innerHTML = `<i class="fas fa-clock"></i> ${elapsedSec}s`;
+            timeElapsedContainer.innerHTML = `<i class="fas fa-clock"></i> ${formatElapsedTime(elapsedSec)}`;
           }
         }
       
@@ -600,6 +613,7 @@
             progressBarElement.style.width = "0%";
             log("handleRealTimeProgress: Invalid data received.");
           }
+      
           if (!data.isPaused && !data.isLive) {
             videoTitleElement.classList.add("playing");
           } else {
@@ -668,7 +682,6 @@
           log("Updating browsing presence...");
       
           const defaultThumbnail = "https://www.youtube.com/img/desktop/yt_1200.png";
-          // Only update thumbnail if it is not already the default.
           if (videoThumbnailImage.src !== defaultThumbnail) {
             videoThumbnailImage.src = data.thumbnail || defaultThumbnail;
             videoThumbnailImage.style.display = "block";
