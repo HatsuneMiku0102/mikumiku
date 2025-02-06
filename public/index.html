@@ -14,7 +14,10 @@
       crossorigin="anonymous"
       referrerpolicy="no-referrer"
     />
+    <!-- Your existing styles -->
     <link rel="stylesheet" href="/styles.css" />
+    <!-- Mapbox GL JS CSS -->
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.css" rel="stylesheet" />
     <style>
       /* Temporary inline style for description modal toggling */
       #descriptionModal {
@@ -176,7 +179,7 @@
                 <h2 id="descriptionModalTitle">Description</h2>
                 <p id="descriptionModalDescription">Loading description...</p>
               </div>
-              <!-- Centered time elapsed display (visible for both video and browsing) -->
+              <!-- Centered time elapsed display -->
               <div id="timeElapsedContainer" class="time-elapsed">
                 <i class="fas fa-clock"></i> <span id="timeElapsed">0s</span>
               </div>
@@ -197,6 +200,11 @@
             <p id="wind-speed" class="wind-speed">
               <i class="fas fa-wind"></i> Wind: -- m/s
             </p>
+          </aside>
+          <!-- Optional: Add your interactive Mapbox map below the weather section -->
+          <aside class="map-section">
+            <h3>Visitor Map</h3>
+            <div id="map" style="height: 300px; width: 100%; border-radius: var(--border-radius);"></div>
           </aside>
         </div>
       </section>
@@ -283,7 +291,22 @@
           </div>
         </div>
       </div>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+      <!-- Mapbox GL JS CSS and JS -->
+      <link href="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.css" rel="stylesheet" />
+      <script src="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.js"></script>
+      <script>
+        document.addEventListener("DOMContentLoaded", function () {
+          // Initialize Mapbox map
+          mapboxgl.accessToken = 'pk.eyJ1IjoiYXJ0ZW1pczExNyIsImEiOiJjbTZzeHQ2bGowOHlnMm9yM3k4ZTl4cHptIn0.n1AdgsyV2iA7X1PwGvDTlA';
+          const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v12',
+            center: [0, 20],
+            zoom: 2
+          });
+          map.addControl(new mapboxgl.NavigationControl());
+        });
+      </script>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
       <script src="haru.js"></script>
@@ -682,6 +705,7 @@
           log("Updating browsing presence...");
       
           const defaultThumbnail = "https://www.youtube.com/img/desktop/yt_1200.png";
+          // Update thumbnail only if needed to avoid flickering.
           if (videoThumbnailImage.src !== defaultThumbnail) {
             videoThumbnailImage.src = data.thumbnail || defaultThumbnail;
             videoThumbnailImage.style.display = "block";
