@@ -1520,6 +1520,48 @@ app.get('/api/weather', async (req, res) => {
     }
 });
 
+
+// Tracking Visitor Locations Endpoint
+app.post('/track-visitor', async (req, res) => {
+  try {
+    // Extract client IP. (You may already have a function like getClientIp.)
+    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    
+    // Use ipinfo.io API to get geolocation data.
+    const token = process.env.IPINFO_API_KEY; // Ensure this is set in your .env file.
+    const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${token}`);
+    
+    // ipinfo returns a "loc" property as "latitude,longitude"
+    const loc = response.data.loc; 
+    if (loc) {
+      const [latitude, longitude] = loc.split(',');
+      
+      // You can generate a unique visitor ID based on the IP address (or use another mechanism)
+      const visitorId = ip; // Alternatively, use a library like uuid
+      
+      // Create a simple info string (e.g., city and country)
+      const info = `${response.data.city || "Unknown City"}, ${response.data.country || "Unknown Country"}`;
+      
+      // Emit the visitor location event via Socket.IO to all connected clients.
+      io.emit("visitorLocation", {
+        id: visitorId,
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
+        info: info
+      });
+      
+      // Log the event.
+      console.log(`Emitted visitorLocation for ${visitorId}: [${latitude}, ${longitude}] - ${info}`);
+    }
+    
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Error tracking visitor location:", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
 // ----------------------
 // Start the Server
 // ----------------------
