@@ -252,14 +252,11 @@ app.use(
         "'self'",
         "https://discord.com"
       ],
-      // Add a worker-src directive to allow blob URLs for Mapbox Web Workers.
       workerSrc: ["'self'", "blob:"],
       upgradeInsecureRequests: []
     }
   })
 );
-
-
 
 app.set('trust proxy', true);
 
@@ -514,6 +511,7 @@ async function getGeoLocation(ip) {
 }
 
 // Accurate Geolocation Function (Using IPinfo and MaxMind)
+// Modified to include the "loc" property if available from IPinfo
 async function getAccurateGeoLocation(ip) {
     try {
         // IPinfo as the primary source
@@ -543,10 +541,10 @@ async function getAccurateGeoLocation(ip) {
             city: ipInfoData.city || (maxMindData.city && maxMindData.city.names.en) || 'Unknown',
             region: ipInfoData.region || (maxMindData.subdivisions && maxMindData.subdivisions[0].names.en) || 'Unknown',
             country: ipInfoData.country || (maxMindData.country && maxMindData.country.names.en) || 'Unknown',
-            ip: ip
+            ip: ip,
+            loc: ipInfoData.loc || null  // <-- Added loc property here
         };
 
-        // Log the merged location data
         logger.info(`AccurateGeoLocation for IP ${ip}: City=${location.city}, Region=${location.region}, Country=${location.country}`);
 
         return location;
@@ -555,15 +553,6 @@ async function getAccurateGeoLocation(ip) {
         return { city: 'Unknown', region: 'Unknown', country: 'Unknown', ip: ip };
     }
 }
-
-
-// Web Search Function using OpenAI GPT-3.5-turbo (Removed Google Custom Search API)
-/**
- * Since you want to replace Dialogflow with OpenAI's GPT-3.5-turbo, and likely use it for chatbot responses,
- * the web search functionality using Google Custom Search API can be optionally removed or adjusted.
- * However, if you still need a separate web search feature, you can integrate it with OpenAI prompts.
- * For simplicity, I'll assume you want to focus on using OpenAI for chat responses.
- */
 
 // ----------------------
 // Rate Limiting Middleware
@@ -739,7 +728,6 @@ app.post('/login', loginLimiter, async (req, res) => {
             return res.status(401).json({ auth: false, message: 'Invalid username or password' });
         }
 
-        // Use bcrypt to compare passwords
         const isPasswordValid = await bcrypt.compare(password, adminPasswordHash);
 
         if (!isPasswordValid) {
@@ -752,11 +740,11 @@ app.post('/login', loginLimiter, async (req, res) => {
         });
 
         res.cookie('token', token, {
-            httpOnly: false, // Make sure it's false so that JavaScript can access it
-            secure: process.env.NODE_ENV === 'production', // True for production environment over HTTPS
-            sameSite: 'Lax', // Set this to 'Lax' to prevent any issues with CSRF while keeping security reasonable
-            path: '/', // Set the path to the root to allow JavaScript access throughout the site
-            maxAge: 86400 * 1000 // Set an appropriate expiration time (e.g., 24 hours)
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Lax',
+            path: '/',
+            maxAge: 86400 * 1000
         });
 
         req.session.save((err) => {
@@ -764,7 +752,6 @@ app.post('/login', loginLimiter, async (req, res) => {
                 logger.error(`Error saving session: ${err.message}`);
                 return res.status(500).json({ auth: false, message: 'Error saving session' });
             }
-            // Redirect to the /admin route instead of /admin-dashboard.html
             res.status(200).json({ auth: true, redirect: '/admin' });
         });
     } catch (error) {
@@ -780,7 +767,6 @@ app.get('/auth', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-login.html'));
 });
 
-// Logout Route
 app.post('/logout', (req, res) => {
     req.session.destroy((err) => {
         if (err) {
@@ -795,15 +781,13 @@ app.post('/logout', (req, res) => {
             sameSite: 'strict'
         });
 
-        res.redirect('/auth'); // Redirect to /auth after logout
+        res.redirect('/auth');
     });
 });
 
 // ----------------------
 // Comment Routes
 // ----------------------
-
-// Create a New Comment
 app.post('/api/comments', async (req, res) => {
     try {
         const { username, comment } = req.body;
@@ -816,7 +800,6 @@ app.post('/api/comments', async (req, res) => {
     }
 });
 
-// Get Approved Comments
 app.get('/api/comments', async (req, res) => {
     try {
         const comments = await Comment.find({ approved: true });
@@ -827,7 +810,6 @@ app.get('/api/comments', async (req, res) => {
     }
 });
 
-// Delete a Comment
 app.delete('/api/comments/:id', verifyToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -847,16 +829,13 @@ app.get('/admin', verifyToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
-// Prevent direct access to the HTML file
 app.get('/admin-dashboard.html', (req, res) => {
-    res.redirect('/admin'); // Redirect to the /admin route
+    res.redirect('/admin');
 });
 
 // ----------------------
 // Geolocation Routes
 // ----------------------
-
-// Fetch Location Route
 app.get('/fetch-location', async (req, res) => {
     const ip = getClientIp(req);
     try {
@@ -868,7 +847,6 @@ app.get('/fetch-location', async (req, res) => {
     }
 });
 
-// Get Geolocation by IP Route
 app.get('/api/location/:ip', async (req, res) => {
     try {
         const ip = req.params.ip;
@@ -885,93 +863,43 @@ app.get('/api/location/:ip', async (req, res) => {
     }
 });
 
-// Track IP Route
-app.post('/track', async (req, res) => {
-    const ip = getClientIp(req);
-    const userAgent = req.get('User-Agent') || '';
-    logger.info(`Extracted IP: ${ip}, User-Agent: ${userAgent}`);
-
-    // Simple bot detection
-    const botPatterns = [/bot/i, /crawl/i, /spider/i, /slurp/i];
-    if (botPatterns.some(pattern => pattern.test(userAgent))) {
-        logger.info(`Skipped tracking for bot User-Agent: ${userAgent}`);
-        return res.status(200).json({ message: 'Bot detected, tracking skipped.' });
+// ----------------------
+// Tracking Visitor Locations Endpoint
+// ----------------------
+app.post('/track-visitor', async (req, res) => {
+  const ip = getClientIp(req);
+  try {
+    const location = await getGeoLocation(ip);
+    if (location && location.loc) {
+      // Parse the latitude and longitude from the "loc" property
+      const [latitude, longitude] = location.loc.split(',');
+      // Use the IP as a unique visitor ID (or generate a new one as needed)
+      const visitorId = ip;
+      // Create an info string using the city and country
+      const info = `${location.city || "Unknown City"}, ${location.country || "Unknown Country"}`;
+      
+      // Emit the visitor location event via Socket.IO to all connected clients.
+      io.emit("visitorLocation", {
+        id: visitorId,
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
+        info: info
+      });
+      
+      logger.info(`Emitted visitorLocation for ${visitorId}: [${latitude}, ${longitude}] - ${info}`);
+    } else {
+      logger.warn(`No coordinate data available for IP ${ip}.`);
     }
-
-    // Rate Limiting: Prevent multiple tracking from the same IP within a short time
-    const rateLimitKey = `track_${ip}`;
-    const existingTimestamp = rateLimitMap.get(rateLimitKey) || 0;
-    const currentTime = Date.now();
-
-    if (currentTime - existingTimestamp < 60000) { // 1 minute
-        logger.info(`Rate limit exceeded for IP: ${ip}, skipping tracking.`);
-        return res.status(200).json({ message: 'Rate limit exceeded, tracking skipped.' });
-    }
-
-    rateLimitMap.set(rateLimitKey, currentTime);
-
-    try {
-        const location = await getGeoLocation(ip);
-
-        // Check if the IP is already blocked
-        if (blockedIps.has(ip)) {
-            logger.warn(`Blocked IP attempted to track: ${ip}`);
-            return res.status(403).json({ error: 'Access denied.' });
-        }
-
-        // Fetch existing entry for this IP
-        const existingEntry = await GeoData.findOne({ ip: location.ip });
-
-        // Check if the location data has changed before updating
-        if (existingEntry) {
-            const hasChanged = (
-                existingEntry.city !== location.city ||
-                existingEntry.region !== location.region ||
-                existingEntry.country !== location.country
-            );
-
-            if (!hasChanged) {
-                logger.info(`No changes detected for IP: ${ip}, skipping update.`);
-                return res.json({ message: 'No changes detected, update skipped.', ip, location });
-            }
-        }
-
-        // If no existing entry, or if the data has changed, perform an upsert
-        const updatedEntry = await GeoData.findOneAndUpdate(
-            { ip: location.ip },  // Query to find the existing IP
-            {  // Fields to update
-                city: location.city,
-                region: location.region,
-                country: location.country,
-                timestamp: new Date()
-            },
-            { upsert: true, new: true }
-        );
-
-        // Log the updated or inserted entry
-        logger.info(`Location data saved to 'geodatas' collection: ${JSON.stringify(updatedEntry)}`);
-        res.json({ ip, location });
-
-        // Perform aggregation to group by country
-        const countryData = await GeoData.aggregate([
-            { $group: { _id: "$country", count: { $sum: 1 } } },
-            { $sort: { count: -1 } }
-        ]);
-
-        // Emit the aggregated data to all connected clients
-        io.emit('geoDataUpdate', countryData);
-        logger.info('Emitted geoDataUpdate event to all connected clients.');
-
-    } catch (err) {
-        logger.error(`Error fetching location or saving to MongoDB for IP ${ip}: ${err.message}`);
-        res.status(500).json({ error: 'Unable to get or save location' });
-    }
+    res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error(`Error tracking visitor location for IP ${ip}: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // ----------------------
 // Admin Dashboard Real-Time Updates
 // ----------------------
-
 const ipBanSchema = new mongoose.Schema({
     ip: { type: String, required: true, unique: true },
     blockedAt: { type: Date, default: Date.now },
@@ -982,20 +910,17 @@ const IPbans = mongoose.model('IPbans', ipBanSchema);
 const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
 const blockedIps = new Set(); // Set to track blocked IPs
 
-// State Management
 let currentVideo = null;
 let currentBrowsing = null;
 const videoHeartbeat = {};
 const activeUsers = new Map(); // Tracks active users by IP and connection type
 
-// Block user endpoint
 app.post('/api/block-user', async (req, res) => {
     const { ip } = req.body;
     if (ip) {
-        blockedIps.add(ip); // Add IP to blocked list
+        blockedIps.add(ip);
         logger.info(`Blocked user with IP: ${ip}`);
 
-        // Save to MongoDB IPbans collection
         try {
             await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
             logger.info(`IP ${ip} has been added to IPbans collection.`);
@@ -1004,16 +929,13 @@ app.post('/api/block-user', async (req, res) => {
             return res.status(500).send({ status: 'error', message: 'Failed to block user.' });
         }
 
-        // Notify all clients about the blocked IP
         io.emit('ipBlocked', { ip });
-
         res.status(200).send({ status: 'success', message: `User with IP ${ip} has been blocked.` });
     } else {
         res.status(400).send({ status: 'error', message: 'IP address is required.' });
     }
 });
 
-// Unblock user endpoint
 app.post('/api/unblock-user', async (req, res) => {
     const { ip } = req.body;
     if (ip) {
@@ -1021,7 +943,6 @@ app.post('/api/unblock-user', async (req, res) => {
             blockedIps.delete(ip);
             logger.info(`Unblocked user with IP: ${ip}`);
 
-            // Remove from MongoDB IPbans collection
             try {
                 await IPbans.deleteOne({ ip });
                 logger.info(`IP ${ip} has been removed from IPbans collection.`);
@@ -1030,11 +951,9 @@ app.post('/api/unblock-user', async (req, res) => {
                 return res.status(500).send({ status: 'error', message: 'Failed to unblock user.' });
             }
 
-            // Notify all clients about the unblocked IP
             io.emit('ipUnblocked', { ip });
-
-            // Acknowledge the unblock
-            socket.emit('unblockUserResponse', { status: 'success', message: `User with IP ${ip} has been unblocked.` });
+            // Acknowledge the unblock via the socket if available
+            res.status(200).send({ status: 'success', message: `User with IP ${ip} has been unblocked.` });
         } else {
             res.status(400).send({ status: 'error', message: `User with IP ${ip} is not blocked.` });
         }
@@ -1043,39 +962,34 @@ app.post('/api/unblock-user', async (req, res) => {
     }
 });
 
-// Handle new client connections
 io.on('connection', async (socket) => {
     logger.info(`[Socket.IO] New client connected: ${socket.id}`);
 
     const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
-    const connectionType = socket.handshake.query.connectionType || 'website'; // 'website' or 'extension'
+    const connectionType = socket.handshake.query.connectionType || 'website';
 
     if (blockedIps.has(ip)) {
         logger.warn(`Blocked connection attempt from IP: ${ip}`);
-        socket.disconnect(); // Disconnect if IP is blocked
+        socket.disconnect();
         return;
     }
 
     logger.info(`New connection from IP: ${ip}, Type: ${connectionType}`);
 
-    // Manage active users based on IP and connection type
     if (!activeUsers.has(ip)) {
         activeUsers.set(ip, { id: socket.id, ip, connectionTypes: new Set() });
     }
-    activeUsers.get(ip).connectionTypes.add(connectionType); // Add connection type to the Set
+    activeUsers.get(ip).connectionTypes.add(connectionType);
 
-    // Emit updated active users
     io.emit('activeUsersUpdate', {
         users: Array.from(activeUsers.values()).map(user => ({
             ip: user.ip,
-            connectionTypes: Array.from(user.connectionTypes) // No need to join here
+            connectionTypes: Array.from(user.connectionTypes)
         }))
     });
 
-    // Emit current presence state to the newly connected client
     emitCurrentPresence(socket);
 
-    // Handle Presence Updates (Video, Browsing, Offline)
     socket.on('presenceUpdate', (data) => {
         switch (data.presenceType) {
             case 'browsing':
@@ -1090,12 +1004,9 @@ io.on('connection', async (socket) => {
             default:
                 logger.warn(`Unknown presenceType received: ${data.presenceType}`);
         }
-
-        // Emit updated presence to all connected clients
         io.emit('presenceUpdate', data);
     });
 
-    // Handle block user request
     socket.on('blockUser', async (data) => {
         const { ip } = data;
         if (ip) {
@@ -1103,7 +1014,6 @@ io.on('connection', async (socket) => {
                 blockedIps.add(ip);
                 logger.info(`Blocking user with IP: ${ip}`);
 
-                // Save to MongoDB IPbans collection
                 try {
                     await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
                     logger.info(`IP ${ip} has been added to IPbans collection.`);
@@ -1113,10 +1023,7 @@ io.on('connection', async (socket) => {
                     return;
                 }
 
-                // Notify all clients about the blocked IP
                 io.emit('ipBlocked', { ip });
-
-                // Acknowledge the block
                 socket.emit('blockUserResponse', { status: 'success', message: `User with IP ${ip} has been blocked.` });
             } else {
                 socket.emit('blockUserResponse', { status: 'error', message: `User with IP ${ip} is already blocked.` });
@@ -1126,7 +1033,6 @@ io.on('connection', async (socket) => {
         }
     });
 
-    // Handle unblock user request
     socket.on('unblockUser', async (data) => {
         const { ip } = data;
         if (ip) {
@@ -1134,7 +1040,6 @@ io.on('connection', async (socket) => {
                 blockedIps.delete(ip);
                 logger.info(`Unblocking user with IP: ${ip}`);
 
-                // Remove from MongoDB IPbans collection
                 try {
                     await IPbans.deleteOne({ ip });
                     logger.info(`IP ${ip} has been removed from IPbans collection.`);
@@ -1144,10 +1049,7 @@ io.on('connection', async (socket) => {
                     return;
                 }
 
-                // Notify all clients about the unblocked IP
                 io.emit('ipUnblocked', { ip });
-
-                // Acknowledge the unblock
                 socket.emit('unblockUserResponse', { status: 'success', message: `User with IP ${ip} has been unblocked.` });
             } else {
                 socket.emit('unblockUserResponse', { status: 'error', message: `User with IP ${ip} is not blocked.` });
@@ -1157,19 +1059,16 @@ io.on('connection', async (socket) => {
         }
     });
 
-    // Handle YouTube Browsing Presence Updates
     socket.on('updateBrowsingPresence', (data) => {
         handleBrowsingPresence(data);
         io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
     });
 
-    // Handle YouTube Video Progress Updates
     socket.on('updateVideoProgress', (data) => {
         handleVideoPresence(data);
         io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
     });
 
-    // Handle Heartbeat Signals for YouTube Videos
     socket.on('heartbeat', (data, callback) => {
         const { videoId } = data;
         if (videoId && currentVideo && currentVideo.videoId === videoId) {
@@ -1180,7 +1079,6 @@ io.on('connection', async (socket) => {
         }
     });
 
-    // Handle Client Disconnection
     socket.on('disconnect', () => {
         logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
         
@@ -1188,14 +1086,13 @@ io.on('connection', async (socket) => {
             const user = activeUsers.get(ip);
             user.connectionTypes.delete(connectionType);
             if (user.connectionTypes.size === 0) {
-                activeUsers.delete(ip); // Remove user if no connection types remain
+                activeUsers.delete(ip);
             }
         }
 
-        // Emit updated user list
         io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()).map(user => ({
             ip: user.ip,
-            connectionTypes: Array.from(user.connectionTypes) // No need to join here
+            connectionTypes: Array.from(user.connectionTypes)
         })) });
 
         if (currentVideo || currentBrowsing) {
@@ -1207,9 +1104,6 @@ io.on('connection', async (socket) => {
     });
 });
 
-/**
- * Periodically check for heartbeat timeouts to mark videos as offline
- */
 setInterval(() => {
     const now = Date.now();
     for (const [videoId, lastHeartbeat] of Object.entries(videoHeartbeat)) {
@@ -1223,9 +1117,6 @@ setInterval(() => {
     }
 }, HEARTBEAT_TIMEOUT / 2);
 
-/**
- * Helper Functions
- */
 function emitCurrentPresence(socket) {
     if (currentVideo) {
         socket.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
@@ -1307,14 +1198,11 @@ function handleVideoPresence(data) {
     }
 }
 
-
 function handleOfflinePresence() {
     currentVideo = null;
     currentBrowsing = null;
     logger.info(`[Socket.IO] User marked as offline.`);
 }
-
-
 
 // ----------------------
 // Real-time Data Endpoint
@@ -1328,11 +1216,8 @@ app.post('/api/update', (req, res) => {
 // ----------------------
 // Video Routes
 // ----------------------
-
-// Get Public Videos (Implementation Needed)
 app.get('/api/videos/public', async (req, res) => {
     try {
-        // Implement logic to retrieve public videos
         res.json([]);
     } catch (err) {
         logger.error(`Error retrieving video metadata: ${err.message}`);
@@ -1340,7 +1225,6 @@ app.get('/api/videos/public', async (req, res) => {
     }
 });
 
-// Add a New Video (Protected)
 app.post('/api/videos',
     verifyToken,
     [
@@ -1370,11 +1254,6 @@ app.post('/api/videos',
         };
 
         try {
-            // Implement logic to save video metadata to the database
-            // For example:
-            // const video = new Video(videoMetadata);
-            // await video.save();
-
             logger.info(`New video added: ${JSON.stringify(videoMetadata)}`);
             res.status(201).json({ message: 'Video added successfully', video: videoMetadata });
         } catch (err) {
@@ -1387,26 +1266,21 @@ app.post('/api/videos',
 // ----------------------
 // OpenAI GPT-3.5-turbo Integration
 // ----------------------
-
-// Initialize OpenAI Client
 const configuration = new Configuration({
     apiKey: process.env.OPENAI_API_KEY,
 });
 const openai = new OpenAIApi(configuration);
 
-// In-memory session storage (for demonstration purposes only)
 const sessions = {};
 
-// Rate Limiting Middleware
 const openAICallLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: 60, // Limit each IP to 60 requests per windowMs (adjust as needed)
+    windowMs: 60 * 1000,
+    max: 60,
     message: { error: 'Too many requests, please try again later.' },
     standardHeaders: true,
     legacyHeaders: false,
 });
 
-// Utility function for exponential backoff
 async function makeOpenAIRequest(messages, retries = 3, backoff = 1000) {
     try {
         const response = await openai.createChatCompletion({
@@ -1427,7 +1301,6 @@ async function makeOpenAIRequest(messages, retries = 3, backoff = 1000) {
     }
 }
 
-// POST /api/openai-chat
 app.post('/api/openai-chat', openAICallLimiter, async (req, res) => {
     const { message, sessionId } = req.body;
 
@@ -1435,14 +1308,12 @@ app.post('/api/openai-chat', openAICallLimiter, async (req, res) => {
         return res.status(400).json({ error: 'Message and sessionId are required.' });
     }
 
-    // Initialize session if it doesn't exist
     if (!sessions[sessionId]) {
         sessions[sessionId] = [
             { role: 'system', content: 'You are Haru AI, a helpful assistant.' }
         ];
     }
 
-    // Add user message to session
     sessions[sessionId].push({ role: 'user', content: message });
 
     try {
@@ -1463,8 +1334,6 @@ app.post('/api/openai-chat', openAICallLimiter, async (req, res) => {
 // ----------------------
 // Geolocation Routes (continued)
 // ----------------------
-
-// Get GeoData Aggregated by Country
 app.get('/api/geo-data', async (req, res) => {
     try {
         const countryData = await GeoData.aggregate([
@@ -1484,27 +1353,23 @@ app.get('/api/geo-data', async (req, res) => {
 // ----------------------
 app.get('/api/weather', async (req, res) => {
     const city = req.query.city || 'Leeds';
-    const units = 'metric'; // Use 'imperial' for Fahrenheit
+    const units = 'metric';
     const apiKey = process.env.OPENWEATHER_API_KEY;
 
-    // Validate the presence of the API key
     if (!apiKey) {
         logger.error('OPENWEATHER_API_KEY is not set in environment variables.');
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 
-    // Construct the API URL using template literals
     const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=${units}&appid=${apiKey}`;
 
     try {
         const response = await axios.get(apiUrl);
 
-        // Handle non-OK responses
         if (response.status !== 200) {
             let errorMsg = 'Failed to fetch weather data';
             try {
                 const errorData = response.data;
-                // OpenWeatherMap returns error messages in the 'message' field
                 errorMsg = errorData.message || errorMsg;
             } catch (e) {
                 logger.error('Error parsing error response:', e);
@@ -1520,51 +1385,9 @@ app.get('/api/weather', async (req, res) => {
     }
 });
 
-
-// Tracking Visitor Locations Endpoint
-// Tracking Visitor Locations Endpoint using existing geolocation functions
-app.post('/track-visitor', async (req, res) => {
-  // Use your existing getClientIp() to extract the client's IP address.
-  const ip = getClientIp(req);
-  try {
-    // Use your existing getGeoLocation() function
-    const location = await getGeoLocation(ip);
-    if (location && location.loc) {
-      // Parse the latitude and longitude from the "loc" property
-      const [latitude, longitude] = location.loc.split(',');
-      // Use the IP as a unique visitor ID (or generate a new one as needed)
-      const visitorId = ip;
-      // Create an info string using the city and country
-      const info = `${location.city || "Unknown City"}, ${location.country || "Unknown Country"}`;
-      
-      // Emit the visitor location event via Socket.IO to all connected clients.
-      io.emit("visitorLocation", {
-        id: visitorId,
-        latitude: parseFloat(latitude),
-        longitude: parseFloat(longitude),
-        info: info
-      });
-      
-      logger.info(`Emitted visitorLocation for ${visitorId}: [${latitude}, ${longitude}] - ${info}`);
-    } else {
-      logger.warn(`No coordinate data available for IP ${ip}.`);
-    }
-    res.status(200).json({ success: true });
-  } catch (error) {
-    logger.error(`Error tracking visitor location for IP ${ip}: ${error.message}`);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-
-
 // ----------------------
 // Start the Server
 // ----------------------
 server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
 });
-
-
-
-
