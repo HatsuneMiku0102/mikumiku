@@ -9,62 +9,47 @@
     <link rel="stylesheet" href="/styles.css" />
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.css" rel="stylesheet" />
     <style>
-      /* General */
-      #descriptionModal {
-        display: none;
-      }
-      #descriptionModal.active {
-        display: block;
-      }
-      /* Map Container */
-      #map {
-        width: 400px;
-        height: 400px;
-        border-radius: var(--border-radius);
-      }
-      /* Now Playing Container (vertical stacking) */
-      .now-playing {
-        display: flex;
-        flex-direction: column;
+      #descriptionModal { display: none; }
+      #descriptionModal.active { display: block; }
+      #map { width: 400px; height: 400px; border-radius: var(--border-radius); }
+      .grid-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-rows: auto auto;
+        grid-template-areas: "videoInfo youtubeSection weatherSection" "timeInfo youtubeSection mapSection";
         gap: 1rem;
         padding: 1rem;
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(255,255,255,0.05);
         border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       }
-      /* Now Playing Sidebar */
-      .now-playing-sidebar {
-        width: 100%;
+      #videoInfo { grid-area: videoInfo; }
+      #timeInfo { grid-area: timeInfo; }
+      #youtubeSection { grid-area: youtubeSection; }
+      #weatherSection { grid-area: weatherSection; }
+      #mapSection { grid-area: mapSection; }
+      .video-info-details {
+        background: rgba(0,0,0,0.05);
         padding: 1rem;
-        background: rgba(0, 0, 0, 0.05);
         border-radius: 8px;
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.5rem;
       }
-      .now-playing-sidebar .sidebar-item {
+      .video-info-details .info-item {
         padding: 0.5rem;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(255,255,255,0.1);
         border-radius: 4px;
         transition: background 0.3s ease;
       }
-      .now-playing-sidebar .sidebar-item:hover {
-        background: rgba(255, 255, 255, 0.2);
-      }
-      /* Video Section */
-      .video-section {
-        width: 100%;
+      .video-info-details .info-item:hover { background: rgba(255,255,255,0.2); }
+      .clock-section {
+        background: rgba(0,0,0,0.05);
         padding: 1rem;
-        background: rgba(0, 0, 0, 0.05);
         border-radius: 8px;
       }
-      .video-title-container h2 {
-        margin-bottom: 0.5rem;
-      }
-      /* Progress Bar and Indicator */
-      .progress-container {
-        margin-top: 1rem;
-      }
+      .video-title-container h2 { margin-bottom: 0.5rem; }
+      .progress-container { margin-top: 1rem; }
       .indicator {
         display: inline-block;
         padding: 0.25rem 0.5rem;
@@ -77,45 +62,12 @@
         color: #fff;
         animation: pulse 2s infinite;
       }
-      @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.1); }
-        100% { transform: scale(1); }
-      }
-      .indicator.paused {
-        background: #ff4081;
-        color: #fff;
-      }
-      /* Sidebar Extra - Weather & Map */
-      .sidebar-extra {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-      }
-      .sidebar-extra aside {
-        width: 100%;
-        padding: 1rem;
-        background: rgba(0, 0, 0, 0.05);
-        border-radius: 8px;
-      }
-      /* Animated Divider */
-      .animated-divider {
-        border: none;
-        height: 1px;
-        background: rgba(255, 255, 255, 0.2);
-        margin: 1rem 0;
-        width: 100%;
-      }
-      /* Time Elapsed Container */
-      #timeElapsedContainer {
-        display: none;
-        opacity: 0;
-        transition: opacity 0.5s ease;
-      }
-      #timeElapsedContainer.show {
-        display: block;
-        opacity: 1;
-      }
+      @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+      .indicator.paused { background: #ff4081; color: #fff; }
+      .description-and-time button { margin-bottom: 0.5rem; }
+      .animated-divider { border: none; height: 1px; background: rgba(255,255,255,0.2); margin: 1rem 0; width: 100%; }
+      #timeElapsedContainer { display: none; opacity: 0; transition: opacity 0.5s ease; }
+      #timeElapsedContainer.show { display: block; opacity: 1; }
     </style>
   </head>
   <body>
@@ -123,7 +75,6 @@
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-    
     <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
     <div class="page-container" id="pageContainer">
       <header class="title-bar" id="titleBar">
@@ -196,61 +147,39 @@
         </div>
       </nav>
       <section class="now-playing-container">
-        <div id="nowPlayingBox" class="now-playing">
-          <aside class="now-playing-sidebar">
-            <div class="sidebar-item">
-              <i class="fas fa-tv"></i> <span id="channelName">Loading...</span>
+        <div id="nowPlayingBox" class="grid-container">
+          <div id="videoInfo">
+            <div class="video-info-details">
+              <div class="info-item"><i class="fas fa-tv"></i> <span id="channelName">Loading...</span></div>
+              <div class="info-item"><i class="fas fa-eye"></i> <span id="viewCount">Loading...</span></div>
+              <div class="info-item"><i class="fas fa-thumbs-up"></i> <span id="likeCount">Loading...</span></div>
+              <div class="info-item"><i class="fas fa-calendar-day"></i> <span id="publishedDate">Loading...</span></div>
+              <div class="info-item video-category"><i class="fas fa-tag"></i> <span id="videoCategory">Loading...</span></div>
             </div>
-            <div class="sidebar-item">
-              <i class="fas fa-eye"></i> <span id="viewCount">Loading...</span>
-            </div>
-            <div class="sidebar-item">
-              <i class="fas fa-thumbs-up"></i> <span id="likeCount">Loading...</span>
-            </div>
-            <div class="sidebar-item">
-              <i class="fas fa-calendar-day"></i> <span id="publishedDate">Loading...</span>
-            </div>
-            <div class="sidebar-item video-category">
-              <i class="fas fa-tag"></i> <span id="videoCategory">Loading...</span>
-            </div>
+          </div>
+          <div id="timeInfo">
             <section class="clock-section">
-              <p id="greeting" class="greeting">
-                <i class="fas fa-sun"></i>
-                <span id="greeting-text">Good Morning!</span>
-              </p>
+              <p id="greeting" class="greeting"><i class="fas fa-sun"></i> <span id="greeting-text">Good Morning!</span></p>
               <div class="clocks-container">
                 <div class="digital-clock">
-                  <p id="local-time">
-                    <i class="fas fa-clock"></i> 00:03:56
-                  </p>
-                  <p id="current-date">
-                    <i class="fas fa-calendar-alt"></i> 14 October 2024
-                  </p>
-                  <p id="day-of-week">
-                    <i class="fas fa-calendar-day"></i> Monday
-                  </p>
-                  <p id="time-zone">
-                    <i class="fas fa-globe"></i> UTC
-                  </p>
+                  <p id="local-time"><i class="fas fa-clock"></i> 00:03:56</p>
+                  <p id="current-date"><i class="fas fa-calendar-alt"></i> 14 October 2024</p>
+                  <p id="day-of-week"><i class="fas fa-calendar-day"></i> Monday</p>
+                  <p id="time-zone"><i class="fas fa-globe"></i> UTC</p>
                 </div>
               </div>
-              <p id="last-visit-message" class="last-visit-message">
-                <i class="fas fa-history"></i> Welcome back!
-              </p>
+              <p id="last-visit-message" class="last-visit-message"><i class="fas fa-history"></i> Welcome back!</p>
+              <div id="timeElapsedContainer" class="time-elapsed"><i class="fas fa-clock"></i> <span id="timeElapsed">0s</span></div>
             </section>
-          </aside>
-          <div class="video-section">
-            <div id="videoInfoContainer" class="video-info-container">
-              <div class="video-title-container">
-                <h2>Currently Playing</h2>
-                <p id="videoTitle">Loading...</p>
-              </div>
-              <div class="thumbnail-container">
-                <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls aria-label="Currently Playing Video">
-                  Your browser does not support the video tag.
-                </video>
-                <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy" />
-              </div>
+          </div>
+          <div id="youtubeSection">
+            <div class="video-title-container">
+              <h2>Currently Playing</h2>
+              <p id="videoTitle">Loading...</p>
+            </div>
+            <div class="thumbnail-container">
+              <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls aria-label="Currently Playing Video">Your browser does not support the video tag.</video>
+              <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy" />
             </div>
             <div id="offline-indicator" class="offline-indicator">
               <i class="fas fa-signal-slash"></i> I’m currently offline
@@ -272,28 +201,18 @@
                 <h2 id="descriptionModalTitle">Description</h2>
                 <p id="descriptionModalDescription">Loading description...</p>
               </div>
-              <div id="timeElapsedContainer" class="time-elapsed">
-                <i class="fas fa-clock"></i> <span id="timeElapsed">0s</span>
-              </div>
             </div>
           </div>
-          <hr class="animated-divider" />
-          <div class="sidebar-extra">
+          <div id="weatherSection">
             <aside class="weather-section">
               <img id="weather-icon" src="" alt="Weather Icon" class="weather-icon" loading="lazy" />
-              <p id="weather-description" class="weather-description">
-                <i class="fas fa-cloud-sun"></i> Loading...
-              </p>
-              <p id="temperature" class="temperature">
-                <i class="fas fa-temperature-high"></i> --°C
-              </p>
-              <p id="humidity" class="humidity">
-                <i class="fas fa-tint"></i> Humidity: --%
-              </p>
-              <p id="wind-speed" class="wind-speed">
-                <i class="fas fa-wind"></i> Wind: -- m/s
-              </p>
+              <p id="weather-description" class="weather-description"><i class="fas fa-cloud-sun"></i> Loading...</p>
+              <p id="temperature" class="temperature"><i class="fas fa-temperature-high"></i> --°C</p>
+              <p id="humidity" class="humidity"><i class="fas fa-tint"></i> Humidity: --%</p>
+              <p id="wind-speed" class="wind-speed"><i class="fas fa-wind"></i> Wind: -- m/s</p>
             </aside>
+          </div>
+          <div id="mapSection">
             <aside class="map-section">
               <div id="map"></div>
             </aside>
@@ -304,18 +223,14 @@
         <div class="now-playing-about-wrapper">
           <div class="about" id="aboutMe">
             <h2>About Me</h2>
-            <p>
-              Hey there, I'm Hystoriya, a 24-year-old developer. This is my personal website that I made for no apparent reason. If you find yourself here randomly, then hi :)
-            </p>
+            <p>Hey there, I'm Hystoriya, a 24-year-old developer. This is my personal website that I made for no apparent reason. If you find yourself here randomly, then hi :)</p>
           </div>
         </div>
       </section>
       <footer class="footer">
         <div class="container">
           <p>&copy; 2024 MikuMiku. All rights reserved.</p>
-          <button id="manageConsentFooter" class="manage-consent-button">
-            <i class="fas fa-cookie-bite"></i> Manage Cookie Preferences
-          </button>
+          <button id="manageConsentFooter" class="manage-consent-button"><i class="fas fa-cookie-bite"></i> Manage Cookie Preferences</button>
         </div>
       </footer>
       <div id="chat-box" class="chat-box closed" role="dialog" aria-labelledby="chatHeader" aria-modal="true">
@@ -367,27 +282,19 @@
           <button class="close-button" id="closeConsentModal" aria-label="Close Consent Modal">
             <i class="fas fa-times"></i>
           </button>
-          <h2 id="consentModalTitle">
-            <i class="fas fa-cookie"></i> Cookie Consent
-          </h2>
+          <h2 id="consentModalTitle"><i class="fas fa-cookie"></i> Cookie Consent</h2>
           <p id="consentModalDescription">
             I use cookies stored in your browser to enhance your experience on my personal website. These cookies are essential for the website's functionality. By clicking "Accept," you consent to their use. You can also manage your cookie preferences in the "Manage Cookie Preferences" section.
           </p>
           <div class="consent-buttons">
-            <button id="acceptConsent" class="consent-button">
-              <i class="fas fa-check"></i> Accept
-            </button>
-            <button id="declineConsent" class="consent-button">
-              <i class="fas fa-times"></i> Decline
-            </button>
+            <button id="acceptConsent" class="consent-button"><i class="fas fa-check"></i> Accept</button>
+            <button id="declineConsent" class="consent-button"><i class="fas fa-times"></i> Decline</button>
           </div>
         </div>
       </div>
-      
       <script>
         document.addEventListener("DOMContentLoaded", () => { fetch("/track-visitor", { method: "POST" }).then(response => response.json()).then(data => { console.log("Visitor tracked:", data); }).catch(err => console.error("Error tracking visitor:", err)); });
       </script>
-      
       <script>
         document.addEventListener("DOMContentLoaded", function () {
           mapboxgl.accessToken = 'pk.eyJ1IjoiYXJ0ZW1pczExNyIsImEiOiJjbTZzeHQ2bGowOHlnMm9yM3k4ZTl4cHptIn0.n1AdgsyV2iA7X1PwGvDTlA';
@@ -399,76 +306,37 @@
           });
           map.addControl(new mapboxgl.NavigationControl());
           const visitorMarkers = {};
-          function waitForSocket(callback) {
-            if (typeof socket !== "undefined") {
-              callback();
-            } else {
-              setTimeout(function () { waitForSocket(callback); }, 50);
-            }
-          }
+          function waitForSocket(callback) { if (typeof socket !== "undefined") { callback(); } else { setTimeout(function () { waitForSocket(callback); }, 50); } }
           waitForSocket(function () {
             socket.on("visitorLocation", function (data) {
               log(`Received visitor location: ${JSON.stringify(data)}`);
               const { id, latitude, longitude, info } = data;
-              if (visitorMarkers[id]) {
-                visitorMarkers[id].setLngLat([longitude, latitude]);
-              } else {
-                const marker = new mapboxgl.Marker({ color: "#ff4081" })
-                  .setLngLat([longitude, latitude])
-                  .addTo(map);
-                if (info) {
-                  marker.setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<strong>${info}</strong>`));
-                }
+              if (visitorMarkers[id]) { visitorMarkers[id].setLngLat([longitude, latitude]); }
+              else {
+                const marker = new mapboxgl.Marker({ color: "#ff4081" }).setLngLat([longitude, latitude]).addTo(map);
+                if (info) { marker.setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<strong>${info}</strong>`)); }
                 visitorMarkers[id] = marker;
               }
-              map.flyTo({
-                center: [longitude, latitude],
-                zoom: 4,
-                speed: 0.8
-              });
+              map.flyTo({ center: [longitude, latitude], zoom: 4, speed: 0.8 });
             });
           });
         });
       </script>
-      
       <script src="haru.js"></script>
       <script src="clockwork.js"></script>
       <script>
-        window.addEventListener("load", function () {
-          document.getElementById("pageContainer").classList.add("loaded");
-        });
+        window.addEventListener("load", function () { document.getElementById("pageContainer").classList.add("loaded"); });
       </script>
       <script>
         document.addEventListener("DOMContentLoaded", function () {
           const titleBar = document.getElementById("titleBar");
-          if (titleBar) {
-            window.addEventListener("scroll", function () {
-              titleBar.classList.toggle("scrolled", window.scrollY > 50);
-            });
-          }
+          if (titleBar) { window.addEventListener("scroll", function () { titleBar.classList.toggle("scrolled", window.scrollY > 50); }); }
           const menuButton = document.getElementById("menuButton");
           const overlayMenu = document.getElementById("overlayMenu");
           const closeOverlay = document.getElementById("closeOverlay");
-          if (menuButton && overlayMenu) {
-            menuButton.addEventListener("click", function (e) {
-              e.stopPropagation();
-              overlayMenu.classList.add("active");
-              document.body.classList.add("overlay-active");
-            });
-          }
-          if (closeOverlay && overlayMenu) {
-            closeOverlay.addEventListener("click", function (e) {
-              e.stopPropagation();
-              overlayMenu.classList.remove("active");
-              document.body.classList.remove("overlay-active");
-            });
-          }
-          window.addEventListener("click", function (event) {
-            if (event.target === overlayMenu) {
-              overlayMenu.classList.remove("active");
-              document.body.classList.remove("overlay-active");
-            }
-          });
+          if (menuButton && overlayMenu) { menuButton.addEventListener("click", function (e) { e.stopPropagation(); overlayMenu.classList.add("active"); document.body.classList.add("overlay-active"); }); }
+          if (closeOverlay && overlayMenu) { closeOverlay.addEventListener("click", function (e) { e.stopPropagation(); overlayMenu.classList.remove("active"); document.body.classList.remove("overlay-active"); }); }
+          window.addEventListener("click", function (event) { if (event.target === overlayMenu) { overlayMenu.classList.remove("active"); document.body.classList.remove("overlay-active"); } });
           const personalityButtons = document.querySelectorAll(".personality-button");
           const siteTitle = document.querySelector(".site-title");
           if (personalityButtons.length && siteTitle) {
@@ -499,10 +367,7 @@
             manageButtonIds: ["manageConsentModal", "manageConsentFooter"],
             closeButtonId: "closeConsentModal",
             cookieCategories: {
-              necessary: {
-                enabled: true,
-                description: "Necessary cookies enable core functionalities and security features of the website.",
-              },
+              necessary: { enabled: true, description: "Necessary cookies enable core functionalities and security features of the website." },
             },
             focusableSelectors: "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])",
           };
@@ -525,10 +390,7 @@
           function getCookie(name) {
             const nameEQ = name + "=";
             const ca = document.cookie.split(";");
-            for (let c of ca) {
-              c = c.trim();
-              if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length);
-            }
+            for (let c of ca) { c = c.trim(); if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length); }
             return null;
           }
           function eraseCookie(name, path) {
@@ -541,21 +403,10 @@
               lastFocusableElement = focusableElements[focusableElements.length - 1];
             modal.addEventListener("keydown", function (event) {
               if (event.key === "Tab") {
-                if (event.shiftKey) {
-                  if (document.activeElement === firstFocusableElement) {
-                    event.preventDefault();
-                    lastFocusableElement.focus();
-                  }
-                } else {
-                  if (document.activeElement === lastFocusableElement) {
-                    event.preventDefault();
-                    firstFocusableElement.focus();
-                  }
-                }
+                if (event.shiftKey) { if (document.activeElement === firstFocusableElement) { event.preventDefault(); lastFocusableElement.focus(); } }
+                else { if (document.activeElement === lastFocusableElement) { event.preventDefault(); firstFocusableElement.focus(); } }
               }
-              if (event.key === "Escape") {
-                event.preventDefault();
-              }
+              if (event.key === "Escape") { event.preventDefault(); }
             });
           }
           function showModal() {
@@ -573,11 +424,8 @@
           }
           function initConsentModal() {
             const existingConsent = getCookie(CONFIG.consentCookieName);
-            if (!existingConsent) {
-              showModal();
-            } else {
-              applyConsent(existingConsent);
-            }
+            if (!existingConsent) { showModal(); }
+            else { applyConsent(existingConsent); }
             acceptButton.addEventListener("click", function () {
               setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: true }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
               hideModal();
@@ -596,34 +444,18 @@
                 });
               }
             });
-            closeButton.addEventListener("click", function () {
-              alert("Please make a choice regarding cookie usage.");
-            });
-            window.addEventListener("click", function (event) {
-              if (event.target === consentModal) {
-                alert("Please make a choice regarding cookie usage.");
-              }
-            });
+            closeButton.addEventListener("click", function () { alert("Please make a choice regarding cookie usage."); });
+            window.addEventListener("click", function (event) { if (event.target === consentModal) { alert("Please make a choice regarding cookie usage."); } });
           }
           function applyConsent(consentValue) {
             try {
               const consent = JSON.parse(consentValue);
-              if (consent.necessary) {
-                initializeCookies(consent);
-              } else {
-                disableCookies();
-              }
-            } catch (error) {
-              console.error("Error parsing consent cookie:", error);
-              showModal();
-            }
+              if (consent.necessary) { initializeCookies(consent); }
+              else { disableCookies(); }
+            } catch (error) { console.error("Error parsing consent cookie:", error); showModal(); }
           }
-          function initializeCookies(consent) {
-            console.log("Necessary cookies enabled.");
-          }
-          function disableCookies() {
-            console.log("Necessary cookies disabled.");
-          }
+          function initializeCookies(consent) { console.log("Necessary cookies enabled."); }
+          function disableCookies() { console.log("Necessary cookies disabled."); }
           function areCookiesEnabled() {
             const testCookie = "test_cookie_consent";
             setCookie(testCookie, "test", 1);
@@ -631,13 +463,7 @@
             eraseCookie(testCookie);
             return result;
           }
-          function init() {
-            if (areCookiesEnabled()) {
-              initConsentModal();
-            } else {
-              console.warn("Cookies are disabled in this browser. Consent modal will not be displayed.");
-            }
-          }
+          function init() { if (areCookiesEnabled()) { initConsentModal(); } else { console.warn("Cookies are disabled in this browser. Consent modal will not be displayed."); } }
           document.addEventListener("DOMContentLoaded", init);
         })();
       </script>
@@ -663,7 +489,7 @@
         const timeElapsedContainer = document.getElementById("timeElapsedContainer");
         const liveIndicatorElement = document.getElementById("liveIndicator");
         const pauseIndicatorElement = document.getElementById("pauseIndicator");
-        const videoInfoContainer = document.getElementById("videoInfoContainer");
+        const youtubeSection = document.getElementById("youtubeSection");
         function formatNumber(number) {
           if (typeof number === "string") number = number.replace(/,/g, "");
           const num = Number(number);
@@ -673,13 +499,9 @@
           const hrs = Math.floor(seconds / 3600);
           const mins = Math.floor((seconds % 3600) / 60);
           const secs = seconds % 60;
-          if (hrs > 0) {
-            return `${hrs}h ${mins}m ${secs}s`;
-          } else if (mins > 0) {
-            return `${mins}m ${secs}s`;
-          } else {
-            return `${secs}s`;
-          }
+          if (hrs > 0) { return `${hrs}h ${mins}m ${secs}s`; }
+          else if (mins > 0) { return `${mins}m ${secs}s`; }
+          else { return `${secs}s`; }
         }
         function updateBrowsingElapsed() {
           if (browsingStartTime) {
@@ -715,9 +537,7 @@
             const progressPercentage = (data.currentTime / data.duration) * 100;
             progressBarElement.style.width = progressPercentage + "%";
             log(`handleRealTimeProgress: isLive=${data.isLive}, isPaused=${data.isPaused}, progress=${progressPercentage.toFixed(2)}%`);
-            if (data.isLive && data.isPaused) {
-              log("Conflict: Both isLive and isPaused are true. Prioritizing live indicator.");
-            }
+            if (data.isLive && data.isPaused) { log("Conflict: Both isLive and isPaused are true. Prioritizing live indicator."); }
             if (data.isLive) {
               if (liveIndicatorElement) liveIndicatorElement.classList.add("active");
               if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
@@ -735,11 +555,8 @@
             progressBarElement.style.width = "0%";
             log("handleRealTimeProgress: Invalid data received.");
           }
-          if (!data.isPaused && !data.isLive) {
-            videoTitleElement.classList.add("playing");
-          } else {
-            videoTitleElement.classList.remove("playing");
-          }
+          if (!data.isPaused && !data.isLive) { videoTitleElement.classList.add("playing"); }
+          else { videoTitleElement.classList.remove("playing"); }
         }
         function displayVideoPresence(data) {
           lastHeartbeatReceived = Date.now();
@@ -748,7 +565,7 @@
           log("Updating video presence...");
           timeElapsedContainer.style.display = "none";
           if (videoTitleElement.textContent !== data.title || videoThumbnailImage.src !== data.thumbnail) {
-            videoInfoContainer.classList.add("fade-out");
+            youtubeSection.classList.add("fade-out");
             setTimeout(function () {
               videoTitleElement.textContent = data.title || "Unknown Title";
               videoTitleElement.classList.remove("video-title-changed");
@@ -775,8 +592,8 @@
               const descModal = document.getElementById("descriptionModal");
               descModal.querySelector("p").textContent = data.description || "No description available.";
               descModal.classList.remove("active");
-              videoInfoContainer.classList.remove("fade-out");
-              videoInfoContainer.classList.add("fade-in");
+              youtubeSection.classList.remove("fade-out");
+              youtubeSection.classList.add("fade-in");
               log("Video presence updated in UI.");
             }, 500);
           }
@@ -803,18 +620,14 @@
           const descModal = document.getElementById("descriptionModal");
           descModal.querySelector("p").textContent = data.description || "Browsing videos on YouTube";
           descModal.classList.remove("active");
-          if (!browsingStartTime) {
-            browsingStartTime = Date.now();
-          }
+          if (!browsingStartTime) { browsingStartTime = Date.now(); }
           updateBrowsingElapsed();
-          if (!browsingInterval) {
-            browsingInterval = setInterval(updateBrowsingElapsed, 1000);
-          }
+          if (!browsingInterval) { browsingInterval = setInterval(updateBrowsingElapsed, 1000); }
           if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
           if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
           progressBarElement.style.width = "0%";
-          videoInfoContainer.classList.remove("fade-out");
-          videoInfoContainer.classList.add("fade-in");
+          youtubeSection.classList.remove("fade-out");
+          youtubeSection.classList.add("fade-in");
           log("Browsing presence updated in UI.");
         }
         socket.on("connect", function () {
@@ -945,14 +758,7 @@
           let currentDigits = new Array(columns).fill("0");
           const binaryChars = "01";
           const colors = ["#00C6FF", "#ff4081"];
-          const mikuPhrases = [
-            "Hatsune Miku",
-            "The First Sound of the Future",
-            "39",
-            "Digital Diva",
-            "CV01",
-            "01",
-          ];
+          const mikuPhrases = ["Hatsune Miku", "The First Sound of the Future", "39", "Digital Diva", "CV01", "01"];
           function hexToRGBA(hex, alpha) {
             const r = parseInt(hex.slice(1, 3), 16),
               g = parseInt(hex.slice(3, 5), 16),
@@ -979,9 +785,7 @@
                 phraseCounters[i] = 180;
                 dropIncrement = speeds[i] * 0.2;
               } else {
-                if (Math.random() < 0.1) {
-                  currentDigits[i] = binaryChars.charAt(Math.floor(Math.random() * binaryChars.length));
-                }
+                if (Math.random() < 0.1) { currentDigits[i] = binaryChars.charAt(Math.floor(Math.random() * binaryChars.length)); }
                 text = currentDigits[i];
                 ctx.fillStyle = colors[i % colors.length];
               }
