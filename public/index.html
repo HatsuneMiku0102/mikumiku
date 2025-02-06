@@ -196,26 +196,28 @@
             </div>
           </div>
           <hr class="animated-divider" />
-          <aside class="weather-section">
-            <img id="weather-icon" src="" alt="Weather Icon" class="weather-icon" loading="lazy" />
-            <p id="weather-description" class="weather-description">
-              <i class="fas fa-cloud-sun"></i> Loading...
-            </p>
-            <p id="temperature" class="temperature">
-              <i class="fas fa-temperature-high"></i> --°C
-            </p>
-            <p id="humidity" class="humidity">
-              <i class="fas fa-tint"></i> Humidity: --%
-            </p>
-            <p id="wind-speed" class="wind-speed">
-              <i class="fas fa-wind"></i> Wind: -- m/s
-            </p>
-          </aside>
-          <!-- Mapbox interactive map below the weather section -->
-          <aside class="map-section">
-            <h3>Visitor Map</h3>
-            <div id="map" style="height: 300px; width: 100%; border-radius: var(--border-radius);"></div>
-          </aside>
+          <!-- Sidebar Extra: Weather and Map in one column -->
+          <div class="sidebar-extra">
+            <aside class="weather-section">
+              <img id="weather-icon" src="" alt="Weather Icon" class="weather-icon" loading="lazy" />
+              <p id="weather-description" class="weather-description">
+                <i class="fas fa-cloud-sun"></i> Loading...
+              </p>
+              <p id="temperature" class="temperature">
+                <i class="fas fa-temperature-high"></i> --°C
+              </p>
+              <p id="humidity" class="humidity">
+                <i class="fas fa-tint"></i> Humidity: --%
+              </p>
+              <p id="wind-speed" class="wind-speed">
+                <i class="fas fa-wind"></i> Wind: -- m/s
+              </p>
+            </aside>
+            <aside class="map-section">
+              <h3>Visitor Map</h3>
+              <div id="map" style="height: 300px; width: 100%; border-radius: var(--border-radius);"></div>
+            </aside>
+          </div>
         </div>
       </section>
       <section class="content-wrapper">
@@ -313,6 +315,29 @@
             zoom: 2
           });
           map.addControl(new mapboxgl.NavigationControl());
+      
+          // Object to hold visitor markers.
+          const visitorMarkers = {};
+      
+          // Listen for visitor location events via Socket.IO.
+          socket.on("visitorLocation", function (data) {
+            log(`Received visitor location: ${JSON.stringify(data)}`);
+            // Expected data: { id: 'visitorID', latitude: xx.xxxx, longitude: yy.yyyy, info: 'Optional info' }
+            const { id, latitude, longitude, info } = data;
+      
+            // Update or add a marker.
+            if (visitorMarkers[id]) {
+              visitorMarkers[id].setLngLat([longitude, latitude]);
+            } else {
+              const marker = new mapboxgl.Marker({ color: "#ff4081" })
+                .setLngLat([longitude, latitude])
+                .addTo(map);
+              if (info) {
+                marker.setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<strong>${info}</strong>`));
+              }
+              visitorMarkers[id] = marker;
+            }
+          });
         });
       </script>
       
