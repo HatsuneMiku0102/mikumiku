@@ -187,69 +187,74 @@ app.use(cors());
 
 // Helmet for Security Headers
 app.use(
-    helmet.contentSecurityPolicy({
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: [
-                "'self'",
-                "'unsafe-inline'",
-                "https://fonts.googleapis.com",
-                "https://cdnjs.cloudflare.com",
-                "https://www.youtube.com",
-                "https://unpkg.com",
-                "https://cdn.jsdelivr.net",
-                "https://cdn.skypack.dev",
-                "https://cdn.socket.io"
-            ],
-            styleSrc: [
-                "'self'",
-                "'unsafe-inline'",
-                "https://fonts.googleapis.com",
-                "https://cdnjs.cloudflare.com"
-            ],
-            imgSrc: [
-                "'self'",
-                "'blob:'",
-                "data:",
-                "https://i.ytimg.com",
-                "https://img.youtube.com",
-                "https://openweathermap.org",
-                "https://i.postimg.cc",
-                "https://threejs.org",
-                "https://www.youtube.com",
-                "https://raw.githubusercontent.com" // Allow loading SVGs from GitHub
-                
-            ],
-            fontSrc: [
-                "'self'",
-                "https://fonts.gstatic.com",
-                "https://cdnjs.cloudflare.com"
-            ],
-            connectSrc: [
-                "'self'",
-                "'blob:'",
-                "https://www.googleapis.com",
-                "https://*.youtube.com",
-                "https://api.openweathermap.org",
-                "https://cdn.socket.io",
-                "https://mikumiku.dev" // Ensure this matches the actual domain
-            ],
-            frameSrc: [
-                "'self'",
-                "https://discord.com",
-                "https://www.youtube.com"
-            ],
-            mediaSrc: [
-                "'self'",
-                "https://www.youtube.com"
-            ],
-            frameAncestors: [
-                "'self'",
-                "https://discord.com"
-            ],
-            upgradeInsecureRequests: []
-        }
-    })
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://fonts.googleapis.com",
+        "https://cdnjs.cloudflare.com",
+        "https://www.youtube.com",
+        "https://unpkg.com",
+        "https://cdn.jsdelivr.net",
+        "https://cdn.skypack.dev",
+        "https://cdn.socket.io",
+        "https://api.mapbox.com" // Added for Mapbox GL JS
+      ],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://fonts.googleapis.com",
+        "https://cdnjs.cloudflare.com",
+        "https://api.mapbox.com" // In case Mapbox styles are inlined or loaded here
+      ],
+      imgSrc: [
+        "'self'",
+        "'blob:'",
+        "data:",
+        "https://i.ytimg.com",
+        "https://img.youtube.com",
+        "https://openweathermap.org",
+        "https://i.postimg.cc",
+        "https://threejs.org",
+        "https://www.youtube.com",
+        "https://raw.githubusercontent.com",
+        "https://api.tiles.mapbox.com", // Added for Mapbox tile images
+        "https://*.tiles.mapbox.com"     // Allow wildcard subdomains for tiles if needed
+      ],
+      fontSrc: [
+        "'self'",
+        "https://fonts.gstatic.com",
+        "https://cdnjs.cloudflare.com"
+      ],
+      connectSrc: [
+        "'self'",
+        "'blob:'",
+        "https://www.googleapis.com",
+        "https://*.youtube.com",
+        "https://api.openweathermap.org",
+        "https://cdn.socket.io",
+        "https://mikumiku.dev", // Your domain
+        "https://api.mapbox.com",    // Added for Mapbox API calls
+        "https://events.mapbox.com"   // Added for Mapbox telemetry (if used)
+      ],
+      frameSrc: [
+        "'self'",
+        "https://discord.com",
+        "https://www.youtube.com"
+      ],
+      mediaSrc: [
+        "'self'",
+        "https://www.youtube.com"
+      ],
+      frameAncestors: [
+        "'self'",
+        "https://discord.com"
+      ],
+      upgradeInsecureRequests: []
+    }
+  })
 );
 
 
