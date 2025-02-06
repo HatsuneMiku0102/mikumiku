@@ -176,12 +176,11 @@
                 <h2 id="descriptionModalTitle">Description</h2>
                 <p id="descriptionModalDescription">Loading description...</p>
               </div>
-              <!-- Centered time elapsed display -->
+              <!-- Centered time elapsed display (hidden by default) -->
               <div id="timeElapsedContainer" class="time-elapsed">
                 <i class="fas fa-clock"></i> <span id="timeElapsed">0s</span>
               </div>
             </div>
-            <!-- Removed the loading spinner (spinning circle) -->
           </div>
           <hr class="animated-divider" />
           <aside class="weather-section">
@@ -554,7 +553,7 @@
           const descModal = document.getElementById("descriptionModal");
           descModal.querySelector("p").textContent = "";
           descModal.classList.remove("active");
-          timeElapsedElement.style.display = "none";
+          timeElapsedElement.classList.remove("active");
           if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
           if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
           log("Display cleared.");
@@ -604,7 +603,6 @@
           offlineIndicatorElement.style.display = "none";
           log("Updating video presence...");
       
-          // If new video data is detected, fade out the container and update the information.
           if (videoTitleElement.textContent !== data.title || videoThumbnailImage.src !== data.thumbnail) {
             videoInfoContainer.classList.add("fade-out");
             setTimeout(function () {
@@ -635,7 +633,8 @@
               const descModal = document.getElementById("descriptionModal");
               descModal.querySelector("p").textContent = data.description || "No description available.";
               descModal.classList.remove("active");
-              timeElapsedElement.style.display = "block";
+              // Show time elapsed only if applicable:
+              timeElapsedElement.classList.add("active");
               if (data.videoSrc) {
                 videoThumbnailElement.src = data.videoSrc;
                 videoThumbnailElement.style.display = "block";
@@ -649,8 +648,52 @@
               log("Video presence updated in UI.");
             }, 500);
           }
-          // Update the progress and indicator statuses.
           handleRealTimeProgress(data);
+        }
+      
+        // Function to display browsing presence.
+        function displayBrowsingPresence(data) {
+          lastHeartbeatReceived = Date.now();
+          nowPlayingBox.classList.remove("offline");
+          offlineIndicatorElement.style.display = "none";
+          log("Updating browsing presence...");
+      
+          // Fade out any video info.
+          videoInfoContainer.classList.add("fade-out");
+          setTimeout(function () {
+            // Set a default browsing title.
+            videoTitleElement.textContent = data.title || "Browsing YouTube";
+            // Set a default thumbnail if not provided.
+            const defaultThumbnail = "https://www.youtube.com/img/desktop/yt_1200.png";
+            videoThumbnailImage.src = data.thumbnail || defaultThumbnail;
+            videoThumbnailImage.style.display = "block";
+            videoThumbnailElement.style.display = "none";
+      
+            // Clear video-specific details.
+            channelNameElement.textContent = "Browsing...";
+            viewCountElement.textContent = "";
+            likeCountElement.textContent = "";
+            publishedDateElement.textContent = "";
+            videoCategoryElement.textContent = "";
+      
+            const descModal = document.getElementById("descriptionModal");
+            descModal.querySelector("p").textContent = data.description || "Browsing videos on YouTube";
+            descModal.classList.remove("active");
+      
+            // Hide time elapsed for browsing.
+            timeElapsedElement.classList.remove("active");
+      
+            // Ensure both indicators are hidden.
+            if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
+            if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
+      
+            // Reset progress bar.
+            progressBarElement.style.width = "0%";
+      
+            videoInfoContainer.classList.remove("fade-out");
+            videoInfoContainer.classList.add("fade-in");
+            log("Browsing presence updated in UI.");
+          }, 500);
         }
       
         // Socket event listeners.
@@ -669,10 +712,12 @@
           if (data.presenceType === "video") {
             clearInterval(browsingInterval);
             browsingInterval = null;
+            nowPlayingBox.classList.remove("browsing");
             displayVideoPresence(data);
           } else if (data.presenceType === "browsing") {
             log("Browsing presence update received.");
-            // (Optional) Add browsing presence update logic here.
+            nowPlayingBox.classList.add("browsing");
+            displayBrowsingPresence(data);
           } else {
             clearDisplay();
           }
@@ -691,6 +736,7 @@
           }
         }, 5000);
       
+        // Description modal toggle.
         const descriptionModal = document.getElementById("descriptionModal");
         const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
         descriptionModal.classList.remove("active");
