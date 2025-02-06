@@ -34,24 +34,11 @@
     </style>
   </head>
   <body>
-    <!-- Socket.IO must be loaded before any script that uses io() -->
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js"
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    ></script>
-    <!-- Mapbox GL JS -->
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.js"></script>
-    <!-- Other external libraries -->
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    ></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-
+    <!-- Canvas -->
     <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
+    <!-- Page Container -->
     <div class="page-container" id="pageContainer">
+      <!-- Header -->
       <header class="title-bar" id="titleBar">
         <div class="container">
           <div class="left-section"></div>
@@ -59,95 +46,31 @@
             <a href="/" aria-label="Home" class="logo-link">
               <span class="site-title">Miku.dev</span>
               <div class="visualizer-wrapper">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 150 100"
-                  class="visualizer"
-                >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 100" class="visualizer">
                   <g>
                     <rect x="10" y="70" width="15" height="30" fill="#00c6ff">
-                      <animate
-                        attributeName="height"
-                        values="30;60;30"
-                        dur="0.8s"
-                        repeatCount="indefinite"
-                      />
-                      <animate
-                        attributeName="y"
-                        values="70;40;70"
-                        dur="0.8s"
-                        repeatCount="indefinite"
-                      />
+                      <animate attributeName="height" values="30;60;30" dur="0.8s" repeatCount="indefinite" />
+                      <animate attributeName="y" values="70;40;70" dur="0.8s" repeatCount="indefinite" />
                     </rect>
                     <rect x="35" y="60" width="15" height="40" fill="#ff4081">
-                      <animate
-                        attributeName="height"
-                        values="40;80;40"
-                        dur="1s"
-                        repeatCount="indefinite"
-                      />
-                      <animate
-                        attributeName="y"
-                        values="60;20;60"
-                        dur="1s"
-                        repeatCount="indefinite"
-                      />
+                      <animate attributeName="height" values="40;80;40" dur="1s" repeatCount="indefinite" />
+                      <animate attributeName="y" values="60;20;60" dur="1s" repeatCount="indefinite" />
                     </rect>
                     <rect x="60" y="80" width="15" height="20" fill="#00c6ff">
-                      <animate
-                        attributeName="height"
-                        values="20;50;20"
-                        dur="0.6s"
-                        repeatCount="indefinite"
-                      />
-                      <animate
-                        attributeName="y"
-                        values="80;50;80"
-                        dur="0.6s"
-                        repeatCount="indefinite"
-                      />
+                      <animate attributeName="height" values="20;50;20" dur="0.6s" repeatCount="indefinite" />
+                      <animate attributeName="y" values="80;50;80" dur="0.6s" repeatCount="indefinite" />
                     </rect>
                     <rect x="85" y="50" width="15" height="50" fill="#ff4081">
-                      <animate
-                        attributeName="height"
-                        values="50;90;50"
-                        dur="1.2s"
-                        repeatCount="indefinite"
-                      />
-                      <animate
-                        attributeName="y"
-                        values="50;10;50"
-                        dur="1.2s"
-                        repeatCount="indefinite"
-                      />
+                      <animate attributeName="height" values="50;90;50" dur="1.2s" repeatCount="indefinite" />
+                      <animate attributeName="y" values="50;10;50" dur="1.2s" repeatCount="indefinite" />
                     </rect>
                     <rect x="110" y="70" width="15" height="30" fill="#00c6ff">
-                      <animate
-                        attributeName="height"
-                        values="30;60;30"
-                        dur="0.9s"
-                        repeatCount="indefinite"
-                      />
-                      <animate
-                        attributeName="y"
-                        values="70;40;70"
-                        dur="0.9s"
-                        repeatCount="indefinite"
-                      />
+                      <animate attributeName="height" values="30;60;30" dur="0.9s" repeatCount="indefinite" />
+                      <animate attributeName="y" values="70;40;70" dur="0.9s" repeatCount="indefinite" />
                     </rect>
                     <rect x="135" y="60" width="15" height="40" fill="#ff4081">
-                      <animate
-                        attributeName="height"
-                        values="40;80;40"
-                        dur="1.1s"
-                        repeatCount="indefinite"
-                      />
-                      <animate
-                        attributeName="y"
-                        values="60;20;60"
-                        dur="1.1s"
-                        repeatCount="indefinite"
-                      />
+                      <animate attributeName="height" values="40;80;40" dur="1.1s" repeatCount="indefinite" />
+                      <animate attributeName="y" values="60;20;60" dur="1.1s" repeatCount="indefinite" />
                     </rect>
                   </g>
                 </svg>
@@ -161,6 +84,7 @@
           </div>
         </div>
       </header>
+      <!-- Overlay Menu -->
       <nav class="overlay-menu" id="overlayMenu">
         <button class="close-overlay" id="closeOverlay" aria-label="Close Menu">
           <i class="fas fa-times"></i>
@@ -185,8 +109,10 @@
           </div>
         </div>
       </nav>
+      <!-- Now Playing Container -->
       <section class="now-playing-container">
         <div id="nowPlayingBox" class="now-playing">
+          <!-- Sidebar with clocks and info -->
           <aside class="now-playing-sidebar">
             <div class="sidebar-item">
               <i class="fas fa-tv"></i> <span id="channelName">Loading...</span>
@@ -230,6 +156,7 @@
               </p>
             </section>
           </aside>
+          <!-- Main Video Section -->
           <div class="video-section">
             <div id="videoInfoContainer" class="video-info-container">
               <div class="video-title-container">
@@ -237,22 +164,10 @@
                 <p id="videoTitle">Loading...</p>
               </div>
               <div class="thumbnail-container">
-                <video
-                  id="videoThumbnail"
-                  class="video-thumbnail"
-                  preload="metadata"
-                  controls
-                  aria-label="Currently Playing Video"
-                >
+                <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls aria-label="Currently Playing Video">
                   Your browser does not support the video tag.
                 </video>
-                <img
-                  id="videoThumbnailImage"
-                  src=""
-                  alt="Thumbnail"
-                  class="video-thumbnail"
-                  loading="lazy"
-                />
+                <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy" />
               </div>
             </div>
             <div id="offline-indicator" class="offline-indicator">
@@ -269,11 +184,7 @@
               </div>
             </div>
             <div class="description-and-time">
-              <button
-                class="toggle-description"
-                id="toggleDescriptionButton"
-                aria-label="Toggle Description"
-              >
+              <button class="toggle-description" id="toggleDescriptionButton" aria-label="Toggle Description">
                 <i class="fas fa-info-circle"></i> Show Description
               </button>
               <div id="descriptionModal">
@@ -287,16 +198,10 @@
             </div>
           </div>
           <hr class="animated-divider" />
-          <!-- Sidebar Extra: Weather and Map in one column -->
+          <!-- Sidebar Extra: Weather and Map -->
           <div class="sidebar-extra">
             <aside class="weather-section">
-              <img
-                id="weather-icon"
-                src=""
-                alt="Weather Icon"
-                class="weather-icon"
-                loading="lazy"
-              />
+              <img id="weather-icon" src="" alt="Weather Icon" class="weather-icon" loading="lazy" />
               <p id="weather-description" class="weather-description">
                 <i class="fas fa-cloud-sun"></i> Loading...
               </p>
@@ -312,23 +217,24 @@
             </aside>
             <aside class="map-section">
               <h3>Visitor Map</h3>
-              <!-- Make the map more square -->
+              <!-- Square map container -->
               <div id="map" style="height: 300px; width: 300px; border-radius: var(--border-radius);"></div>
             </aside>
           </div>
         </div>
       </section>
+      <!-- Content Section -->
       <section class="content-wrapper">
         <div class="now-playing-about-wrapper">
           <div class="about" id="aboutMe">
             <h2>About Me</h2>
             <p>
-              Hey there, I'm Hystoriya, a 24-year-old developer. This is my personal website
-              that I made for no apparent reason. If you find yourself here randomly, then hi :)
+              Hey there, I'm Hystoriya, a 24-year-old developer. This is my personal website that I made for no apparent reason. If you find yourself here randomly, then hi :)
             </p>
           </div>
         </div>
       </section>
+      <!-- Footer -->
       <footer class="footer">
         <div class="container">
           <p>&copy; 2024 MikuMiku. All rights reserved.</p>
@@ -337,105 +243,48 @@
           </button>
         </div>
       </footer>
+      <!-- Chat Box -->
       <div id="chat-box" class="chat-box closed" role="dialog" aria-labelledby="chatHeader" aria-modal="true">
         <div class="chat-header">
           <div class="chat-logo">
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 100 100"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M10 10 H90 V70 H70 L50 90 L30 70 H10 Z"
-                fill="#ffffff"
-                stroke="#007BFF"
-                stroke-width="5"
-              />
+            <svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 10 H90 V70 H70 L50 90 L30 70 H10 Z" fill="#ffffff" stroke="#007BFF" stroke-width="5" />
             </svg>
           </div>
           <h3 id="chatHeader">Haru AI</h3>
           <button id="close-chat" class="close-chat" aria-label="Close Chat">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 20 20"
-              fill="#ffffff"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M10 8.586L3.536 2.122 2.122 3.536 8.586 10l-6.464 6.464 1.414 1.414L18.344 17.656C19.792 16.208 20.688 14.21 20.688 12c0-5.514-4.486-10-10-10zm0 14l-3-3H5v-2h4v2zm0-4H5v-2h4v2zm6-4h-8v2h8V8z"
-              />
+            <svg width="24" height="24" viewBox="0 0 20 20" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 8.586L3.536 2.122 2.122 3.536 8.586 10l-6.464 6.464 1.414 1.414L18.344 17.656C19.792 16.208 20.688 14.21 20.688 12c0-5.514-4.486-10-10-10zm0 14l-3-3H5v-2h4v2zm0-4H5v-2h4v2zm6-4h-8v2h8V8z" />
             </svg>
           </button>
         </div>
         <div id="chat-content" class="chat-content" role="log" aria-live="polite">
           <div class="message bot-message">
             <div class="message-content">
-              <svg
-                class="icon"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="#007BFF"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10c2.21 0 4.208-.896 5.656-2.344L20 18.414V20h1.586l-1.414-1.414L18.344 17.656C19.792 16.208 20.688 14.21 20.688 12c0-5.514-4.486-10-10-10zm-1 14H7v-2h4v2zm0-4H7v-2h4v2zm6-4h-8v2h8V8z"
-                />
+              <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="#007BFF" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10c2.21 0 4.208-.896 5.656-2.344L20 18.414V20h1.586l-1.414-1.414L18.344 17.656C19.792 16.208 20.688 14.21 20.688 12c0-5.514-4.486-10-10-10zm-1 14H7v-2h4v2zm0-4H7v-2h4v2zm6-4h-8v2h8V8z" />
               </svg>
               Hi! I'm Haru, how can I help you today?
             </div>
           </div>
         </div>
         <div id="chat-loading" class="chat-loading" aria-hidden="true">
-          <svg
-            class="spinner"
-            width="24"
-            height="24"
-            viewBox="0 0 50 50"
-          >
-            <circle
-              class="path"
-              cx="25"
-              cy="25"
-              r="20"
-              fill="none"
-              stroke="#007BFF"
-              stroke-width="5"
-            ></circle>
+          <svg class="spinner" width="24" height="24" viewBox="0 0 50 50">
+            <circle class="path" cx="25" cy="25" r="20" fill="none" stroke="#007BFF" stroke-width="5"></circle>
           </svg>
           <span>Thinking...</span>
         </div>
         <div class="chat-input-container">
-          <input
-            type="text"
-            id="chat-input"
-            class="chat-input"
-            placeholder="Type your message..."
-            aria-label="Chat Input"
-          />
+          <input type="text" id="chat-input" class="chat-input" placeholder="Type your message..." aria-label="Chat Input" />
           <button id="send-message" class="send-message" aria-label="Send Message">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="#ffffff"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
               <path d="M2.01 21L23 12 2.01 3v7l15 2-15 2z" />
             </svg>
           </button>
         </div>
       </div>
       <button id="open-chat" class="open-chat-button" aria-label="Open Chat">
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="#ffffff"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
           <path d="M20 2H4C2.897 2 2 2.897 2 4v12c0 1.103.897 2 2 2h5l4 4 4-4h5c1.103 0 2-.897 2-2V4c0-1.103-.897-2-2-2zm0 14l-3-3H5V4h15v12z" />
         </svg>
       </button>
@@ -461,295 +310,79 @@
         </div>
       </div>
       
-      <!-- Socket connection and Map initialization (moved here so socket is defined) -->
+      <!-- All scripts placed at the end of body -->
       <script>
-        // Utility logging function for consistent logging.
-        const log = (message) => console.log(`[Haru.js] ${message}`);
-      
-        // Establish a connection to the Socket.IO server.
-        const socket = io("https://mikumiku.dev");
-      
-        let lastHeartbeatReceived = Date.now();
-        let isSessionExpired = false;
-        let browsingStartTime = null;
-        let browsingInterval = null;
-      
-        // Grab required DOM elements.
-        const nowPlayingBox = document.getElementById("nowPlayingBox");
-        const videoTitleElement = document.getElementById("videoTitle");
-        const videoThumbnailImage = document.getElementById("videoThumbnailImage");
-        const videoThumbnailElement = document.getElementById("videoThumbnail");
-        const offlineIndicatorElement = document.getElementById("offline-indicator");
-        const progressBarElement = document.getElementById("progressBar");
-        const channelNameElement = document.getElementById("channelName");
-        const viewCountElement = document.getElementById("viewCount");
-        const likeCountElement = document.getElementById("likeCount");
-        const publishedDateElement = document.getElementById("publishedDate");
-        const videoCategoryElement = document.getElementById("videoCategory");
-        const videoDescriptionElement = document.getElementById("descriptionModalDescription");
-        // Use the progress container for time elapsed updates.
-        const timeElapsedContainer = document.getElementById("timeElapsedContainer");
-        // For the live indicator.
-        const liveIndicatorElement = document.getElementById("liveIndicator");
-        // For the pause indicator.
-        const pauseIndicatorElement = document.getElementById("pauseIndicator");
-        const videoInfoContainer = document.getElementById("videoInfoContainer");
-      
-        // Utility function to format numbers.
-        function formatNumber(number) {
-          if (typeof number === "string") number = number.replace(/,/g, "");
-          const num = Number(number);
-          return isNaN(num) ? "N/A" : num.toLocaleString();
-        }
-      
-        // Function to format elapsed time (seconds to H:MM:SS).
-        function formatElapsedTime(seconds) {
-          const hrs = Math.floor(seconds / 3600);
-          const mins = Math.floor((seconds % 3600) / 60);
-          const secs = seconds % 60;
-          if (hrs > 0) {
-            return `${hrs}h ${mins}m ${secs}s`;
-          } else if (mins > 0) {
-            return `${mins}m ${secs}s`;
-          } else {
-            return `${secs}s`;
-          }
-        }
-      
-        // Function to update browsing elapsed time.
-        function updateBrowsingElapsed() {
-          if (browsingStartTime) {
-            const elapsedSec = Math.floor((Date.now() - browsingStartTime) / 1000);
-            timeElapsedContainer.innerHTML = `<i class="fas fa-clock"></i> ${formatElapsedTime(elapsedSec)}`;
-          }
-        }
-      
-        // Clears all display elements and hides both indicators.
-        function clearDisplay() {
-          nowPlayingBox.classList.add("offline");
-          offlineIndicatorElement.style.display = "flex";
-          videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
-          videoThumbnailImage.src = "";
-          videoThumbnailImage.style.display = "none";
-          videoThumbnailElement.src = "";
-          videoThumbnailElement.style.display = "none";
-          channelNameElement.textContent = "";
-          viewCountElement.textContent = "";
-          likeCountElement.textContent = "";
-          publishedDateElement.textContent = "";
-          videoCategoryElement.textContent = "";
-          progressBarElement.style.width = "0%";
-          const descModal = document.getElementById("descriptionModal");
-          descModal.querySelector("p").textContent = "";
-          descModal.classList.remove("active");
-          timeElapsedContainer.classList.remove("active");
-          if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
-          if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
-          clearInterval(browsingInterval);
-          browsingInterval = null;
-          browsingStartTime = null;
-          log("Display cleared.");
-        }
-      
-        // Updates the progress bar and toggles the live and pause indicators.
-        function handleRealTimeProgress(data) {
-          if (data.duration && data.currentTime !== undefined) {
-            const progressPercentage = (data.currentTime / data.duration) * 100;
-            progressBarElement.style.width = progressPercentage + "%";
-            log(`handleRealTimeProgress: isLive=${data.isLive}, isPaused=${data.isPaused}, progress=${progressPercentage.toFixed(2)}%`);
-      
-            if (data.isLive && data.isPaused) {
-              log("Conflict: Both isLive and isPaused are true. Prioritizing live indicator.");
-            }
-      
-            if (data.isLive) {
-              if (liveIndicatorElement) liveIndicatorElement.classList.add("active");
-              if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
-              log("Live stream indicator activated.");
-            } else if (data.isPaused) {
-              if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
-              if (pauseIndicatorElement) pauseIndicatorElement.classList.add("active");
-              log("Pause indicator activated.");
-            } else {
-              if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
-              if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
-              log("Both indicators deactivated.");
-            }
-          } else {
-            progressBarElement.style.width = "0%";
-            log("handleRealTimeProgress: Invalid data received.");
-          }
-      
-          if (!data.isPaused && !data.isLive) {
-            videoTitleElement.classList.add("playing");
-          } else {
-            videoTitleElement.classList.remove("playing");
-          }
-        }
-      
-        // Updates the video presence display.
-        function displayVideoPresence(data) {
-          lastHeartbeatReceived = Date.now();
-          nowPlayingBox.classList.remove("offline");
-          offlineIndicatorElement.style.display = "none";
-          log("Updating video presence...");
-      
-          if (videoTitleElement.textContent !== data.title || videoThumbnailImage.src !== data.thumbnail) {
-            videoInfoContainer.classList.add("fade-out");
-            setTimeout(function () {
-              videoTitleElement.textContent = data.title || "Unknown Title";
-              videoTitleElement.classList.remove("video-title-changed");
-              // Trigger reflow for the animation.
-              void videoTitleElement.offsetWidth;
-              videoTitleElement.classList.add("video-title-changed");
-      
-              if (data.thumbnail) {
-                videoThumbnailImage.src = data.thumbnail;
-                videoThumbnailImage.style.display = "block";
-                videoThumbnailElement.style.display = "none";
-              } else {
-                videoThumbnailImage.src = "";
-                videoThumbnailElement.style.display = "none";
-              }
-              channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-              viewCountElement.textContent = formatNumber(data.viewCount) || "N/A";
-              likeCountElement.textContent = formatNumber(data.likeCount) || "N/A";
-              if (data.publishedAt) {
-                const publishedDate = new Date(data.publishedAt);
-                publishedDateElement.textContent = publishedDate.toLocaleDateString() || "Published on: N/A";
-              } else {
-                publishedDateElement.textContent = "Published on: N/A";
-              }
-              videoCategoryElement.textContent = data.category || "N/A";
-              const descModal = document.getElementById("descriptionModal");
-              descModal.querySelector("p").textContent = data.description || "No description available.";
-              descModal.classList.remove("active");
-              timeElapsedContainer.classList.add("active");
-              if (data.videoSrc) {
-                videoThumbnailElement.src = data.videoSrc;
-                videoThumbnailElement.style.display = "block";
-                videoThumbnailImage.style.display = "none";
-              } else {
-                videoThumbnailElement.style.display = "none";
-                videoThumbnailImage.style.display = "block";
-              }
-              videoInfoContainer.classList.remove("fade-out");
-              videoInfoContainer.classList.add("fade-in");
-              log("Video presence updated in UI.");
-            }, 500);
-          }
-          handleRealTimeProgress(data);
-        }
-      
-        // Displays browsing presence and starts the elapsed time counter.
-        function displayBrowsingPresence(data) {
-          lastHeartbeatReceived = Date.now();
-          nowPlayingBox.classList.remove("offline");
-          offlineIndicatorElement.style.display = "none";
-          log("Updating browsing presence...");
-      
-          const defaultThumbnail = "https://www.youtube.com/img/desktop/yt_1200.png";
-          // Update thumbnail only if necessary to prevent flickering.
-          if (videoThumbnailImage.src !== defaultThumbnail) {
-            videoThumbnailImage.src = data.thumbnail || defaultThumbnail;
-            videoThumbnailImage.style.display = "block";
-            videoThumbnailElement.style.display = "none";
-          }
-      
-          videoTitleElement.textContent = data.title || "Browsing YouTube";
-          channelNameElement.textContent = "Browsing...";
-          viewCountElement.textContent = "";
-          likeCountElement.textContent = "";
-          publishedDateElement.textContent = "";
-          videoCategoryElement.textContent = "";
-      
-          const descModal = document.getElementById("descriptionModal");
-          descModal.querySelector("p").textContent = data.description || "Browsing videos on YouTube";
-          descModal.classList.remove("active");
-      
-          // Start or continue the browsing elapsed counter.
-          if (!browsingStartTime) {
-            browsingStartTime = Date.now();
-          }
-          timeElapsedContainer.classList.add("active");
-          updateBrowsingElapsed();
-          if (!browsingInterval) {
-            browsingInterval = setInterval(updateBrowsingElapsed, 1000);
-          }
-      
-          if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
-          if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
-      
-          progressBarElement.style.width = "0%";
-      
-          videoInfoContainer.classList.remove("fade-out");
-          videoInfoContainer.classList.add("fade-in");
-          log("Browsing presence updated in UI.");
-        }
-      
-        // Socket event listeners.
-        socket.on("connect", function () {
-          log("Connected to server via Socket.IO.");
-          isSessionExpired = false;
-          socket.emit("requestLatestData");
-        });
-      
-        socket.on("presenceUpdate", function (data) {
-          if (isSessionExpired) {
-            log("Ignoring presenceUpdate due to expired session.");
-            return;
-          }
-          log("Received presenceUpdate: " + JSON.stringify(data));
-          if (data.presenceType === "video") {
-            clearInterval(browsingInterval);
-            browsingInterval = null;
-            browsingStartTime = null;
-            displayVideoPresence(data);
-          } else if (data.presenceType === "browsing") {
-            log("Browsing presence update received.");
-            displayBrowsingPresence(data);
-          } else {
-            clearDisplay();
-          }
-        });
-      
-        socket.on("disconnect", function () {
-          log("Disconnected from server.");
-          clearDisplay();
-        });
-      
-        setInterval(function () {
-          if (Date.now() - lastHeartbeatReceived > 60000) {
-            log("No heartbeat received in 60 seconds. Marking as offline.");
-            clearDisplay();
-          }
-        }, 5000);
-      
-        // Description modal toggle.
-        const descriptionModal = document.getElementById("descriptionModal");
-        const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
-        descriptionModal.classList.remove("active");
-        toggleDescriptionButton.textContent = " Show Description";
-        toggleDescriptionButton.addEventListener("click", function (e) {
-          e.stopPropagation();
-          if (descriptionModal.classList.contains("active")) {
-            descriptionModal.classList.remove("active");
-            toggleDescriptionButton.textContent = " Show Description";
-          } else {
-            descriptionModal.classList.add("active");
-            toggleDescriptionButton.textContent = " Hide Description";
-          }
-        });
-        document.addEventListener("click", function (e) {
-          if (!descriptionModal.contains(e.target) && e.target !== toggleDescriptionButton) {
-            descriptionModal.classList.remove("active");
-            toggleDescriptionButton.textContent = " Show Description";
-          }
-        });
-      
-        // Mapbox Map initialization and visitor markers.
         document.addEventListener("DOMContentLoaded", function () {
-          // Initialize Mapbox with a square map container.
+          // Add "loaded" class to page container for fade-in effect.
+          document.getElementById("pageContainer").classList.add("loaded");
+
+          // Header scroll effect.
+          const titleBar = document.getElementById("titleBar");
+          window.addEventListener("scroll", () => {
+            titleBar.classList.toggle("scrolled", window.scrollY > 50);
+          });
+
+          // Menu toggle.
+          const menuButton = document.getElementById("menuButton");
+          const overlayMenu = document.getElementById("overlayMenu");
+          const closeOverlay = document.getElementById("closeOverlay");
+          menuButton.addEventListener("click", (e) => {
+            e.stopPropagation();
+            overlayMenu.classList.add("active");
+            document.body.classList.add("overlay-active");
+          });
+          closeOverlay.addEventListener("click", (e) => {
+            e.stopPropagation();
+            overlayMenu.classList.remove("active");
+            document.body.classList.remove("overlay-active");
+          });
+          window.addEventListener("click", (event) => {
+            if (event.target === overlayMenu) {
+              overlayMenu.classList.remove("active");
+              document.body.classList.remove("overlay-active");
+            }
+          });
+
+          // Personality button styling.
+          const personalityButtons = document.querySelectorAll(".personality-button");
+          const siteTitle = document.querySelector(".site-title");
+          personalityButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+              const personality = button.textContent.trim();
+              if (personality === "Melody") siteTitle.style.color = "#ff4081";
+              else if (personality === "Harmony") siteTitle.style.color = "#00c6ff";
+              else if (personality === "Rhythm") siteTitle.style.color = "#ffffff";
+              else siteTitle.style.color = "#00c6ff";
+              personalityButtons.forEach((btn) => btn.classList.remove("active"));
+              button.classList.add("active");
+            });
+          });
+
+          // Consent modal.
+          const consentModal = document.getElementById("consentModal");
+          const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
+          const acceptConsent = document.getElementById("acceptConsent");
+          const declineConsent = document.getElementById("declineConsent");
+          consentModal.classList.remove("active");
+          toggleDescriptionButton.textContent = " Show Description";
+          toggleDescriptionButton.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (consentModal.classList.contains("active")) {
+              consentModal.classList.remove("active");
+              toggleDescriptionButton.textContent = " Show Description";
+            } else {
+              consentModal.classList.add("active");
+              toggleDescriptionButton.textContent = " Hide Description";
+            }
+          });
+          document.addEventListener("click", (e) => {
+            if (!consentModal.contains(e.target) && e.target !== toggleDescriptionButton) {
+              consentModal.classList.remove("active");
+              toggleDescriptionButton.textContent = " Show Description";
+            }
+          });
+
+          // Initialize Mapbox map.
           mapboxgl.accessToken = 'pk.eyJ1IjoiYXJ0ZW1pczExNyIsImEiOiJjbTZzeHQ2bGowOHlnMm9yM3k4ZTl4cHptIn0.n1AdgsyV2iA7X1PwGvDTlA';
           const map = new mapboxgl.Map({
             container: 'map',
@@ -758,35 +391,279 @@
             zoom: 2
           });
           map.addControl(new mapboxgl.NavigationControl());
-      
-          // Object to hold visitor markers.
           const visitorMarkers = {};
-      
-          // Listen for visitor location events via Socket.IO.
-          socket.on("visitorLocation", function (data) {
+          // Listen for visitor location events.
+          socket.on("visitorLocation", (data) => {
             log(`Received visitor location: ${JSON.stringify(data)}`);
-            // Expected data: { id: 'visitorID', latitude: xx.xxxx, longitude: yy.yyyy, info: 'Optional info' }
             const { id, latitude, longitude, info } = data;
-      
-            // If marker already exists, update its position.
             if (visitorMarkers[id]) {
               visitorMarkers[id].setLngLat([longitude, latitude]);
             } else {
-              // Create a new marker.
               const marker = new mapboxgl.Marker({ color: "#ff4081" })
                 .setLngLat([longitude, latitude])
                 .addTo(map);
               if (info) {
-                marker.setPopup(
-                  new mapboxgl.Popup({ offset: 25 }).setHTML(`<strong>${info}</strong>`)
-                );
+                marker.setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<strong>${info}</strong>`));
               }
               visitorMarkers[id] = marker;
             }
           });
+
+          // Socket and UI code.
+          const log = (message) => console.log(`[Haru.js] ${message}`);
+          const socket = io("https://mikumiku.dev");
+
+          let lastHeartbeatReceived = Date.now();
+          let isSessionExpired = false;
+          let browsingStartTime = null;
+          let browsingInterval = null;
+          const nowPlayingBox = document.getElementById("nowPlayingBox");
+          const videoTitleElement = document.getElementById("videoTitle");
+          const videoThumbnailImage = document.getElementById("videoThumbnailImage");
+          const videoThumbnailElement = document.getElementById("videoThumbnail");
+          const offlineIndicatorElement = document.getElementById("offline-indicator");
+          const progressBarElement = document.getElementById("progressBar");
+          const channelNameElement = document.getElementById("channelName");
+          const viewCountElement = document.getElementById("viewCount");
+          const likeCountElement = document.getElementById("likeCount");
+          const publishedDateElement = document.getElementById("publishedDate");
+          const videoCategoryElement = document.getElementById("videoCategory");
+          const videoDescriptionElement = document.getElementById("descriptionModalDescription");
+          const timeElapsedContainer = document.getElementById("timeElapsedContainer");
+          const liveIndicatorElement = document.getElementById("liveIndicator");
+          const pauseIndicatorElement = document.getElementById("pauseIndicator");
+          const videoInfoContainer = document.getElementById("videoInfoContainer");
+
+          function formatNumber(number) {
+            if (typeof number === "string") number = number.replace(/,/g, "");
+            const num = Number(number);
+            return isNaN(num) ? "N/A" : num.toLocaleString();
+          }
+
+          function formatElapsedTime(seconds) {
+            const hrs = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            if (hrs > 0) {
+              return `${hrs}h ${mins}m ${secs}s`;
+            } else if (mins > 0) {
+              return `${mins}m ${secs}s`;
+            } else {
+              return `${secs}s`;
+            }
+          }
+
+          function updateBrowsingElapsed() {
+            if (browsingStartTime) {
+              const elapsedSec = Math.floor((Date.now() - browsingStartTime) / 1000);
+              timeElapsedContainer.innerHTML = `<i class="fas fa-clock"></i> ${formatElapsedTime(elapsedSec)}`;
+            }
+          }
+
+          function clearDisplay() {
+            nowPlayingBox.classList.add("offline");
+            offlineIndicatorElement.style.display = "flex";
+            videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
+            videoThumbnailImage.src = "";
+            videoThumbnailImage.style.display = "none";
+            videoThumbnailElement.src = "";
+            videoThumbnailElement.style.display = "none";
+            channelNameElement.textContent = "";
+            viewCountElement.textContent = "";
+            likeCountElement.textContent = "";
+            publishedDateElement.textContent = "";
+            videoCategoryElement.textContent = "";
+            progressBarElement.style.width = "0%";
+            const descModal = document.getElementById("descriptionModal");
+            descModal.querySelector("p").textContent = "";
+            descModal.classList.remove("active");
+            timeElapsedContainer.classList.remove("active");
+            if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
+            if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
+            clearInterval(browsingInterval);
+            browsingInterval = null;
+            browsingStartTime = null;
+            log("Display cleared.");
+          }
+
+          function handleRealTimeProgress(data) {
+            if (data.duration && data.currentTime !== undefined) {
+              const progressPercentage = (data.currentTime / data.duration) * 100;
+              progressBarElement.style.width = progressPercentage + "%";
+              log(`handleRealTimeProgress: isLive=${data.isLive}, isPaused=${data.isPaused}, progress=${progressPercentage.toFixed(2)}%`);
+              if (data.isLive && data.isPaused) {
+                log("Conflict: Both isLive and isPaused are true. Prioritizing live indicator.");
+              }
+              if (data.isLive) {
+                liveIndicatorElement.classList.add("active");
+                pauseIndicatorElement.classList.remove("active");
+                log("Live stream indicator activated.");
+              } else if (data.isPaused) {
+                liveIndicatorElement.classList.remove("active");
+                pauseIndicatorElement.classList.add("active");
+                log("Pause indicator activated.");
+              } else {
+                liveIndicatorElement.classList.remove("active");
+                pauseIndicatorElement.classList.remove("active");
+                log("Both indicators deactivated.");
+              }
+            } else {
+              progressBarElement.style.width = "0%";
+              log("handleRealTimeProgress: Invalid data received.");
+            }
+            if (!data.isPaused && !data.isLive) {
+              videoTitleElement.classList.add("playing");
+            } else {
+              videoTitleElement.classList.remove("playing");
+            }
+          }
+
+          function displayVideoPresence(data) {
+            lastHeartbeatReceived = Date.now();
+            nowPlayingBox.classList.remove("offline");
+            offlineIndicatorElement.style.display = "none";
+            log("Updating video presence...");
+            if (videoTitleElement.textContent !== data.title || videoThumbnailImage.src !== data.thumbnail) {
+              videoInfoContainer.classList.add("fade-out");
+              setTimeout(() => {
+                videoTitleElement.textContent = data.title || "Unknown Title";
+                videoTitleElement.classList.remove("video-title-changed");
+                void videoTitleElement.offsetWidth;
+                videoTitleElement.classList.add("video-title-changed");
+                if (data.thumbnail) {
+                  videoThumbnailImage.src = data.thumbnail;
+                  videoThumbnailImage.style.display = "block";
+                  videoThumbnailElement.style.display = "none";
+                } else {
+                  videoThumbnailImage.src = "";
+                  videoThumbnailElement.style.display = "none";
+                }
+                channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+                viewCountElement.textContent = formatNumber(data.viewCount) || "N/A";
+                likeCountElement.textContent = formatNumber(data.likeCount) || "N/A";
+                if (data.publishedAt) {
+                  const publishedDate = new Date(data.publishedAt);
+                  publishedDateElement.textContent = publishedDate.toLocaleDateString() || "Published on: N/A";
+                } else {
+                  publishedDateElement.textContent = "Published on: N/A";
+                }
+                videoCategoryElement.textContent = data.category || "N/A";
+                const descModal = document.getElementById("descriptionModal");
+                descModal.querySelector("p").textContent = data.description || "No description available.";
+                descModal.classList.remove("active");
+                timeElapsedContainer.classList.add("active");
+                if (data.videoSrc) {
+                  videoThumbnailElement.src = data.videoSrc;
+                  videoThumbnailElement.style.display = "block";
+                  videoThumbnailImage.style.display = "none";
+                } else {
+                  videoThumbnailElement.style.display = "none";
+                  videoThumbnailImage.style.display = "block";
+                }
+                videoInfoContainer.classList.remove("fade-out");
+                videoInfoContainer.classList.add("fade-in");
+                log("Video presence updated in UI.");
+              }, 500);
+            }
+            handleRealTimeProgress(data);
+          }
+
+          function displayBrowsingPresence(data) {
+            lastHeartbeatReceived = Date.now();
+            nowPlayingBox.classList.remove("offline");
+            offlineIndicatorElement.style.display = "none";
+            log("Updating browsing presence...");
+            const defaultThumbnail = "https://www.youtube.com/img/desktop/yt_1200.png";
+            if (videoThumbnailImage.src !== defaultThumbnail) {
+              videoThumbnailImage.src = data.thumbnail || defaultThumbnail;
+              videoThumbnailImage.style.display = "block";
+              videoThumbnailElement.style.display = "none";
+            }
+            videoTitleElement.textContent = data.title || "Browsing YouTube";
+            channelNameElement.textContent = "Browsing...";
+            viewCountElement.textContent = "";
+            likeCountElement.textContent = "";
+            publishedDateElement.textContent = "";
+            videoCategoryElement.textContent = "";
+            const descModal = document.getElementById("descriptionModal");
+            descModal.querySelector("p").textContent = data.description || "Browsing videos on YouTube";
+            descModal.classList.remove("active");
+            if (!browsingStartTime) {
+              browsingStartTime = Date.now();
+            }
+            timeElapsedContainer.classList.add("active");
+            updateBrowsingElapsed();
+            if (!browsingInterval) {
+              browsingInterval = setInterval(updateBrowsingElapsed, 1000);
+            }
+            liveIndicatorElement.classList.remove("active");
+            pauseIndicatorElement.classList.remove("active");
+            progressBarElement.style.width = "0%";
+            videoInfoContainer.classList.remove("fade-out");
+            videoInfoContainer.classList.add("fade-in");
+            log("Browsing presence updated in UI.");
+          }
+
+          socket.on("connect", function () {
+            log("Connected to server via Socket.IO.");
+            isSessionExpired = false;
+            socket.emit("requestLatestData");
+          });
+
+          socket.on("presenceUpdate", function (data) {
+            if (isSessionExpired) {
+              log("Ignoring presenceUpdate due to expired session.");
+              return;
+            }
+            log("Received presenceUpdate: " + JSON.stringify(data));
+            if (data.presenceType === "video") {
+              clearInterval(browsingInterval);
+              browsingInterval = null;
+              browsingStartTime = null;
+              displayVideoPresence(data);
+            } else if (data.presenceType === "browsing") {
+              log("Browsing presence update received.");
+              displayBrowsingPresence(data);
+            } else {
+              clearDisplay();
+            }
+          });
+
+          socket.on("disconnect", function () {
+            log("Disconnected from server.");
+            clearDisplay();
+          });
+
+          setInterval(function () {
+            if (Date.now() - lastHeartbeatReceived > 60000) {
+              log("No heartbeat received in 60 seconds. Marking as offline.");
+              clearDisplay();
+            }
+          }, 5000);
+
+          // Description modal toggle.
+          const descriptionModal = document.getElementById("descriptionModal");
+          const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
+          descriptionModal.classList.remove("active");
+          toggleDescriptionButton.textContent = " Show Description";
+          toggleDescriptionButton.addEventListener("click", function (e) {
+            e.stopPropagation();
+            if (descriptionModal.classList.contains("active")) {
+              descriptionModal.classList.remove("active");
+              toggleDescriptionButton.textContent = " Show Description";
+            } else {
+              descriptionModal.classList.add("active");
+              toggleDescriptionButton.textContent = " Hide Description";
+            }
+          });
+          document.addEventListener("click", function (e) {
+            if (!descriptionModal.contains(e.target) && e.target !== toggleDescriptionButton) {
+              descriptionModal.classList.remove("active");
+              toggleDescriptionButton.textContent = " Show Description";
+            }
+          });
         });
-      </script>
-      <script>
+
         function updateClocks() {
           const now = new Date();
           const localTime = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -801,6 +678,7 @@
         }
         setInterval(updateClocks, 1000);
         updateClocks();
+
         const CITY_NAME = "Leeds";
         async function fetchWeather() {
           try {
@@ -817,11 +695,11 @@
         }
         function displayWeather(data) {
           const description = data.weather[0].description,
-            temperature = Math.round(data.main.temp),
-            humidity = data.main.humidity,
-            windSpeed = data.wind.speed,
-            iconCode = data.weather[0].icon,
-            iconUrl = "https://openweathermap.org/img/wn/" + iconCode + "@2x.png";
+                temperature = Math.round(data.main.temp),
+                humidity = data.main.humidity,
+                windSpeed = data.wind.speed,
+                iconCode = data.weather[0].icon,
+                iconUrl = "https://openweathermap.org/img/wn/" + iconCode + "@2x.png";
           document.getElementById("weather-description").innerText = "Condition: " + description;
           document.getElementById("temperature").innerText = "Temperature: " + temperature + "°C";
           document.getElementById("humidity").innerText = "Humidity: " + humidity + "%";
@@ -834,8 +712,7 @@
         }
         setInterval(fetchWeather, 3600000);
         fetchWeather();
-      </script>
-      <script>
+
         document.addEventListener("DOMContentLoaded", () => {
           const canvas = document.getElementById("soundWaveCanvas");
           const ctx = canvas.getContext("2d");
@@ -870,8 +747,8 @@
           ];
           function hexToRGBA(hex, alpha) {
             const r = parseInt(hex.slice(1, 3), 16),
-              g = parseInt(hex.slice(3, 5), 16),
-              b = parseInt(hex.slice(5, 7), 16);
+                  g = parseInt(hex.slice(3, 5), 16),
+                  b = parseInt(hex.slice(5, 7), 16);
             return `rgba(${r}, ${g}, ${b}, ${alpha})`;
           }
           function drawMatrix() {
@@ -923,5 +800,6 @@
           drawMatrix();
         });
       </script>
+    </div>
   </body>
 </html>
