@@ -34,9 +34,23 @@
     </style>
   </head>
   <body>
-    <!-- Canvas -->
+    <!-- Socket.IO must be loaded before any script that uses io() -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <!-- Mapbox GL JS -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.js"></script>
+    <!-- Other external libraries -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    
     <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
-    <!-- Page Container -->
     <div class="page-container" id="pageContainer">
       <!-- Header -->
       <header class="title-bar" id="titleBar">
@@ -46,7 +60,11 @@
             <a href="/" aria-label="Home" class="logo-link">
               <span class="site-title">Miku.dev</span>
               <div class="visualizer-wrapper">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 100" class="visualizer">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 150 100"
+                  class="visualizer"
+                >
                   <g>
                     <rect x="10" y="70" width="15" height="30" fill="#00c6ff">
                       <animate attributeName="height" values="30;60;30" dur="0.8s" repeatCount="indefinite" />
@@ -112,7 +130,6 @@
       <!-- Now Playing Container -->
       <section class="now-playing-container">
         <div id="nowPlayingBox" class="now-playing">
-          <!-- Sidebar with clocks and info -->
           <aside class="now-playing-sidebar">
             <div class="sidebar-item">
               <i class="fas fa-tv"></i> <span id="channelName">Loading...</span>
@@ -156,7 +173,6 @@
               </p>
             </section>
           </aside>
-          <!-- Main Video Section -->
           <div class="video-section">
             <div id="videoInfoContainer" class="video-info-container">
               <div class="video-title-container">
@@ -164,10 +180,22 @@
                 <p id="videoTitle">Loading...</p>
               </div>
               <div class="thumbnail-container">
-                <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls aria-label="Currently Playing Video">
+                <video
+                  id="videoThumbnail"
+                  class="video-thumbnail"
+                  preload="metadata"
+                  controls
+                  aria-label="Currently Playing Video"
+                >
                   Your browser does not support the video tag.
                 </video>
-                <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy" />
+                <img
+                  id="videoThumbnailImage"
+                  src=""
+                  alt="Thumbnail"
+                  class="video-thumbnail"
+                  loading="lazy"
+                />
               </div>
             </div>
             <div id="offline-indicator" class="offline-indicator">
@@ -201,7 +229,13 @@
           <!-- Sidebar Extra: Weather and Map -->
           <div class="sidebar-extra">
             <aside class="weather-section">
-              <img id="weather-icon" src="" alt="Weather Icon" class="weather-icon" loading="lazy" />
+              <img
+                id="weather-icon"
+                src=""
+                alt="Weather Icon"
+                class="weather-icon"
+                loading="lazy"
+              />
               <p id="weather-description" class="weather-description">
                 <i class="fas fa-cloud-sun"></i> Loading...
               </p>
@@ -223,7 +257,6 @@
           </div>
         </div>
       </section>
-      <!-- Content Section -->
       <section class="content-wrapper">
         <div class="now-playing-about-wrapper">
           <div class="about" id="aboutMe">
@@ -234,7 +267,6 @@
           </div>
         </div>
       </section>
-      <!-- Footer -->
       <footer class="footer">
         <div class="container">
           <p>&copy; 2024 MikuMiku. All rights reserved.</p>
@@ -243,26 +275,52 @@
           </button>
         </div>
       </footer>
-      <!-- Chat Box -->
       <div id="chat-box" class="chat-box closed" role="dialog" aria-labelledby="chatHeader" aria-modal="true">
         <div class="chat-header">
           <div class="chat-logo">
-            <svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-              <path d="M10 10 H90 V70 H70 L50 90 L30 70 H10 Z" fill="#ffffff" stroke="#007BFF" stroke-width="5" />
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 100 100"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M10 10 H90 V70 H70 L50 90 L30 70 H10 Z"
+                fill="#ffffff"
+                stroke="#007BFF"
+                stroke-width="5"
+              />
             </svg>
           </div>
           <h3 id="chatHeader">Haru AI</h3>
           <button id="close-chat" class="close-chat" aria-label="Close Chat">
-            <svg width="24" height="24" viewBox="0 0 20 20" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
-              <path d="M10 8.586L3.536 2.122 2.122 3.536 8.586 10l-6.464 6.464 1.414 1.414L18.344 17.656C19.792 16.208 20.688 14.21 20.688 12c0-5.514-4.486-10-10-10zm0 14l-3-3H5v-2h4v2zm0-4H5v-2h4v2zm6-4h-8v2h8V8z" />
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 20 20"
+              fill="#ffffff"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M10 8.586L3.536 2.122 2.122 3.536 8.586 10l-6.464 6.464 1.414 1.414L18.344 17.656C19.792 16.208 20.688 14.21 20.688 12c0-5.514-4.486-10-10-10zm0 14l-3-3H5v-2h4v2zm0-4H5v-2h4v2zm6-4h-8v2h8V8z"
+              />
             </svg>
           </button>
         </div>
         <div id="chat-content" class="chat-content" role="log" aria-live="polite">
           <div class="message bot-message">
             <div class="message-content">
-              <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="#007BFF" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10c2.21 0 4.208-.896 5.656-2.344L20 18.414V20h1.586l-1.414-1.414L18.344 17.656C19.792 16.208 20.688 14.21 20.688 12c0-5.514-4.486-10-10-10zm-1 14H7v-2h4v2zm0-4H7v-2h4v2zm6-4h-8v2h8V8z" />
+              <svg
+                class="icon"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="#007BFF"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10c2.21 0 4.208-.896 5.656-2.344L20 18.414V20h1.586l-1.414-1.414L18.344 17.656C19.792 16.208 20.688 14.21 20.688 12c0-5.514-4.486-10-10-10zm-1 14H7v-2h4v2zm0-4H7v-2h4v2zm6-4h-8v2h8V8z"
+                />
               </svg>
               Hi! I'm Haru, how can I help you today?
             </div>
@@ -275,16 +333,34 @@
           <span>Thinking...</span>
         </div>
         <div class="chat-input-container">
-          <input type="text" id="chat-input" class="chat-input" placeholder="Type your message..." aria-label="Chat Input" />
+          <input
+            type="text"
+            id="chat-input"
+            class="chat-input"
+            placeholder="Type your message..."
+            aria-label="Chat Input"
+          />
           <button id="send-message" class="send-message" aria-label="Send Message">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="#ffffff"
+              xmlns="http://www.w3.org/2000/svg"
+            >
               <path d="M2.01 21L23 12 2.01 3v7l15 2-15 2z" />
             </svg>
           </button>
         </div>
       </div>
       <button id="open-chat" class="open-chat-button" aria-label="Open Chat">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="#ffffff"
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path d="M20 2H4C2.897 2 2 2.897 2 4v12c0 1.103.897 2 2 2h5l4 4 4-4h5c1.103 0 2-.897 2-2V4c0-1.103-.897-2-2-2zm0 14l-3-3H5V4h15v12z" />
         </svg>
       </button>
@@ -309,114 +385,197 @@
           </div>
         </div>
       </div>
-      
-      <!-- All scripts placed at the end of body -->
-      <script>
+    </div>
+    
+    <!-- Combined Scripts with IIFEs to avoid duplicate global declarations -->
+    <script>
+      (function() {
+        // Add "loaded" class to page container on load.
         document.addEventListener("DOMContentLoaded", function () {
-          // Add "loaded" class to page container for fade-in effect.
           document.getElementById("pageContainer").classList.add("loaded");
+        });
+      })();
 
-          // Header scroll effect.
+      (function() {
+        // Header scroll effect and menu toggle.
+        document.addEventListener("DOMContentLoaded", function () {
           const titleBar = document.getElementById("titleBar");
-          window.addEventListener("scroll", () => {
-            titleBar.classList.toggle("scrolled", window.scrollY > 50);
-          });
-
-          // Menu toggle.
+          if (titleBar) {
+            window.addEventListener("scroll", function () {
+              titleBar.classList.toggle("scrolled", window.scrollY > 50);
+            });
+          }
           const menuButton = document.getElementById("menuButton");
           const overlayMenu = document.getElementById("overlayMenu");
           const closeOverlay = document.getElementById("closeOverlay");
-          menuButton.addEventListener("click", (e) => {
-            e.stopPropagation();
-            overlayMenu.classList.add("active");
-            document.body.classList.add("overlay-active");
-          });
-          closeOverlay.addEventListener("click", (e) => {
-            e.stopPropagation();
-            overlayMenu.classList.remove("active");
-            document.body.classList.remove("overlay-active");
-          });
-          window.addEventListener("click", (event) => {
-            if (event.target === overlayMenu) {
+          if (menuButton && overlayMenu && closeOverlay) {
+            menuButton.addEventListener("click", function (e) {
+              e.stopPropagation();
+              overlayMenu.classList.add("active");
+              document.body.classList.add("overlay-active");
+            });
+            closeOverlay.addEventListener("click", function (e) {
+              e.stopPropagation();
               overlayMenu.classList.remove("active");
               document.body.classList.remove("overlay-active");
-            }
-          });
+            });
+            window.addEventListener("click", function (event) {
+              if (event.target === overlayMenu) {
+                overlayMenu.classList.remove("active");
+                document.body.classList.remove("overlay-active");
+              }
+            });
+          }
+        });
+      })();
 
-          // Personality button styling.
+      (function() {
+        // Personality button styling.
+        document.addEventListener("DOMContentLoaded", function () {
           const personalityButtons = document.querySelectorAll(".personality-button");
           const siteTitle = document.querySelector(".site-title");
-          personalityButtons.forEach((button) => {
-            button.addEventListener("click", () => {
-              const personality = button.textContent.trim();
-              if (personality === "Melody") siteTitle.style.color = "#ff4081";
-              else if (personality === "Harmony") siteTitle.style.color = "#00c6ff";
-              else if (personality === "Rhythm") siteTitle.style.color = "#ffffff";
-              else siteTitle.style.color = "#00c6ff";
-              personalityButtons.forEach((btn) => btn.classList.remove("active"));
-              button.classList.add("active");
+          if (personalityButtons && siteTitle) {
+            personalityButtons.forEach((button) => {
+              button.addEventListener("click", function () {
+                const personality = button.textContent.trim();
+                if (personality === "Melody") siteTitle.style.color = "#ff4081";
+                else if (personality === "Harmony") siteTitle.style.color = "#00c6ff";
+                else if (personality === "Rhythm") siteTitle.style.color = "#ffffff";
+                else siteTitle.style.color = "#00c6ff";
+                personalityButtons.forEach((btn) => btn.classList.remove("active"));
+                button.classList.add("active");
+              });
             });
-          });
+          }
+        });
+      })();
 
-          // Consent modal.
-          const consentModal = document.getElementById("consentModal");
-          const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
-          const acceptConsent = document.getElementById("acceptConsent");
-          const declineConsent = document.getElementById("declineConsent");
-          consentModal.classList.remove("active");
-          toggleDescriptionButton.textContent = " Show Description";
-          toggleDescriptionButton.addEventListener("click", (e) => {
-            e.stopPropagation();
-            if (consentModal.classList.contains("active")) {
-              consentModal.classList.remove("active");
-              toggleDescriptionButton.textContent = " Show Description";
-            } else {
-              consentModal.classList.add("active");
-              toggleDescriptionButton.textContent = " Hide Description";
+      (function() {
+        // Consent modal functionality.
+        document.addEventListener("DOMContentLoaded", function () {
+          const CONFIG = {
+            consentCookieName: "cookieConsent",
+            consentCookieExpiryDays: 365,
+            consentCookiePath: "/",
+            consentModalId: "consentModal",
+            acceptButtonId: "acceptConsent",
+            declineButtonId: "declineConsent",
+            manageButtonIds: ["manageConsentModal", "manageConsentFooter"],
+            closeButtonId: "closeConsentModal",
+            focusableSelectors: "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])"
+          };
+          const consentModal = document.getElementById(CONFIG.consentModalId);
+          const acceptButton = document.getElementById(CONFIG.acceptButtonId);
+          const declineButton = document.getElementById(CONFIG.declineButtonId);
+          const closeButton = document.getElementById(CONFIG.closeButtonId);
+          const manageConsentButtons = CONFIG.manageButtonIds.map(id => document.getElementById(id));
+          
+          function setCookie(name, value, days, path) {
+            let expires = "";
+            if (days) {
+              const date = new Date();
+              date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+              expires = "; expires=" + date.toUTCString();
             }
-          });
-          document.addEventListener("click", (e) => {
-            if (!consentModal.contains(e.target) && e.target !== toggleDescriptionButton) {
-              consentModal.classList.remove("active");
-              toggleDescriptionButton.textContent = " Show Description";
+            const secure = location.protocol === "https:" ? "; Secure" : "";
+            const sameSite = "; SameSite=Lax";
+            document.cookie = name + "=" + (value || "") + expires + "; path=" + path + secure + sameSite;
+          }
+          function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(";");
+            for (let c of ca) {
+              c = c.trim();
+              if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length);
             }
-          });
-
-          // Initialize Mapbox map.
-          mapboxgl.accessToken = 'pk.eyJ1IjoiYXJ0ZW1pczExNyIsImEiOiJjbTZzeHQ2bGowOHlnMm9yM3k4ZTl4cHptIn0.n1AdgsyV2iA7X1PwGvDTlA';
-          const map = new mapboxgl.Map({
-            container: 'map',
-            style: 'mapbox://styles/mapbox/streets-v12',
-            center: [0, 20],
-            zoom: 2
-          });
-          map.addControl(new mapboxgl.NavigationControl());
-          const visitorMarkers = {};
-          // Listen for visitor location events.
-          socket.on("visitorLocation", (data) => {
-            log(`Received visitor location: ${JSON.stringify(data)}`);
-            const { id, latitude, longitude, info } = data;
-            if (visitorMarkers[id]) {
-              visitorMarkers[id].setLngLat([longitude, latitude]);
-            } else {
-              const marker = new mapboxgl.Marker({ color: "#ff4081" })
-                .setLngLat([longitude, latitude])
-                .addTo(map);
-              if (info) {
-                marker.setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<strong>${info}</strong>`));
+            return null;
+          }
+          function eraseCookie(name, path) {
+            document.cookie = name + '=; Max-Age=-99999999; path=' + path + ';';
+          }
+          function trapFocus(modal) {
+            const focusableElements = modal.querySelectorAll(CONFIG.focusableSelectors);
+            if (!focusableElements.length) return;
+            const firstFocusableElement = focusableElements[0],
+                  lastFocusableElement = focusableElements[focusableElements.length - 1];
+            modal.addEventListener("keydown", function (event) {
+              if (event.key === "Tab") {
+                if (event.shiftKey) {
+                  if (document.activeElement === firstFocusableElement) {
+                    event.preventDefault();
+                    lastFocusableElement.focus();
+                  }
+                } else {
+                  if (document.activeElement === lastFocusableElement) {
+                    event.preventDefault();
+                    firstFocusableElement.focus();
+                  }
+                }
               }
-              visitorMarkers[id] = marker;
+              if (event.key === "Escape") {
+                event.preventDefault();
+              }
+            });
+          }
+          function showModal() {
+            consentModal.classList.add("active");
+            document.body.classList.add("modal-active");
+            consentModal.setAttribute("aria-hidden", "false");
+            const focusableElements = consentModal.querySelectorAll(CONFIG.focusableSelectors);
+            if (focusableElements.length) focusableElements[0].focus();
+            trapFocus(consentModal);
+          }
+          function hideModal() {
+            consentModal.classList.remove("active");
+            document.body.classList.remove("modal-active");
+            consentModal.setAttribute("aria-hidden", "true");
+          }
+          function initConsentModal() {
+            const existingConsent = getCookie(CONFIG.consentCookieName);
+            if (!existingConsent) {
+              showModal();
             }
-          });
+            acceptButton.addEventListener("click", function () {
+              setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: true }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
+              hideModal();
+            });
+            declineButton.addEventListener("click", function () {
+              setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: false }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
+              hideModal();
+            });
+            manageConsentButtons.forEach((button) => {
+              if (button) {
+                button.addEventListener("click", function (event) {
+                  event.preventDefault();
+                  showModal();
+                });
+              }
+            });
+            if (closeButton) {
+              closeButton.addEventListener("click", function () {
+                alert("Please make a choice regarding cookie usage.");
+              });
+            }
+            window.addEventListener("click", function (event) {
+              if (event.target === consentModal) {
+                alert("Please make a choice regarding cookie usage.");
+              }
+            });
+          }
+          initConsentModal();
+        });
+      })();
 
-          // Socket and UI code.
+      (function() {
+        // Socket and UI code.
+        document.addEventListener("DOMContentLoaded", function () {
           const log = (message) => console.log(`[Haru.js] ${message}`);
           const socket = io("https://mikumiku.dev");
-
           let lastHeartbeatReceived = Date.now();
           let isSessionExpired = false;
           let browsingStartTime = null;
           let browsingInterval = null;
+
           const nowPlayingBox = document.getElementById("nowPlayingBox");
           const videoTitleElement = document.getElementById("videoTitle");
           const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -444,13 +603,9 @@
             const hrs = Math.floor(seconds / 3600);
             const mins = Math.floor((seconds % 3600) / 60);
             const secs = seconds % 60;
-            if (hrs > 0) {
-              return `${hrs}h ${mins}m ${secs}s`;
-            } else if (mins > 0) {
-              return `${mins}m ${secs}s`;
-            } else {
-              return `${secs}s`;
-            }
+            if (hrs > 0) return `${hrs}h ${mins}m ${secs}s`;
+            else if (mins > 0) return `${mins}m ${secs}s`;
+            else return `${secs}s`;
           }
 
           function updateBrowsingElapsed() {
@@ -640,8 +795,12 @@
               clearDisplay();
             }
           }, 5000);
+        });
+      })();
 
-          // Description modal toggle.
+      (function() {
+        // Description modal toggle.
+        document.addEventListener("DOMContentLoaded", function () {
           const descriptionModal = document.getElementById("descriptionModal");
           const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
           descriptionModal.classList.remove("active");
@@ -663,7 +822,10 @@
             }
           });
         });
+      })();
 
+      (function() {
+        // Clock and Weather updates.
         function updateClocks() {
           const now = new Date();
           const localTime = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -678,7 +840,7 @@
         }
         setInterval(updateClocks, 1000);
         updateClocks();
-
+      
         const CITY_NAME = "Leeds";
         async function fetchWeather() {
           try {
@@ -712,8 +874,11 @@
         }
         setInterval(fetchWeather, 3600000);
         fetchWeather();
+      })();
 
-        document.addEventListener("DOMContentLoaded", () => {
+      (function() {
+        // Sound Wave Matrix.
+        document.addEventListener("DOMContentLoaded", function () {
           const canvas = document.getElementById("soundWaveCanvas");
           const ctx = canvas.getContext("2d");
           function resizeCanvas() {
@@ -799,7 +964,7 @@
           }
           drawMatrix();
         });
-      </script>
-    </div>
+      })();
+    </script>
   </body>
 </html>
