@@ -1522,25 +1522,20 @@ app.get('/api/weather', async (req, res) => {
 
 
 // Tracking Visitor Locations Endpoint
+// Tracking Visitor Locations Endpoint using existing geolocation functions
 app.post('/track-visitor', async (req, res) => {
+  // Use your existing getClientIp() to extract the client's IP address.
+  const ip = getClientIp(req);
   try {
-    // Extract client IP. (You may already have a function like getClientIp.)
-    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-    
-    // Use ipinfo.io API to get geolocation data.
-    const token = process.env.IPINFO_API_KEY; // Ensure this is set in your .env file.
-    const response = await axios.get(`https://ipinfo.io/${ip}/json?token=${token}`);
-    
-    // ipinfo returns a "loc" property as "latitude,longitude"
-    const loc = response.data.loc; 
-    if (loc) {
-      const [latitude, longitude] = loc.split(',');
-      
-      // You can generate a unique visitor ID based on the IP address (or use another mechanism)
-      const visitorId = ip; // Alternatively, use a library like uuid
-      
-      // Create a simple info string (e.g., city and country)
-      const info = `${response.data.city || "Unknown City"}, ${response.data.country || "Unknown Country"}`;
+    // Use your existing getGeoLocation() function
+    const location = await getGeoLocation(ip);
+    if (location && location.loc) {
+      // Parse the latitude and longitude from the "loc" property
+      const [latitude, longitude] = location.loc.split(',');
+      // Use the IP as a unique visitor ID (or generate a new one as needed)
+      const visitorId = ip;
+      // Create an info string using the city and country
+      const info = `${location.city || "Unknown City"}, ${location.country || "Unknown Country"}`;
       
       // Emit the visitor location event via Socket.IO to all connected clients.
       io.emit("visitorLocation", {
@@ -1550,16 +1545,17 @@ app.post('/track-visitor', async (req, res) => {
         info: info
       });
       
-      // Log the event.
-      console.log(`Emitted visitorLocation for ${visitorId}: [${latitude}, ${longitude}] - ${info}`);
+      logger.info(`Emitted visitorLocation for ${visitorId}: [${latitude}, ${longitude}] - ${info}`);
+    } else {
+      logger.warn(`No coordinate data available for IP ${ip}.`);
     }
-    
     res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Error tracking visitor location:", error.message);
+    logger.error(`Error tracking visitor location for IP ${ip}: ${error.message}`);
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
 
 
 // ----------------------
