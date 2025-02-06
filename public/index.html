@@ -19,10 +19,7 @@
     <!-- External CSS -->
     <link rel="stylesheet" href="/styles.css" />
     <!-- Mapbox GL JS CSS -->
-    <link
-      href="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.css"
-      rel="stylesheet"
-    />
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.css" rel="stylesheet" />
     <style>
       /* Temporary inline style for description modal toggling */
       #descriptionModal {
@@ -34,26 +31,16 @@
     </style>
   </head>
   <body>
-    <!-- Load external libraries first -->
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js"
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    ></script>
+    <!-- Socket.IO must be loaded before any script that uses io() -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- Mapbox GL JS -->
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.js"></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    ></script>
+    <!-- Other external libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     
-    <!-- Canvas for sound waves -->
     <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
-    
-    <!-- Page Container -->
     <div class="page-container" id="pageContainer">
-      <!-- Header -->
       <header class="title-bar" id="titleBar">
         <div class="container">
           <div class="left-section"></div>
@@ -99,8 +86,6 @@
           </div>
         </div>
       </header>
-      
-      <!-- Overlay Menu -->
       <nav class="overlay-menu" id="overlayMenu">
         <button class="close-overlay" id="closeOverlay" aria-label="Close Menu">
           <i class="fas fa-times"></i>
@@ -125,8 +110,6 @@
           </div>
         </div>
       </nav>
-      
-      <!-- Now Playing Container -->
       <section class="now-playing-container">
         <div id="nowPlayingBox" class="now-playing">
           <aside class="now-playing-sidebar">
@@ -179,22 +162,10 @@
                 <p id="videoTitle">Loading...</p>
               </div>
               <div class="thumbnail-container">
-                <video
-                  id="videoThumbnail"
-                  class="video-thumbnail"
-                  preload="metadata"
-                  controls
-                  aria-label="Currently Playing Video"
-                >
+                <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls aria-label="Currently Playing Video">
                   Your browser does not support the video tag.
                 </video>
-                <img
-                  id="videoThumbnailImage"
-                  src=""
-                  alt="Thumbnail"
-                  class="video-thumbnail"
-                  loading="lazy"
-                />
+                <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy" />
               </div>
             </div>
             <div id="offline-indicator" class="offline-indicator">
@@ -218,23 +189,17 @@
                 <h2 id="descriptionModalTitle">Description</h2>
                 <p id="descriptionModalDescription">Loading description...</p>
               </div>
-              <!-- Centered time elapsed display (only shown when browsing presence) -->
+              <!-- Centered time elapsed display -->
               <div id="timeElapsedContainer" class="time-elapsed">
                 <i class="fas fa-clock"></i> <span id="timeElapsed">0s</span>
               </div>
             </div>
           </div>
           <hr class="animated-divider" />
-          <!-- Sidebar Extra: Weather and Map -->
+          <!-- Sidebar Extra: Weather and Map in one column -->
           <div class="sidebar-extra">
             <aside class="weather-section">
-              <img
-                id="weather-icon"
-                src=""
-                alt="Weather Icon"
-                class="weather-icon"
-                loading="lazy"
-              />
+              <img id="weather-icon" src="" alt="Weather Icon" class="weather-icon" loading="lazy" />
               <p id="weather-description" class="weather-description">
                 <i class="fas fa-cloud-sun"></i> Loading...
               </p>
@@ -250,8 +215,7 @@
             </aside>
             <aside class="map-section">
               <h3>Visitor Map</h3>
-              <!-- Square map container -->
-              <div id="map" style="height: 300px; width: 300px; border-radius: var(--border-radius);"></div>
+              <div id="map" style="height: 300px; width: 100%; border-radius: var(--border-radius);"></div>
             </aside>
           </div>
         </div>
@@ -277,49 +241,22 @@
       <div id="chat-box" class="chat-box closed" role="dialog" aria-labelledby="chatHeader" aria-modal="true">
         <div class="chat-header">
           <div class="chat-logo">
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 100 100"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M10 10 H90 V70 H70 L50 90 L30 70 H10 Z"
-                fill="#ffffff"
-                stroke="#007BFF"
-                stroke-width="5"
-              />
+            <svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 10 H90 V70 H70 L50 90 L30 70 H10 Z" fill="#ffffff" stroke="#007BFF" stroke-width="5" />
             </svg>
           </div>
           <h3 id="chatHeader">Haru AI</h3>
           <button id="close-chat" class="close-chat" aria-label="Close Chat">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 20 20"
-              fill="#ffffff"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M10 8.586L3.536 2.122 2.122 3.536 8.586 10l-6.464 6.464 1.414 1.414L18.344 17.656C19.792 16.208 20.688 14.21 20.688 12c0-5.514-4.486-10-10-10zm0 14l-3-3H5v-2h4v2zm0-4H5v-2h4v2zm6-4h-8v2h8V8z"
-              />
+            <svg width="24" height="24" viewBox="0 0 20 20" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 8.586L3.536 2.122 2.122 3.536 8.586 10l-6.464 6.464 1.414 1.414L18.344 17.656C19.792 16.208 20.688 14.21 20.688 12c0-5.514-4.486-10-10-10zm0 14l-3-3H5v-2h4v2zm0-4H5v-2h4v2zm6-4h-8v2h8V8z" />
             </svg>
           </button>
         </div>
         <div id="chat-content" class="chat-content" role="log" aria-live="polite">
           <div class="message bot-message">
             <div class="message-content">
-              <svg
-                class="icon"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="#007BFF"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10c2.21 0 4.208-.896 5.656-2.344L20 18.414V20h1.586l-1.414-1.414L18.344 17.656C19.792 16.208 20.688 14.21 20.688 12c0-5.514-4.486-10-10-10zm-1 14H7v-2h4v2zm0-4H7v-2h4v2zm6-4h-8v2h8V8z"
-                />
+              <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="#007BFF" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10c2.21 0 4.208-.896 5.656-2.344L20 18.414V20h1.586l-1.414-1.414L18.344 17.656C19.792 16.208 20.688 14.21 20.688 12c0-5.514-4.486-10-10-10zm-1 14H7v-2h4v2zm0-4H7v-2h4v2zm6-4h-8v2h8V8z" />
               </svg>
               Hi! I'm Haru, how can I help you today?
             </div>
@@ -332,34 +269,16 @@
           <span>Thinking...</span>
         </div>
         <div class="chat-input-container">
-          <input
-            type="text"
-            id="chat-input"
-            class="chat-input"
-            placeholder="Type your message..."
-            aria-label="Chat Input"
-          />
+          <input type="text" id="chat-input" class="chat-input" placeholder="Type your message..." aria-label="Chat Input" />
           <button id="send-message" class="send-message" aria-label="Send Message">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="#ffffff"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
               <path d="M2.01 21L23 12 2.01 3v7l15 2-15 2z" />
             </svg>
           </button>
         </div>
       </div>
       <button id="open-chat" class="open-chat-button" aria-label="Open Chat">
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="#ffffff"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
           <path d="M20 2H4C2.897 2 2 2.897 2 4v12c0 1.103.897 2 2 2h5l4 4 4-4h5c1.103 0 2-.897 2-2V4c0-1.103-.897-2-2-2zm0 14l-3-3H5V4h15v12z" />
         </svg>
       </button>
@@ -384,33 +303,267 @@
           </div>
         </div>
       </div>
-    </div>
-    
-    <!-- Main Scripts -->
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        // --- Mapbox Initialization ---
-        mapboxgl.accessToken = 'pk.eyJ1IjoiYXJ0ZW1pczExNyIsImEiOiJjbTZzeHQ2bGowOHlnMm9yM3k4ZTl4cHptIn0.n1AdgsyV2iA7X1PwGvDTlA';
-        const map = new mapboxgl.Map({
-          container: 'map',
-          style: 'mapbox://styles/mapbox/streets-v12',
-          center: [0, 20],
-          zoom: 2
+      
+      <!-- Initialize Mapbox Map -->
+      <script>
+        document.addEventListener("DOMContentLoaded", function () {
+          mapboxgl.accessToken = 'pk.eyJ1IjoiYXJ0ZW1pczExNyIsImEiOiJjbTZzeHQ2bGowOHlnMm9yM3k4ZTl4cHptIn0.n1AdgsyV2iA7X1PwGvDTlA';
+          const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v12',
+            center: [0, 20],
+            zoom: 2
+          });
+          map.addControl(new mapboxgl.NavigationControl());
+      
+          // Object to hold visitor markers.
+          const visitorMarkers = {};
+      
+          // Listen for visitor location events via Socket.IO.
+          socket.on("visitorLocation", function (data) {
+            log(`Received visitor location: ${JSON.stringify(data)}`);
+            // Expected data: { id: 'visitorID', latitude: xx.xxxx, longitude: yy.yyyy, info: 'Optional info' }
+            const { id, latitude, longitude, info } = data;
+      
+            // Update or add a marker.
+            if (visitorMarkers[id]) {
+              visitorMarkers[id].setLngLat([longitude, latitude]);
+            } else {
+              const marker = new mapboxgl.Marker({ color: "#ff4081" })
+                .setLngLat([longitude, latitude])
+                .addTo(map);
+              if (info) {
+                marker.setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<strong>${info}</strong>`));
+              }
+              visitorMarkers[id] = marker;
+            }
+          });
         });
-        map.addControl(new mapboxgl.NavigationControl());
-        const visitorMarkers = {};
-
-        // --- Utility Logging Function ---
-        const log = (msg) => console.log(`[Haru.js] ${msg}`);
-
-        // --- Socket.IO Initialization ---
+      </script>
+      
+      <script src="haru.js"></script>
+      <script src="clockwork.js"></script>
+      <script>
+        window.addEventListener("load", function () {
+          document.getElementById("pageContainer").classList.add("loaded");
+        });
+      </script>
+      <script>
+        document.addEventListener("DOMContentLoaded", function () {
+          const titleBar = document.getElementById("titleBar");
+          if (titleBar) {
+            window.addEventListener("scroll", function () {
+              titleBar.classList.toggle("scrolled", window.scrollY > 50);
+            });
+          }
+          const menuButton = document.getElementById("menuButton");
+          const overlayMenu = document.getElementById("overlayMenu");
+          const closeOverlay = document.getElementById("closeOverlay");
+          if (menuButton && overlayMenu) {
+            menuButton.addEventListener("click", function (e) {
+              e.stopPropagation();
+              overlayMenu.classList.add("active");
+              document.body.classList.add("overlay-active");
+            });
+          }
+          if (closeOverlay && overlayMenu) {
+            closeOverlay.addEventListener("click", function (e) {
+              e.stopPropagation();
+              overlayMenu.classList.remove("active");
+              document.body.classList.remove("overlay-active");
+            });
+          }
+          window.addEventListener("click", function (event) {
+            if (event.target === overlayMenu) {
+              overlayMenu.classList.remove("active");
+              document.body.classList.remove("overlay-active");
+            }
+          });
+          const personalityButtons = document.querySelectorAll(".personality-button");
+          const siteTitle = document.querySelector(".site-title");
+          if (personalityButtons.length && siteTitle) {
+            personalityButtons.forEach((button) => {
+              button.addEventListener("click", function () {
+                const personality = button.textContent.trim();
+                if (personality === "Melody") siteTitle.style.color = "#ff4081";
+                else if (personality === "Harmony") siteTitle.style.color = "#00c6ff";
+                else if (personality === "Rhythm") siteTitle.style.color = "#ffffff";
+                else siteTitle.style.color = "#00c6ff";
+                personalityButtons.forEach((btn) => btn.classList.remove("active"));
+                button.classList.add("active");
+              });
+            });
+          }
+        });
+      </script>
+      <script>
+        (function () {
+          "use strict";
+          const CONFIG = {
+            consentCookieName: "cookieConsent",
+            consentCookieExpiryDays: 365,
+            consentCookiePath: "/",
+            consentModalId: "consentModal",
+            acceptButtonId: "acceptConsent",
+            declineButtonId: "declineConsent",
+            manageButtonIds: ["manageConsentModal", "manageConsentFooter"],
+            closeButtonId: "closeConsentModal",
+            cookieCategories: {
+              necessary: {
+                enabled: true,
+                description: "Necessary cookies enable core functionalities and security features of the website.",
+              },
+            },
+            focusableSelectors: "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])",
+          };
+          const consentModal = document.getElementById(CONFIG.consentModalId);
+          const acceptButton = document.getElementById(CONFIG.acceptButtonId);
+          const declineButton = document.getElementById(CONFIG.declineButtonId);
+          const closeButton = document.getElementById(CONFIG.closeButtonId);
+          const manageConsentButtons = CONFIG.manageButtonIds.map((id) => document.getElementById(id));
+          function setCookie(name, value, days, path) {
+            let expires = "";
+            if (days) {
+              const date = new Date();
+              date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+              expires = "; expires=" + date.toUTCString();
+            }
+            const secure = location.protocol === "https:" ? "; Secure" : "";
+            const sameSite = "; SameSite=Lax";
+            document.cookie = name + "=" + (value || "") + expires + "; path=" + path + secure + sameSite;
+          }
+          function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(";");
+            for (let c of ca) {
+              c = c.trim();
+              if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length);
+            }
+            return null;
+          }
+          function eraseCookie(name, path) {
+            document.cookie = name + '=; Max-Age=-99999999; path=' + path + ';';
+          }
+          function trapFocus(modal) {
+            const focusableElements = modal.querySelectorAll(CONFIG.focusableSelectors);
+            if (!focusableElements.length) return;
+            const firstFocusableElement = focusableElements[0],
+              lastFocusableElement = focusableElements[focusableElements.length - 1];
+            modal.addEventListener("keydown", function (event) {
+              if (event.key === "Tab") {
+                if (event.shiftKey) {
+                  if (document.activeElement === firstFocusableElement) {
+                    event.preventDefault();
+                    lastFocusableElement.focus();
+                  }
+                } else {
+                  if (document.activeElement === lastFocusableElement) {
+                    event.preventDefault();
+                    firstFocusableElement.focus();
+                  }
+                }
+              }
+              if (event.key === "Escape") {
+                event.preventDefault();
+              }
+            });
+          }
+          function showModal() {
+            consentModal.classList.add("active");
+            document.body.classList.add("modal-active");
+            consentModal.setAttribute("aria-hidden", "false");
+            const focusableElements = consentModal.querySelectorAll(CONFIG.focusableSelectors);
+            if (focusableElements.length) focusableElements[0].focus();
+            trapFocus(consentModal);
+          }
+          function hideModal() {
+            consentModal.classList.remove("active");
+            document.body.classList.remove("modal-active");
+            consentModal.setAttribute("aria-hidden", "true");
+          }
+          function initConsentModal() {
+            const existingConsent = getCookie(CONFIG.consentCookieName);
+            if (!existingConsent) {
+              showModal();
+            } else {
+              applyConsent(existingConsent);
+            }
+            acceptButton.addEventListener("click", function () {
+              setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: true }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
+              hideModal();
+              initializeCookies();
+            });
+            declineButton.addEventListener("click", function () {
+              setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: false }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
+              hideModal();
+              disableCookies();
+            });
+            manageConsentButtons.forEach((button) => {
+              if (button) {
+                button.addEventListener("click", function (event) {
+                  event.preventDefault();
+                  showModal();
+                });
+              }
+            });
+            closeButton.addEventListener("click", function () {
+              alert("Please make a choice regarding cookie usage.");
+            });
+            window.addEventListener("click", function (event) {
+              if (event.target === consentModal) {
+                alert("Please make a choice regarding cookie usage.");
+              }
+            });
+          }
+          function applyConsent(consentValue) {
+            try {
+              const consent = JSON.parse(consentValue);
+              if (consent.necessary) {
+                initializeCookies(consent);
+              } else {
+                disableCookies();
+              }
+            } catch (error) {
+              console.error("Error parsing consent cookie:", error);
+              showModal();
+            }
+          }
+          function initializeCookies(consent) {
+            console.log("Necessary cookies enabled.");
+          }
+          function disableCookies() {
+            console.log("Necessary cookies disabled.");
+          }
+          function areCookiesEnabled() {
+            const testCookie = "test_cookie_consent";
+            setCookie(testCookie, "test", 1);
+            const result = getCookie(testCookie) === "test";
+            eraseCookie(testCookie);
+            return result;
+          }
+          function init() {
+            if (areCookiesEnabled()) {
+              initConsentModal();
+            } else {
+              console.warn("Cookies are disabled in this browser. Consent modal will not be displayed.");
+            }
+          }
+          document.addEventListener("DOMContentLoaded", init);
+        })();
+      </script>
+      <script>
+        // Utility logging function for consistent logging.
+        const log = (message) => console.log(`[Haru.js] ${message}`);
+      
+        // Establish a connection to the Socket.IO server.
         const socket = io("https://mikumiku.dev");
+      
         let lastHeartbeatReceived = Date.now();
         let isSessionExpired = false;
         let browsingStartTime = null;
         let browsingInterval = null;
-
-        // --- DOM Element References ---
+      
+        // Grab required DOM elements.
         const nowPlayingBox = document.getElementById("nowPlayingBox");
         const videoTitleElement = document.getElementById("videoTitle");
         const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -423,34 +576,44 @@
         const publishedDateElement = document.getElementById("publishedDate");
         const videoCategoryElement = document.getElementById("videoCategory");
         const videoDescriptionElement = document.getElementById("descriptionModalDescription");
+        // Use the progress container for time elapsed updates.
         const timeElapsedContainer = document.getElementById("timeElapsedContainer");
+        // For the live indicator.
         const liveIndicatorElement = document.getElementById("liveIndicator");
+        // For the pause indicator.
         const pauseIndicatorElement = document.getElementById("pauseIndicator");
         const videoInfoContainer = document.getElementById("videoInfoContainer");
-
-        // --- Helper Functions ---
+      
+        // Utility function to format numbers.
         function formatNumber(number) {
           if (typeof number === "string") number = number.replace(/,/g, "");
           const num = Number(number);
           return isNaN(num) ? "N/A" : num.toLocaleString();
         }
-
+      
+        // Function to format elapsed time (seconds to H:MM:SS).
         function formatElapsedTime(seconds) {
           const hrs = Math.floor(seconds / 3600);
           const mins = Math.floor((seconds % 3600) / 60);
           const secs = seconds % 60;
-          if (hrs > 0) return `${hrs}h ${mins}m ${secs}s`;
-          else if (mins > 0) return `${mins}m ${secs}s`;
-          else return `${secs}s`;
+          if (hrs > 0) {
+            return `${hrs}h ${mins}m ${secs}s`;
+          } else if (mins > 0) {
+            return `${mins}m ${secs}s`;
+          } else {
+            return `${secs}s`;
+          }
         }
-
+      
+        // Function to update browsing elapsed time.
         function updateBrowsingElapsed() {
           if (browsingStartTime) {
             const elapsedSec = Math.floor((Date.now() - browsingStartTime) / 1000);
             timeElapsedContainer.innerHTML = `<i class="fas fa-clock"></i> ${formatElapsedTime(elapsedSec)}`;
           }
         }
-
+      
+        // Clears all display elements and hides both indicators.
         function clearDisplay() {
           nowPlayingBox.classList.add("offline");
           offlineIndicatorElement.style.display = "flex";
@@ -469,58 +632,65 @@
           descModal.querySelector("p").textContent = "";
           descModal.classList.remove("active");
           timeElapsedContainer.classList.remove("active");
-          liveIndicatorElement.classList.remove("active");
-          pauseIndicatorElement.classList.remove("active");
+          if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
+          if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
           clearInterval(browsingInterval);
           browsingInterval = null;
           browsingStartTime = null;
           log("Display cleared.");
         }
-
+      
+        // Updates the progress bar and toggles the live and pause indicators.
         function handleRealTimeProgress(data) {
           if (data.duration && data.currentTime !== undefined) {
             const progressPercentage = (data.currentTime / data.duration) * 100;
             progressBarElement.style.width = progressPercentage + "%";
-            log(`Progress: ${progressPercentage.toFixed(2)}% (Live: ${data.isLive}, Paused: ${data.isPaused})`);
+            log(`handleRealTimeProgress: isLive=${data.isLive}, isPaused=${data.isPaused}, progress=${progressPercentage.toFixed(2)}%`);
+      
             if (data.isLive && data.isPaused) {
               log("Conflict: Both isLive and isPaused are true. Prioritizing live indicator.");
             }
+      
             if (data.isLive) {
-              liveIndicatorElement.classList.add("active");
-              pauseIndicatorElement.classList.remove("active");
-              log("Live indicator activated.");
+              if (liveIndicatorElement) liveIndicatorElement.classList.add("active");
+              if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
+              log("Live stream indicator activated.");
             } else if (data.isPaused) {
-              liveIndicatorElement.classList.remove("active");
-              pauseIndicatorElement.classList.add("active");
+              if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
+              if (pauseIndicatorElement) pauseIndicatorElement.classList.add("active");
               log("Pause indicator activated.");
             } else {
-              liveIndicatorElement.classList.remove("active");
-              pauseIndicatorElement.classList.remove("active");
-              log("No indicator active.");
+              if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
+              if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
+              log("Both indicators deactivated.");
             }
           } else {
             progressBarElement.style.width = "0%";
-            log("Invalid progress data received.");
+            log("handleRealTimeProgress: Invalid data received.");
           }
+      
           if (!data.isPaused && !data.isLive) {
             videoTitleElement.classList.add("playing");
           } else {
             videoTitleElement.classList.remove("playing");
           }
         }
-
+      
+        // Updates the video presence display.
         function displayVideoPresence(data) {
           lastHeartbeatReceived = Date.now();
           nowPlayingBox.classList.remove("offline");
           offlineIndicatorElement.style.display = "none";
           log("Updating video presence...");
+      
           if (videoTitleElement.textContent !== data.title || videoThumbnailImage.src !== data.thumbnail) {
             videoInfoContainer.classList.add("fade-out");
-            setTimeout(() => {
+            setTimeout(function () {
               videoTitleElement.textContent = data.title || "Unknown Title";
               videoTitleElement.classList.remove("video-title-changed");
               void videoTitleElement.offsetWidth;
               videoTitleElement.classList.add("video-title-changed");
+      
               if (data.thumbnail) {
                 videoThumbnailImage.src = data.thumbnail;
                 videoThumbnailImage.style.display = "block";
@@ -542,7 +712,7 @@
               const descModal = document.getElementById("descriptionModal");
               descModal.querySelector("p").textContent = data.description || "No description available.";
               descModal.classList.remove("active");
-              timeElapsedContainer.classList.remove("active"); // Hide elapsed time for video presence.
+              timeElapsedContainer.classList.add("active");
               if (data.videoSrc) {
                 videoThumbnailElement.src = data.videoSrc;
                 videoThumbnailElement.style.display = "block";
@@ -558,27 +728,34 @@
           }
           handleRealTimeProgress(data);
         }
-
+      
+        // Displays browsing presence and starts the elapsed time counter.
         function displayBrowsingPresence(data) {
           lastHeartbeatReceived = Date.now();
           nowPlayingBox.classList.remove("offline");
           offlineIndicatorElement.style.display = "none";
           log("Updating browsing presence...");
+      
           const defaultThumbnail = "https://www.youtube.com/img/desktop/yt_1200.png";
+          // Update thumbnail only if necessary to prevent flickering.
           if (videoThumbnailImage.src !== defaultThumbnail) {
             videoThumbnailImage.src = data.thumbnail || defaultThumbnail;
             videoThumbnailImage.style.display = "block";
             videoThumbnailElement.style.display = "none";
           }
+      
           videoTitleElement.textContent = data.title || "Browsing YouTube";
           channelNameElement.textContent = "Browsing...";
           viewCountElement.textContent = "";
           likeCountElement.textContent = "";
           publishedDateElement.textContent = "";
           videoCategoryElement.textContent = "";
+      
           const descModal = document.getElementById("descriptionModal");
           descModal.querySelector("p").textContent = data.description || "Browsing videos on YouTube";
           descModal.classList.remove("active");
+      
+          // Start or continue the browsing elapsed counter.
           if (!browsingStartTime) {
             browsingStartTime = Date.now();
           }
@@ -587,21 +764,24 @@
           if (!browsingInterval) {
             browsingInterval = setInterval(updateBrowsingElapsed, 1000);
           }
-          liveIndicatorElement.classList.remove("active");
-          pauseIndicatorElement.classList.remove("active");
+      
+          if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
+          if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
+      
           progressBarElement.style.width = "0%";
+      
           videoInfoContainer.classList.remove("fade-out");
           videoInfoContainer.classList.add("fade-in");
           log("Browsing presence updated in UI.");
         }
-
-        // --- Socket.IO Event Listeners ---
+      
+        // Socket event listeners.
         socket.on("connect", function () {
           log("Connected to server via Socket.IO.");
           isSessionExpired = false;
           socket.emit("requestLatestData");
         });
-        
+      
         socket.on("presenceUpdate", function (data) {
           if (isSessionExpired) {
             log("Ignoring presenceUpdate due to expired session.");
@@ -620,37 +800,20 @@
             clearDisplay();
           }
         });
-        
+      
         socket.on("disconnect", function () {
           log("Disconnected from server.");
           clearDisplay();
         });
-        
+      
         setInterval(function () {
           if (Date.now() - lastHeartbeatReceived > 60000) {
             log("No heartbeat received in 60 seconds. Marking as offline.");
             clearDisplay();
           }
         }, 5000);
-        
-        // --- Mapbox Visitor Markers ---
-        socket.on("visitorLocation", function (data) {
-          log(`Received visitor location: ${JSON.stringify(data)}`);
-          const { id, latitude, longitude, info } = data;
-          if (visitorMarkers[id]) {
-            visitorMarkers[id].setLngLat([longitude, latitude]);
-          } else {
-            const marker = new mapboxgl.Marker({ color: "#ff4081" })
-              .setLngLat([longitude, latitude])
-              .addTo(map);
-            if (info) {
-              marker.setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<strong>${info}</strong>`));
-            }
-            visitorMarkers[id] = marker;
-          }
-        });
-
-        // --- Description Modal Toggle ---
+      
+        // Description modal toggle.
         const descriptionModal = document.getElementById("descriptionModal");
         const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
         descriptionModal.classList.remove("active");
@@ -671,8 +834,8 @@
             toggleDescriptionButton.textContent = " Show Description";
           }
         });
-
-        // --- Clock and Weather Updates ---
+      </script>
+      <script>
         function updateClocks() {
           const now = new Date();
           const localTime = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -687,7 +850,6 @@
         }
         setInterval(updateClocks, 1000);
         updateClocks();
-        
         const CITY_NAME = "Leeds";
         async function fetchWeather() {
           try {
@@ -704,11 +866,11 @@
         }
         function displayWeather(data) {
           const description = data.weather[0].description,
-                temperature = Math.round(data.main.temp),
-                humidity = data.main.humidity,
-                windSpeed = data.wind.speed,
-                iconCode = data.weather[0].icon,
-                iconUrl = "https://openweathermap.org/img/wn/" + iconCode + "@2x.png";
+            temperature = Math.round(data.main.temp),
+            humidity = data.main.humidity,
+            windSpeed = data.wind.speed,
+            iconCode = data.weather[0].icon,
+            iconUrl = "https://openweathermap.org/img/wn/" + iconCode + "@2x.png";
           document.getElementById("weather-description").innerText = "Condition: " + description;
           document.getElementById("temperature").innerText = "Temperature: " + temperature + "°C";
           document.getElementById("humidity").innerText = "Humidity: " + humidity + "%";
@@ -721,97 +883,95 @@
         }
         setInterval(fetchWeather, 3600000);
         fetchWeather();
-      });
-    </script>
-    
-    <!-- Sound Wave Matrix -->
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        const canvas = document.getElementById("soundWaveCanvas");
-        const ctx = canvas.getContext("2d");
-        function resizeCanvas() {
-          canvas.width = window.innerWidth;
-          canvas.height = window.innerHeight;
-        }
-        resizeCanvas();
-        window.addEventListener("resize", () => {
-          resizeCanvas();
-          columns = Math.floor(canvas.width / fontSize);
-          drops = new Array(columns).fill(0);
-          speeds = Array.from({ length: columns }, () => Math.random() * 0.05 + 0.05);
-          phraseCounters = new Array(columns).fill(0);
-          currentDigits = new Array(columns).fill("0");
-        });
-        const fontSize = 20;
-        let columns = Math.floor(canvas.width / fontSize);
-        let drops = new Array(columns).fill(0);
-        let speeds = Array.from({ length: columns }, () => Math.random() * 0.05 + 0.05);
-        let phraseCounters = new Array(columns).fill(0);
-        let currentDigits = new Array(columns).fill("0");
-        const binaryChars = "01";
-        const colors = ["#00C6FF", "#ff4081"];
-        const mikuPhrases = [
-          "Hatsune Miku",
-          "The First Sound of the Future",
-          "39",
-          "Digital Diva",
-          "CV01",
-          "01",
-        ];
-        function hexToRGBA(hex, alpha) {
-          const r = parseInt(hex.slice(1, 3), 16),
-                g = parseInt(hex.slice(3, 5), 16),
-                b = parseInt(hex.slice(5, 7), 16);
-          return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-        }
-        function drawMatrix() {
-          ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.font = fontSize + "px monospace";
-          ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-          ctx.shadowBlur = 4;
-          const trailLength = 6;
-          for (let i = 0; i < drops.length; i++) {
-            let dropIncrement = speeds[i];
-            let text;
-            if (phraseCounters[i] > 0) {
-              dropIncrement = 0;
-              phraseCounters[i]--;
-            }
-            if (phraseCounters[i] === 0 && Math.random() < 0.002) {
-              text = mikuPhrases[Math.floor(Math.random() * mikuPhrases.length)];
-              ctx.fillStyle = "#FF69B4";
-              phraseCounters[i] = 180;
-              dropIncrement = speeds[i] * 0.2;
-            } else {
-              if (Math.random() < 0.1) {
-                currentDigits[i] = binaryChars.charAt(Math.floor(Math.random() * binaryChars.length));
-              }
-              text = currentDigits[i];
-              ctx.fillStyle = colors[i % colors.length];
-            }
-            const x = i * fontSize;
-            const y = Math.floor(drops[i]) * fontSize;
-            ctx.fillText(text, x, y);
-            for (let j = 1; j < trailLength; j++) {
-              const ty = y - j * fontSize;
-              if (ty < 0) break;
-              const alpha = 1 - j / trailLength;
-              ctx.fillStyle = hexToRGBA(colors[i % colors.length], alpha);
-              ctx.fillText(binaryChars.charAt(Math.floor(Math.random() * binaryChars.length)), x, ty);
-            }
-            if (y > canvas.height && Math.random() > 0.995) {
-              drops[i] = 0;
-              speeds[i] = Math.random() * 0.05 + 0.05;
-              phraseCounters[i] = 0;
-              currentDigits[i] = "0";
-            }
-            drops[i] += dropIncrement;
+      </script>
+      <script>
+        document.addEventListener("DOMContentLoaded", () => {
+          const canvas = document.getElementById("soundWaveCanvas");
+          const ctx = canvas.getContext("2d");
+          function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
           }
-          requestAnimationFrame(drawMatrix);
-        }
-        drawMatrix();
-      });
-    </script>
+          resizeCanvas();
+          window.addEventListener("resize", () => {
+            resizeCanvas();
+            columns = Math.floor(canvas.width / fontSize);
+            drops = new Array(columns).fill(0);
+            speeds = Array.from({ length: columns }, () => Math.random() * 0.05 + 0.05);
+            phraseCounters = new Array(columns).fill(0);
+            currentDigits = new Array(columns).fill("0");
+          });
+          const fontSize = 20;
+          let columns = Math.floor(canvas.width / fontSize);
+          let drops = new Array(columns).fill(0);
+          let speeds = Array.from({ length: columns }, () => Math.random() * 0.05 + 0.05);
+          let phraseCounters = new Array(columns).fill(0);
+          let currentDigits = new Array(columns).fill("0");
+          const binaryChars = "01";
+          const colors = ["#00C6FF", "#ff4081"];
+          const mikuPhrases = [
+            "Hatsune Miku",
+            "The First Sound of the Future",
+            "39",
+            "Digital Diva",
+            "CV01",
+            "01",
+          ];
+          function hexToRGBA(hex, alpha) {
+            const r = parseInt(hex.slice(1, 3), 16),
+              g = parseInt(hex.slice(3, 5), 16),
+              b = parseInt(hex.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+          }
+          function drawMatrix() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.font = fontSize + "px monospace";
+            ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+            ctx.shadowBlur = 4;
+            const trailLength = 6;
+            for (let i = 0; i < drops.length; i++) {
+              let dropIncrement = speeds[i];
+              let text;
+              if (phraseCounters[i] > 0) {
+                dropIncrement = 0;
+                phraseCounters[i]--;
+              }
+              if (phraseCounters[i] === 0 && Math.random() < 0.002) {
+                text = mikuPhrases[Math.floor(Math.random() * mikuPhrases.length)];
+                ctx.fillStyle = "#FF69B4";
+                phraseCounters[i] = 180;
+                dropIncrement = speeds[i] * 0.2;
+              } else {
+                if (Math.random() < 0.1) {
+                  currentDigits[i] = binaryChars.charAt(Math.floor(Math.random() * binaryChars.length));
+                }
+                text = currentDigits[i];
+                ctx.fillStyle = colors[i % colors.length];
+              }
+              const x = i * fontSize;
+              const y = Math.floor(drops[i]) * fontSize;
+              ctx.fillText(text, x, y);
+              for (let j = 1; j < trailLength; j++) {
+                const ty = y - j * fontSize;
+                if (ty < 0) break;
+                const alpha = 1 - j / trailLength;
+                ctx.fillStyle = hexToRGBA(colors[i % colors.length], alpha);
+                ctx.fillText(binaryChars.charAt(Math.floor(Math.random() * binaryChars.length)), x, ty);
+              }
+              if (y > canvas.height && Math.random() > 0.995) {
+                drops[i] = 0;
+                speeds[i] = Math.random() * 0.05 + 0.05;
+                phraseCounters[i] = 0;
+                currentDigits[i] = "0";
+              }
+              drops[i] += dropIncrement;
+            }
+            requestAnimationFrame(drawMatrix);
+          }
+          drawMatrix();
+        });
+      </script>
   </body>
 </html>
+
