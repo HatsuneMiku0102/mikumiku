@@ -176,7 +176,7 @@
                 <h2 id="descriptionModalTitle">Description</h2>
                 <p id="descriptionModalDescription">Loading description...</p>
               </div>
-              <!-- Centered time elapsed display (active for both video and browsing) -->
+              <!-- Centered time elapsed display (visible for both video and browsing) -->
               <div id="timeElapsedContainer" class="time-elapsed">
                 <i class="fas fa-clock"></i> <span id="timeElapsed">0s</span>
               </div>
@@ -521,10 +521,11 @@
         const publishedDateElement = document.getElementById("publishedDate");
         const videoCategoryElement = document.getElementById("videoCategory");
         const videoDescriptionElement = document.getElementById("descriptionModalDescription");
-        const timeElapsedElement = document.getElementById("timeElapsed");
-        // For the live indicator, we now use the new element with id "liveIndicator"
+        // Use the progress container for time elapsed updates.
+        const timeElapsedContainer = document.getElementById("timeElapsedContainer");
+        // For the live indicator.
         const liveIndicatorElement = document.getElementById("liveIndicator");
-        // For the pause indicator, we now use the new element with id "pauseIndicator"
+        // For the pause indicator.
         const pauseIndicatorElement = document.getElementById("pauseIndicator");
         const videoInfoContainer = document.getElementById("videoInfoContainer");
       
@@ -539,7 +540,8 @@
         function updateBrowsingElapsed() {
           if (browsingStartTime) {
             const elapsedSec = Math.floor((Date.now() - browsingStartTime) / 1000);
-            timeElapsedElement.innerHTML = `<i class="fas fa-clock"></i> ${elapsedSec}s`;
+            // Update the inner HTML of the container.
+            timeElapsedContainer.innerHTML = `<i class="fas fa-clock"></i> ${elapsedSec}s`;
           }
         }
       
@@ -561,7 +563,7 @@
           const descModal = document.getElementById("descriptionModal");
           descModal.querySelector("p").textContent = "";
           descModal.classList.remove("active");
-          timeElapsedElement.classList.remove("active");
+          timeElapsedContainer.classList.remove("active");
           if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
           if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
           clearInterval(browsingInterval);
@@ -598,8 +600,6 @@
             progressBarElement.style.width = "0%";
             log("handleRealTimeProgress: Invalid data received.");
           }
-      
-          // Toggle continuous playing animation on the video title.
           if (!data.isPaused && !data.isLive) {
             videoTitleElement.classList.add("playing");
           } else {
@@ -643,8 +643,7 @@
               const descModal = document.getElementById("descriptionModal");
               descModal.querySelector("p").textContent = data.description || "No description available.";
               descModal.classList.remove("active");
-              timeElapsedElement.classList.add("active");
-              // For video, update thumbnail source if available.
+              timeElapsedContainer.classList.add("active");
               if (data.videoSrc) {
                 videoThumbnailElement.src = data.videoSrc;
                 videoThumbnailElement.style.display = "block";
@@ -661,22 +660,21 @@
           handleRealTimeProgress(data);
         }
       
-        // Displays browsing presence without flickering the thumbnail.
+        // Displays browsing presence and starts the elapsed time counter.
         function displayBrowsingPresence(data) {
           lastHeartbeatReceived = Date.now();
           nowPlayingBox.classList.remove("offline");
           offlineIndicatorElement.style.display = "none";
           log("Updating browsing presence...");
       
-          // Only update the thumbnail if it differs from our default
           const defaultThumbnail = "https://www.youtube.com/img/desktop/yt_1200.png";
+          // Only update thumbnail if it is not already the default.
           if (videoThumbnailImage.src !== defaultThumbnail) {
             videoThumbnailImage.src = data.thumbnail || defaultThumbnail;
             videoThumbnailImage.style.display = "block";
             videoThumbnailElement.style.display = "none";
           }
       
-          // Set browsing title and clear video-specific details.
           videoTitleElement.textContent = data.title || "Browsing YouTube";
           channelNameElement.textContent = "Browsing...";
           viewCountElement.textContent = "";
@@ -688,21 +686,19 @@
           descModal.querySelector("p").textContent = data.description || "Browsing videos on YouTube";
           descModal.classList.remove("active");
       
-          // For browsing, show time elapsed and update from a start time.
+          // Start or continue the browsing elapsed counter.
           if (!browsingStartTime) {
             browsingStartTime = Date.now();
           }
-          timeElapsedElement.classList.add("active");
+          timeElapsedContainer.classList.add("active");
           updateBrowsingElapsed();
           if (!browsingInterval) {
             browsingInterval = setInterval(updateBrowsingElapsed, 1000);
           }
       
-          // Ensure both live and pause indicators are hidden.
           if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
           if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
       
-          // Reset progress bar.
           progressBarElement.style.width = "0%";
       
           videoInfoContainer.classList.remove("fade-out");
@@ -741,7 +737,6 @@
           clearDisplay();
         });
       
-        // Check for heartbeat timeout.
         setInterval(function () {
           if (Date.now() - lastHeartbeatReceived > 60000) {
             log("No heartbeat received in 60 seconds. Marking as offline.");
