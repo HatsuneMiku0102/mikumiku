@@ -200,14 +200,14 @@ app.use(
         "https://cdn.jsdelivr.net",
         "https://cdn.skypack.dev",
         "https://cdn.socket.io",
-        "https://api.mapbox.com" // Added for Mapbox GL JS
+        "https://api.mapbox.com"
       ],
       styleSrc: [
         "'self'",
         "'unsafe-inline'",
         "https://fonts.googleapis.com",
         "https://cdnjs.cloudflare.com",
-        "https://api.mapbox.com" // In case Mapbox styles are inlined or loaded here
+        "https://api.mapbox.com"
       ],
       imgSrc: [
         "'self'",
@@ -220,8 +220,8 @@ app.use(
         "https://threejs.org",
         "https://www.youtube.com",
         "https://raw.githubusercontent.com",
-        "https://api.tiles.mapbox.com", // Added for Mapbox tile images
-        "https://*.tiles.mapbox.com"     // Allow wildcard subdomains for tiles if needed
+        "https://api.tiles.mapbox.com",
+        "https://*.tiles.mapbox.com"
       ],
       fontSrc: [
         "'self'",
@@ -235,9 +235,9 @@ app.use(
         "https://*.youtube.com",
         "https://api.openweathermap.org",
         "https://cdn.socket.io",
-        "https://mikumiku.dev", // Your domain
-        "https://api.mapbox.com",    // Added for Mapbox API calls
-        "https://events.mapbox.com"   // Added for Mapbox telemetry (if used)
+        "https://mikumiku.dev",
+        "https://api.mapbox.com",
+        "https://events.mapbox.com"
       ],
       frameSrc: [
         "'self'",
@@ -252,10 +252,13 @@ app.use(
         "'self'",
         "https://discord.com"
       ],
+      // Add a worker-src directive to allow blob URLs for Mapbox Web Workers.
+      workerSrc: ["'self'", "blob:"],
       upgradeInsecureRequests: []
     }
   })
 );
+
 
 
 app.set('trust proxy', true);
