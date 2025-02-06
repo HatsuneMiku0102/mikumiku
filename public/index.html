@@ -4,33 +4,62 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Miku.dev | Home</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
     <link rel="stylesheet" href="/styles.css" />
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.css" rel="stylesheet" />
     <style>
+      /* General styles */
       #descriptionModal {
         display: none;
       }
       #descriptionModal.active {
         display: block;
       }
-      /* Adjust map container to be more square and slightly larger */
+      /* Map container adjustments */
       #map {
         width: 400px;
         height: 400px;
         border-radius: var(--border-radius);
       }
-      /* Example cleanup for now playing elements */
+      /* Now Playing Section Layout */
       .now-playing {
         display: flex;
-        flex-wrap: wrap;
         gap: 1rem;
-        align-items: flex-start;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: var(--border-radius);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        flex-wrap: wrap;
       }
-      .now-playing-sidebar,
+      .now-playing-sidebar {
+        flex: 0 0 250px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-evenly;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: var(--border-radius);
+      }
+      .now-playing-sidebar .sidebar-item {
+        margin-bottom: 1rem;
+      }
+      .now-playing-sidebar .sidebar-item:last-child {
+        margin-bottom: 0;
+      }
       .video-section {
         flex: 1;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: var(--border-radius);
         min-width: 300px;
       }
       .video-title-container h2 {
@@ -39,7 +68,27 @@
       .progress-container {
         margin-top: 1rem;
       }
-      /* Hide time elapsed container by default */
+      .sidebar-extra {
+        margin-top: 1rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .sidebar-extra aside {
+        flex: 1;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: var(--border-radius);
+        min-width: 250px;
+      }
+      .animated-divider {
+        border: none;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.2);
+        margin: 1rem 0;
+        width: 100%;
+      }
+      /* Hide time elapsed container by default (only shown for browsing presence) */
       #timeElapsedContainer {
         display: none;
       }
@@ -141,7 +190,6 @@
             <div class="sidebar-item video-category">
               <i class="fas fa-tag"></i> <span id="videoCategory">Loading...</span>
             </div>
-            <hr class="animated-divider" />
             <section class="clock-section">
               <p id="greeting" class="greeting">
                 <i class="fas fa-sun"></i>
@@ -201,7 +249,7 @@
                 <h2 id="descriptionModalTitle">Description</h2>
                 <p id="descriptionModalDescription">Loading description...</p>
               </div>
-              <!-- The time elapsed container will only be visible in browsing presence -->
+              <!-- Time elapsed container appears only in browsing presence -->
               <div id="timeElapsedContainer" class="time-elapsed">
                 <i class="fas fa-clock"></i> <span id="timeElapsed">0s</span>
               </div>
@@ -225,7 +273,7 @@
               </p>
             </aside>
             <aside class="map-section">
-              <!-- Removed the "Visitor Map" title -->
+              <!-- Visitor map without the title -->
               <div id="map"></div>
             </aside>
           </div>
@@ -645,7 +693,7 @@
           const descModal = document.getElementById("descriptionModal");
           descModal.querySelector("p").textContent = "";
           descModal.classList.remove("active");
-          // Hide the time elapsed container when not browsing
+          // Hide time elapsed container when not browsing
           timeElapsedContainer.style.display = "none";
           clearInterval(browsingInterval);
           browsingInterval = null;
