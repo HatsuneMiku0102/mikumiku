@@ -131,6 +131,7 @@
                 <span id="pauseIndicator" class="indicator paused">Paused</span>
               </div>
             </div>
+            <!-- Offline indicator: absolutely centered within the now playing area -->
             <div id="offline-indicator" class="offline-indicator">
               <i class="fas fa-signal-slash"></i> I’m currently offline
             </div>
@@ -233,606 +234,608 @@
           </div>
         </div>
       </div>
-      <script>
-        document.addEventListener("DOMContentLoaded", () => { 
-          fetch("/track-visitor", { method: "POST" })
-            .then(response => response.json())
-            .then(data => { console.log("Visitor tracked:", data); })
-            .catch(err => console.error("Error tracking visitor:", err)); 
+    </div>
+    <!-- Scripts below -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => { 
+        fetch("/track-visitor", { method: "POST" })
+          .then(response => response.json())
+          .then(data => { console.log("Visitor tracked:", data); })
+          .catch(err => console.error("Error tracking visitor:", err)); 
+      });
+    </script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        mapboxgl.accessToken = 'pk.eyJ1IjoiYXJ0ZW1pczExNyIsImEiOiJjbTZzeHQ2bGowOHlnMm9yM3k4ZTl4cHptIn0.n1AdgsyV2iA7X1PwGvDTlA';
+        const map = new mapboxgl.Map({
+          container: 'map',
+          style: 'mapbox://styles/mapbox/streets-v12',
+          center: [0, 20],
+          zoom: 2
         });
-      </script>
-      <script>
-        document.addEventListener("DOMContentLoaded", function () {
-          mapboxgl.accessToken = 'pk.eyJ1IjoiYXJ0ZW1pczExNyIsImEiOiJjbTZzeHQ2bGowOHlnMm9yM3k4ZTl4cHptIn0.n1AdgsyV2iA7X1PwGvDTlA';
-          const map = new mapboxgl.Map({
-            container: 'map',
-            style: 'mapbox://styles/mapbox/streets-v12',
-            center: [0, 20],
-            zoom: 2
-          });
-          map.addControl(new mapboxgl.NavigationControl());
-          const visitorMarkers = {};
-          function waitForSocket(callback) { 
-            if (typeof socket !== "undefined") { 
-              callback(); 
-            } else { 
-              setTimeout(function () { waitForSocket(callback); }, 50); 
-            } 
-          }
-          waitForSocket(function () {
-            socket.on("visitorLocation", function (data) {
-              console.log(`Received visitor location: ${JSON.stringify(data)}`);
-              const { id, latitude, longitude, info } = data;
-              if (visitorMarkers[id]) { 
-                visitorMarkers[id].setLngLat([longitude, latitude]); 
+        map.addControl(new mapboxgl.NavigationControl());
+        const visitorMarkers = {};
+        function waitForSocket(callback) { 
+          if (typeof socket !== "undefined") { 
+            callback(); 
+          } else { 
+            setTimeout(function () { waitForSocket(callback); }, 50); 
+          } 
+        }
+        waitForSocket(function () {
+          socket.on("visitorLocation", function (data) {
+            console.log(`Received visitor location: ${JSON.stringify(data)}`);
+            const { id, latitude, longitude, info } = data;
+            if (visitorMarkers[id]) { 
+              visitorMarkers[id].setLngLat([longitude, latitude]); 
+            } else {
+              const marker = new mapboxgl.Marker({ color: "#ff4081" })
+                .setLngLat([longitude, latitude])
+                .addTo(map);
+              if (info) { 
+                marker.setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<strong>${info}</strong>`)); 
               }
-              else {
-                const marker = new mapboxgl.Marker({ color: "#ff4081" })
-                  .setLngLat([longitude, latitude])
-                  .addTo(map);
-                if (info) { 
-                  marker.setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<strong>${info}</strong>`)); 
-                }
-                visitorMarkers[id] = marker;
-              }
-              map.flyTo({ center: [longitude, latitude], zoom: 4, speed: 0.8 });
-            });
+              visitorMarkers[id] = marker;
+            }
+            map.flyTo({ center: [longitude, latitude], zoom: 4, speed: 0.8 });
           });
         });
-      </script>
-      <script src="haru.js"></script>
-      <script src="clockwork.js"></script>
-      <script>
-        window.addEventListener("load", function () { 
-          document.getElementById("pageContainer").classList.add("loaded"); 
+      });
+    </script>
+    <script src="haru.js"></script>
+    <script src="clockwork.js"></script>
+    <script>
+      window.addEventListener("load", function () { 
+        document.getElementById("pageContainer").classList.add("loaded"); 
+      });
+    </script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const titleBar = document.getElementById("titleBar");
+        if (titleBar) { 
+          window.addEventListener("scroll", function () { 
+            titleBar.classList.toggle("scrolled", window.scrollY > 50); 
+          }); 
+        }
+        const menuButton = document.getElementById("menuButton");
+        const overlayMenu = document.getElementById("overlayMenu");
+        const closeOverlay = document.getElementById("closeOverlay");
+        if (menuButton && overlayMenu) { 
+          menuButton.addEventListener("click", function (e) { 
+            e.stopPropagation(); 
+            overlayMenu.classList.add("active"); 
+            document.body.classList.add("overlay-active"); 
+          }); 
+        }
+        if (closeOverlay && overlayMenu) { 
+          closeOverlay.addEventListener("click", function (e) { 
+            e.stopPropagation(); 
+            overlayMenu.classList.remove("active"); 
+            document.body.classList.remove("overlay-active"); 
+          }); 
+        }
+        window.addEventListener("click", function (event) { 
+          if (event.target === overlayMenu) { 
+            overlayMenu.classList.remove("active"); 
+            document.body.classList.remove("overlay-active"); 
+          } 
         });
-      </script>
-      <script>
-        document.addEventListener("DOMContentLoaded", function () {
-          const titleBar = document.getElementById("titleBar");
-          if (titleBar) { 
-            window.addEventListener("scroll", function () { 
-              titleBar.classList.toggle("scrolled", window.scrollY > 50); 
-            }); 
-          }
-          const menuButton = document.getElementById("menuButton");
-          const overlayMenu = document.getElementById("overlayMenu");
-          const closeOverlay = document.getElementById("closeOverlay");
-          if (menuButton && overlayMenu) { 
-            menuButton.addEventListener("click", function (e) { 
-              e.stopPropagation(); 
-              overlayMenu.classList.add("active"); 
-              document.body.classList.add("overlay-active"); 
-            }); 
-          }
-          if (closeOverlay && overlayMenu) { 
-            closeOverlay.addEventListener("click", function (e) { 
-              e.stopPropagation(); 
-              overlayMenu.classList.remove("active"); 
-              document.body.classList.remove("overlay-active"); 
-            }); 
-          }
-          window.addEventListener("click", function (event) { 
-            if (event.target === overlayMenu) { 
-              overlayMenu.classList.remove("active"); 
-              document.body.classList.remove("overlay-active"); 
-            } 
+        const personalityButtons = document.querySelectorAll(".personality-button");
+        const siteTitle = document.querySelector(".site-title");
+        if (personalityButtons.length && siteTitle) {
+          personalityButtons.forEach((button) => {
+            button.addEventListener("click", function () {
+              const personality = button.textContent.trim();
+              if (personality === "Melody") siteTitle.style.color = "#ff4081";
+              else if (personality === "Harmony") siteTitle.style.color = "#00c6ff";
+              else if (personality === "Rhythm") siteTitle.style.color = "#ffffff";
+              else siteTitle.style.color = "#00c6ff";
+              personalityButtons.forEach((btn) => btn.classList.remove("active"));
+              button.classList.add("active");
+            });
           });
-          const personalityButtons = document.querySelectorAll(".personality-button");
-          const siteTitle = document.querySelector(".site-title");
-          if (personalityButtons.length && siteTitle) {
-            personalityButtons.forEach((button) => {
-              button.addEventListener("click", function () {
-                const personality = button.textContent.trim();
-                if (personality === "Melody") siteTitle.style.color = "#ff4081";
-                else if (personality === "Harmony") siteTitle.style.color = "#00c6ff";
-                else if (personality === "Rhythm") siteTitle.style.color = "#ffffff";
-                else siteTitle.style.color = "#00c6ff";
-                personalityButtons.forEach((btn) => btn.classList.remove("active"));
-                button.classList.add("active");
-              });
-            });
+        }
+      });
+    </script>
+    <script>
+      (function () {
+        "use strict";
+        const CONFIG = {
+          consentCookieName: "cookieConsent",
+          consentCookieExpiryDays: 365,
+          consentCookiePath: "/",
+          consentModalId: "consentModal",
+          acceptButtonId: "acceptConsent",
+          declineButtonId: "declineConsent",
+          manageButtonIds: ["manageConsentModal", "manageConsentFooter"],
+          closeButtonId: "closeConsentModal",
+          cookieCategories: { necessary: { enabled: true, description: "Necessary cookies enable core functionalities and security features of the website." } },
+          focusableSelectors: "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])"
+        };
+        const consentModal = document.getElementById(CONFIG.consentModalId);
+        const acceptButton = document.getElementById(CONFIG.acceptButtonId);
+        const declineButton = document.getElementById(CONFIG.declineButtonId);
+        const closeButton = document.getElementById(CONFIG.closeButtonId);
+        const manageConsentButtons = CONFIG.manageButtonIds.map((id) => document.getElementById(id));
+        function setCookie(name, value, days, path) {
+          let expires = "";
+          if (days) { 
+            const date = new Date(); 
+            date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000); 
+            expires = "; expires=" + date.toUTCString(); 
           }
-        });
-      </script>
-      <script>
-        (function () {
-          "use strict";
-          const CONFIG = {
-            consentCookieName: "cookieConsent",
-            consentCookieExpiryDays: 365,
-            consentCookiePath: "/",
-            consentModalId: "consentModal",
-            acceptButtonId: "acceptConsent",
-            declineButtonId: "declineConsent",
-            manageButtonIds: ["manageConsentModal", "manageConsentFooter"],
-            closeButtonId: "closeConsentModal",
-            cookieCategories: { necessary: { enabled: true, description: "Necessary cookies enable core functionalities and security features of the website." } },
-            focusableSelectors: "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])"
-          };
-          const consentModal = document.getElementById(CONFIG.consentModalId);
-          const acceptButton = document.getElementById(CONFIG.acceptButtonId);
-          const declineButton = document.getElementById(CONFIG.declineButtonId);
-          const closeButton = document.getElementById(CONFIG.closeButtonId);
-          const manageConsentButtons = CONFIG.manageButtonIds.map((id) => document.getElementById(id));
-          function setCookie(name, value, days, path) {
-            let expires = "";
-            if (days) { 
-              const date = new Date(); 
-              date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000); 
-              expires = "; expires=" + date.toUTCString(); 
-            }
-            const secure = location.protocol === "https:" ? "; Secure" : "";
-            const sameSite = "; SameSite=Lax";
-            document.cookie = name + "=" + (value || "") + expires + "; path=" + path + secure + sameSite;
+          const secure = location.protocol === "https:" ? "; Secure" : "";
+          const sameSite = "; SameSite=Lax";
+          document.cookie = name + "=" + (value || "") + expires + "; path=" + path + secure + sameSite;
+        }
+        function getCookie(name) {
+          const nameEQ = name + "=";
+          const ca = document.cookie.split(";");
+          for (let c of ca) { 
+            c = c.trim(); 
+            if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length); 
           }
-          function getCookie(name) {
-            const nameEQ = name + "=";
-            const ca = document.cookie.split(";");
-            for (let c of ca) { 
-              c = c.trim(); 
-              if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length); 
-            }
-            return null;
-          }
-          function eraseCookie(name, path) { 
-            document.cookie = name + '=; Max-Age=-99999999; path=' + path + ';'; 
-          }
-          function trapFocus(modal) {
-            const focusableElements = modal.querySelectorAll(CONFIG.focusableSelectors);
-            if (!focusableElements.length) return;
-            const firstFocusableElement = focusableElements[0],
-              lastFocusableElement = focusableElements[focusableElements.length - 1];
-            modal.addEventListener("keydown", function (event) {
-              if (event.key === "Tab") {
-                if (event.shiftKey) { 
-                  if (document.activeElement === firstFocusableElement) { 
-                    event.preventDefault(); 
-                    lastFocusableElement.focus(); 
-                  } 
-                }
-                else { 
-                  if (document.activeElement === lastFocusableElement) { 
-                    event.preventDefault(); 
-                    firstFocusableElement.focus(); 
-                  } 
-                }
-              }
-              if (event.key === "Escape") { event.preventDefault(); }
-            });
-          }
-          function showModal() {
-            consentModal.classList.add("active");
-            document.body.classList.add("modal-active");
-            consentModal.setAttribute("aria-hidden", "false");
-            const focusableElements = consentModal.querySelectorAll(CONFIG.focusableSelectors);
-            if (focusableElements.length) focusableElements[0].focus();
-            trapFocus(consentModal);
-          }
-          function hideModal() {
-            consentModal.classList.remove("active");
-            document.body.classList.remove("modal-active");
-            consentModal.setAttribute("aria-hidden", "true");
-          }
-          function initConsentModal() {
-            const existingConsent = getCookie(CONFIG.consentCookieName);
-            if (!existingConsent) { 
-              showModal(); 
-            } else { 
-              applyConsent(existingConsent); 
-            }
-            acceptButton.addEventListener("click", function () {
-              setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: true }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
-              hideModal();
-              initializeCookies();
-            });
-            declineButton.addEventListener("click", function () {
-              setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: false }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
-              hideModal();
-              disableCookies();
-            });
-            manageConsentButtons.forEach((button) => { 
-              if (button) { 
-                button.addEventListener("click", function (event) { 
+          return null;
+        }
+        function eraseCookie(name, path) { 
+          document.cookie = name + '=; Max-Age=-99999999; path=' + path + ';'; 
+        }
+        function trapFocus(modal) {
+          const focusableElements = modal.querySelectorAll(CONFIG.focusableSelectors);
+          if (!focusableElements.length) return;
+          const firstFocusableElement = focusableElements[0],
+            lastFocusableElement = focusableElements[focusableElements.length - 1];
+          modal.addEventListener("keydown", function (event) {
+            if (event.key === "Tab") {
+              if (event.shiftKey) { 
+                if (document.activeElement === firstFocusableElement) { 
                   event.preventDefault(); 
-                  showModal(); 
-                }); 
-              } 
-            });
-            closeButton.addEventListener("click", function () { 
+                  lastFocusableElement.focus(); 
+                } 
+              }
+              else { 
+                if (document.activeElement === lastFocusableElement) { 
+                  event.preventDefault(); 
+                  firstFocusableElement.focus(); 
+                } 
+              }
+            }
+            if (event.key === "Escape") { event.preventDefault(); }
+          });
+        }
+        function showModal() {
+          consentModal.classList.add("active");
+          document.body.classList.add("modal-active");
+          consentModal.setAttribute("aria-hidden", "false");
+          const focusableElements = consentModal.querySelectorAll(CONFIG.focusableSelectors);
+          if (focusableElements.length) focusableElements[0].focus();
+          trapFocus(consentModal);
+        }
+        function hideModal() {
+          consentModal.classList.remove("active");
+          document.body.classList.remove("modal-active");
+          consentModal.setAttribute("aria-hidden", "true");
+        }
+        function initConsentModal() {
+          const existingConsent = getCookie(CONFIG.consentCookieName);
+          if (!existingConsent) { 
+            showModal(); 
+          } else { 
+            applyConsent(existingConsent); 
+          }
+          acceptButton.addEventListener("click", function () {
+            setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: true }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
+            hideModal();
+            initializeCookies();
+          });
+          declineButton.addEventListener("click", function () {
+            setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: false }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
+            hideModal();
+            disableCookies();
+          });
+          manageConsentButtons.forEach((button) => { 
+            if (button) { 
+              button.addEventListener("click", function (event) { 
+                event.preventDefault(); 
+                showModal(); 
+              }); 
+            } 
+          });
+          closeButton.addEventListener("click", function () { 
+            alert("Please make a choice regarding cookie usage."); 
+          });
+          window.addEventListener("click", function (event) { 
+            if (event.target === consentModal) { 
               alert("Please make a choice regarding cookie usage."); 
-            });
-            window.addEventListener("click", function (event) { 
-              if (event.target === consentModal) { 
-                alert("Please make a choice regarding cookie usage."); 
-              } 
-            });
-          }
-          function applyConsent(consentValue) {
-            try { 
-              const consent = JSON.parse(consentValue); 
-              if (consent.necessary) { 
-                initializeCookies(consent); 
-              } else { 
-                disableCookies(); 
-              } 
-            }
-            catch (error) { 
-              console.error("Error parsing consent cookie:", error); 
-              showModal(); 
-            }
-          }
-          function initializeCookies(consent) { 
-            console.log("Necessary cookies enabled."); 
-          }
-          function disableCookies() { 
-            console.log("Necessary cookies disabled."); 
-          }
-          function areCookiesEnabled() {
-            const testCookie = "test_cookie_consent";
-            setCookie(testCookie, "test", 1);
-            const result = getCookie(testCookie) === "test";
-            eraseCookie(testCookie);
-            return result;
-          }
-          function init() { 
-            if (areCookiesEnabled()) { 
-              initConsentModal(); 
+            } 
+          });
+        }
+        function applyConsent(consentValue) {
+          try { 
+            const consent = JSON.parse(consentValue); 
+            if (consent.necessary) { 
+              initializeCookies(consent); 
             } else { 
-              console.warn("Cookies are disabled in this browser. Consent modal will not be displayed."); 
+              disableCookies(); 
             } 
           }
-          document.addEventListener("DOMContentLoaded", init);
-        })();
-      </script>
-      <script>
-        const log = (message) => console.log(`[Haru.js] ${message}`);
-        const socket = io("https://mikumiku.dev");
-        let lastHeartbeatReceived = Date.now();
-        let isSessionExpired = false;
-        let browsingStartTime = null;
-        let browsingInterval = null;
-        const nowPlayingBox = document.getElementById("nowPlayingBox");
-        const videoTitleElement = document.getElementById("videoTitle");
-        const videoThumbnailImage = document.getElementById("videoThumbnailImage");
-        const videoThumbnailElement = document.getElementById("videoThumbnail");
-        const offlineIndicatorElement = document.getElementById("offline-indicator");
-        const progressBarElement = document.getElementById("progressBar");
-        const channelNameElement = document.getElementById("channelName");
-        const viewCountElement = document.getElementById("viewCount");
-        const likeCountElement = document.getElementById("likeCount");
-        const publishedDateElement = document.getElementById("publishedDate");
-        const videoCategoryElement = document.getElementById("videoCategory");
-        const videoDescriptionElement = document.getElementById("descriptionModalDescription");
-        const timeElapsedContainer = document.getElementById("timeElapsedContainer");
-        const liveIndicatorElement = document.getElementById("liveIndicator");
-        const pauseIndicatorElement = document.getElementById("pauseIndicator");
-        const youtubeSection = document.getElementById("youtubeSection");
-        function formatNumber(number) {
-          if (typeof number === "string") number = number.replace(/,/g, "");
-          const num = Number(number);
-          return isNaN(num) ? "N/A" : num.toLocaleString();
-        }
-        function formatElapsedTime(seconds) {
-          const hrs = Math.floor(seconds / 3600);
-          const mins = Math.floor((seconds % 3600) / 60);
-          const secs = seconds % 60;
-          if (hrs > 0) { return `${hrs}h ${mins}m ${secs}s`; }
-          else if (mins > 0) { return `${mins}m ${secs}s`; }
-          else { return `${secs}s`; }
-        }
-        function updateBrowsingElapsed() {
-          if (browsingStartTime) {
-            const elapsedSec = Math.floor((Date.now() - browsingStartTime) / 1000);
-            timeElapsedContainer.innerHTML = `<i class="fas fa-clock"></i> ${formatElapsedTime(elapsedSec)}`;
+          catch (error) { 
+            console.error("Error parsing consent cookie:", error); 
+            showModal(); 
           }
         }
-        function clearDisplay() {
-          nowPlayingBox.classList.add("offline");
-          offlineIndicatorElement.style.display = "block";
-          if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
-          if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
-          videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
-          videoThumbnailImage.src = "";
-          videoThumbnailImage.style.display = "none";
-          videoThumbnailElement.src = "";
-          videoThumbnailElement.style.display = "none";
-          channelNameElement.textContent = "";
-          viewCountElement.textContent = "";
-          likeCountElement.textContent = "";
-          publishedDateElement.textContent = "";
-          videoCategoryElement.textContent = "";
+        function initializeCookies(consent) { 
+          console.log("Necessary cookies enabled."); 
+        }
+        function disableCookies() { 
+          console.log("Necessary cookies disabled."); 
+        }
+        function areCookiesEnabled() {
+          const testCookie = "test_cookie_consent";
+          setCookie(testCookie, "test", 1);
+          const result = getCookie(testCookie) === "test";
+          eraseCookie(testCookie);
+          return result;
+        }
+        function init() { 
+          if (areCookiesEnabled()) { 
+            initConsentModal(); 
+          } else { 
+            console.warn("Cookies are disabled in this browser. Consent modal will not be displayed."); 
+          } 
+        }
+        document.addEventListener("DOMContentLoaded", init);
+      })();
+    </script>
+    <script>
+      const log = (message) => console.log(`[Haru.js] ${message}`);
+      const socket = io("https://mikumiku.dev");
+      let lastHeartbeatReceived = Date.now();
+      let isSessionExpired = false;
+      let browsingStartTime = null;
+      let browsingInterval = null;
+      const nowPlayingBox = document.getElementById("nowPlayingBox");
+      const videoTitleElement = document.getElementById("videoTitle");
+      const videoThumbnailImage = document.getElementById("videoThumbnailImage");
+      const videoThumbnailElement = document.getElementById("videoThumbnail");
+      const offlineIndicatorElement = document.getElementById("offline-indicator");
+      const progressBarElement = document.getElementById("progressBar");
+      const channelNameElement = document.getElementById("channelName");
+      const viewCountElement = document.getElementById("viewCount");
+      const likeCountElement = document.getElementById("likeCount");
+      const publishedDateElement = document.getElementById("publishedDate");
+      const videoCategoryElement = document.getElementById("videoCategory");
+      const videoDescriptionElement = document.getElementById("descriptionModalDescription");
+      const timeElapsedContainer = document.getElementById("timeElapsedContainer");
+      const liveIndicatorElement = document.getElementById("liveIndicator");
+      const pauseIndicatorElement = document.getElementById("pauseIndicator");
+      const youtubeSection = document.getElementById("youtubeSection");
+      function formatNumber(number) {
+        if (typeof number === "string") number = number.replace(/,/g, "");
+        const num = Number(number);
+        return isNaN(num) ? "N/A" : num.toLocaleString();
+      }
+      function formatElapsedTime(seconds) {
+        const hrs = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        if (hrs > 0) { return `${hrs}h ${mins}m ${secs}s`; }
+        else if (mins > 0) { return `${mins}m ${secs}s`; }
+        else { return `${secs}s`; }
+      }
+      function updateBrowsingElapsed() {
+        if (browsingStartTime) {
+          const elapsedSec = Math.floor((Date.now() - browsingStartTime) / 1000);
+          timeElapsedContainer.innerHTML = `<i class="fas fa-clock"></i> ${formatElapsedTime(elapsedSec)}`;
+        }
+      }
+      function clearDisplay() {
+        nowPlayingBox.classList.add("offline");
+        // Show the offline indicator and remove active classes from both indicators
+        offlineIndicatorElement.style.display = "block";
+        if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
+        if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
+        videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
+        videoThumbnailImage.src = "";
+        videoThumbnailImage.style.display = "none";
+        videoThumbnailElement.src = "";
+        videoThumbnailElement.style.display = "none";
+        channelNameElement.textContent = "";
+        viewCountElement.textContent = "";
+        likeCountElement.textContent = "";
+        publishedDateElement.textContent = "";
+        videoCategoryElement.textContent = "";
+        progressBarElement.style.width = "0%";
+        const descModal = document.getElementById("descriptionModal");
+        descModal.querySelector("p").textContent = "";
+        descModal.classList.remove("active");
+        timeElapsedContainer.style.display = "none";
+        clearInterval(browsingInterval);
+        browsingInterval = null;
+        browsingStartTime = null;
+        log("Display cleared.");
+        document.getElementById("toggleDescriptionButton").style.display = "none";
+      }
+      function handleRealTimeProgress(data) {
+        if (data.duration && data.currentTime !== undefined) {
+          const progressPercentage = (data.currentTime / data.duration) * 100;
+          progressBarElement.style.width = progressPercentage + "%";
+          log(`handleRealTimeProgress: isLive=${data.isLive}, isPaused=${data.isPaused}, progress=${progressPercentage.toFixed(2)}%`);
+          if (data.isLive && data.isPaused) { log("Conflict: Both isLive and isPaused are true. Prioritizing live indicator."); }
+          if (data.isLive) {
+            if (liveIndicatorElement) liveIndicatorElement.classList.add("active");
+            if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
+            log("Live stream indicator activated.");
+          } else if (data.isPaused) {
+            if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
+            if (pauseIndicatorElement) pauseIndicatorElement.classList.add("active");
+            log("Pause indicator activated.");
+          } else {
+            if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
+            if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
+            log("Both indicators deactivated.");
+          }
+        } else {
           progressBarElement.style.width = "0%";
-          const descModal = document.getElementById("descriptionModal");
-          descModal.querySelector("p").textContent = "";
-          descModal.classList.remove("active");
-          timeElapsedContainer.style.display = "none";
+          log("handleRealTimeProgress: Invalid data received.");
+        }
+        if (!data.isPaused && !data.isLive) { videoTitleElement.classList.add("playing"); }
+        else { videoTitleElement.classList.remove("playing"); }
+      }
+      function displayVideoPresence(data) {
+        lastHeartbeatReceived = Date.now();
+        nowPlayingBox.classList.remove("offline");
+        offlineIndicatorElement.style.display = "none";
+        log("Updating video presence...");
+        timeElapsedContainer.style.display = "none";
+        if (videoTitleElement.textContent !== data.title || videoThumbnailImage.src !== data.thumbnail) {
+          youtubeSection.classList.add("fade-out");
+          setTimeout(function () {
+            videoTitleElement.textContent = data.title || "Unknown Title";
+            videoTitleElement.classList.remove("video-title-changed");
+            void videoTitleElement.offsetWidth;
+            videoTitleElement.classList.add("video-title-changed");
+            if (data.thumbnail) {
+              videoThumbnailImage.src = data.thumbnail;
+              videoThumbnailImage.style.display = "block";
+              videoThumbnailElement.style.display = "none";
+            } else {
+              videoThumbnailImage.src = "";
+              videoThumbnailElement.style.display = "none";
+            }
+            channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+            viewCountElement.textContent = formatNumber(data.viewCount) || "N/A";
+            likeCountElement.textContent = formatNumber(data.likeCount) || "N/A";
+            if (data.publishedAt) {
+              const publishedDate = new Date(data.publishedAt);
+              publishedDateElement.textContent = publishedDate.toLocaleDateString() || "Published on: N/A";
+            } else {
+              publishedDateElement.textContent = "Published on: N/A";
+            }
+            videoCategoryElement.textContent = data.category || "N/A";
+            const descModal = document.getElementById("descriptionModal");
+            descModal.querySelector("p").textContent = data.description || "No description available.";
+            descModal.classList.remove("active");
+            youtubeSection.classList.remove("fade-out");
+            youtubeSection.classList.add("fade-in");
+            log("Video presence updated in UI.");
+            document.getElementById("toggleDescriptionButton").style.display = "block";
+          }, 500);
+        } else {
+          document.getElementById("toggleDescriptionButton").style.display = "block";
+        }
+        handleRealTimeProgress(data);
+      }
+      function displayBrowsingPresence(data) {
+        lastHeartbeatReceived = Date.now();
+        nowPlayingBox.classList.remove("offline");
+        offlineIndicatorElement.style.display = "none";
+        log("Updating browsing presence...");
+        timeElapsedContainer.style.display = "block";
+        const defaultThumbnail = "https://www.youtube.com/img/desktop/yt_1200.png";
+        if (videoThumbnailImage.src !== defaultThumbnail) {
+          videoThumbnailImage.src = data.thumbnail || defaultThumbnail;
+          videoThumbnailImage.style.display = "block";
+          videoThumbnailElement.style.display = "none";
+        }
+        videoTitleElement.textContent = data.title || "Browsing YouTube";
+        channelNameElement.textContent = "Browsing...";
+        viewCountElement.textContent = "";
+        likeCountElement.textContent = "";
+        publishedDateElement.textContent = "";
+        videoCategoryElement.textContent = "";
+        const descModal = document.getElementById("descriptionModal");
+        descModal.querySelector("p").textContent = data.description || "Browsing videos on YouTube";
+        descModal.classList.remove("active");
+        if (!browsingStartTime) { browsingStartTime = Date.now(); }
+        updateBrowsingElapsed();
+        if (!browsingInterval) { browsingInterval = setInterval(updateBrowsingElapsed, 1000); }
+        if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
+        if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
+        progressBarElement.style.width = "0%";
+        youtubeSection.classList.remove("fade-out");
+        youtubeSection.classList.add("fade-in");
+        log("Browsing presence updated in UI.");
+        document.getElementById("toggleDescriptionButton").style.display = "block";
+      }
+      socket.on("connect", function () {
+        log("Connected to server via Socket.IO.");
+        isSessionExpired = false;
+        socket.emit("requestLatestData");
+      });
+      socket.on("presenceUpdate", function (data) {
+        if (isSessionExpired) { log("Ignoring presenceUpdate due to expired session."); return; }
+        log("Received presenceUpdate: " + JSON.stringify(data));
+        if (data.presenceType === "video") {
           clearInterval(browsingInterval);
           browsingInterval = null;
           browsingStartTime = null;
-          log("Display cleared.");
-          document.getElementById("toggleDescriptionButton").style.display = "none";
+          displayVideoPresence(data);
+        } else if (data.presenceType === "browsing") {
+          log("Browsing presence update received.");
+          displayBrowsingPresence(data);
+        } else { 
+          clearDisplay(); 
         }
-        function handleRealTimeProgress(data) {
-          if (data.duration && data.currentTime !== undefined) {
-            const progressPercentage = (data.currentTime / data.duration) * 100;
-            progressBarElement.style.width = progressPercentage + "%";
-            log(`handleRealTimeProgress: isLive=${data.isLive}, isPaused=${data.isPaused}, progress=${progressPercentage.toFixed(2)}%`);
-            if (data.isLive && data.isPaused) { log("Conflict: Both isLive and isPaused are true. Prioritizing live indicator."); }
-            if (data.isLive) {
-              if (liveIndicatorElement) liveIndicatorElement.classList.add("active");
-              if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
-              log("Live stream indicator activated.");
-            } else if (data.isPaused) {
-              if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
-              if (pauseIndicatorElement) pauseIndicatorElement.classList.add("active");
-              log("Pause indicator activated.");
-            } else {
-              if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
-              if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
-              log("Both indicators deactivated.");
-            }
-          } else {
-            progressBarElement.style.width = "0%";
-            log("handleRealTimeProgress: Invalid data received.");
-          }
-          if (!data.isPaused && !data.isLive) { videoTitleElement.classList.add("playing"); }
-          else { videoTitleElement.classList.remove("playing"); }
-        }
-        function displayVideoPresence(data) {
-          lastHeartbeatReceived = Date.now();
-          nowPlayingBox.classList.remove("offline");
-          offlineIndicatorElement.style.display = "none";
-          log("Updating video presence...");
-          timeElapsedContainer.style.display = "none";
-          if (videoTitleElement.textContent !== data.title || videoThumbnailImage.src !== data.thumbnail) {
-            youtubeSection.classList.add("fade-out");
-            setTimeout(function () {
-              videoTitleElement.textContent = data.title || "Unknown Title";
-              videoTitleElement.classList.remove("video-title-changed");
-              void videoTitleElement.offsetWidth;
-              videoTitleElement.classList.add("video-title-changed");
-              if (data.thumbnail) {
-                videoThumbnailImage.src = data.thumbnail;
-                videoThumbnailImage.style.display = "block";
-                videoThumbnailElement.style.display = "none";
-              } else {
-                videoThumbnailImage.src = "";
-                videoThumbnailElement.style.display = "none";
-              }
-              channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-              viewCountElement.textContent = formatNumber(data.viewCount) || "N/A";
-              likeCountElement.textContent = formatNumber(data.likeCount) || "N/A";
-              if (data.publishedAt) {
-                const publishedDate = new Date(data.publishedAt);
-                publishedDateElement.textContent = publishedDate.toLocaleDateString() || "Published on: N/A";
-              } else {
-                publishedDateElement.textContent = "Published on: N/A";
-              }
-              videoCategoryElement.textContent = data.category || "N/A";
-              const descModal = document.getElementById("descriptionModal");
-              descModal.querySelector("p").textContent = data.description || "No description available.";
-              descModal.classList.remove("active");
-              youtubeSection.classList.remove("fade-out");
-              youtubeSection.classList.add("fade-in");
-              log("Video presence updated in UI.");
-              document.getElementById("toggleDescriptionButton").style.display = "block";
-            }, 500);
-          } else {
-            document.getElementById("toggleDescriptionButton").style.display = "block";
-          }
-          handleRealTimeProgress(data);
-        }
-        function displayBrowsingPresence(data) {
-          lastHeartbeatReceived = Date.now();
-          nowPlayingBox.classList.remove("offline");
-          offlineIndicatorElement.style.display = "none";
-          log("Updating browsing presence...");
-          timeElapsedContainer.style.display = "block";
-          const defaultThumbnail = "https://www.youtube.com/img/desktop/yt_1200.png";
-          if (videoThumbnailImage.src !== defaultThumbnail) {
-            videoThumbnailImage.src = data.thumbnail || defaultThumbnail;
-            videoThumbnailImage.style.display = "block";
-            videoThumbnailElement.style.display = "none";
-          }
-          videoTitleElement.textContent = data.title || "Browsing YouTube";
-          channelNameElement.textContent = "Browsing...";
-          viewCountElement.textContent = "";
-          likeCountElement.textContent = "";
-          publishedDateElement.textContent = "";
-          videoCategoryElement.textContent = "";
-          const descModal = document.getElementById("descriptionModal");
-          descModal.querySelector("p").textContent = data.description || "Browsing videos on YouTube";
-          descModal.classList.remove("active");
-          if (!browsingStartTime) { browsingStartTime = Date.now(); }
-          updateBrowsingElapsed();
-          if (!browsingInterval) { browsingInterval = setInterval(updateBrowsingElapsed, 1000); }
-          if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
-          if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
-          progressBarElement.style.width = "0%";
-          youtubeSection.classList.remove("fade-out");
-          youtubeSection.classList.add("fade-in");
-          log("Browsing presence updated in UI.");
-          document.getElementById("toggleDescriptionButton").style.display = "block";
-        }
-        socket.on("connect", function () {
-          log("Connected to server via Socket.IO.");
-          isSessionExpired = false;
-          socket.emit("requestLatestData");
-        });
-        socket.on("presenceUpdate", function (data) {
-          if (isSessionExpired) { log("Ignoring presenceUpdate due to expired session."); return; }
-          log("Received presenceUpdate: " + JSON.stringify(data));
-          if (data.presenceType === "video") {
-            clearInterval(browsingInterval);
-            browsingInterval = null;
-            browsingStartTime = null;
-            displayVideoPresence(data);
-          } else if (data.presenceType === "browsing") {
-            log("Browsing presence update received.");
-            displayBrowsingPresence(data);
-          } else { 
-            clearDisplay(); 
-          }
-        });
-        socket.on("disconnect", function () {
-          log("Disconnected from server.");
+      });
+      socket.on("disconnect", function () {
+        log("Disconnected from server.");
+        clearDisplay();
+      });
+      setInterval(function () {
+        if (Date.now() - lastHeartbeatReceived > 60000) {
+          log("No heartbeat received in 60 seconds. Marking as offline.");
           clearDisplay();
-        });
-        setInterval(function () {
-          if (Date.now() - lastHeartbeatReceived > 60000) {
-            log("No heartbeat received in 60 seconds. Marking as offline.");
-            clearDisplay();
-          }
-        }, 5000);
-        const descriptionModal = document.getElementById("descriptionModal");
-        const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
-        descriptionModal.classList.remove("active");
-        toggleDescriptionButton.textContent = " Show Description";
-        toggleDescriptionButton.addEventListener("click", function (e) {
-          e.stopPropagation();
-          if (descriptionModal.classList.contains("active")) {
-            descriptionModal.classList.remove("active");
-            toggleDescriptionButton.textContent = " Show Description";
-          } else {
-            descriptionModal.classList.add("active");
-            toggleDescriptionButton.textContent = " Hide Description";
-          }
-        });
-        document.addEventListener("click", function (e) {
-          if (!descriptionModal.contains(e.target) && e.target !== toggleDescriptionButton) {
-            descriptionModal.classList.remove("active");
-            toggleDescriptionButton.textContent = " Show Description";
-          }
-        });
-      </script>
-      <script>
-        function updateClocks() {
-          const now = new Date();
-          const localTime = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-          const localTimeElement = document.getElementById("local-time");
-          if (localTimeElement) localTimeElement.textContent = localTime;
-          const currentDate = now.toLocaleDateString(undefined, { day: "2-digit", month: "long", year: "numeric" });
-          const currentDateElement = document.getElementById("current-date");
-          if (currentDateElement) currentDateElement.textContent = currentDate;
-          const dayOfWeek = now.toLocaleDateString(undefined, { weekday: "long" });
-          const dayOfWeekElement = document.getElementById("day-of-week");
-          if (dayOfWeekElement) dayOfWeekElement.textContent = dayOfWeek;
         }
-        setInterval(updateClocks, 1000);
-        updateClocks();
-        const CITY_NAME = "Leeds";
-        async function fetchWeather() {
-          try {
-            const response = await fetch("/api/weather?city=" + encodeURIComponent(CITY_NAME));
-            const data = await response.json();
-            if (data.error) throw new Error(data.error);
-            displayWeather(data);
-          } catch (error) {
-            console.error("Error fetching weather data:", error);
-            const weatherIconElement = document.getElementById("weather-icon");
-            if (weatherIconElement) weatherIconElement.style.display = "none";
-            document.getElementById("weather-description").innerText = "Unable to fetch weather data.";
-          }
+      }, 5000);
+      const descriptionModal = document.getElementById("descriptionModal");
+      const toggleDescriptionButton = document.getElementById("toggleDescriptionButton");
+      descriptionModal.classList.remove("active");
+      toggleDescriptionButton.textContent = " Show Description";
+      toggleDescriptionButton.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (descriptionModal.classList.contains("active")) {
+          descriptionModal.classList.remove("active");
+          toggleDescriptionButton.textContent = " Show Description";
+        } else {
+          descriptionModal.classList.add("active");
+          toggleDescriptionButton.textContent = " Hide Description";
         }
-        function displayWeather(data) {
-          const description = data.weather[0].description,
-            temperature = Math.round(data.main.temp),
-            humidity = data.main.humidity,
-            windSpeed = data.wind.speed,
-            iconCode = data.weather[0].icon,
-            iconUrl = "https://openweathermap.org/img/wn/" + iconCode + "@2x.png";
-          document.getElementById("weather-description").innerText = "Condition: " + description;
-          document.getElementById("temperature").innerText = "Temperature: " + temperature + "°C";
-          document.getElementById("humidity").innerText = "Humidity: " + humidity + "%";
-          document.getElementById("wind-speed").innerText = "Wind: " + windSpeed + " m/s";
+      });
+      document.addEventListener("click", function (e) {
+        if (!descriptionModal.contains(e.target) && e.target !== toggleDescriptionButton) {
+          descriptionModal.classList.remove("active");
+          toggleDescriptionButton.textContent = " Show Description";
+        }
+      });
+    </script>
+    <script>
+      function updateClocks() {
+        const now = new Date();
+        const localTime = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        const localTimeElement = document.getElementById("local-time");
+        if (localTimeElement) localTimeElement.textContent = localTime;
+        const currentDate = now.toLocaleDateString(undefined, { day: "2-digit", month: "long", year: "numeric" });
+        const currentDateElement = document.getElementById("current-date");
+        if (currentDateElement) currentDateElement.textContent = currentDate;
+        const dayOfWeek = now.toLocaleDateString(undefined, { weekday: "long" });
+        const dayOfWeekElement = document.getElementById("day-of-week");
+        if (dayOfWeekElement) dayOfWeekElement.textContent = dayOfWeek;
+      }
+      setInterval(updateClocks, 1000);
+      updateClocks();
+      const CITY_NAME = "Leeds";
+      async function fetchWeather() {
+        try {
+          const response = await fetch("/api/weather?city=" + encodeURIComponent(CITY_NAME));
+          const data = await response.json();
+          if (data.error) throw new Error(data.error);
+          displayWeather(data);
+        } catch (error) {
+          console.error("Error fetching weather data:", error);
           const weatherIconElement = document.getElementById("weather-icon");
-          if (weatherIconElement) {
-            weatherIconElement.src = iconUrl;
-            weatherIconElement.style.display = "block";
-          }
+          if (weatherIconElement) weatherIconElement.style.display = "none";
+          document.getElementById("weather-description").innerText = "Unable to fetch weather data.";
         }
-        setInterval(fetchWeather, 3600000);
-        fetchWeather();
-      </script>
-      <script>
-        document.addEventListener("DOMContentLoaded", () => {
-          const canvas = document.getElementById("soundWaveCanvas");
-          const ctx = canvas.getContext("2d");
-          function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-          }
+      }
+      function displayWeather(data) {
+        const description = data.weather[0].description,
+          temperature = Math.round(data.main.temp),
+          humidity = data.main.humidity,
+          windSpeed = data.wind.speed,
+          iconCode = data.weather[0].icon,
+          iconUrl = "https://openweathermap.org/img/wn/" + iconCode + "@2x.png";
+        document.getElementById("weather-description").innerText = "Condition: " + description;
+        document.getElementById("temperature").innerText = "Temperature: " + temperature + "°C";
+        document.getElementById("humidity").innerText = "Humidity: " + humidity + "%";
+        document.getElementById("wind-speed").innerText = "Wind: " + windSpeed + " m/s";
+        const weatherIconElement = document.getElementById("weather-icon");
+        if (weatherIconElement) {
+          weatherIconElement.src = iconUrl;
+          weatherIconElement.style.display = "block";
+        }
+      }
+      setInterval(fetchWeather, 3600000);
+      fetchWeather();
+    </script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const canvas = document.getElementById("soundWaveCanvas");
+        const ctx = canvas.getContext("2d");
+        function resizeCanvas() {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener("resize", () => {
           resizeCanvas();
-          window.addEventListener("resize", () => {
-            resizeCanvas();
-            columns = Math.floor(canvas.width / fontSize);
-            drops = new Array(columns).fill(0);
-            speeds = Array.from({ length: columns }, () => Math.random() * 0.05 + 0.05);
-            phraseCounters = new Array(columns).fill(0);
-            currentDigits = new Array(columns).fill("0");
-          });
-          const fontSize = 20;
-          let columns = Math.floor(canvas.width / fontSize);
-          let drops = new Array(columns).fill(0);
-          let speeds = Array.from({ length: columns }, () => Math.random() * 0.05 + 0.05);
-          let phraseCounters = new Array(columns).fill(0);
-          let currentDigits = new Array(columns).fill("0");
-          const binaryChars = "01";
-          const colors = ["#00C6FF", "#ff4081"];
-          const mikuPhrases = ["Hatsune Miku", "The First Sound of the Future", "39", "Digital Diva", "CV01", "01"];
-          function hexToRGBA(hex, alpha) {
-            const r = parseInt(hex.slice(1, 3), 16),
-              g = parseInt(hex.slice(3, 5), 16),
-              b = parseInt(hex.slice(5, 7), 16);
-            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-          }
-          function drawMatrix() {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.font = fontSize + "px monospace";
-            ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-            ctx.shadowBlur = 4;
-            const trailLength = 6;
-            for (let i = 0; i < drops.length; i++) {
-              let dropIncrement = speeds[i];
-              let text;
-              if (phraseCounters[i] > 0) {
-                dropIncrement = 0;
-                phraseCounters[i]--;
-              }
-              if (phraseCounters[i] === 0 && Math.random() < 0.002) {
-                text = mikuPhrases[Math.floor(Math.random() * mikuPhrases.length)];
-                ctx.fillStyle = "#FF69B4";
-                phraseCounters[i] = 180;
-                dropIncrement = speeds[i] * 0.2;
-              } else {
-                if (Math.random() < 0.1) { currentDigits[i] = binaryChars.charAt(Math.floor(Math.random() * binaryChars.length)); }
-                text = currentDigits[i];
-                ctx.fillStyle = colors[i % colors.length];
-              }
-              const x = i * fontSize;
-              const y = Math.floor(drops[i]) * fontSize;
-              ctx.fillText(text, x, y);
-              for (let j = 1; j < trailLength; j++) {
-                const ty = y - j * fontSize;
-                if (ty < 0) break;
-                const alpha = 1 - j / trailLength;
-                ctx.fillStyle = hexToRGBA(colors[i % colors.length], alpha);
-                ctx.fillText(binaryChars.charAt(Math.floor(Math.random() * binaryChars.length)), x, ty);
-              }
-              if (y > canvas.height && Math.random() > 0.995) {
-                drops[i] = 0;
-                speeds[i] = Math.random() * 0.05 + 0.05;
-                phraseCounters[i] = 0;
-                currentDigits[i] = "0";
-              }
-              drops[i] += dropIncrement;
-            }
-            requestAnimationFrame(drawMatrix);
-          }
-          drawMatrix();
+          columns = Math.floor(canvas.width / fontSize);
+          drops = new Array(columns).fill(0);
+          speeds = Array.from({ length: columns }, () => Math.random() * 0.05 + 0.05);
+          phraseCounters = new Array(columns).fill(0);
+          currentDigits = new Array(columns).fill("0");
         });
-      </script>
+        const fontSize = 20;
+        let columns = Math.floor(canvas.width / fontSize);
+        let drops = new Array(columns).fill(0);
+        let speeds = Array.from({ length: columns }, () => Math.random() * 0.05 + 0.05);
+        let phraseCounters = new Array(columns).fill(0);
+        let currentDigits = new Array(columns).fill("0");
+        const binaryChars = "01";
+        const colors = ["#00C6FF", "#ff4081"];
+        const mikuPhrases = ["Hatsune Miku", "The First Sound of the Future", "39", "Digital Diva", "CV01", "01"];
+        function hexToRGBA(hex, alpha) {
+          const r = parseInt(hex.slice(1, 3), 16),
+            g = parseInt(hex.slice(3, 5), 16),
+            b = parseInt(hex.slice(5, 7), 16);
+          return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+        function drawMatrix() {
+          ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.font = fontSize + "px monospace";
+          ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+          ctx.shadowBlur = 4;
+          const trailLength = 6;
+          for (let i = 0; i < drops.length; i++) {
+            let dropIncrement = speeds[i];
+            let text;
+            if (phraseCounters[i] > 0) {
+              dropIncrement = 0;
+              phraseCounters[i]--;
+            }
+            if (phraseCounters[i] === 0 && Math.random() < 0.002) {
+              text = mikuPhrases[Math.floor(Math.random() * mikuPhrases.length)];
+              ctx.fillStyle = "#FF69B4";
+              phraseCounters[i] = 180;
+              dropIncrement = speeds[i] * 0.2;
+            } else {
+              if (Math.random() < 0.1) { currentDigits[i] = binaryChars.charAt(Math.floor(Math.random() * binaryChars.length)); }
+              text = currentDigits[i];
+              ctx.fillStyle = colors[i % colors.length];
+            }
+            const x = i * fontSize;
+            const y = Math.floor(drops[i]) * fontSize;
+            ctx.fillText(text, x, y);
+            for (let j = 1; j < trailLength; j++) {
+              const ty = y - j * fontSize;
+              if (ty < 0) break;
+              const alpha = 1 - j / trailLength;
+              ctx.fillStyle = hexToRGBA(colors[i % colors.length], alpha);
+              ctx.fillText(binaryChars.charAt(Math.floor(Math.random() * binaryChars.length)), x, ty);
+            }
+            if (y > canvas.height && Math.random() > 0.995) {
+              drops[i] = 0;
+              speeds[i] = Math.random() * 0.05 + 0.05;
+              phraseCounters[i] = 0;
+              currentDigits[i] = "0";
+            }
+            drops[i] += dropIncrement;
+          }
+          requestAnimationFrame(drawMatrix);
+        }
+        drawMatrix();
+      });
+    </script>
   </body>
 </html>
