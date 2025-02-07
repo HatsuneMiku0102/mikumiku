@@ -9,21 +9,15 @@
     <link rel="stylesheet" href="/styles.css" />
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.css" rel="stylesheet" />
     <style>
-      /* Ensure the now playing container is relatively positioned */
-      #nowPlayingBox { position: relative; }
-      /* Updated offline indicator: centered absolutely within its container */
+      /* Offline indicator now appears below the progress bar and is centered */
       .offline-indicator {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
+        margin: 1rem auto;
+        text-align: center;
         background: rgba(0, 0, 0, 0.8);
         padding: 1rem 2rem;
         border-radius: 8px;
         color: #ffffff;
         font-size: 1.2rem;
-        text-align: center;
-        z-index: 10;
         display: none;
       }
       #descriptionModal { display: none; max-height: 200px; overflow-y: auto; }
@@ -214,11 +208,10 @@
               <p id="videoTitle">Loading...</p>
             </div>
             <div class="thumbnail-container">
-              <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls aria-label="Currently Playing Video">Your browser does not support the video tag.</video>
+              <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls aria-label="Currently Playing Video">
+                Your browser does not support the video tag.
+              </video>
               <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy" />
-            </div>
-            <div id="offline-indicator" class="offline-indicator">
-              <i class="fas fa-signal-slash"></i> I’m currently offline
             </div>
             <div class="progress-container">
               <div class="progress-bar-container">
@@ -228,6 +221,9 @@
                 <span id="liveIndicator" class="indicator live">Live</span>
                 <span id="pauseIndicator" class="indicator paused">Paused</span>
               </div>
+            </div>
+            <div id="offline-indicator" class="offline-indicator">
+              <i class="fas fa-signal-slash"></i> I’m currently offline
             </div>
             <div class="description-and-time">
               <button class="toggle-description" id="toggleDescriptionButton" aria-label="Toggle Description">
@@ -345,7 +341,7 @@
           function waitForSocket(callback) { if (typeof socket !== "undefined") { callback(); } else { setTimeout(function () { waitForSocket(callback); }, 50); } }
           waitForSocket(function () {
             socket.on("visitorLocation", function (data) {
-              log(`Received visitor location: ${JSON.stringify(data)}`);
+              console.log(`Received visitor location: ${JSON.stringify(data)}`);
               const { id, latitude, longitude, info } = data;
               if (visitorMarkers[id]) { visitorMarkers[id].setLngLat([longitude, latitude]); }
               else {
