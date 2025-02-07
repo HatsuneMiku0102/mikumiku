@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/styles.css" />
-    <link href="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.css" rel="stylesheet" />
+    <!-- Mapbox CSS removed as visitor map code has been removed -->
     <style>
       /* --- Weather Icon Animation --- */
       .weather-icon {
@@ -163,11 +163,7 @@
               <p id="wind-speed" class="wind-speed"><i class="fas fa-wind"></i> Wind: -- m/s</p>
             </aside>
           </div>
-          <div id="mapSection">
-            <aside class="map-section">
-              <div id="map"></div>
-            </aside>
-          </div>
+          <!-- Visitor Map section removed -->
         </div>
       </section>
       <footer class="footer">
@@ -195,46 +191,8 @@
         </div>
       </div>
     </div>
-    <!-- External Scripts -->
+    <!-- External Scripts (Mapbox references removed as visitor map code is no longer needed) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.js"></script>
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        mapboxgl.accessToken = 'pk.eyJ1IjoiYXJ0ZW1pczExNyIsImEiOiJjbTZzeHQ2bGowOHlnMm9yM3k4ZTl4cHptIn0.n1AdgsyV2iA7X1PwGvDTlA';
-        const map = new mapboxgl.Map({
-          container: 'map',
-          style: 'mapbox://styles/mapbox/streets-v12',
-          center: [0, 20],
-          zoom: 2
-        });
-        map.addControl(new mapboxgl.NavigationControl());
-        const visitorMarkers = {};
-        function waitForSocket(callback) {
-          if (typeof socket !== "undefined") {
-            callback();
-          } else {
-            setTimeout(function () { waitForSocket(callback); }, 50);
-          }
-        }
-        waitForSocket(function () {
-          socket.on("visitorLocation", function (data) {
-            const { id, latitude, longitude, info } = data;
-            if (visitorMarkers[id]) {
-              visitorMarkers[id].setLngLat([longitude, latitude]);
-            } else {
-              const marker = new mapboxgl.Marker({ color: "#ff4081" })
-                .setLngLat([longitude, latitude])
-                .addTo(map);
-              if (info) {
-                marker.setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<strong>${info}</strong>`));
-              }
-              visitorMarkers[id] = marker;
-            }
-            map.flyTo({ center: [longitude, latitude], zoom: 4, speed: 0.8 });
-          });
-        });
-      });
-    </script>
     <script src="haru.js"></script>
     <script src="clockwork.js"></script>
     <script>
