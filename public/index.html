@@ -342,33 +342,53 @@
             } else { 
               applyConsent(existingConsent); 
             }
-            acceptButton.addEventListener("click", function () {
-              setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: true }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
-              hideModal();
-              initializeCookies();
-            });
-            declineButton.addEventListener("click", function () {
-              setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: false }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
-              hideModal();
-              disableCookies();
-            });
+            
+            if (acceptButton) {
+              acceptButton.addEventListener("click", function () {
+                setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: true }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
+                hideModal();
+                initializeCookies();
+              });
+            } else {
+              console.error("Accept button not found.");
+            }
+            
+            if (declineButton) {
+              declineButton.addEventListener("click", function () {
+                setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: false }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
+                hideModal();
+                disableCookies();
+              });
+            } else {
+              console.error("Decline button not found.");
+            }
+            
             manageConsentButtons.forEach((button) => { 
               if (button) { 
                 button.addEventListener("click", function (event) { 
                   event.preventDefault(); 
                   showModal(); 
                 }); 
-              } 
+              } else {
+                console.error("A manage consent button was not found.");
+              }
             });
-            closeButton.addEventListener("click", function () { 
-              alert("Please make a choice regarding cookie usage."); 
-            });
+            
+            if (closeButton) {
+              closeButton.addEventListener("click", function () { 
+                alert("Please make a choice regarding cookie usage."); 
+              });
+            } else {
+              console.error("Close button not found.");
+            }
+            
             window.addEventListener("click", function (event) { 
               if (event.target === consentModal) { 
                 alert("Please make a choice regarding cookie usage."); 
               } 
             });
           }
+
           function applyConsent(consentValue) {
             try { 
               const consent = JSON.parse(consentValue); 
@@ -449,31 +469,43 @@
           }
         }
         function clearDisplay() {
-          nowPlayingBox.classList.add("offline");
-          offlineIndicatorElement.style.display = "block";
+          if (nowPlayingBox) nowPlayingBox.classList.add("offline");
+          if (offlineIndicatorElement) offlineIndicatorElement.style.display = "block";
           if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
           if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
-          videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
-          videoThumbnailImage.src = "";
-          videoThumbnailImage.style.display = "none";
-          videoThumbnailElement.src = "";
-          videoThumbnailElement.style.display = "none";
-          channelNameElement.textContent = "";
-          viewCountElement.textContent = "";
-          likeCountElement.textContent = "";
-          publishedDateElement.textContent = "";
-          videoCategoryElement.textContent = "";
-          progressBarElement.style.width = "0%";
+          if (videoTitleElement) videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
+          if (videoThumbnailImage) {
+            videoThumbnailImage.src = "";
+            videoThumbnailImage.style.display = "none";
+          }
+          if (videoThumbnailElement) {
+            videoThumbnailElement.src = "";
+            videoThumbnailElement.style.display = "none";
+          }
+          if (channelNameElement) channelNameElement.textContent = "";
+          if (viewCountElement) viewCountElement.textContent = "";
+          if (likeCountElement) likeCountElement.textContent = "";
+          if (publishedDateElement) publishedDateElement.textContent = "";
+          if (videoCategoryElement) videoCategoryElement.textContent = "";
+          if (progressBarElement) progressBarElement.style.width = "0%";
+          
           const descModal = document.getElementById("descriptionModal");
-          descModal.querySelector("p").textContent = "";
-          descModal.classList.remove("active");
-          timeElapsedContainer.style.display = "none";
+          if (descModal) {
+            const p = descModal.querySelector("p");
+            if (p) p.textContent = "";
+            descModal.classList.remove("active");
+          }
+          if (timeElapsedContainer) timeElapsedContainer.style.display = "none";
+          
           clearInterval(browsingInterval);
           browsingInterval = null;
           browsingStartTime = null;
           log("Display cleared.");
-          document.getElementById("toggleDescriptionButton").style.display = "none";
+          
+          const toggleButton = document.getElementById("toggleDescriptionButton");
+          if (toggleButton) toggleButton.style.display = "none";
         }
+
         function handleRealTimeProgress(data) {
           if (data.duration && data.currentTime !== undefined) {
             const progressPercentage = (data.currentTime / data.duration) * 100;
