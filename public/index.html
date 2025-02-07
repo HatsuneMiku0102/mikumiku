@@ -502,48 +502,68 @@
         }
         function displayVideoPresence(data) {
           lastHeartbeatReceived = Date.now();
-          nowPlayingBox.classList.remove("offline");
-          offlineIndicatorElement.style.display = "none";
+          if (nowPlayingBox) nowPlayingBox.classList.remove("offline");
+          if (offlineIndicatorElement) offlineIndicatorElement.style.display = "none";
           log("Updating video presence...");
-          timeElapsedContainer.style.display = "none";
-          if (videoTitleElement.textContent !== data.title || videoThumbnailImage.src !== data.thumbnail) {
-            youtubeSection.classList.add("fade-out");
+          if (timeElapsedContainer) timeElapsedContainer.style.display = "none";
+          
+          // Check if we need to update the video details
+          if (videoTitleElement && (videoTitleElement.textContent !== data.title || (videoThumbnailImage && videoThumbnailImage.src !== data.thumbnail))) {
+            if (youtubeSection) youtubeSection.classList.add("fade-out");
             setTimeout(function () {
-              videoTitleElement.textContent = data.title || "Unknown Title";
-              videoTitleElement.classList.remove("video-title-changed");
-              void videoTitleElement.offsetWidth;
-              videoTitleElement.classList.add("video-title-changed");
+              if (videoTitleElement) {
+                videoTitleElement.textContent = data.title || "Unknown Title";
+                videoTitleElement.classList.remove("video-title-changed");
+                void videoTitleElement.offsetWidth;
+                videoTitleElement.classList.add("video-title-changed");
+              }
               if (data.thumbnail) {
-                videoThumbnailImage.src = data.thumbnail;
-                videoThumbnailImage.style.display = "block";
-                videoThumbnailElement.style.display = "none";
+                if (videoThumbnailImage) {
+                  videoThumbnailImage.src = data.thumbnail;
+                  videoThumbnailImage.style.display = "block";
+                }
+                if (videoThumbnailElement) {
+                  videoThumbnailElement.style.display = "none";
+                }
               } else {
-                videoThumbnailImage.src = "";
-                videoThumbnailElement.style.display = "none";
+                if (videoThumbnailImage) {
+                  videoThumbnailImage.src = "";
+                }
+                if (videoThumbnailElement) {
+                  videoThumbnailElement.style.display = "none";
+                }
               }
-              channelNameElement.textContent = data.channelTitle || "Unknown Channel";
-              viewCountElement.textContent = formatNumber(data.viewCount) || "N/A";
-              likeCountElement.textContent = formatNumber(data.likeCount) || "N/A";
-              if (data.publishedAt) {
-                const publishedDate = new Date(data.publishedAt);
-                publishedDateElement.textContent = publishedDate.toLocaleDateString() || "Published on: N/A";
-              } else {
-                publishedDateElement.textContent = "Published on: N/A";
+              if (channelNameElement) channelNameElement.textContent = data.channelTitle || "Unknown Channel";
+              if (viewCountElement) viewCountElement.textContent = formatNumber(data.viewCount) || "N/A";
+              if (likeCountElement) likeCountElement.textContent = formatNumber(data.likeCount) || "N/A";
+              if (publishedDateElement) {
+                if (data.publishedAt) {
+                  const publishedDate = new Date(data.publishedAt);
+                  publishedDateElement.textContent = publishedDate.toLocaleDateString() || "Published on: N/A";
+                } else {
+                  publishedDateElement.textContent = "Published on: N/A";
+                }
               }
-              videoCategoryElement.textContent = data.category || "N/A";
+              if (videoCategoryElement) videoCategoryElement.textContent = data.category || "N/A";
               const descModal = document.getElementById("descriptionModal");
-              descModal.querySelector("p").textContent = data.description || "No description available.";
-              descModal.classList.remove("active");
-              youtubeSection.classList.remove("fade-out");
-              youtubeSection.classList.add("fade-in");
+              if (descModal) {
+                const p = descModal.querySelector("p");
+                if (p) p.textContent = data.description || "No description available.";
+                descModal.classList.remove("active");
+              }
+              if (youtubeSection) {
+                youtubeSection.classList.remove("fade-out");
+                youtubeSection.classList.add("fade-in");
+              }
               log("Video presence updated in UI.");
-              document.getElementById("toggleDescriptionButton").style.display = "block";
+              if (toggleDescriptionButton) toggleDescriptionButton.style.display = "block";
             }, 500);
           } else {
-            document.getElementById("toggleDescriptionButton").style.display = "block";
+            if (toggleDescriptionButton) toggleDescriptionButton.style.display = "block";
           }
           handleRealTimeProgress(data);
         }
+
         function displayBrowsingPresence(data) {
           lastHeartbeatReceived = Date.now();
           nowPlayingBox.classList.remove("offline");
