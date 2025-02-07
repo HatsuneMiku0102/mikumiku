@@ -9,50 +9,50 @@
     <link rel="stylesheet" href="/styles.css" />
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.css" rel="stylesheet" />
     <style>
-      #descriptionModal {display: none;}
-      #descriptionModal.active {display: block;}
-      #map {width: 400px; height: 400px; border-radius: var(--border-radius);}
-      .now-playing {display: flex; flex-direction: column; gap: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);}
-      .now-playing-sidebar {width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.05); border-radius: 8px; display: flex; flex-direction: column; gap: 0.75rem;}
-      .now-playing-sidebar .sidebar-item {padding: 0.5rem; background: rgba(255,255,255,0.1); border-radius: 4px; transition: background 0.3s ease;}
-      .now-playing-sidebar .sidebar-item:hover {background: rgba(255,255,255,0.2);}
-      .video-section {width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.05); border-radius: 8px;}
-      .video-title-container h2 {margin-bottom: 0.5rem;}
-      .progress-container {margin-top: 0.5rem;}
-      .indicator {display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; transition: transform 0.3s ease;}
-      .indicator.live {background: #00c6ff; color: #fff; animation: pulse 2s infinite;}
-      @keyframes pulse {0% {transform: scale(1);} 50% {transform: scale(1.1);} 100% {transform: scale(1);}}
-      .indicator.paused {background: #ff4081; color: #fff;}
-      .sidebar-extra {display: flex; flex-direction: column; gap: 0.75rem;}
-      .sidebar-extra aside {width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.05); border-radius: 8px;}
-      .animated-divider {border: none; height: 1px; background: rgba(255,255,255,0.2); margin: 0.75rem 0; width: 100%;}
-      #timeElapsedContainer {display: none; opacity: 0; transition: opacity 0.5s ease;}
-      #timeElapsedContainer.show {display: block; opacity: 1;}
+      #descriptionModal { display: none; }
+      #descriptionModal.active { display: block; }
+      #map { width: 400px; height: 400px; border-radius: var(--border-radius); }
+      .now-playing { display: flex; flex-direction: column; gap: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+      .now-playing-sidebar { width: 100%; padding: 1rem; background: rgba(0,0,0,0.05); border-radius: 8px; display: flex; flex-direction: column; gap: 1rem; }
+      .now-playing-sidebar .sidebar-item { padding: 0.5rem; background: rgba(255,255,255,0.1); border-radius: 4px; transition: background 0.3s ease; }
+      .now-playing-sidebar .sidebar-item:hover { background: rgba(255,255,255,0.2); }
+      .video-section { width: 100%; padding: 1rem; background: rgba(0,0,0,0.05); border-radius: 8px; }
+      .video-title-container h2 { margin-bottom: 0.5rem; }
+      .progress-container { margin-top: 0.5rem; }
+      .indicator { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; transition: transform 0.3s ease; }
+      .indicator.live { background: #00c6ff; color: #fff; animation: pulse 2s infinite; }
+      @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+      .indicator.paused { background: #ff4081; color: #fff; }
+      .sidebar-extra { display: flex; flex-direction: column; gap: 1rem; }
+      .sidebar-extra aside { width: 100%; padding: 1rem; background: rgba(0,0,0,0.05); border-radius: 8px; }
+      .animated-divider { border: none; height: 1px; background: rgba(255,255,255,0.2); margin: 1rem 0; width: 100%; }
+      #timeElapsedContainer { display: none; opacity: 0; transition: opacity 0.5s ease; }
+      #timeElapsedContainer.show { display: block; opacity: 1; }
       .grid-container {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         grid-template-rows: auto auto;
         grid-template-areas: "videoInfo youtubeSection weatherSection" "timeInfo youtubeSection mapSection";
-        gap: 0.75rem;
-        padding: 0.75rem;
+        gap: 1.5rem;
+        padding: 1.5rem;
         background: rgba(255,255,255,0.05);
         border-radius: 8px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        max-width: 800px;
-        margin: 20px auto;
+        max-width: 1000px;
+        margin: 30px auto;
       }
-      #videoInfo {grid-area: videoInfo;}
-      #timeInfo {grid-area: timeInfo;}
-      #youtubeSection {grid-area: youtubeSection;}
-      #weatherSection {grid-area: weatherSection;}
-      #mapSection {grid-area: mapSection;}
+      #videoInfo { grid-area: videoInfo; }
+      #timeInfo { grid-area: timeInfo; }
+      #youtubeSection { grid-area: youtubeSection; }
+      #weatherSection { grid-area: weatherSection; }
+      #mapSection { grid-area: mapSection; }
       .video-info-details {
         background: rgba(0,0,0,0.05);
-        padding: 0.75rem;
+        padding: 1rem;
         border-radius: 8px;
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 0.75rem;
       }
       .video-info-details .info-item {
         padding: 0.5rem;
@@ -60,12 +60,12 @@
         border-radius: 4px;
         transition: background 0.3s ease;
       }
-      .video-info-details .info-item:hover {background: rgba(255,255,255,0.2);}
-      #timeInfo {background: rgba(0,0,0,0.05); padding: 0.75rem; border-radius: 8px; text-align: center;}
-      #youtubeSection {background: rgba(0,0,0,0.05); padding: 0.75rem; border-radius: 8px; display: flex; flex-direction: column; gap: 0.5rem; text-align: center;}
-      #youtubeSection .video-title-container h2 {margin-bottom: 0.5rem;}
-      #weatherSection {background: rgba(0,0,0,0.05); padding: 0.75rem; border-radius: 8px; text-align: center;}
-      #mapSection {background: rgba(0,0,0,0.05); padding: 0.75rem; border-radius: 8px; height: 400px; text-align: center;}
+      .video-info-details .info-item:hover { background: rgba(255,255,255,0.2); }
+      #timeInfo { background: rgba(0,0,0,0.05); padding: 1rem; border-radius: 8px; text-align: center; }
+      #youtubeSection { background: rgba(0,0,0,0.05); padding: 1rem; border-radius: 8px; display: flex; flex-direction: column; gap: 0.75rem; text-align: center; }
+      #youtubeSection .video-title-container h2 { margin-bottom: 0.5rem; }
+      #weatherSection { background: rgba(0,0,0,0.05); padding: 1rem; border-radius: 8px; text-align: center; }
+      #mapSection { background: rgba(0,0,0,0.05); padding: 1rem; border-radius: 8px; height: 400px; text-align: center; }
     </style>
   </head>
   <body>
@@ -280,19 +280,13 @@
           <button class="close-button" id="closeConsentModal" aria-label="Close Consent Modal">
             <i class="fas fa-times"></i>
           </button>
-          <h2 id="consentModalTitle">
-            <i class="fas fa-cookie"></i> Cookie Consent
-          </h2>
+          <h2 id="consentModalTitle"><i class="fas fa-cookie"></i> Cookie Consent</h2>
           <p id="consentModalDescription">
             I use cookies stored in your browser to enhance your experience on my personal website. These cookies are essential for the website's functionality. By clicking "Accept," you consent to their use. You can also manage your cookie preferences in the "Manage Cookie Preferences" section.
           </p>
           <div class="consent-buttons">
-            <button id="acceptConsent" class="consent-button">
-              <i class="fas fa-check"></i> Accept
-            </button>
-            <button id="declineConsent" class="consent-button">
-              <i class="fas fa-times"></i> Decline
-            </button>
+            <button id="acceptConsent" class="consent-button"><i class="fas fa-check"></i> Accept</button>
+            <button id="declineConsent" class="consent-button"><i class="fas fa-times"></i> Decline</button>
           </div>
         </div>
       </div>
@@ -370,10 +364,8 @@
             declineButtonId: "declineConsent",
             manageButtonIds: ["manageConsentModal", "manageConsentFooter"],
             closeButtonId: "closeConsentModal",
-            cookieCategories: {
-              necessary: { enabled: true, description: "Necessary cookies enable core functionalities and security features of the website." },
-            },
-            focusableSelectors: "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])",
+            cookieCategories: { necessary: { enabled: true, description: "Necessary cookies enable core functionalities and security features of the website." } },
+            focusableSelectors: "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])"
           };
           const consentModal = document.getElementById(CONFIG.consentModalId);
           const acceptButton = document.getElementById(CONFIG.acceptButtonId);
@@ -382,11 +374,7 @@
           const manageConsentButtons = CONFIG.manageButtonIds.map((id) => document.getElementById(id));
           function setCookie(name, value, days, path) {
             let expires = "";
-            if (days) {
-              const date = new Date();
-              date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
-              expires = "; expires=" + date.toUTCString();
-            }
+            if (days) { const date = new Date(); date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000); expires = "; expires=" + date.toUTCString(); }
             const secure = location.protocol === "https:" ? "; Secure" : "";
             const sameSite = "; SameSite=Lax";
             document.cookie = name + "=" + (value || "") + expires + "; path=" + path + secure + sameSite;
@@ -397,14 +385,11 @@
             for (let c of ca) { c = c.trim(); if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length); }
             return null;
           }
-          function eraseCookie(name, path) {
-            document.cookie = name + '=; Max-Age=-99999999; path=' + path + ';';
-          }
+          function eraseCookie(name, path) { document.cookie = name + '=; Max-Age=-99999999; path=' + path + ';'; }
           function trapFocus(modal) {
             const focusableElements = modal.querySelectorAll(CONFIG.focusableSelectors);
             if (!focusableElements.length) return;
-            const firstFocusableElement = focusableElements[0],
-              lastFocusableElement = focusableElements[focusableElements.length - 1];
+            const firstFocusableElement = focusableElements[0], lastFocusableElement = focusableElements[focusableElements.length - 1];
             modal.addEventListener("keydown", function (event) {
               if (event.key === "Tab") {
                 if (event.shiftKey) { if (document.activeElement === firstFocusableElement) { event.preventDefault(); lastFocusableElement.focus(); } }
@@ -428,8 +413,7 @@
           }
           function initConsentModal() {
             const existingConsent = getCookie(CONFIG.consentCookieName);
-            if (!existingConsent) { showModal(); }
-            else { applyConsent(existingConsent); }
+            if (!existingConsent) { showModal(); } else { applyConsent(existingConsent); }
             acceptButton.addEventListener("click", function () {
               setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: true }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
               hideModal();
@@ -440,18 +424,13 @@
               hideModal();
               disableCookies();
             });
-            manageConsentButtons.forEach((button) => {
-              if (button) { button.addEventListener("click", function (event) { event.preventDefault(); showModal(); }); }
-            });
+            manageConsentButtons.forEach((button) => { if (button) { button.addEventListener("click", function (event) { event.preventDefault(); showModal(); }); } });
             closeButton.addEventListener("click", function () { alert("Please make a choice regarding cookie usage."); });
             window.addEventListener("click", function (event) { if (event.target === consentModal) { alert("Please make a choice regarding cookie usage."); } });
           }
           function applyConsent(consentValue) {
-            try {
-              const consent = JSON.parse(consentValue);
-              if (consent.necessary) { initializeCookies(consent); }
-              else { disableCookies(); }
-            } catch (error) { console.error("Error parsing consent cookie:", error); showModal(); }
+            try { const consent = JSON.parse(consentValue); if (consent.necessary) { initializeCookies(consent); } else { disableCookies(); } }
+            catch (error) { console.error("Error parsing consent cookie:", error); showModal(); }
           }
           function initializeCookies(consent) { console.log("Necessary cookies enabled."); }
           function disableCookies() { console.log("Necessary cookies disabled."); }
@@ -635,10 +614,7 @@
           socket.emit("requestLatestData");
         });
         socket.on("presenceUpdate", function (data) {
-          if (isSessionExpired) {
-            log("Ignoring presenceUpdate due to expired session.");
-            return;
-          }
+          if (isSessionExpired) { log("Ignoring presenceUpdate due to expired session."); return; }
           log("Received presenceUpdate: " + JSON.stringify(data));
           if (data.presenceType === "video") {
             clearInterval(browsingInterval);
@@ -648,9 +624,7 @@
           } else if (data.presenceType === "browsing") {
             log("Browsing presence update received.");
             displayBrowsingPresence(data);
-          } else {
-            clearDisplay();
-          }
+          } else { clearDisplay(); }
         });
         socket.on("disconnect", function () {
           log("Disconnected from server.");
@@ -784,9 +758,7 @@
                 phraseCounters[i] = 180;
                 dropIncrement = speeds[i] * 0.2;
               } else {
-                if (Math.random() < 0.1) {
-                  currentDigits[i] = binaryChars.charAt(Math.floor(Math.random() * binaryChars.length));
-                }
+                if (Math.random() < 0.1) { currentDigits[i] = binaryChars.charAt(Math.floor(Math.random() * binaryChars.length)); }
                 text = currentDigits[i];
                 ctx.fillStyle = colors[i % colors.length];
               }
