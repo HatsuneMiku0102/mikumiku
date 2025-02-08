@@ -26,11 +26,7 @@
             <a href="/" aria-label="Home" class="logo-link">
               <span class="site-title">Miku.dev</span>
               <div class="visualizer-wrapper">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 150 100"
-                  class="visualizer"
-                >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 100" class="visualizer">
                   <g>
                     <rect x="10" y="70" width="15" height="30" fill="#00c6ff">
                       <animate attributeName="height" values="30;60;30" dur="0.8s" repeatCount="indefinite" />
@@ -408,9 +404,10 @@
       })();
     </script>
     <script>
-      // Global variables to store current video details
+      // Global variables to store current video details and browsing state
       let currentVideoTitle = "";
       let currentVideoThumbnail = "";
+      let isBrowsing = false;
       
       const log = (message) => console.log(`[Haru.js] ${message}`);
       const socket = io("https://mikumiku.dev");
@@ -547,6 +544,8 @@
       
       function displayVideoPresence(data) {
         lastHeartbeatReceived = Date.now();
+        // When switching to video mode, clear browsing flag
+        isBrowsing = false;
         // Only trigger buffering/animation if video title or thumbnail has changed
         if (data.title === currentVideoTitle && data.thumbnail === currentVideoThumbnail) {
           // Video remains the same; simply update progress indicators
@@ -611,11 +610,18 @@
         nowPlayingBox.classList.remove("offline");
         offlineIndicatorElement.style.display = "none";
         log("Updating browsing presence...");
-        // Clear video details and set default YouTube thumbnail using cloning functions
-        currentVideoTitle = "";
-        currentVideoThumbnail = "";
-        animateTitle(data.title || "Browsing YouTube");
-        animateThumbnail("https://www.youtube.com/img/desktop/yt_1200.png");
+        // If not already in browsing mode, animate the change
+        if (!isBrowsing) {
+          currentVideoTitle = "";
+          currentVideoThumbnail = "";
+          animateTitle(data.title || "Browsing YouTube");
+          animateThumbnail("https://www.youtube.com/img/desktop/yt_1200.png");
+          isBrowsing = true;
+        } else {
+          // Already browsing; just update text without re-animation
+          videoTitleElement.textContent = data.title || "Browsing YouTube";
+          videoThumbnailImage.src = "https://www.youtube.com/img/desktop/yt_1200.png";
+        }
         if (channelNameElement) channelNameElement.textContent = "Browsing...";
         if (viewCountElement) viewCountElement.textContent = "";
         if (likeCountElement) likeCountElement.textContent = "";
@@ -646,8 +652,8 @@
       });
       
       socket.on("presenceUpdate", function (data) {
-        if (isSessionExpired) { 
-          log("Ignoring presenceUpdate due to expired session."); 
+        if (isSessionExpired) {
+          log("Ignoring presenceUpdate due to expired session.");
           return;
         }
         log("Received presenceUpdate: " + JSON.stringify(data));
@@ -659,8 +665,8 @@
         } else if (data.presenceType === "browsing") {
           log("Browsing presence update received.");
           displayBrowsingPresence(data);
-        } else { 
-          clearDisplay(); 
+        } else {
+          clearDisplay();
         }
       });
       
