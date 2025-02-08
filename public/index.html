@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Miku.dev | Home</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
-      crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/styles.css" />
     <style>
       .weather-icon {
@@ -440,14 +439,16 @@
         document.addEventListener("DOMContentLoaded", init);
       })();
     </script>
-    <!-- New Script: Content script for next video update using current video ID from URL -->
+    <!-- New Script: Listen for current video ID update from content script and fetch next video -->
     <script>
-      (function() {
-        // Function to extract the current video ID from the URL (assumes YouTube URL parameter "v")
-        function getCurrentVideoId() {
-          const urlParams = new URLSearchParams(window.location.search);
-          return urlParams.get("v");
-        }
+      document.addEventListener("DOMContentLoaded", function() {
+        // Listen for custom events dispatched from the content script containing the current video ID.
+        window.addEventListener("currentVideoUpdate", function(event) {
+          if (event.detail && event.detail.videoId) {
+            window.currentVideoId = event.detail.videoId;
+            console.log("Updated currentVideoId from event:", window.currentVideoId);
+          }
+        });
   
         // Function to update the next video UI in the now-playing container
         function updateNextVideoUI(video) {
@@ -462,14 +463,13 @@
           }
         }
   
-        // Function to fetch the next video from the background script using chrome.runtime.sendMessage
+        // Function to fetch the next video from the background script using window.currentVideoId
         function fetchNextVideo() {
-          const currentVideoId = getCurrentVideoId();
-          if (!currentVideoId) {
-            console.log("Current video ID not found in URL.");
+          if (!window.currentVideoId) {
+            console.log("Current video ID not set.");
             return;
           }
-          chrome.runtime.sendMessage({ action: "fetchNextVideo", videoId: currentVideoId }, function(response) {
+          chrome.runtime.sendMessage({ action: "fetchNextVideo", videoId: window.currentVideoId }, function(response) {
             if (response && response.nextVideo) {
               updateNextVideoUI(response.nextVideo);
             } else {
@@ -480,13 +480,13 @@
   
         // Fetch next video every 15 seconds
         setInterval(fetchNextVideo, 15000);
-        // Initial fetch on DOM load
+        // Initial fetch
         fetchNextVideo();
   
-        // Optionally, listen for URL changes (for SPA behavior)
+        // Optionally, listen for URL changes or history events (if your SPA updates content without full reload)
         window.addEventListener("popstate", fetchNextVideo);
         window.addEventListener("hashchange", fetchNextVideo);
-      })();
+      });
     </script>
     <script>
       function updateClocks() {
