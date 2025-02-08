@@ -439,9 +439,20 @@
         document.addEventListener("DOMContentLoaded", init);
       })();
     </script>
-    <!-- New Script to fetch and display the next video -->
+    <!-- New Script: Listen for current video ID update from content script and fetch next video -->
     <script>
       document.addEventListener("DOMContentLoaded", function() {
+        // Global variable to hold the current video ID.
+        window.currentVideoId = null;
+  
+        // Listen for custom events dispatched from the content script with the current video ID.
+        window.addEventListener("currentVideoUpdate", function(event) {
+          if (event.detail && event.detail.videoId) {
+            window.currentVideoId = event.detail.videoId;
+            console.log("Updated currentVideoId:", window.currentVideoId);
+          }
+        });
+  
         // Function to update the next video UI in the now playing container
         function updateNextVideoUI(video) {
           const container = document.getElementById("nextVideoContent");
@@ -454,10 +465,9 @@
             container.innerHTML = "<p>No next video available.</p>";
           }
         }
-        
-        // Function to fetch the next video from the background script
+  
+        // Function to fetch the next video from the background script using the current video ID
         function fetchNextVideo() {
-          // Assume window.currentVideoId is set by your content logic when a new video plays.
           if (!window.currentVideoId) {
             console.log("Current video ID not set yet.");
             return;
@@ -470,7 +480,7 @@
             }
           });
         }
-        
+  
         // Fetch next video every 15 seconds
         setInterval(fetchNextVideo, 15000);
         // Initial fetch
