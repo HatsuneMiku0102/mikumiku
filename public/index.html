@@ -5,12 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Miku.dev | Home</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
-      crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/styles.css" />
-    <!-- Mapbox CSS removed as visitor map code has been removed -->
     <style>
-      /* --- Weather Icon Animation --- */
       .weather-icon {
         width: 80px;
         height: 80px;
@@ -21,6 +18,34 @@
         0% { transform: translateY(0) scale(1); }
         50% { transform: translateY(-10px) scale(1.1); }
         100% { transform: translateY(0) scale(1); }
+      }
+      .next-video-box {
+        background: rgba(0, 0, 0, 0.65);
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        color: #ffffff;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        margin: 20px auto;
+        max-width: 300px;
+        font-family: 'Roboto', sans-serif;
+      }
+      .next-video-box h3 {
+        margin-bottom: 15px;
+        font-size: 1.2rem;
+      }
+      .next-video-box a {
+        text-decoration: none;
+        color: inherit;
+      }
+      .next-video-box img {
+        max-width: 100%;
+        border-radius: 5px;
+        margin-bottom: 10px;
+      }
+      .next-video-box p {
+        font-size: 1rem;
+        margin: 0;
       }
     </style>
   </head>
@@ -119,7 +144,6 @@
                 </div>
               </div>
               <p id="last-visit-message" class="last-visit-message"><i class="fas fa-history"></i> Welcome back!</p>
-              <!-- Removed timeElapsedContainer from here -->
             </section>
           </div>
           <div id="youtubeSection">
@@ -146,7 +170,6 @@
               <i class="fas fa-signal-slash"></i> I’m currently offline
             </div>
             <div class="description-and-time">
-              <!-- Moved timeElapsedContainer above the toggle button -->
               <div id="timeElapsedContainer" style="display: none;"></div>
               <button class="toggle-description" id="toggleDescriptionButton" aria-label="Toggle Description">
                 <i class="fas fa-info-circle"></i> Show Description
@@ -166,7 +189,10 @@
               <p id="wind-speed" class="wind-speed"><i class="fas fa-wind"></i> Wind: -- m/s</p>
             </aside>
           </div>
-          <!-- Visitor Map section removed -->
+          <div id="nextVideoBox" class="next-video-box">
+            <h3>Up Next</h3>
+            <div id="nextVideoContent"></div>
+          </div>
         </div>
       </section>
       <footer class="footer">
@@ -177,7 +203,6 @@
           </button>
         </div>
       </footer>
-      <!-- Consent Modal Block -->
       <div id="consentModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="consentModalTitle" aria-describedby="consentModalDescription">
         <div class="modal-content">
           <button class="close-button" id="closeConsentModal" aria-label="Close Consent Modal">
@@ -194,7 +219,6 @@
         </div>
       </div>
     </div>
-    <!-- External Scripts (Mapbox references removed as visitor map code is no longer needed) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="haru.js"></script>
     <script src="clockwork.js"></script>
@@ -337,7 +361,6 @@
           } else { 
             applyConsent(existingConsent); 
           }
-          
           if (acceptButton) {
             acceptButton.addEventListener("click", function () {
               setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: true }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
@@ -347,7 +370,6 @@
           } else {
             console.error("Accept button not found.");
           }
-          
           if (declineButton) {
             declineButton.addEventListener("click", function () {
               setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: false }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
@@ -357,7 +379,6 @@
           } else {
             console.error("Decline button not found.");
           }
-          
           manageConsentButtons.forEach((button) => { 
             if (button) { 
               button.addEventListener("click", function (event) { 
@@ -368,7 +389,6 @@
               console.error("A manage consent button was not found.");
             }
           });
-          
           if (closeButton) {
             closeButton.addEventListener("click", function () { 
               alert("Please make a choice regarding cookie usage."); 
@@ -376,7 +396,6 @@
           } else {
             console.error("Close button not found.");
           }
-          
           window.addEventListener("click", function (event) { 
             if (event.target === consentModal) { 
               alert("Please make a choice regarding cookie usage."); 
@@ -482,7 +501,6 @@
         if (publishedDateElement) publishedDateElement.textContent = "";
         if (videoCategoryElement) videoCategoryElement.textContent = "";
         if (progressBarElement) progressBarElement.style.width = "0%";
-        
         const descModal = document.getElementById("descriptionModal");
         if (descModal) {
           const p = descModal.querySelector("p");
@@ -490,12 +508,10 @@
           descModal.classList.remove("active");
         }
         if (timeElapsedContainer) timeElapsedContainer.style.display = "none";
-        
         clearInterval(browsingInterval);
         browsingInterval = null;
         browsingStartTime = null;
         log("Display cleared.");
-        
         const toggleButton = document.getElementById("toggleDescriptionButton");
         if (toggleButton) toggleButton.style.display = "none";
       }
@@ -531,7 +547,6 @@
         if (offlineIndicatorElement) offlineIndicatorElement.style.display = "none";
         log("Updating video presence...");
         if (timeElapsedContainer) timeElapsedContainer.style.display = "none";
-        
         if (videoTitleElement && (videoTitleElement.textContent !== data.title || (videoThumbnailImage && videoThumbnailImage.src !== data.thumbnail))) {
           if (youtubeSection) youtubeSection.classList.add("fade-out");
           setTimeout(function () {
