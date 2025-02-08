@@ -8,7 +8,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
       crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/styles.css" />
+    <!-- Mapbox CSS removed as visitor map code has been removed -->
     <style>
+      /* --- Weather Icon Animation --- */
       .weather-icon {
         width: 80px;
         height: 80px;
@@ -19,34 +21,6 @@
         0% { transform: translateY(0) scale(1); }
         50% { transform: translateY(-10px) scale(1.1); }
         100% { transform: translateY(0) scale(1); }
-      }
-      .next-video-box {
-        background: rgba(0, 0, 0, 0.65);
-        padding: 20px;
-        border-radius: 10px;
-        text-align: center;
-        color: #ffffff;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        margin: 20px auto;
-        max-width: 300px;
-        font-family: 'Roboto', sans-serif;
-      }
-      .next-video-box h3 {
-        margin-bottom: 15px;
-        font-size: 1.2rem;
-      }
-      .next-video-box a {
-        text-decoration: none;
-        color: inherit;
-      }
-      .next-video-box img {
-        max-width: 100%;
-        border-radius: 5px;
-        margin-bottom: 10px;
-      }
-      .next-video-box p {
-        font-size: 1rem;
-        margin: 0;
       }
     </style>
   </head>
@@ -145,6 +119,7 @@
                 </div>
               </div>
               <p id="last-visit-message" class="last-visit-message"><i class="fas fa-history"></i> Welcome back!</p>
+              <!-- Removed timeElapsedContainer from here -->
             </section>
           </div>
           <div id="youtubeSection">
@@ -171,6 +146,7 @@
               <i class="fas fa-signal-slash"></i> I’m currently offline
             </div>
             <div class="description-and-time">
+              <!-- Moved timeElapsedContainer above the toggle button -->
               <div id="timeElapsedContainer" style="display: none;"></div>
               <button class="toggle-description" id="toggleDescriptionButton" aria-label="Toggle Description">
                 <i class="fas fa-info-circle"></i> Show Description
@@ -190,10 +166,7 @@
               <p id="wind-speed" class="wind-speed"><i class="fas fa-wind"></i> Wind: -- m/s</p>
             </aside>
           </div>
-          <div id="nextVideoBox" class="next-video-box">
-            <h3>Up Next</h3>
-            <div id="nextVideoContent"></div>
-          </div>
+          <!-- Visitor Map section removed -->
         </div>
       </section>
       <footer class="footer">
@@ -204,6 +177,7 @@
           </button>
         </div>
       </footer>
+      <!-- Consent Modal Block -->
       <div id="consentModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="consentModalTitle" aria-describedby="consentModalDescription">
         <div class="modal-content">
           <button class="close-button" id="closeConsentModal" aria-label="Close Consent Modal">
@@ -220,8 +194,8 @@
         </div>
       </div>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" 
-      crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- External Scripts (Mapbox references removed as visitor map code is no longer needed) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="haru.js"></script>
     <script src="clockwork.js"></script>
     <script>
@@ -363,6 +337,7 @@
           } else { 
             applyConsent(existingConsent); 
           }
+          
           if (acceptButton) {
             acceptButton.addEventListener("click", function () {
               setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: true }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
@@ -372,6 +347,7 @@
           } else {
             console.error("Accept button not found.");
           }
+          
           if (declineButton) {
             declineButton.addEventListener("click", function () {
               setCookie(CONFIG.consentCookieName, JSON.stringify({ necessary: false }), CONFIG.consentCookieExpiryDays, CONFIG.consentCookiePath);
@@ -381,6 +357,7 @@
           } else {
             console.error("Decline button not found.");
           }
+          
           manageConsentButtons.forEach((button) => { 
             if (button) { 
               button.addEventListener("click", function (event) { 
@@ -391,6 +368,7 @@
               console.error("A manage consent button was not found.");
             }
           });
+          
           if (closeButton) {
             closeButton.addEventListener("click", function () { 
               alert("Please make a choice regarding cookie usage."); 
@@ -398,6 +376,7 @@
           } else {
             console.error("Close button not found.");
           }
+          
           window.addEventListener("click", function (event) { 
             if (event.target === consentModal) { 
               alert("Please make a choice regarding cookie usage."); 
@@ -503,6 +482,7 @@
         if (publishedDateElement) publishedDateElement.textContent = "";
         if (videoCategoryElement) videoCategoryElement.textContent = "";
         if (progressBarElement) progressBarElement.style.width = "0%";
+        
         const descModal = document.getElementById("descriptionModal");
         if (descModal) {
           const p = descModal.querySelector("p");
@@ -510,10 +490,12 @@
           descModal.classList.remove("active");
         }
         if (timeElapsedContainer) timeElapsedContainer.style.display = "none";
+        
         clearInterval(browsingInterval);
         browsingInterval = null;
         browsingStartTime = null;
         log("Display cleared.");
+        
         const toggleButton = document.getElementById("toggleDescriptionButton");
         if (toggleButton) toggleButton.style.display = "none";
       }
@@ -549,6 +531,7 @@
         if (offlineIndicatorElement) offlineIndicatorElement.style.display = "none";
         log("Updating video presence...");
         if (timeElapsedContainer) timeElapsedContainer.style.display = "none";
+        
         if (videoTitleElement && (videoTitleElement.textContent !== data.title || (videoThumbnailImage && videoThumbnailImage.src !== data.thumbnail))) {
           if (youtubeSection) youtubeSection.classList.add("fade-out");
           setTimeout(function () {
@@ -814,391 +797,6 @@
         }
         drawMatrix();
       });
-    </script>
-    <!-- Updated Content Script -->
-    <script>
-      (function () {
-        if (window.hasRunYouTubeContentScript) {
-          return;
-        }
-        window.hasRunYouTubeContentScript = true;
-        
-        let lastVideoId = null;
-        let isExtracting = false;
-        let videoElement = null;
-        let currentVideo = null; // Stores fetched video details
-        const messageQueue = [];
-        let isSending = false;
-        let isSocketConnected = false;
-        
-        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-          if (message.type === "socketStatus") {
-            isSocketConnected = message.isConnected;
-            if (isSocketConnected) {
-              processMessageQueue();
-            }
-          }
-        });
-        
-        function enqueueMessage(message, retries = 5, delay = 1000) {
-          messageQueue.push({ message, retries, delay });
-          processMessageQueue();
-        }
-        
-        function processMessageQueue() {
-          if (isSending || messageQueue.length === 0 || !isSocketConnected) {
-            return;
-          }
-          isSending = true;
-          const { message, retries, delay } = messageQueue[0];
-          chrome.runtime.sendMessage(message, (response) => {
-            if (chrome.runtime.lastError || response.status !== "success") {
-              if (retries > 0) {
-                setTimeout(() => {
-                  messageQueue[0].retries -= 1;
-                  messageQueue[0].delay *= 2;
-                  isSending = false;
-                  processMessageQueue();
-                }, delay);
-              } else {
-                messageQueue.shift();
-                isSending = false;
-                processMessageQueue();
-              }
-            } else {
-              messageQueue.shift();
-              isSending = false;
-              processMessageQueue();
-            }
-          });
-        }
-        
-        function getDOMElements() {
-          return {
-            videoTitleElement: document.getElementById("videoTitle"),
-            videoThumbnailElement: document.getElementById("videoThumbnail"),
-            channelNameElement: document.getElementById("channelName"),
-            viewCountElement: document.getElementById("viewCount"),
-            likeCountElement: document.getElementById("likeCount"),
-            publishedDateElement: document.getElementById("publishedDate"),
-            videoCategoryElement: document.getElementById("videoCategory"),
-            videoDescriptionElement: document.getElementById("videoDescription"),
-            progressBarElement: document.getElementById("progressBar"),
-            timeElapsedElement: document.getElementById("timeElapsed")
-          };
-        }
-        
-        function isAdPlaying() {
-          const player = document.querySelector('.html5-video-player');
-          return player && player.classList.contains('ad-showing');
-        }
-        
-        function isOnHomePage() {
-          return window.location.pathname === '/' || window.location.pathname === '/feed/trending' || window.location.pathname === '/feed/library';
-        }
-        
-        function clearOldVideoListeners() {
-          if (videoElement) {
-            videoElement.removeEventListener('timeupdate', handleRealTimeUpdates);
-            videoElement.removeEventListener('play', updatePlaybackStatus);
-            videoElement.removeEventListener('pause', updatePlaybackStatus);
-          }
-        }
-        
-        function clearPreviousVideoData() {
-          enqueueMessage({ action: "clearPreviousVideoData" });
-        }
-        
-        async function extractPresenceData() {
-          if (isExtracting) {
-            return;
-          }
-          isExtracting = true;
-          
-          // Try to get the video ID from URL as a fallback.
-          let videoId = (new URLSearchParams(window.location.search)).get('v');
-          if (!videoId && !lastVideoId) {
-            handleBrowsingPresence();
-            isExtracting = false;
-            return;
-          }
-          if (videoId && videoId !== lastVideoId) {
-            lastVideoId = videoId;
-          }
-          
-          if (isAdPlaying()) {
-            setTimeout(extractPresenceData, 1000);
-            isExtracting = false;
-            return;
-          }
-          
-          clearOldVideoListeners();
-          if (lastVideoId) {
-            clearPreviousVideoData();
-          }
-          
-          try {
-            videoElement = await waitForElement('video', 10000);
-            if (!videoElement) {
-              retryExtraction();
-              return;
-            }
-            const videoDetails = await requestVideoDetails(lastVideoId);
-            if (!videoDetails) {
-              retryExtraction();
-              return;
-            }
-            
-            // Update lastVideoId and currentVideo from fetched details.
-            lastVideoId = videoDetails.videoId;
-            currentVideo = {
-              videoId: videoDetails.videoId,
-              title: videoDetails.title,
-              description: videoDetails.description,
-              channelTitle: videoDetails.channelTitle,
-              viewCount: videoDetails.viewCount,
-              likeCount: videoDetails.likeCount,
-              publishedAt: videoDetails.publishedAt,
-              category: videoDetails.category,
-              thumbnail: videoDetails.thumbnail,
-              duration: videoDetails.duration,
-              currentTime: videoElement.currentTime,
-              isPaused: videoElement.paused,
-              isLive: videoDetails.isLive
-            };
-            
-            // Update global variable and dispatch event.
-            window.currentVideoId = lastVideoId;
-            window.dispatchEvent(new CustomEvent("currentVideoUpdate", { detail: { videoId: lastVideoId } }));
-            
-            sendVideoDataToBackground(videoDetails);
-            
-            videoElement.addEventListener('timeupdate', handleRealTimeUpdates);
-            videoElement.addEventListener('play', updatePlaybackStatus);
-            videoElement.addEventListener('pause', updatePlaybackStatus);
-            
-            fetchAndDisplayNextVideo();
-            
-          } catch (error) {
-            // Optionally handle extraction errors.
-          } finally {
-            isExtracting = false;
-          }
-        }
-        
-        function handleBrowsingPresence() {
-          const browsingData = {
-            presenceType: 'browsing',
-            title: 'YouTube',
-            description: 'Browsing videos',
-            thumbnail: 'https://www.youtube.com/img/desktop/yt_1200.png'
-          };
-          clearVideoDisplay();
-          enqueueMessage({ action: "sendPresenceData", presenceData: browsingData });
-          currentVideo = null;
-        }
-        
-        function clearVideoDisplay() {
-          const elements = getDOMElements();
-          if (elements.videoTitleElement) {
-            elements.videoTitleElement.textContent = "Browsing YouTube...";
-          }
-          if (elements.videoThumbnailElement) {
-            elements.videoThumbnailElement.src = "https://www.youtube.com/img/desktop/yt_1200.png";
-          }
-          if (elements.channelNameElement) {
-            elements.channelNameElement.textContent = "Browsing...";
-          }
-          if (elements.viewCountElement) {
-            elements.viewCountElement.textContent = "";
-          }
-          if (elements.likeCountElement) {
-            elements.likeCountElement.textContent = "";
-          }
-          if (elements.publishedDateElement) {
-            elements.publishedDateElement.textContent = "";
-          }
-          if (elements.videoCategoryElement) {
-            elements.videoCategoryElement.textContent = "";
-          }
-          if (elements.videoDescriptionElement) {
-            elements.videoDescriptionElement.textContent = "Browsing videos on YouTube.";
-          }
-          if (elements.progressBarElement) {
-            elements.progressBarElement.style.width = "0%";
-          }
-          if (elements.timeElapsedElement) {
-            elements.timeElapsedElement.textContent = "0s";
-          }
-        }
-        
-        function retryExtraction() {
-          setTimeout(() => {
-            isExtracting = false;
-            extractPresenceData();
-          }, 1000);
-        }
-        
-        function sendVideoDataToBackground(videoData) {
-          const completeVideoData = {
-            videoId: videoData.videoId,
-            title: videoData.title,
-            description: videoData.description,
-            channelTitle: videoData.channelTitle,
-            viewCount: videoData.viewCount,
-            likeCount: videoData.likeCount,
-            publishedAt: videoData.publishedAt,
-            category: videoData.category,
-            thumbnail: videoData.thumbnail,
-            duration: videoData.duration,
-            currentTime: videoElement.currentTime,
-            isPaused: videoElement.paused,
-            isLive: videoData.isLive
-          };
-          enqueueMessage({ action: "sendPresenceData", presenceData: completeVideoData });
-        }
-        
-        async function requestVideoDetails(videoId) {
-          return new Promise((resolve) => {
-            chrome.runtime.sendMessage({ action: "fetchVideoDetails", videoId }, (response) => {
-              if (chrome.runtime.lastError) {
-                resolve(null);
-              } else if (response && response.videoDetails) {
-                resolve(response.videoDetails);
-              } else {
-                resolve(null);
-              }
-            });
-          });
-        }
-        
-        let lastVideoUpdateTime = 0;
-        function handleRealTimeUpdates() {
-          const now = Date.now();
-          if (now - lastVideoUpdateTime < 3000) return;
-          lastVideoUpdateTime = now;
-          if (!currentVideo) return;
-          const realTimeData = {
-            videoId: lastVideoId,
-            currentTime: videoElement.currentTime,
-            duration: videoElement.duration,
-            isPaused: videoElement.paused,
-            isLive: currentVideo.isLive
-          };
-          enqueueMessage({ action: "sendVideoProgress", videoData: realTimeData });
-        }
-        
-        function updatePlaybackStatus() {
-          if (!currentVideo) return;
-          const statusData = {
-            videoId: lastVideoId,
-            currentTime: videoElement.currentTime,
-            duration: videoElement.duration,
-            isPaused: videoElement.paused,
-            isLive: currentVideo.isLive
-          };
-          enqueueMessage({ action: "sendVideoProgress", videoData: statusData });
-        }
-        
-        setInterval(() => {
-          if (videoElement && videoElement.paused && currentVideo) {
-            updatePlaybackStatus();
-          }
-        }, 5000);
-        
-        function waitForElement(selector, timeout = 5000) {
-          return new Promise((resolve) => {
-            const element = document.querySelector(selector);
-            if (element) return resolve(element);
-            const observer = new MutationObserver(() => {
-              const el = document.querySelector(selector);
-              if (el) {
-                resolve(el);
-                observer.disconnect();
-              }
-            });
-            observer.observe(document.body, { childList: true, subtree: true });
-            setTimeout(() => {
-              observer.disconnect();
-              resolve(null);
-            }, timeout);
-          });
-        }
-        
-        function listenForSocketStatus() {
-          chrome.runtime.sendMessage({ action: "getSocketStatus" }, (response) => {
-            if (chrome.runtime.lastError) {
-            } else if (response && typeof response.isConnected === "boolean") {
-              isSocketConnected = response.isConnected;
-              if (isSocketConnected) processMessageQueue();
-            }
-          });
-        }
-        
-        listenForSocketStatus();
-        
-        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-          if (message.type === "socketStatus") {
-            isSocketConnected = message.isConnected;
-            if (isSocketConnected) processMessageQueue();
-          }
-        });
-        
-        (function () {
-          const originalPushState = history.pushState;
-          const originalReplaceState = history.replaceState;
-          history.pushState = function (...args) {
-            originalPushState.apply(this, args);
-            window.dispatchEvent(new Event('locationchange'));
-          };
-          history.replaceState = function (...args) {
-            originalReplaceState.apply(this, args);
-            window.dispatchEvent(new Event('locationchange'));
-          };
-          window.addEventListener('popstate', () => {
-            window.dispatchEvent(new Event('locationchange'));
-          });
-        })();
-        
-        window.addEventListener('locationchange', extractPresenceData);
-        window.addEventListener('yt-navigate-finish', extractPresenceData);
-        window.addEventListener('yt-page-data-updated', extractPresenceData);
-        setInterval(extractPresenceData, 5000);
-        extractPresenceData();
-        
-        // Listen for custom event to trigger next video fetch when current video updates.
-        window.addEventListener("currentVideoUpdate", function(e) {
-          log("Received currentVideoUpdate event with videoId: " + e.detail.videoId);
-          fetchAndDisplayNextVideo();
-        });
-        
-        function fetchAndDisplayNextVideo() {
-          const videoIdToUse = window.currentVideoId || lastVideoId;
-          if (!videoIdToUse) {
-            console.log("Current video ID not set.");
-            return;
-          }
-          chrome.runtime.sendMessage({ action: "fetchNextVideo", videoId: videoIdToUse }, function(response) {
-            if (response && response.nextVideo) {
-              displayNextVideo(response.nextVideo);
-            } else {
-              const container = document.getElementById("nextVideoContent");
-              if (container) container.innerHTML = '<p>No next video available.</p>';
-            }
-          });
-        }
-        
-        function displayNextVideo(video) {
-          const container = document.getElementById("nextVideoContent");
-          if (container) {
-            container.innerHTML = '<a href="https://www.youtube.com/watch?v=' + video.videoId + '" target="_blank"><img src="' + video.thumbnail + '" alt="' + video.title + '"><p>' + video.title + '</p></a>';
-          }
-        }
-        
-        // Fetch next video every 15 seconds.
-        setInterval(fetchAndDisplayNextVideo, 15000);
-        fetchAndDisplayNextVideo();
-      })();
     </script>
   </body>
 </html>
