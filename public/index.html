@@ -4,16 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Miku.dev | Home</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -184,13 +176,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="haru.js"></script>
     <script src="clockwork.js"></script>
-    <!-- Initialization and Global Handlers -->
+    <!-- Initialization Scripts -->
     <script>
       document.addEventListener("DOMContentLoaded", function () {
-        // Page load animation
         document.getElementById("pageContainer").classList.add("loaded");
 
-        // Title bar scroll effect
         const titleBar = document.getElementById("titleBar");
         if (titleBar) {
           window.addEventListener("scroll", function () {
@@ -198,7 +188,6 @@
           });
         }
 
-        // Menu and overlay handling
         const menuButton = document.getElementById("menuButton");
         const overlayMenu = document.getElementById("overlayMenu");
         const closeOverlay = document.getElementById("closeOverlay");
@@ -223,7 +212,6 @@
           }
         });
 
-        // Personality button handling
         const personalityButtons = document.querySelectorAll(".personality-button");
         const siteTitle = document.querySelector(".site-title");
         if (personalityButtons.length && siteTitle) {
@@ -407,7 +395,6 @@
     <!-- Video Presence Script -->
     <script>
       document.addEventListener("DOMContentLoaded", function () {
-        // Global state variables
         let currentVideoTitle = "";
         let currentVideoThumbnail = "";
         let isBrowsing = false;
@@ -417,11 +404,9 @@
         let isBuffering = false;
         const log = (message) => console.log(`[Haru.js] ${message}`);
 
-        // Restore browsing state if available
         if (localStorage.getItem("browsingStartTime")) {
           browsingStartTime = parseInt(localStorage.getItem("browsingStartTime"));
           isBrowsing = true;
-          // Immediately render browsing presence with default data
           displayBrowsingPresence({
             presenceType: "browsing",
             title: "Browsing YouTube",
@@ -434,7 +419,6 @@
           });
         }
 
-        // DOM references
         const nowPlayingBox = document.getElementById("nowPlayingBox");
         const videoTitleElement = document.getElementById("videoTitle");
         const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -451,7 +435,6 @@
         const youtubeSection = document.getElementById("youtubeSection");
         const bufferOverlay = document.getElementById("bufferOverlay");
 
-        // Format helpers
         function formatNumber(number) {
           if (typeof number === "string") number = number.replace(/,/g, "");
           const num = Number(number);
@@ -472,7 +455,6 @@
             timeElapsedContainer.innerHTML = `<i class="fas fa-clock"></i> ${formatElapsedTime(elapsedSec)}`;
           }
         }
-        // Restore YouTube section elements (hiding the offline indicator)
         function restoreYoutubeSection() {
           const ytSection = document.getElementById("youtubeSection");
           if (ytSection) {
@@ -485,7 +467,6 @@
             });
           }
         }
-        // Clear display for offline state: hide YouTube elements and show offline indicator
         function clearDisplay() {
           if (isBuffering) return;
           if (nowPlayingBox) nowPlayingBox.classList.add("offline");
@@ -553,7 +534,6 @@
             videoTitleElement.classList.remove("playing");
           }
         }
-        // Animation functions (cloning method)
         function animateTitle(text) {
           const oldTitle = document.getElementById("videoTitle");
           if (!oldTitle) return;
@@ -693,7 +673,6 @@
           const toggleButton = document.getElementById("toggleDescriptionButton");
           if (toggleButton) toggleButton.style.display = "block";
         }
-        // Socket and heartbeat handling
         const socket = io("https://mikumiku.dev");
         socket.on("connect", function () {
           log("Connected to server via Socket.IO.");
