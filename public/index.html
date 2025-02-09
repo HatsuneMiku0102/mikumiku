@@ -4,16 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Miku.dev | Home</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -408,6 +400,7 @@
       let currentVideoTitle = "";
       let currentVideoThumbnail = "";
       let isBrowsing = false;
+      let isOffline = false;
       
       const log = (message) => console.log(`[Haru.js] ${message}`);
       const socket = io("https://mikumiku.dev");
@@ -460,7 +453,11 @@
       function clearDisplay() {
         if (isBuffering) return;
         if (nowPlayingBox) nowPlayingBox.classList.add("offline");
-        if (offlineIndicatorElement) offlineIndicatorElement.style.display = "block";
+        // Only set offline indicator if truly offline (isOffline flag)
+        if (offlineIndicatorElement && !isOffline) {
+          offlineIndicatorElement.classList.add("visible");
+          isOffline = true;
+        }
         if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
         if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
         if (videoTitleElement) videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
@@ -544,8 +541,12 @@
       
       function displayVideoPresence(data) {
         lastHeartbeatReceived = Date.now();
-        // When switching to video mode, clear browsing flag
+        // When switching to video mode, clear browsing and offline flags
         isBrowsing = false;
+        if (offlineIndicatorElement) {
+          offlineIndicatorElement.classList.remove("visible");
+          isOffline = false;
+        }
         // Only trigger buffering/animation if video title or thumbnail has changed
         if (data.title === currentVideoTitle && data.thumbnail === currentVideoThumbnail) {
           // Video remains the same; simply update progress indicators
@@ -595,7 +596,7 @@
             youtubeSection.classList.add("fade-in");
           }
           if (nowPlayingBox) nowPlayingBox.classList.remove("offline");
-          if (offlineIndicatorElement) offlineIndicatorElement.style.display = "none";
+          if (offlineIndicatorElement) offlineIndicatorElement.classList.remove("visible");
           if (bufferOverlay) bufferOverlay.classList.remove("active");
           isBuffering = false;
           log("Video presence updated in UI.");
@@ -608,9 +609,12 @@
       function displayBrowsingPresence(data) {
         lastHeartbeatReceived = Date.now();
         nowPlayingBox.classList.remove("offline");
-        offlineIndicatorElement.style.display = "none";
+        if (offlineIndicatorElement) {
+          offlineIndicatorElement.classList.remove("visible");
+          isOffline = false;
+        }
         log("Updating browsing presence...");
-        // If not already in browsing mode, animate the change
+        // If not already in browsing mode, animate the change; otherwise update without re-animating
         if (!isBrowsing) {
           currentVideoTitle = "";
           currentVideoThumbnail = "";
@@ -618,7 +622,6 @@
           animateThumbnail("https://www.youtube.com/img/desktop/yt_1200.png");
           isBrowsing = true;
         } else {
-          // Already browsing; just update text without re-animation
           videoTitleElement.textContent = data.title || "Browsing YouTube";
           videoThumbnailImage.src = "https://www.youtube.com/img/desktop/yt_1200.png";
         }
@@ -670,9 +673,14 @@
         }
       });
       
+      // Check heartbeat; if no heartbeat is received for 60 seconds, mark as offline
       setInterval(function () {
         if (!isBuffering && Date.now() - lastHeartbeatReceived > 60000) {
-          log("No heartbeat received in 60 seconds. Marking as offline.");
+          if (!isOffline) {
+            log("No heartbeat received in 60 seconds. Marking as offline.");
+            isOffline = true;
+            if (offlineIndicatorElement) offlineIndicatorElement.classList.add("visible");
+          }
           clearDisplay();
         }
       }, 5000);
