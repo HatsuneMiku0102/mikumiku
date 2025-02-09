@@ -4,16 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Miku.dev | Home</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -119,7 +111,7 @@
               <p id="videoTitle">Loading...</p>
             </div>
             <div class="thumbnail-container">
-              <!-- The thumbnail image element is always present -->
+              <!-- The thumbnail image element remains in place -->
               <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy" />
             </div>
             <div class="progress-container">
@@ -131,6 +123,7 @@
                 <span id="pauseIndicator" class="indicator paused">Paused</span>
               </div>
             </div>
+            <!-- The offline indicator is part of the YouTube section -->
             <div id="offline-indicator" class="offline-indicator">
               <i class="fas fa-signal-slash"></i> I’m currently offline
             </div>
@@ -414,7 +407,7 @@
       let browsingInterval = null;
       let isBuffering = false;
       
-      // DOM references with null-checks
+      // DOM references with extra null-checks
       const nowPlayingBox = document.getElementById("nowPlayingBox");
       const videoTitleElement = document.getElementById("videoTitle");
       const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -456,21 +449,44 @@
         }
       }
       
-      // clearDisplay() now only hides the thumbnail container without removing the thumbnail element
+      // Helper function to restore the YouTube section when content is available
+      function restoreYoutubeSection() {
+        const ytSection = document.getElementById("youtubeSection");
+        if (ytSection) {
+          Array.from(ytSection.children).forEach(child => {
+            if (child.id === "offline-indicator") {
+              child.style.display = "none";
+            } else {
+              child.style.display = "block";
+            }
+          });
+        }
+      }
+      
+      // clearDisplay() hides all YouTube elements and shows the glowing offline message
       function clearDisplay() {
         if (isBuffering) return;
         if (nowPlayingBox) nowPlayingBox.classList.add("offline");
-        if (offlineIndicatorElement && !isOffline) {
-          offlineIndicatorElement.classList.add("visible");
-          isOffline = true;
+        // Hide all children of the YouTube section except the offline indicator
+        const ytSection = document.getElementById("youtubeSection");
+        if (ytSection) {
+          Array.from(ytSection.children).forEach(child => {
+            if (child.id !== "offline-indicator") {
+              child.style.display = "none";
+            }
+          });
         }
-        if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
-        if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
+        // Show the offline indicator with glowing effect
+        if (offlineIndicatorElement) {
+          offlineIndicatorElement.style.display = "block";
+          offlineIndicatorElement.classList.add("visible");
+        }
+        // Clear title container completely
         const videoTitleContainer = document.querySelector(".video-title-container");
         if (videoTitleContainer) {
           videoTitleContainer.innerHTML = '<h2>Currently Playing</h2><p id="videoTitle"></p>';
         }
-        // Instead of clearing innerHTML, simply hide the thumbnail container
+        // Do not remove the thumbnail element; just hide its container
         const thumbnailContainer = document.querySelector(".thumbnail-container");
         if (thumbnailContainer) {
           thumbnailContainer.style.display = "none";
@@ -491,7 +507,7 @@
         clearInterval(browsingInterval);
         browsingInterval = null;
         browsingStartTime = null;
-        log("Display cleared.");
+        log("Display cleared (offline).");
         const toggleButton = document.getElementById("toggleDescriptionButton");
         if (toggleButton) toggleButton.style.display = "none";
       }
@@ -523,7 +539,7 @@
         else if (videoTitleElement) videoTitleElement.classList.remove("playing");
       }
       
-      // Cloning-based animation functions
+      // Cloning-based animation functions for title and thumbnail
       function animateTitle(text) {
         const oldTitle = document.getElementById("videoTitle");
         if (!oldTitle) return;
@@ -557,11 +573,8 @@
         if (timeElapsedContainer) {
           timeElapsedContainer.style.display = "none";
         }
-        // Ensure the thumbnail container is shown when video is playing
-        const thumbnailContainer = document.querySelector(".thumbnail-container");
-        if (thumbnailContainer) {
-          thumbnailContainer.style.display = "block";
-        }
+        // Restore YouTube section elements (hide offline indicator)
+        restoreYoutubeSection();
         if (data.title === currentVideoTitle && data.thumbnail === currentVideoThumbnail) {
           handleRealTimeProgress(data);
           return;
