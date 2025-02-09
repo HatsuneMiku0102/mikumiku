@@ -4,8 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Miku.dev | Home</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -108,14 +116,10 @@
           <div id="youtubeSection">
             <div class="video-title-container">
               <h2>Currently Playing</h2>
-              <!-- The title will be re-rendered here -->
               <p id="videoTitle">Loading...</p>
             </div>
             <div class="thumbnail-container">
-              <!-- The video element and thumbnail image will be re-rendered here -->
-              <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls aria-label="Currently Playing Video">
-                Your browser does not support the video tag.
-              </video>
+              <!-- Removed the video element to avoid the empty video box -->
               <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy" />
             </div>
             <div class="progress-container">
@@ -452,7 +456,7 @@
         }
       }
       
-      // Updated clearDisplay() to force re-render of title and thumbnail
+      // Updated clearDisplay() to remove video title and thumbnail entirely when offline
       function clearDisplay() {
         if (isBuffering) return;
         if (nowPlayingBox) nowPlayingBox.classList.add("offline");
@@ -462,15 +466,15 @@
         }
         if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
         if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
-        // Clear title by resetting its container
+        // Clear title container completely
         const videoTitleContainer = document.querySelector(".video-title-container");
         if (videoTitleContainer) {
           videoTitleContainer.innerHTML = '<h2>Currently Playing</h2><p id="videoTitle">I’m not on YouTube at the moment, soz :(</p>';
         }
-        // Clear thumbnail by resetting its container
+        // Clear thumbnail container and remove the video element to avoid an empty video box
         const thumbnailContainer = document.querySelector(".thumbnail-container");
         if (thumbnailContainer) {
-          thumbnailContainer.innerHTML = '<video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls aria-label="Currently Playing Video">Your browser does not support the video tag.</video><img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy" />';
+          thumbnailContainer.innerHTML = '<img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy" />';
         }
         if (channelNameElement) channelNameElement.textContent = "";
         if (viewCountElement) viewCountElement.textContent = "";
@@ -520,7 +524,7 @@
         else if (videoTitleElement) videoTitleElement.classList.remove("playing");
       }
       
-      // Cloning-based animation functions
+      // Cloning-based animation functions for title and thumbnail
       function animateTitle(text) {
         const oldTitle = document.getElementById("videoTitle");
         if (!oldTitle) return;
@@ -546,17 +550,17 @@
       
       function displayVideoPresence(data) {
         lastHeartbeatReceived = Date.now();
-        // When switching to video mode, reset browsing and offline flags
+        // Switching to video mode: reset browsing and offline flags
         isBrowsing = false;
         if (offlineIndicatorElement) {
           offlineIndicatorElement.classList.remove("visible");
           isOffline = false;
         }
-        // Hide the browsing elapsed timer when a video starts
+        // Hide browsing elapsed timer
         if (timeElapsedContainer) {
           timeElapsedContainer.style.display = "none";
         }
-        // Only trigger animations if video data has changed
+        // If the video data is unchanged, update progress only
         if (data.title === currentVideoTitle && data.thumbnail === currentVideoThumbnail) {
           handleRealTimeProgress(data);
           return;
@@ -575,9 +579,6 @@
             if (videoThumbnailImage) {
               videoThumbnailImage.src = "";
               videoThumbnailImage.style.display = "none";
-            }
-            if (videoThumbnailElement) {
-              videoThumbnailElement.style.display = "none";
             }
           }
           if (channelNameElement) channelNameElement.textContent = data.channelTitle || "Unknown Channel";
@@ -626,12 +627,18 @@
           currentVideoTitle = "";
           currentVideoThumbnail = "";
           animateTitle(data.title || "Browsing YouTube");
-          animateThumbnail("https://www.youtube.com/img/desktop/yt_1200.png");
+          // Since we removed the video element from the thumbnail container, simply update the image src
+          const thumbImg = document.getElementById("videoThumbnailImage");
+          if (thumbImg) {
+            thumbImg.src = "https://www.youtube.com/img/desktop/yt_1200.png";
+            thumbImg.style.display = "block";
+          }
           isBrowsing = true;
           if (!browsingStartTime) browsingStartTime = Date.now();
         } else {
           if (videoTitleElement) videoTitleElement.textContent = data.title || "Browsing YouTube";
-          if (videoThumbnailImage) videoThumbnailImage.src = "https://www.youtube.com/img/desktop/yt_1200.png";
+          const thumbImg = document.getElementById("videoThumbnailImage");
+          if (thumbImg) thumbImg.src = "https://www.youtube.com/img/desktop/yt_1200.png";
         }
         if (channelNameElement) channelNameElement.textContent = "Browsing...";
         if (viewCountElement) viewCountElement.textContent = "";
@@ -644,7 +651,6 @@
           if (p) p.textContent = data.description || "Browsing videos on YouTube";
           descModal.classList.remove("active");
         }
-        // Do not reset browsingStartTime on each update so elapsed time accumulates
         updateBrowsingElapsed();
         if (!browsingInterval) {
           browsingInterval = setInterval(updateBrowsingElapsed, 1000);
@@ -661,7 +667,6 @@
         if (toggleButton) toggleButton.style.display = "block";
       }
       
-      // Listen for disconnect to clear UI immediately
       socket.on("disconnect", function () {
         log("Disconnected from server.");
         clearDisplay();
@@ -695,7 +700,7 @@
         }
       });
       
-      // Use a shorter heartbeat threshold (15 seconds) for immediate offline marking
+      // Heartbeat check (15-second threshold) for immediate offline marking
       setInterval(function () {
         if (!isBuffering && Date.now() - lastHeartbeatReceived > 15000) {
           if (!isOffline) {
