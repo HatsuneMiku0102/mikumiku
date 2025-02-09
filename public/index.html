@@ -111,7 +111,7 @@
               <p id="videoTitle">Loading...</p>
             </div>
             <div class="thumbnail-container">
-              <!-- The thumbnail image element remains in place -->
+              <!-- The thumbnail image element remains always present -->
               <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy" />
             </div>
             <div class="progress-container">
@@ -123,7 +123,7 @@
                 <span id="pauseIndicator" class="indicator paused">Paused</span>
               </div>
             </div>
-            <!-- The offline indicator is part of the YouTube section -->
+            <!-- Offline indicator -->
             <div id="offline-indicator" class="offline-indicator">
               <i class="fas fa-signal-slash"></i> I’m currently offline
             </div>
@@ -407,6 +407,24 @@
       let browsingInterval = null;
       let isBuffering = false;
       
+      // Restore browsing state from localStorage (if available)
+      if (localStorage.getItem("browsingStartTime")) {
+        browsingStartTime = parseInt(localStorage.getItem("browsingStartTime"));
+        isBrowsing = true;
+        lastHeartbeatReceived = Date.now();
+        // Optionally, you can restore a default browsing presence here:
+        displayBrowsingPresence({
+          presenceType: "browsing",
+          title: "Browsing YouTube",
+          description: "Browsing videos on YouTube",
+          channelTitle: "Browsing...",
+          viewCount: "",
+          likeCount: "",
+          publishedAt: "",
+          category: ""
+        });
+      }
+      
       // DOM references with extra null-checks
       const nowPlayingBox = document.getElementById("nowPlayingBox");
       const videoTitleElement = document.getElementById("videoTitle");
@@ -449,7 +467,7 @@
         }
       }
       
-      // Helper function to restore the YouTube section when content is available
+      // Helper to restore YouTube section (hide offline indicator)
       function restoreYoutubeSection() {
         const ytSection = document.getElementById("youtubeSection");
         if (ytSection) {
@@ -463,11 +481,11 @@
         }
       }
       
-      // clearDisplay() hides all YouTube elements and shows the glowing offline message
+      // clearDisplay() hides all YouTube elements and shows a glowing offline message
       function clearDisplay() {
         if (isBuffering) return;
         if (nowPlayingBox) nowPlayingBox.classList.add("offline");
-        // Hide all children of the YouTube section except the offline indicator
+        // Hide all YouTube section elements except the offline indicator
         const ytSection = document.getElementById("youtubeSection");
         if (ytSection) {
           Array.from(ytSection.children).forEach(child => {
@@ -476,7 +494,7 @@
             }
           });
         }
-        // Show the offline indicator with glowing effect
+        // Show the offline indicator with glow
         if (offlineIndicatorElement) {
           offlineIndicatorElement.style.display = "block";
           offlineIndicatorElement.classList.add("visible");
@@ -486,7 +504,7 @@
         if (videoTitleContainer) {
           videoTitleContainer.innerHTML = '<h2>Currently Playing</h2><p id="videoTitle"></p>';
         }
-        // Do not remove the thumbnail element; just hide its container
+        // Do not remove the thumbnail element; leave it hidden via its container
         const thumbnailContainer = document.querySelector(".thumbnail-container");
         if (thumbnailContainer) {
           thumbnailContainer.style.display = "none";
@@ -507,6 +525,7 @@
         clearInterval(browsingInterval);
         browsingInterval = null;
         browsingStartTime = null;
+        localStorage.removeItem("browsingStartTime");
         log("Display cleared (offline).");
         const toggleButton = document.getElementById("toggleDescriptionButton");
         if (toggleButton) toggleButton.style.display = "none";
@@ -539,7 +558,7 @@
         else if (videoTitleElement) videoTitleElement.classList.remove("playing");
       }
       
-      // Cloning-based animation functions for title and thumbnail
+      // Cloning-based animation functions
       function animateTitle(text) {
         const oldTitle = document.getElementById("videoTitle");
         if (!oldTitle) return;
@@ -573,7 +592,7 @@
         if (timeElapsedContainer) {
           timeElapsedContainer.style.display = "none";
         }
-        // Restore YouTube section elements (hide offline indicator)
+        // Restore the YouTube section (hide offline indicator)
         restoreYoutubeSection();
         if (data.title === currentVideoTitle && data.thumbnail === currentVideoThumbnail) {
           handleRealTimeProgress(data);
@@ -650,7 +669,8 @@
             thumbnailContainer.style.display = "block";
           }
           isBrowsing = true;
-          if (!browsingStartTime) browsingStartTime = Date.now();
+          browsingStartTime = Date.now();
+          localStorage.setItem("browsingStartTime", browsingStartTime);
         } else {
           if (videoTitleElement) videoTitleElement.textContent = data.title || "Browsing YouTube";
           const thumbImg = document.getElementById("videoThumbnailImage");
@@ -704,6 +724,7 @@
           clearInterval(browsingInterval);
           browsingInterval = null;
           browsingStartTime = null;
+          localStorage.removeItem("browsingStartTime");
           displayVideoPresence(data);
         } else if (data.presenceType === "browsing") {
           log("Browsing presence update received.");
@@ -716,6 +737,7 @@
         }
       });
       
+      // Heartbeat check (15-second threshold)
       setInterval(function () {
         if (!isBuffering && Date.now() - lastHeartbeatReceived > 15000) {
           if (!isOffline) {
