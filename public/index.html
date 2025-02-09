@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Miku.dev | Home</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -116,7 +119,7 @@
               <p id="videoTitle">Loading...</p>
             </div>
             <div class="thumbnail-container">
-              <!-- Only the thumbnail image will be rendered; the container is empty when nothing is playing -->
+              <!-- The thumbnail image element is always present -->
               <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy" />
             </div>
             <div class="progress-container">
@@ -411,7 +414,7 @@
       let browsingInterval = null;
       let isBuffering = false;
       
-      // DOM references (with extra null-checks)
+      // DOM references with null-checks
       const nowPlayingBox = document.getElementById("nowPlayingBox");
       const videoTitleElement = document.getElementById("videoTitle");
       const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -453,7 +456,7 @@
         }
       }
       
-      // clearDisplay() now clears title and completely hides the thumbnail container
+      // clearDisplay() now only hides the thumbnail container without removing the thumbnail element
       function clearDisplay() {
         if (isBuffering) return;
         if (nowPlayingBox) nowPlayingBox.classList.add("offline");
@@ -467,9 +470,9 @@
         if (videoTitleContainer) {
           videoTitleContainer.innerHTML = '<h2>Currently Playing</h2><p id="videoTitle"></p>';
         }
+        // Instead of clearing innerHTML, simply hide the thumbnail container
         const thumbnailContainer = document.querySelector(".thumbnail-container");
         if (thumbnailContainer) {
-          thumbnailContainer.innerHTML = '';
           thumbnailContainer.style.display = "none";
         }
         if (channelNameElement) channelNameElement.textContent = "";
@@ -520,7 +523,7 @@
         else if (videoTitleElement) videoTitleElement.classList.remove("playing");
       }
       
-      // Cloning-based animation functions for title and thumbnail
+      // Cloning-based animation functions
       function animateTitle(text) {
         const oldTitle = document.getElementById("videoTitle");
         if (!oldTitle) return;
@@ -554,6 +557,7 @@
         if (timeElapsedContainer) {
           timeElapsedContainer.style.display = "none";
         }
+        // Ensure the thumbnail container is shown when video is playing
         const thumbnailContainer = document.querySelector(".thumbnail-container");
         if (thumbnailContainer) {
           thumbnailContainer.style.display = "block";
