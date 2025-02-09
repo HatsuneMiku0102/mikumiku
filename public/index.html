@@ -4,16 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Miku.dev | Home</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -416,7 +408,7 @@
       let browsingInterval = null;
       let isBuffering = false;
       
-      // DOM references (with null-checks)
+      // DOM references (with extra null-checks)
       const nowPlayingBox = document.getElementById("nowPlayingBox");
       const videoTitleElement = document.getElementById("videoTitle");
       const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -468,7 +460,10 @@
         }
         if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
         if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
-        if (videoTitleElement) videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
+        if (videoTitleElement) {
+          videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
+          videoTitleElement.classList.remove("playing");
+        }
         if (videoThumbnailImage) {
           videoThumbnailImage.src = "";
           videoThumbnailImage.style.display = "none";
@@ -557,6 +552,10 @@
           offlineIndicatorElement.classList.remove("visible");
           isOffline = false;
         }
+        // Hide the browsing elapsed timer when a video starts
+        if (timeElapsedContainer) {
+          timeElapsedContainer.style.display = "none";
+        }
         // Only trigger animations if video data has changed
         if (data.title === currentVideoTitle && data.thumbnail === currentVideoThumbnail) {
           handleRealTimeProgress(data);
@@ -629,7 +628,6 @@
           animateTitle(data.title || "Browsing YouTube");
           animateThumbnail("https://www.youtube.com/img/desktop/yt_1200.png");
           isBrowsing = true;
-          // Set browsingStartTime only on initial switch
           if (!browsingStartTime) browsingStartTime = Date.now();
         } else {
           if (videoTitleElement) videoTitleElement.textContent = data.title || "Browsing YouTube";
@@ -646,10 +644,7 @@
           if (p) p.textContent = data.description || "Browsing videos on YouTube";
           descModal.classList.remove("active");
         }
-        // Ensure the elapsed timer is visible and not reset on every update
-        if (!browsingStartTime) {
-          browsingStartTime = Date.now();
-        }
+        // Do not reset browsingStartTime on each update so elapsed time accumulates
         updateBrowsingElapsed();
         if (!browsingInterval) {
           browsingInterval = setInterval(updateBrowsingElapsed, 1000);
@@ -666,7 +661,6 @@
         if (toggleButton) toggleButton.style.display = "block";
       }
       
-      // Listen for disconnect to immediately clear UI
       socket.on("disconnect", function () {
         log("Disconnected from server.");
         clearDisplay();
@@ -697,11 +691,11 @@
         }
       });
       
-      // Check heartbeat; if no heartbeat is received for 60 seconds, mark as offline
+      // Use a shorter heartbeat threshold (e.g. 15 seconds) for immediate offline marking
       setInterval(function () {
-        if (!isBuffering && Date.now() - lastHeartbeatReceived > 60000) {
+        if (!isBuffering && Date.now() - lastHeartbeatReceived > 15000) {
           if (!isOffline) {
-            log("No heartbeat received in 60 seconds. Marking as offline.");
+            log("No heartbeat received in 15 seconds. Marking as offline.");
             isOffline = true;
             if (offlineIndicatorElement) offlineIndicatorElement.classList.add("visible");
           }
