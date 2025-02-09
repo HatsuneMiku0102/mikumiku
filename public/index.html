@@ -402,7 +402,7 @@
       })();
     </script>
     <script>
-      // Global variables for current video details and state
+      // Global variables for video state
       let currentVideoTitle = "";
       let currentVideoThumbnail = "";
       let isBrowsing = false;
@@ -416,7 +416,7 @@
       let browsingInterval = null;
       let isBuffering = false;
       
-      // Element references (with extra null-checks)
+      // DOM references (with null-checks)
       const nowPlayingBox = document.getElementById("nowPlayingBox");
       const videoTitleElement = document.getElementById("videoTitle");
       const videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -453,6 +453,7 @@
       function updateBrowsingElapsed() {
         if (browsingStartTime && timeElapsedContainer) {
           const elapsedSec = Math.floor((Date.now() - browsingStartTime) / 1000);
+          timeElapsedContainer.style.display = "block";
           timeElapsedContainer.innerHTML = `<i class="fas fa-clock"></i> ${formatElapsedTime(elapsedSec)}`;
         }
       }
@@ -460,7 +461,7 @@
       function clearDisplay() {
         if (isBuffering) return;
         if (nowPlayingBox) nowPlayingBox.classList.add("offline");
-        // Only set offline indicator if truly offline
+        // Immediately mark as offline if needed
         if (offlineIndicatorElement && !isOffline) {
           offlineIndicatorElement.classList.add("visible");
           isOffline = true;
@@ -550,7 +551,7 @@
       
       function displayVideoPresence(data) {
         lastHeartbeatReceived = Date.now();
-        // Switching to video mode: reset browsing and offline flags
+        // When switching to video mode, reset browsing and offline flags
         isBrowsing = false;
         if (offlineIndicatorElement) {
           offlineIndicatorElement.classList.remove("visible");
@@ -621,17 +622,16 @@
           isOffline = false;
         }
         log("Updating browsing presence...");
-        // If not already in browsing mode, animate the change and initialize the elapsed timer
+        // Initialize browsing mode only once
         if (!isBrowsing) {
           currentVideoTitle = "";
           currentVideoThumbnail = "";
           animateTitle(data.title || "Browsing YouTube");
           animateThumbnail("https://www.youtube.com/img/desktop/yt_1200.png");
           isBrowsing = true;
-          // Set browsingStartTime only on the initial switch to browsing mode
+          // Set browsingStartTime only on initial switch
           if (!browsingStartTime) browsingStartTime = Date.now();
         } else {
-          // Otherwise, update text without re-animation
           if (videoTitleElement) videoTitleElement.textContent = data.title || "Browsing YouTube";
           if (videoThumbnailImage) videoThumbnailImage.src = "https://www.youtube.com/img/desktop/yt_1200.png";
         }
@@ -646,9 +646,14 @@
           if (p) p.textContent = data.description || "Browsing videos on YouTube";
           descModal.classList.remove("active");
         }
-        // Do not reset browsingStartTime on each update so elapsed time accumulates
+        // Ensure the elapsed timer is visible and not reset on every update
+        if (!browsingStartTime) {
+          browsingStartTime = Date.now();
+        }
         updateBrowsingElapsed();
-        if (!browsingInterval) { browsingInterval = setInterval(updateBrowsingElapsed, 1000); }
+        if (!browsingInterval) {
+          browsingInterval = setInterval(updateBrowsingElapsed, 1000);
+        }
         if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
         if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
         if (progressBarElement) progressBarElement.style.width = "0%";
@@ -660,6 +665,12 @@
         const toggleButton = document.getElementById("toggleDescriptionButton");
         if (toggleButton) toggleButton.style.display = "block";
       }
+      
+      // Listen for disconnect to immediately clear UI
+      socket.on("disconnect", function () {
+        log("Disconnected from server.");
+        clearDisplay();
+      });
       
       socket.on("connect", function () {
         log("Connected to server via Socket.IO.");
@@ -686,7 +697,7 @@
         }
       });
       
-      // Check heartbeat; if no heartbeat is received for 60 seconds, mark as offline and clear display
+      // Check heartbeat; if no heartbeat is received for 60 seconds, mark as offline
       setInterval(function () {
         if (!isBuffering && Date.now() - lastHeartbeatReceived > 60000) {
           if (!isOffline) {
