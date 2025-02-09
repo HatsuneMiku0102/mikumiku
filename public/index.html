@@ -108,9 +108,11 @@
           <div id="youtubeSection">
             <div class="video-title-container">
               <h2>Currently Playing</h2>
+              <!-- The title will be re-rendered here -->
               <p id="videoTitle">Loading...</p>
             </div>
             <div class="thumbnail-container">
+              <!-- The video element and thumbnail image will be re-rendered here -->
               <video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls aria-label="Currently Playing Video">
                 Your browser does not support the video tag.
               </video>
@@ -450,27 +452,25 @@
         }
       }
       
+      // Updated clearDisplay() to force re-render of title and thumbnail
       function clearDisplay() {
         if (isBuffering) return;
         if (nowPlayingBox) nowPlayingBox.classList.add("offline");
-        // Immediately mark as offline if needed
         if (offlineIndicatorElement && !isOffline) {
           offlineIndicatorElement.classList.add("visible");
           isOffline = true;
         }
         if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
         if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
-        if (videoTitleElement) {
-          videoTitleElement.textContent = "I’m not on YouTube at the moment, soz :(";
-          videoTitleElement.classList.remove("playing");
+        // Clear title by resetting its container
+        const videoTitleContainer = document.querySelector(".video-title-container");
+        if (videoTitleContainer) {
+          videoTitleContainer.innerHTML = '<h2>Currently Playing</h2><p id="videoTitle">I’m not on YouTube at the moment, soz :(</p>';
         }
-        if (videoThumbnailImage) {
-          videoThumbnailImage.src = "";
-          videoThumbnailImage.style.display = "none";
-        }
-        if (videoThumbnailElement) {
-          videoThumbnailElement.src = "";
-          videoThumbnailElement.style.display = "none";
+        // Clear thumbnail by resetting its container
+        const thumbnailContainer = document.querySelector(".thumbnail-container");
+        if (thumbnailContainer) {
+          thumbnailContainer.innerHTML = '<video id="videoThumbnail" class="video-thumbnail" preload="metadata" controls aria-label="Currently Playing Video">Your browser does not support the video tag.</video><img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy" />';
         }
         if (channelNameElement) channelNameElement.textContent = "";
         if (viewCountElement) viewCountElement.textContent = "";
@@ -661,6 +661,7 @@
         if (toggleButton) toggleButton.style.display = "block";
       }
       
+      // Listen for disconnect to clear UI immediately
       socket.on("disconnect", function () {
         log("Disconnected from server.");
         clearDisplay();
@@ -686,12 +687,15 @@
         } else if (data.presenceType === "browsing") {
           log("Browsing presence update received.");
           displayBrowsingPresence(data);
+        } else if (data.presenceType === "offline") {
+          log("Offline presence update received.");
+          clearDisplay();
         } else {
           clearDisplay();
         }
       });
       
-      // Use a shorter heartbeat threshold (e.g. 15 seconds) for immediate offline marking
+      // Use a shorter heartbeat threshold (15 seconds) for immediate offline marking
       setInterval(function () {
         if (!isBuffering && Date.now() - lastHeartbeatReceived > 15000) {
           if (!isOffline) {
