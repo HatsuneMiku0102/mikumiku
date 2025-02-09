@@ -4,10 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Miku.dev | Home</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -119,7 +116,7 @@
               <p id="videoTitle">Loading...</p>
             </div>
             <div class="thumbnail-container">
-              <!-- The video element has been removed to avoid an empty video box -->
+              <!-- Only the thumbnail image will be rendered; the container is empty when nothing is playing -->
               <img id="videoThumbnailImage" src="" alt="Thumbnail" class="video-thumbnail" loading="lazy" />
             </div>
             <div class="progress-container">
@@ -456,7 +453,7 @@
         }
       }
       
-      // Updated clearDisplay() to completely remove the title and thumbnail when offline
+      // clearDisplay() now clears title and completely hides the thumbnail container
       function clearDisplay() {
         if (isBuffering) return;
         if (nowPlayingBox) nowPlayingBox.classList.add("offline");
@@ -466,12 +463,10 @@
         }
         if (liveIndicatorElement) liveIndicatorElement.classList.remove("active");
         if (pauseIndicatorElement) pauseIndicatorElement.classList.remove("active");
-        // Clear title container completely
         const videoTitleContainer = document.querySelector(".video-title-container");
         if (videoTitleContainer) {
           videoTitleContainer.innerHTML = '<h2>Currently Playing</h2><p id="videoTitle"></p>';
         }
-        // Clear and hide thumbnail container completely
         const thumbnailContainer = document.querySelector(".thumbnail-container");
         if (thumbnailContainer) {
           thumbnailContainer.innerHTML = '';
@@ -551,22 +546,18 @@
       
       function displayVideoPresence(data) {
         lastHeartbeatReceived = Date.now();
-        // Switching to video mode: reset browsing and offline flags
         isBrowsing = false;
         if (offlineIndicatorElement) {
           offlineIndicatorElement.classList.remove("visible");
           isOffline = false;
         }
-        // Hide the browsing elapsed timer
         if (timeElapsedContainer) {
           timeElapsedContainer.style.display = "none";
         }
-        // Ensure thumbnail container is visible
         const thumbnailContainer = document.querySelector(".thumbnail-container");
         if (thumbnailContainer) {
           thumbnailContainer.style.display = "block";
         }
-        // If the video data is unchanged, update progress only
         if (data.title === currentVideoTitle && data.thumbnail === currentVideoThumbnail) {
           handleRealTimeProgress(data);
           return;
@@ -628,7 +619,6 @@
           isOffline = false;
         }
         log("Updating browsing presence...");
-        // Initialize browsing mode only once
         if (!isBrowsing) {
           currentVideoTitle = "";
           currentVideoThumbnail = "";
@@ -638,7 +628,6 @@
             thumbImg.src = "https://www.youtube.com/img/desktop/yt_1200.png";
             thumbImg.style.display = "block";
           }
-          // Also ensure the thumbnail container is visible
           const thumbnailContainer = document.querySelector(".thumbnail-container");
           if (thumbnailContainer) {
             thumbnailContainer.style.display = "block";
@@ -710,7 +699,6 @@
         }
       });
       
-      // Heartbeat check (15-second threshold) for immediate offline marking
       setInterval(function () {
         if (!isBuffering && Date.now() - lastHeartbeatReceived > 15000) {
           if (!isOffline) {
