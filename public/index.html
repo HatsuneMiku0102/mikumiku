@@ -144,7 +144,7 @@
                 <span id="pauseIndicator" class="indicator paused">Paused</span>
               </div>
             </div>
-            <!-- Offline indicator element -->
+            <!-- Offline indicator -->
             <div id="offline-indicator" class="offline-indicator">
               <i class="fas fa-signal-slash"></i> I’m currently offline
             </div>
@@ -207,10 +207,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="haru.js"></script>
     <script src="clockwork.js"></script>
-    <!-- Initialization -->
+    <!-- Initialization Scripts -->
     <script>
       document.addEventListener("DOMContentLoaded", function () {
-        // Add page load animation class
+        // Page load animation
         document.getElementById("pageContainer").classList.add("loaded");
 
         // Title bar scroll effect
@@ -221,7 +221,7 @@
           });
         }
 
-        // Menu button and overlay handling
+        // Menu and overlay handling
         const menuButton = document.getElementById("menuButton");
         const overlayMenu = document.getElementById("overlayMenu");
         const closeOverlay = document.getElementById("closeOverlay");
@@ -246,7 +246,7 @@
           }
         });
 
-        // Personality buttons handling
+        // Personality button handling
         const personalityButtons = document.querySelectorAll(".personality-button");
         const siteTitle = document.querySelector(".site-title");
         if (personalityButtons.length && siteTitle) {
@@ -440,7 +440,7 @@
         let isBuffering = false;
         const log = (message) => console.log(`[Haru.js] ${message}`);
 
-        // Restore browsing state if present in localStorage
+        // Restore browsing state from localStorage if available
         if (localStorage.getItem("browsingStartTime")) {
           browsingStartTime = parseInt(localStorage.getItem("browsingStartTime"));
           isBrowsing = true;
@@ -484,7 +484,7 @@
             timeElapsedContainer.innerHTML = `<i class="fas fa-clock"></i> ${formatElapsedTime(elapsedSec)}`;
           }
         }
-        // Helper to restore YouTube section elements (except offline indicator)
+        // Helper to restore YouTube section elements (hide offline indicator)
         function restoreYoutubeSection() {
           const ytSection = document.getElementById("youtubeSection");
           if (ytSection) {
@@ -501,6 +501,7 @@
         function clearDisplay() {
           if (isBuffering) return;
           if (nowPlayingBox) nowPlayingBox.classList.add("offline");
+          // Hide all YouTube section children except the offline indicator
           const ytSection = document.getElementById("youtubeSection");
           if (ytSection) {
             Array.from(ytSection.children).forEach(child => {
@@ -509,14 +510,17 @@
               }
             });
           }
+          // Show offline indicator with glow
           if (offlineIndicatorElement) {
             offlineIndicatorElement.style.display = "block";
             offlineIndicatorElement.classList.add("visible");
           }
+          // Clear title container
           const videoTitleContainer = document.querySelector(".video-title-container");
           if (videoTitleContainer) {
             videoTitleContainer.innerHTML = '<h2>Currently Playing</h2><p id="videoTitle"></p>';
           }
+          // Hide thumbnail container (do not remove the image element)
           const thumbnailContainer = document.querySelector(".thumbnail-container");
           if (thumbnailContainer) {
             thumbnailContainer.style.display = "none";
@@ -592,6 +596,7 @@
           isBrowsing = false;
           if (offlineIndicatorElement) {
             offlineIndicatorElement.classList.remove("visible");
+            offlineIndicatorElement.style.display = "none";
             isOffline = false;
           }
           if (timeElapsedContainer) timeElapsedContainer.style.display = "none";
@@ -636,7 +641,10 @@
               youtubeSection.classList.add("fade-in");
             }
             if (nowPlayingBox) nowPlayingBox.classList.remove("offline");
-            if (offlineIndicatorElement) offlineIndicatorElement.classList.remove("visible");
+            if (offlineIndicatorElement) {
+              offlineIndicatorElement.classList.remove("visible");
+              offlineIndicatorElement.style.display = "none";
+            }
             if (bufferOverlay) bufferOverlay.classList.remove("active");
             isBuffering = false;
             log("Video presence updated in UI.");
@@ -650,6 +658,7 @@
           if (nowPlayingBox) nowPlayingBox.classList.remove("offline");
           if (offlineIndicatorElement) {
             offlineIndicatorElement.classList.remove("visible");
+            offlineIndicatorElement.style.display = "none";
             isOffline = false;
           }
           log("Updating browsing presence...");
@@ -702,8 +711,6 @@
         }
         // Socket initialization and heartbeat check
         const socket = io("https://mikumiku.dev");
-        let lastHeartbeatReceived = Date.now();
-        let isSessionExpired = false;
         socket.on("connect", function () {
           log("Connected to server via Socket.IO.");
           isSessionExpired = false;
@@ -740,7 +747,10 @@
             if (!isOffline) {
               log("No heartbeat received in 15 seconds. Marking as offline.");
               isOffline = true;
-              if (offlineIndicatorElement) offlineIndicatorElement.classList.add("visible");
+              if (offlineIndicatorElement) {
+                offlineIndicatorElement.classList.add("visible");
+                offlineIndicatorElement.style.display = "block";
+              }
             }
             clearDisplay();
           }
@@ -855,7 +865,7 @@
               phraseCounters[i] = 180;
               dropIncrement = speeds[i] * 0.2;
             } else {
-              if (Math.random() < 0.1) { 
+              if (Math.random() < 0.1) {
                 currentDigits[i] = binaryChars.charAt(Math.floor(Math.random() * binaryChars.length));
               }
               text = currentDigits[i];
