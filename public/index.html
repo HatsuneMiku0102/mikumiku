@@ -4,16 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Miku.dev | Home</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -92,28 +84,16 @@
         <div id="nowPlayingBox" class="grid-container">
           <div id="videoInfo">
             <div class="video-info-details">
-              <div class="info-item">
-                <i class="fas fa-tv"></i> <span id="channelName">Loading...</span>
-              </div>
-              <div class="info-item">
-                <i class="fas fa-eye"></i> <span id="viewCount">Loading...</span>
-              </div>
-              <div class="info-item">
-                <i class="fas fa-thumbs-up"></i> <span id="likeCount">Loading...</span>
-              </div>
-              <div class="info-item">
-                <i class="fas fa-calendar-day"></i> <span id="publishedDate">Loading...</span>
-              </div>
-              <div class="info-item video-category">
-                <i class="fas fa-tag"></i> <span id="videoCategory">Loading...</span>
-              </div>
+              <div class="info-item"><i class="fas fa-tv"></i> <span id="channelName">Loading...</span></div>
+              <div class="info-item"><i class="fas fa-eye"></i> <span id="viewCount">Loading...</span></div>
+              <div class="info-item"><i class="fas fa-thumbs-up"></i> <span id="likeCount">Loading...</span></div>
+              <div class="info-item"><i class="fas fa-calendar-day"></i> <span id="publishedDate">Loading...</span></div>
+              <div class="info-item video-category"><i class="fas fa-tag"></i> <span id="videoCategory">Loading...</span></div>
             </div>
           </div>
           <div id="timeInfo">
             <section class="clock-section">
-              <p id="greeting" class="greeting">
-                <i class="fas fa-sun"></i> <span id="greeting-text">Good Morning!</span>
-              </p>
+              <p id="greeting" class="greeting"><i class="fas fa-sun"></i> <span id="greeting-text">Good Morning!</span></p>
               <div class="clocks-container">
                 <div class="digital-clock">
                   <p id="local-time"><i class="fas fa-clock"></i> 00:03:56</p>
@@ -122,9 +102,7 @@
                   <p id="time-zone"><i class="fas fa-globe"></i> UTC</p>
                 </div>
               </div>
-              <p id="last-visit-message" class="last-visit-message">
-                <i class="fas fa-history"></i> Welcome back!
-              </p>
+              <p id="last-visit-message" class="last-visit-message"><i class="fas fa-history"></i> Welcome back!</p>
             </section>
           </div>
           <div id="youtubeSection">
@@ -162,18 +140,10 @@
           <div id="weatherSection">
             <aside class="weather-section">
               <img id="weather-icon" src="" alt="Weather Icon" class="weather-icon" loading="lazy" />
-              <p id="weather-description" class="weather-description">
-                <i class="fas fa-cloud-sun"></i> Loading...
-              </p>
-              <p id="temperature" class="temperature">
-                <i class="fas fa-temperature-high"></i> --°C
-              </p>
-              <p id="humidity" class="humidity">
-                <i class="fas fa-tint"></i> Humidity: --%
-              </p>
-              <p id="wind-speed" class="wind-speed">
-                <i class="fas fa-wind"></i> Wind: -- m/s
-              </p>
+              <p id="weather-description" class="weather-description"><i class="fas fa-cloud-sun"></i> Loading...</p>
+              <p id="temperature" class="temperature"><i class="fas fa-temperature-high"></i> --°C</p>
+              <p id="humidity" class="humidity"><i class="fas fa-tint"></i> Humidity: --%</p>
+              <p id="wind-speed" class="wind-speed"><i class="fas fa-wind"></i> Wind: -- m/s</p>
             </aside>
           </div>
         </div>
@@ -210,7 +180,7 @@
     <!-- Initialization Scripts -->
     <script>
       document.addEventListener("DOMContentLoaded", function () {
-        // Page load animation
+        // Add page load animation
         document.getElementById("pageContainer").classList.add("loaded");
 
         // Title bar scroll effect
@@ -246,7 +216,7 @@
           }
         });
 
-        // Personality button handling
+        // Personality buttons
         const personalityButtons = document.querySelectorAll(".personality-button");
         const siteTitle = document.querySelector(".site-title");
         if (personalityButtons.length && siteTitle) {
@@ -440,10 +410,21 @@
         let isBuffering = false;
         const log = (message) => console.log(`[Haru.js] ${message}`);
 
-        // Restore browsing state from localStorage if available
+        // If browsing state was stored, restore it and render browsing presence immediately
         if (localStorage.getItem("browsingStartTime")) {
           browsingStartTime = parseInt(localStorage.getItem("browsingStartTime"));
           isBrowsing = true;
+          // Call displayBrowsingPresence with default browsing data
+          displayBrowsingPresence({
+            presenceType: "browsing",
+            title: "Browsing YouTube",
+            description: "Browsing videos on YouTube",
+            channelTitle: "Browsing...",
+            viewCount: "",
+            likeCount: "",
+            publishedAt: "",
+            category: ""
+          });
         }
 
         // DOM references
@@ -463,7 +444,7 @@
         const youtubeSection = document.getElementById("youtubeSection");
         const bufferOverlay = document.getElementById("bufferOverlay");
 
-        // Format helpers
+        // Helper functions
         function formatNumber(number) {
           if (typeof number === "string") number = number.replace(/,/g, "");
           const num = Number(number);
@@ -484,7 +465,7 @@
             timeElapsedContainer.innerHTML = `<i class="fas fa-clock"></i> ${formatElapsedTime(elapsedSec)}`;
           }
         }
-        // Helper to restore YouTube section elements (hide offline indicator)
+        // Restore YouTube section elements (hide offline indicator)
         function restoreYoutubeSection() {
           const ytSection = document.getElementById("youtubeSection");
           if (ytSection) {
@@ -497,11 +478,10 @@
             });
           }
         }
-        // clearDisplay() hides all YouTube elements and shows the glowing offline message
+        // Clear display for offline: hide all YouTube elements and show offline indicator
         function clearDisplay() {
           if (isBuffering) return;
           if (nowPlayingBox) nowPlayingBox.classList.add("offline");
-          // Hide all YouTube section children except the offline indicator
           const ytSection = document.getElementById("youtubeSection");
           if (ytSection) {
             Array.from(ytSection.children).forEach(child => {
@@ -510,17 +490,14 @@
               }
             });
           }
-          // Show offline indicator with glow
           if (offlineIndicatorElement) {
             offlineIndicatorElement.style.display = "block";
             offlineIndicatorElement.classList.add("visible");
           }
-          // Clear title container
           const videoTitleContainer = document.querySelector(".video-title-container");
           if (videoTitleContainer) {
             videoTitleContainer.innerHTML = '<h2>Currently Playing</h2><p id="videoTitle"></p>';
           }
-          // Hide thumbnail container (do not remove the image element)
           const thumbnailContainer = document.querySelector(".thumbnail-container");
           if (thumbnailContainer) {
             thumbnailContainer.style.display = "none";
@@ -569,7 +546,7 @@
             videoTitleElement.classList.remove("playing");
           }
         }
-        // Cloning-based animation functions
+        // Animation functions for title and thumbnail (cloning method)
         function animateTitle(text) {
           const oldTitle = document.getElementById("videoTitle");
           if (!oldTitle) return;
@@ -757,7 +734,7 @@
         }, 5000);
       });
     </script>
-    <!-- Clocks, Weather, and Matrix Scripts -->
+    <!-- Clocks Script -->
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         function updateClocks() {
@@ -776,6 +753,7 @@
         updateClocks();
       });
     </script>
+    <!-- Weather Script -->
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         async function fetchWeather() {
@@ -813,6 +791,7 @@
         fetchWeather();
       });
     </script>
+    <!-- Matrix Script -->
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         const canvas = document.getElementById("soundWaveCanvas");
