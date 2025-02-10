@@ -475,92 +475,28 @@ body {
   border-radius: 8px;
 }
 
-.offline-indicator {
-  animation: offlineGlow 2s ease-in-out infinite;
+/* The progress container remains in its original location.
+   The indicator container has been removed from flex layout.
+   Instead, we reposition the indicators to overlap within the description area. */
+.description-and-time {
+  position: relative;
+}
+
+.indicator-container {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(0,0,0,0.8);
-  padding: 1rem 2rem;
-  border-radius: var(--border-radius);
-  color: #ffffff;
-  font-size: 1.2rem;
-  text-align: center;
-  z-index: 10;
-  display: none;
-}
-
-@keyframes offlineGlow {
-  0% { box-shadow: 0 0 5px rgba(255,64,129,0.5); }
-  50% { box-shadow: 0 0 15px rgba(255,64,129,1); }
-  100% { box-shadow: 0 0 5px rgba(255,64,129,0.5); }
-}
-
-.progress-container {
-  margin-top: 1rem;
-}
-
-.progress-bar-container {
-  position: relative;
-  width: 100%;
-  height: 12px;
-  background: #111;
-  border: 1px solid #333;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 0 10px rgba(0,198,255,0.5);
-}
-
-.progress-bar {
-  position: relative;
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #00c6ff, #ff4081, #00c6ff);
-  background-size: 300% 100%;
-  border-radius: 10px;
-  animation: futuristicGradient 2.5s linear infinite;
-  box-shadow: 0 0 20px rgba(0,198,255,0.7), 0 0 20px rgba(255,64,129,0.7);
-  transition: width 0.5s ease-out;
-}
-
-@keyframes futuristicGradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.progress-bar::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 20px;
-  height: 100%;
-  background: rgba(255,255,255,0.4);
-  clip-path: polygon(0 0, 100% 50%, 0 100%);
-  box-shadow: 0 0 10px rgba(255,255,255,0.6);
-  animation: arrowShine 2s ease-in-out infinite;
-}
-
-@keyframes arrowShine {
-  0% { transform: translateX(-100%); opacity: 0; }
-  50% { opacity: 1; }
-  100% { transform: translateX(100%); opacity: 0; }
-}
-
-.indicator-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 3rem;
-  margin-top: 0.5rem;
-  text-align: center;
+  width: auto;
+  pointer-events: none;
 }
 
 .indicator {
-  display: inline-block;
-  position: relative;
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   padding: 0.75rem 1.25rem;
   font-size: 1.2rem;
   font-weight: bold;
@@ -579,7 +515,7 @@ body {
   background: linear-gradient(90deg, #ff0000, #ff7373);
   box-shadow: 0 0 8px rgba(255, 0, 0, 0.8);
   text-shadow: 0 0 8px rgba(255, 0, 0, 0.8);
-  margin-left: 15px;
+  /* No extra margin now so that live and paused overlap */
 }
 
 .indicator.live::after {
@@ -614,7 +550,8 @@ body {
 
 .indicator.paused {
   background: linear-gradient(90deg, #ff4081, #ff73a0);
-  box-shadow: 0 0 8px rgba(255,64,129,0.8);
+  box-shadow: 0 0 8px rgba(255, 64, 129, 0.8);
+  /* Overlap with live indicator */
 }
 
 .toggle-description {
@@ -628,6 +565,8 @@ body {
   margin: 1rem auto;
   font-size: 1rem;
   transition: background-color 0.25s ease, transform 0.25s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .toggle-description:hover {
@@ -1067,8 +1006,8 @@ a, button {
     font-size: 1rem;
   }
   .weather-icon {
-    width: 100px;
-    height: 100px;
+    width: 120px;
+    height: 120px;
   }
   .last-visit-message {
     font-size: 0.95rem;
@@ -1110,8 +1049,8 @@ a, button {
     font-size: 0.9rem;
   }
   .weather-icon {
-    width: 100px;
-    height: 100px;
+    width: 120px;
+    height: 120px;
   }
   .last-visit-message {
     font-size: 0.85rem;
@@ -1129,8 +1068,8 @@ a, button {
   max-width: 300px;
 }
 .weather-section img.weather-icon {
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
   margin: 0 auto 15px;
   display: block;
   animation: weatherFloat 6s ease-in-out infinite;
@@ -1200,8 +1139,8 @@ a, button {
   100% { transform: translateY(0) scale(1); }
 }
 .weather-icon {
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
   margin-bottom: var(--padding-base);
   animation: weatherFloat 6s ease-in-out infinite;
 }
