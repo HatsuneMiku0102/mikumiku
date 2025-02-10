@@ -340,6 +340,11 @@ body {
   background: transparent;
 }
 
+/* Ensure nowPlayingBox is positioned relative for absolute positioning of indicators */
+#nowPlayingBox {
+  position: relative;
+}
+
 .grid-container {
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
@@ -364,10 +369,16 @@ body {
   border-bottom: 1px solid rgba(255,255,255,0.3);
 }
 
-/* Time Info Section */
+/* Time Info Section (Date / Welcome Back Box) */
 #timeInfo {
   grid-area: timeInfo;
   border-right: 1px solid rgba(255,255,255,0.3);
+  background: rgba(0,0,0,0.05);
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
 }
 
 /* YouTube Section */
@@ -377,7 +388,7 @@ body {
   position: relative;
 }
 
-/* Thumbnail Container – ensure it is positioned relative */
+/* Thumbnail Container */
 .thumbnail-container {
   position: relative;
   text-align: center;
@@ -392,18 +403,14 @@ body {
   margin: 0 auto;
 }
 
-/* Overlapping Live/Paused Indicators – centered over the thumbnail */
-.thumbnail-container .indicator-container {
+/* Overlapping Live/Paused Indicators – now centered relative to nowPlayingBox */
+#nowPlayingBox .indicator-container {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transform: translate(-50%, -50%);
   pointer-events: none;
-  z-index: 10;
+  z-index: 20;
 }
 .indicator {
   position: relative;
@@ -567,7 +574,7 @@ body {
   animation: titleChange 0.8s ease-out;
 }
 @keyframes titlePlaying {
-  0%, 100% { text-shadow: 0 0 5px rgba(0,198,255,0,8); }
+  0%, 100% { text-shadow: 0 0 5px rgba(0,198,255,0.8); }
   50% { text-shadow: 0 0 7px rgba(0,198,255,0.8); }
 }
 #videoTitle.playing {
@@ -1000,13 +1007,11 @@ a, button {
 .weather-section i {
   margin-right: 6px;
 }
-
 @keyframes weatherFloat {
   0% { transform: translateY(0) scale(1); }
   50% { transform: translateY(-10px) scale(1.1); }
   100% { transform: translateY(0) scale(1); }
 }
-
 @keyframes slideInTitle {
   0% { opacity: 0; transform: translateY(-20px); }
   100% { opacity: 1; transform: translateY(0); }
@@ -1014,7 +1019,6 @@ a, button {
 .new-video-title {
   animation: slideInTitle 0.8s ease-out forwards;
 }
-
 @keyframes slideInThumbnail {
   0% { opacity: 0; transform: translateY(20px) scale(0.95); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
@@ -1023,7 +1027,6 @@ a, button {
   animation: slideInThumbnail 0.8s ease-out forwards;
   animation-delay: 0.3s;
 }
-
 .fade-in-image {
   animation: fadeInImage 0.8s ease-in-out forwards;
 }
@@ -1031,7 +1034,6 @@ a, button {
   0% { opacity: 0; transform: translateY(-10px); }
   100% { opacity: 1; transform: translateY(0); }
 }
-
 .fade-in-box {
   animation: fadeInBox 0.8s ease-in-out forwards;
 }
@@ -1039,7 +1041,6 @@ a, button {
   0% { opacity: 0; transform: translateY(-10px); }
   100% { opacity: 1; transform: translateY(0); }
 }
-
 .fade-in-video {
   animation: fadeInVideo 0.8s ease-in-out forwards;
 }
@@ -1048,7 +1049,6 @@ a, button {
   50% { opacity: 0.5; transform: scale(1.02); }
   100% { opacity: 1; transform: scale(1); }
 }
-
 .fade-out {
   animation: fadeOut 0.5s ease forwards;
 }
@@ -1056,8 +1056,6 @@ a, button {
   from { opacity: 1; }
   to { opacity: 0; }
 }
-
-/* Buffer Overlay */
 .buffer-overlay {
   position: absolute;
   top: 0;
