@@ -26,11 +26,7 @@
             <a href="/" aria-label="Home" class="logo-link">
               <span class="site-title">Miku.dev</span>
               <div class="visualizer-wrapper">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 150 100"
-                  class="visualizer"
-                >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 100" class="visualizer">
                   <g>
                     <rect x="10" y="70" width="15" height="30" fill="#00c6ff">
                       <animate attributeName="height" values="30;60;30" dur="0.8s" repeatCount="indefinite" />
@@ -151,6 +147,11 @@
                 <div class="progress-bar-container">
                   <div id="progressBar" class="progress-bar"></div>
                 </div>
+                <!-- The indicator container is now moved here so it appears directly below the progress bar -->
+                <div class="indicator-container">
+                  <span id="liveIndicator" class="indicator live">Live</span>
+                  <span id="pauseIndicator" class="indicator paused">Paused</span>
+                </div>
                 <div id="timeElapsedContainer" class="time-elapsed" style="display: none;"></div>
               </div>
               <div id="offline-indicator" class="offline-indicator">
@@ -183,11 +184,6 @@
                 </p>
               </aside>
             </div>
-          </div>
-          <!-- Indicator container placed outside the grid to be centered over nowPlayingBox -->
-          <div class="indicator-container">
-            <span id="liveIndicator" class="indicator live">Live</span>
-            <span id="pauseIndicator" class="indicator paused">Paused</span>
           </div>
         </div>
         <div id="bufferOverlay" class="buffer-overlay">Buffering...</div>
@@ -466,6 +462,24 @@
     </script>
     <script>
       document.addEventListener("DOMContentLoaded", function() {
+        // Restore stored video info on page load if available
+        const storedTitle = localStorage.getItem("currentVideoTitle");
+        const storedThumbnail = localStorage.getItem("currentVideoThumbnail");
+        if(storedTitle) {
+          const videoTitleElement = document.getElementById("videoTitle");
+          if(videoTitleElement) videoTitleElement.textContent = storedTitle;
+        }
+        if(storedThumbnail) {
+          const videoThumbnailImage = document.getElementById("videoThumbnailImage");
+          if(videoThumbnailImage) {
+            videoThumbnailImage.src = storedThumbnail;
+            videoThumbnailImage.style.display = "block";
+          }
+        }
+      });
+    </script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
         let nowPlayingBox = document.getElementById("nowPlayingBox");
         let videoTitleElement = document.getElementById("videoTitle");
         let videoThumbnailImage = document.getElementById("videoThumbnailImage");
@@ -490,8 +504,7 @@
         let isBuffering = false;
         let lastHeartbeatReceived = Date.now();
         let isSessionExpired = false;
-        const log = (message) =>
-          console.log(`[Haru.js] ${message}`);
+        const log = (message) => console.log(`[Haru.js] ${message}`);
         function formatNumber(number) {
           if (typeof number === "string")
             number = number.replace(/,/g, "");
@@ -597,6 +610,7 @@
           void newTitle.offsetWidth;
           newTitle.classList.add("new-video-title");
           oldTitle.parentNode.replaceChild(newTitle, oldTitle);
+          localStorage.setItem("currentVideoTitle", text);
         }
         function animateThumbnail(src) {
           const oldThumb = document.getElementById("videoThumbnailImage");
@@ -608,6 +622,7 @@
           void newThumb.offsetWidth;
           newThumb.classList.add("new-video-thumbnail");
           oldThumb.parentNode.replaceChild(newThumb, oldThumb);
+          localStorage.setItem("currentVideoThumbnail", src);
         }
         function displayVideoPresence(data) {
           lastHeartbeatReceived = Date.now();
