@@ -374,7 +374,7 @@ body {
 #youtubeSection {
   grid-area: youtubeSection;
   border-right: 1px solid rgba(255,255,255,0.3);
-  position: relative; /* For indicator positioning if needed */
+  position: relative;
 }
 
 /* Thumbnail Container – ensure it is positioned relative */
@@ -392,86 +392,60 @@ body {
   margin: 0 auto;
 }
 
-/* Weather Section */
-#weatherSection {
-  grid-area: weatherSection;
-  border-bottom: 1px solid rgba(255,255,255,0.3);
-}
-
-/* Map Section */
-#mapSection {
-  grid-area: mapSection;
-  background: rgba(0,0,0,0.05);
-  padding: 1rem;
-  border-radius: 8px;
-  height: 400px;
-  text-align: center;
-  position: relative;
-  z-index: 1;
-}
-#map {
+/* Overlapping Live/Paused Indicators – centered over the thumbnail */
+.thumbnail-container .indicator-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 100%;
   height: 100%;
-  border-radius: var(--border-radius);
-}
-
-/* Video Info Details */
-.video-info-details {
-  background: rgba(0,0,0,0.05);
-  padding: 1rem;
-  border-radius: 8px;
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
 }
-.video-info-details .info-item {
-  padding: 0.5rem;
-  background: rgba(255,255,255,0.1);
-  border-radius: 4px;
-  transition: background 0.3s ease;
-}
-.video-info-details .info-item:hover {
-  background: rgba(255,255,255,0.2);
-}
-
-/* Time Section */
-#timeInfo {
-  background: rgba(0,0,0,0.05);
-  padding: 1rem;
-  border-radius: 8px;
-  text-align: center;
+.indicator {
   position: relative;
-  overflow: hidden;
-}
-.clock-section {
-  background: linear-gradient(135deg, rgba(0,0,0,0.6), rgba(0,0,0,0.3));
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: var(--border-radius);
-  padding: 1rem;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.8);
-}
-.clock-section .greeting {
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-  text-shadow: 0 0 5px rgba(0,0,0,0.7);
-}
-.digital-clock p {
-  font-size: 1.3rem;
-  margin: 0.2rem 0;
-  text-shadow: 0 0 3px rgba(0,0,0,0.7);
-}
-.last-visit-message {
+  padding: 0.75rem 1.25rem;
   font-size: 1.2rem;
-  font-style: italic;
-  margin-top: 0.5rem;
-  text-shadow: 0 0 3px rgba(0,0,0,0.7);
+  font-weight: bold;
+  border-radius: 12px;
+  text-transform: uppercase;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
-
-/* YouTube Section Additional – Video Title */
-#youtubeSection .video-title-container h2 {
-  margin-bottom: 0.5rem;
-  font-size: 1.5rem;
+.indicator.active {
+  opacity: 1;
+}
+.indicator.live {
+  background: linear-gradient(90deg, #ff0000, #ff7373);
+  box-shadow: 0 0 8px rgba(255, 0, 0, 0.8);
+  text-shadow: 0 0 8px rgba(255, 0, 0, 0.8);
+}
+.indicator.live::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120%;
+  height: 120%;
+  border: 2px solid rgba(255, 0, 0, 0.5);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 0.8;
+  animation: pulseRadiowave 2.5s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes pulseRadiowave {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+  50% { transform: translate(-50%, -50%) scale(1.4); opacity: 0.4; }
+  100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+}
+.indicator.paused {
+  background: linear-gradient(90deg, #ff4081, #ff73a0);
+  box-shadow: 0 0 8px rgba(255, 64, 129, 0.8);
 }
 
 /* Progress Bar */
@@ -522,59 +496,17 @@ body {
   100% { transform: translateX(100%); opacity: 0; }
 }
 
-/* Overlapping Live/Paused Indicators – ensure they are centered over the thumbnail */
-.thumbnail-container .indicator-container {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 10;
-  pointer-events: none;
-}
-.indicator {
-  position: relative;
-  padding: 0.75rem 1.25rem;
-  font-size: 1.2rem;
-  font-weight: bold;
-  border-radius: 12px;
-  text-transform: uppercase;
-  color: #fff;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-.indicator.active {
-  opacity: 1;
-}
-.indicator.live {
-  background: linear-gradient(90deg, #ff0000, #ff7373);
-  box-shadow: 0 0 8px rgba(255, 0, 0, 0.8);
-  text-shadow: 0 0 8px rgba(255, 0, 0, 0.8);
-}
-.indicator.live::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 120%;
-  height: 120%;
-  border: 2px solid rgba(255, 0, 0, 0.5);
-  border-radius: 50%;
-  transform: translate(-50%, -50%) scale(1);
-  opacity: 0.8;
-  animation: pulseRadiowave 2.5s ease-out infinite;
-  pointer-events: none;
-}
-@keyframes pulseRadiowave {
-  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
-  50% { transform: translate(-50%, -50%) scale(1.4); opacity: 0.4; }
-  100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
-}
-.indicator.paused {
-  background: linear-gradient(90deg, #ff4081, #ff73a0);
-  box-shadow: 0 0 8px rgba(255, 64, 129, 0.8);
+/* Browsing Time Elapsed – centered under the progress bar */
+.time-elapsed {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 1rem;
 }
 
-/* Toggle Description Button */
+/* Description Area & Toggle Button */
+.description-and-time {
+  position: relative;
+}
 .toggle-description {
   background: var(--primary-color);
   border: none;
@@ -635,7 +567,7 @@ body {
   animation: titleChange 0.8s ease-out;
 }
 @keyframes titlePlaying {
-  0%, 100% { text-shadow: 0 0 5px rgba(0,198,255,0.8); }
+  0%, 100% { text-shadow: 0 0 5px rgba(0,198,255,0,8); }
   50% { text-shadow: 0 0 7px rgba(0,198,255,0.8); }
 }
 #videoTitle.playing {
