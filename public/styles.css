@@ -345,7 +345,7 @@ body {
   position: relative;
 }
 
-/* Grid Layout for the main content */
+/* Grid Layout for main content */
 .grid-container {
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
@@ -363,7 +363,7 @@ body {
   position: relative;
 }
 
-/* Video Info Section – each info-item as a card */
+/* Video Info Section – styled as cards */
 #videoInfo {
   grid-area: videoInfo;
   border-right: 1px solid rgba(255,255,255,0.3);
@@ -375,18 +375,19 @@ body {
   gap: 0.5rem;
 }
 .video-info-details .info-item {
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
   padding: 0.5rem;
+  margin-bottom: 0.5rem;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 .video-info-details .info-item:hover {
   transform: scale(1.02);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
 }
 
-/* Time Info Section (Date/Time/Welcome Back Box) styled as a card */
+/* Time Info Section – styled as a card */
 #timeInfo {
   grid-area: timeInfo;
   border-right: 1px solid rgba(255,255,255,0.3);
@@ -410,6 +411,38 @@ body {
   position: relative;
 }
 
+.video-title-container {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+#videoTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  text-shadow: 0 0 5px rgba(0,198,255,0.8);
+  letter-spacing: 0.05rem;
+  margin: 0.5rem 0;
+  transition: color 0.25s ease;
+}
+#videoTitle:hover {
+  color: var(--secondary-color);
+  text-shadow: 0 0 8px var(--secondary-color);
+}
+@keyframes titleChange {
+  0% { opacity: 0; transform: translateY(-20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+#videoTitle.video-title-changed {
+  animation: titleChange 0.8s ease-out;
+}
+@keyframes titlePlaying {
+  0%, 100% { text-shadow: 0 0 5px rgba(0,198,255,0.8); }
+  50% { text-shadow: 0 0 7px rgba(0,198,255,0.8); }
+}
+#videoTitle.playing {
+  animation: titlePlaying 4s infinite ease-in-out;
+}
+
 /* Thumbnail Container */
 .thumbnail-container {
   position: relative;
@@ -425,60 +458,7 @@ body {
   margin: 0 auto;
 }
 
-/* Overlapping Indicators – now centered relative to nowPlayingBox */
-#nowPlayingBox .indicator-container {
-  position: absolute;
-  top: 100%; 
-  left: 50%;
-  transform: translateX(-50%);
-  pointer-events: none;
-  z-index: 20;
-}
-
-.indicator {
-  position: relative;
-  padding: 0.75rem 1.25rem;
-  font-size: 1.2rem;
-  font-weight: bold;
-  border-radius: 12px;
-  text-transform: uppercase;
-  color: #fff;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-.indicator.active {
-  opacity: 1;
-}
-.indicator.live {
-  background: linear-gradient(90deg, #ff0000, #ff7373);
-  box-shadow: 0 0 8px rgba(255, 0, 0, 0.8);
-  text-shadow: 0 0 8px rgba(255, 0, 0, 0.8);
-}
-.indicator.live::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 120%;
-  height: 120%;
-  border: 2px solid rgba(255, 0, 0, 0.5);
-  border-radius: 50%;
-  transform: translate(-50%, -50%) scale(1);
-  opacity: 0.8;
-  animation: pulseRadiowave 2.5s ease-out infinite;
-  pointer-events: none;
-}
-@keyframes pulseRadiowave {
-  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
-  50% { transform: translate(-50%, -50%) scale(1.4); opacity: 0.4; }
-  100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
-}
-.indicator.paused {
-  background: linear-gradient(90deg, #ff4081, #ff73a0);
-  box-shadow: 0 0 8px rgba(255, 64, 129, 0.8);
-}
-
-/* Progress Bar */
+/* Progress Container and Indicator Container positioned below the progress bar */
 .progress-container {
   margin-top: 1rem;
 }
@@ -526,7 +506,16 @@ body {
   100% { transform: translateX(100%); opacity: 0; }
 }
 
-/* Browsing Time Elapsed – centered under the progress bar */
+/* New indicator container styling: positioned below the progress bar */
+.progress-container .indicator-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+/* Time Elapsed */
 .time-elapsed {
   text-align: center;
   margin-top: 8px;
@@ -569,37 +558,40 @@ body {
   display: block;
 }
 
-/* Video Title */
-.video-title-container {
+/* Weather Section */
+#weatherSection {
+  grid-area: weatherSection;
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+}
+.weather-section {
+  background: rgba(0, 0, 0, 0.65);
+  padding: 20px;
+  border-radius: 10px;
   text-align: center;
-  margin-bottom: 1rem;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  margin: 20px auto;
+  max-width: 300px;
 }
-#videoTitle {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--primary-color);
-  text-shadow: 0 0 5px rgba(0,198,255,0.8);
-  letter-spacing: 0.05rem;
-  margin: 0.5rem 0;
-  transition: color 0.25s ease;
+.weather-section img.weather-icon {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 15px;
+  display: block;
+  animation: weatherFloat 6s ease-in-out infinite;
 }
-#videoTitle:hover {
-  color: var(--secondary-color);
-  text-shadow: 0 0 8px var(--secondary-color);
+.weather-section p {
+  font-family: 'Roboto', sans-serif;
+  font-size: 1rem;
+  margin: 8px 0;
 }
-@keyframes titleChange {
-  0% { opacity: 0; transform: translateY(-20px); }
-  100% { opacity: 1; transform: translateY(0); }
+.weather-section i {
+  margin-right: 6px;
 }
-#videoTitle.video-title-changed {
-  animation: titleChange 0.8s ease-out;
-}
-@keyframes titlePlaying {
-  0%, 100% { text-shadow: 0 0 5px rgba(0,198,255,0.8); }
-  50% { text-shadow: 0 0 7px rgba(0,198,255,0.8); }
-}
-#videoTitle.playing {
-  animation: titlePlaying 4s infinite ease-in-out;
+@keyframes weatherFloat {
+  0% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-10px) scale(1.1); }
+  100% { transform: translateY(0) scale(1); }
 }
 
 /* About Section */
@@ -1097,34 +1089,3 @@ a, button {
 .buffer-overlay.active {
   opacity: 1;
 }
-
-/* New Card Hover Effects for YouTube Info and Time Info Boxes */
-
-/* Style each YouTube info-item as a card */
-.video-info-details .info-item {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  padding: 0.5rem;
-  margin-bottom: 0.5rem;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.video-info-details .info-item:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
-}
-
-/* Enhance the Time Info (clock-section) box */
-.clock-section {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  padding: 1rem;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.clock-section:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
-}
-
-/* End of CSS */
