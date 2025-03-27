@@ -117,28 +117,19 @@
       gap: 4px;
       justify-content: center;
     }
+    /* Vertical bar style */
     .timeline-block {
-      width: 14px;
-      height: 14px;
+      width: 4px;
+      height: 20px;
+      border-radius: 2px;
       position: relative;
       cursor: pointer;
-      border-radius: 2px;
-    }
-    .timeline-block::before {
-      content: "";
-      position: absolute;
-      top: 0; 
-      left: 0;
-      width: 100%;
-      height: 100%;
       background-color: inherit;
-      transform: rotate(45deg);
-      border-radius: 2px;
     }
-    /* Tooltip for timeline blocks */
+    /* Tooltip for timeline blocks (remains horizontal) */
     .timeline-block .tooltip {
       position: absolute;
-      bottom: 150%;
+      bottom: 125%;
       left: 50%;
       transform: translateX(-50%);
       background-color: rgba(0,0,0,0.75);
@@ -244,7 +235,6 @@
         }
       });
 
-      // Update chart
       function updateChart(countryData) {
         console.log('Updating chart with data:', countryData);
         const countries = countryData.map(item => item._id || 'Unknown');
@@ -254,7 +244,6 @@
         locationChart.update();
       }
 
-      // Fetch initial geo data
       fetch('/api/geo-data')
         .then(response => response.json())
         .then(data => {
@@ -263,7 +252,6 @@
         })
         .catch(error => console.error('Error fetching initial geo data:', error));
 
-      // Socket events
       socket.on('geoDataUpdate', (data) => {
         console.log('Received geoDataUpdate:', data);
         updateChart(data);
@@ -319,7 +307,6 @@
         });
       }
 
-      // Logout
       document.getElementById('logout').addEventListener('click', () => {
         console.log('Logout initiated.');
         fetch('/logout', { method: 'POST', credentials: 'include' })
@@ -363,7 +350,6 @@
       }
 
       // ===== PERSISTING TIMELINE DATA ======
-      const timelineContainer = document.getElementById('minuteTimeline');
       const TIMELINE_STORAGE_KEY = 'minuteTimelineData';
       let timelineData = JSON.parse(localStorage.getItem(TIMELINE_STORAGE_KEY)) || [];
       
@@ -380,7 +366,9 @@
       }
       
       // ===== MINUTE-BY-MINUTE TIMELINE ======
+      const timelineContainer = document.getElementById('minuteTimeline');
       const MAX_MINUTES = 60; // Keep up to 60 blocks
+      
       function createTimelineBlock(data) {
         const block = document.createElement('div');
         block.classList.add('timeline-block');
@@ -399,8 +387,16 @@
       }
       
       function addTimelineBlock(data) {
-        const timestamp = new Date().toLocaleTimeString();
-        const blockData = { ...data, timestamp };
+        const now = Date.now();
+        // Prevent duplicate block if last block was added within 60 seconds
+        if (timelineData.length > 0) {
+          const lastEntry = timelineData[timelineData.length - 1];
+          if (now - lastEntry.rawTimestamp < 60 * 1000) {
+            console.log('Duplicate update within 60 seconds; skipping block addition.');
+            return;
+          }
+        }
+        const blockData = { ...data, rawTimestamp: now, timestamp: new Date(now).toLocaleTimeString() };
         timelineData.push(blockData);
         if (timelineData.length > MAX_MINUTES) {
           timelineData.shift();
