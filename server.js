@@ -237,7 +237,8 @@ app.use(
         "https://cdn.socket.io",
         "https://mikumiku.dev",
         "https://api.mapbox.com",
-        "https://events.mapbox.com"
+        "https://events.mapbox.com",
+        "http://us-nyc02.pylex.xyz:8282"
       ],
       frameSrc: [
         "'self'",
@@ -259,6 +260,7 @@ app.use(
 );
 
 app.set('trust proxy', true);
+
 
 // Serve Static Files
 app.use(express.static(path.join(__dirname, 'public'), {
