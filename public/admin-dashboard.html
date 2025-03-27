@@ -117,12 +117,29 @@
       gap: 4px;
       justify-content: center;
     }
+    /* 
+      We use a pseudo-element to rotate the diamond,
+      so the tooltip remains horizontal.
+    */
     .timeline-block {
       width: 14px;
       height: 14px;
-      transform: rotate(45deg);
       position: relative;
       cursor: pointer;
+      border-radius: 2px;
+      /* The actual color will be inherited from the .timeline-block's backgroundColor,
+         but the shape is handled by ::before.
+      */
+    }
+    .timeline-block::before {
+      content: "";
+      position: absolute;
+      top: 0; 
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: inherit;
+      transform: rotate(45deg);
       border-radius: 2px;
     }
     /* Tooltip for timeline blocks */
@@ -330,15 +347,33 @@
       // Periodically check if the bot has gone silent
       setInterval(() => {
         if (Date.now() - lastUpdateTime > OFFLINE_TIMEOUT) {
-          markBotOffline();
+          markBotCompletelyOffline();
         }
       }, 5000);
 
-      function markBotOffline() {
+      function markBotCompletelyOffline() {
+        console.log('Bot timed out; marking offline.');
+        // Mark text status
         const statusLabel = document.getElementById('bot-status-text');
         statusLabel.textContent = 'Offline';
         statusLabel.classList.remove('online', 'high-latency');
         statusLabel.classList.add('offline');
+
+        // Reset vitals
+        document.getElementById('bot-name').innerText = 'N/A';
+        document.getElementById('bot-uptime').innerText = 'N/A';
+        document.getElementById('bot-latency').innerText = 'N/A';
+        document.getElementById('bot-memory').innerText = 'N/A';
+
+        // Add an offline diamond to the timeline
+        const offlineData = {
+          status: 'offline',
+          botName: 'N/A',
+          uptime: 'N/A',
+          latency: 'N/A',
+          memoryUsage: 'N/A'
+        };
+        addTimelineBlock(offlineData);
       }
 
       // ===== MINUTE-BY-MINUTE TIMELINE =====
