@@ -1456,19 +1456,23 @@ setInterval(() => {
 // Yes
 // -------------------
 
-// MongoDB connection settings.
-const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017"; // Set your MongoDB URI
-const dbName = "myfirstdatabase"; // Change this to your database name.
-const client = new MongoClient(mongoUri, { useUnifiedTopology: true });
+// Use the environment variable MONGO_URL for MongoDB connection.
+const mongoUrl = process.env.MONGO_URL;
+if (!mongoUrl) {
+  console.error("Error: MONGO_URL environment variable not set.");
+  process.exit(1);
+}
+const dbName = process.env.MONGO_DB_NAME || "mikumiku.dev"; // Change to your database name.
+const client = new MongoClient(mongoUrl, { useUnifiedTopology: true });
 let configCollection;
 
-// Connect to MongoDB and ensure the toggle document exists.
 async function connectToMongo() {
   try {
     await client.connect();
     const db = client.db(dbName);
     configCollection = db.collection("config");
-    // Check if the toggle document exists.
+    console.log("Connected to MongoDB.");
+    // Ensure the toggle document exists.
     let toggleDoc = await configCollection.findOne({ _id: "toggle" });
     if (!toggleDoc) {
       toggleDoc = { _id: "toggle", commands_enabled: true };
@@ -1483,14 +1487,18 @@ async function connectToMongo() {
 }
 connectToMongo();
 
-// Serve static files from the "public" folder (if needed).
 app.use(express.static('public'));
 
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
-  // Provide the current toggle state to the client.
+  // Provide the current toggle state.
   socket.on('getToggleState', async () => {
+    if (!configCollection) {
+      console.error(`configCollection is undefined for ${socket.id}`);
+      socket.emit('toggleState', { commands_enabled: true });
+      return;
+    }
     try {
       const toggleDoc = await configCollection.findOne({ _id: "toggle" });
       console.log(`Emitting toggleState to ${socket.id}:`, toggleDoc);
@@ -1501,13 +1509,17 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Update the toggle state.
   socket.on('toggleCommands', async (data) => {
     console.log(`Received toggleCommands from ${socket.id}:`, data);
     // Validate incoming data.
     if (typeof data.commands_enabled === 'undefined') {
       console.error(`Missing 'commands_enabled' property from ${socket.id}`);
       socket.emit('toggleResponse', { status: 'error', message: "Missing 'commands_enabled' property." });
+      return;
+    }
+    if (!configCollection) {
+      console.error(`configCollection is undefined for ${socket.id} when updating toggle.`);
+      socket.emit('toggleResponse', { status: 'error', message: "Database not connected." });
       return;
     }
     try {
