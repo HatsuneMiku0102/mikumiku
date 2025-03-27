@@ -113,9 +113,9 @@
     }
     .timeline-blocks {
       display: flex;
-      flex-wrap: wrap;
       gap: 4px;
       justify-content: center;
+      overflow: hidden;
     }
     /* Vertical bar style */
     .timeline-block {
@@ -125,11 +125,16 @@
       position: relative;
       cursor: pointer;
       background-color: inherit;
+      transition: transform 0.3s;
     }
-    /* Tooltip for timeline blocks (remains horizontal) */
+    .timeline-block:hover {
+      transform: scale(1.5);
+      z-index: 2;
+    }
+    /* Tooltip for timeline blocks */
     .timeline-block .tooltip {
       position: absolute;
-      bottom: 125%;
+      bottom: 150%;
       left: 50%;
       transform: translateX(-50%);
       background-color: rgba(0,0,0,0.75);
@@ -256,6 +261,7 @@
         console.log('Received geoDataUpdate:', data);
         updateChart(data);
       });
+
       socket.on('activeUsersUpdate', (data) => {
         console.log('Received activeUsersUpdate:', data);
         document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`;
@@ -365,9 +371,9 @@
         });
       }
       
-      // ===== MINUTE-BY-MINUTE TIMELINE ======
+      // ===== MINUTE-BY-MINUTE TIMELINE (CONVEYOR SYSTEM) ======
       const timelineContainer = document.getElementById('minuteTimeline');
-      const MAX_MINUTES = 60; // Keep up to 60 blocks
+      const MAX_MINUTES = 60; // Fixed number of blocks
       
       function createTimelineBlock(data) {
         const block = document.createElement('div');
@@ -388,19 +394,24 @@
       
       function addTimelineBlock(data) {
         const now = Date.now();
-        // Prevent duplicate block if last block was added within 60 seconds
+        const newMinute = Math.floor(now / 60000);
+        // If there is already a block for the current minute, update it instead of adding a new one.
         if (timelineData.length > 0) {
           const lastEntry = timelineData[timelineData.length - 1];
-          if (now - lastEntry.rawTimestamp < 60 * 1000) {
-            console.log('Duplicate update within 60 seconds; skipping block addition.');
+          const lastMinute = Math.floor(lastEntry.rawTimestamp / 60000);
+          if (newMinute === lastMinute) {
+            timelineData[timelineData.length - 1] = { ...data, rawTimestamp: now, timestamp: new Date(now).toLocaleTimeString() };
+            saveTimelineData();
+            renderTimeline();
             return;
           }
         }
         const blockData = { ...data, rawTimestamp: now, timestamp: new Date(now).toLocaleTimeString() };
-        timelineData.push(blockData);
-        if (timelineData.length > MAX_MINUTES) {
+        // If we already have MAX_MINUTES blocks, remove the oldest.
+        if (timelineData.length >= MAX_MINUTES) {
           timelineData.shift();
         }
+        timelineData.push(blockData);
         saveTimelineData();
         renderTimeline();
       }
