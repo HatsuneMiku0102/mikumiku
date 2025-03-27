@@ -1456,7 +1456,6 @@ setInterval(() => {
 // -------------------
 
 const toggleFilePath = path.join(__dirname, 'toggle.json');
-
 console.log("Toggle file path:", toggleFilePath);
 
 // Serve static files from the "public" folder (if needed)
@@ -1465,6 +1464,27 @@ app.use(express.static('public'));
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
+  // When a client wants to get the current toggle state.
+  socket.on('getToggleState', () => {
+    fs.readFile(toggleFilePath, "utf8", (err, fileContent) => {
+      if (err) {
+        console.error(`Error reading toggle file for ${socket.id}:`, err);
+        socket.emit('toggleState', { commands_enabled: true }); // Default to true.
+      } else {
+        let parsed;
+        try {
+          parsed = JSON.parse(fileContent);
+        } catch (parseErr) {
+          console.error(`Error parsing toggle file for ${socket.id}:`, parseErr);
+          parsed = { commands_enabled: true };
+        }
+        console.log(`Emitting toggleState to ${socket.id}:`, parsed);
+        socket.emit('toggleState', parsed);
+      }
+    });
+  });
+
+  // Handle toggle commands from clients.
   socket.on('toggleCommands', (data) => {
     console.log(`Received toggleCommands from ${socket.id}:`, data);
     // Expect data = { commands_enabled: true/false }
@@ -1487,7 +1507,6 @@ io.on('connection', (socket) => {
             socket.emit('toggleResponse', { status: 'error', message: 'Error reading configuration.' });
           } else {
             console.log(`Toggle file content after write: ${fileContent}`);
-            // Parse the file content to get the actual flag.
             let parsed;
             try {
               parsed = JSON.parse(fileContent);
