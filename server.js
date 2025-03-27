@@ -1462,7 +1462,7 @@ if (!mongoUrl) {
   console.error("Error: MONGO_URL environment variable not set.");
   process.exit(1);
 }
-const dbName = process.env.MONGO_DB_NAME || "mikumiku.dev"; // Change to your database name.
+const dbName = process.env.MONGO_DB_NAME || "myfirstdatabase"; // Change to your database name.
 const client = new MongoClient(mongoUrl, { useUnifiedTopology: true });
 let configCollection;
 
