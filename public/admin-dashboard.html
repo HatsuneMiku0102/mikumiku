@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Your existing styles */
         body {
             font-family: 'Roboto', sans-serif;
             background-color: #f5f5f5;
@@ -19,7 +18,6 @@
             height: 100vh;
             margin: 0;
         }
-
         .dashboard-container {
             background-color: #ffffff;
             padding: 40px;
@@ -29,13 +27,11 @@
             max-width: 800px;
             margin: auto;
         }
-
         h2 {
             color: #007BFF;
             text-align: center;
             margin-bottom: 24px;
         }
-
         button {
             background-color: #007BFF;
             color: #ffffff;
@@ -45,19 +41,12 @@
             cursor: pointer;
             margin-left: 10px;
         }
-
         button:hover {
             background-color: #0056b3;
         }
-
-        .real-time-info {
+        .real-time-info, .bot-status, .user-list {
             margin-top: 20px;
         }
-
-        .user-list {
-            margin-top: 20px;
-        }
-
         .ip-list {
             margin: 0;
             padding: 0;
@@ -67,7 +56,6 @@
             border: 1px solid #e9e9e9;
             border-radius: 4px;
         }
-
         .ip-item {
             background-color: #e9e9e9;
             padding: 10px;
@@ -77,15 +65,31 @@
             justify-content: space-between;
             align-items: center;
         }
-
         .chart-container {
             margin-top: 40px;
             text-align: center;
         }
-
         canvas {
             margin: 0 auto;
             display: block;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .status-online {
+            background-color: #28a745;
+        }
+        .status-offline {
+            background-color: #dc3545;
+        }
+        .bot-status-container {
+            display: flex;
+            align-items: center;
         }
     </style>
 </head>
@@ -93,173 +97,27 @@
     <div class="dashboard-container">
         <h2>Admin Dashboard</h2>
         <button id="logout">Logout</button>
-
+        <div class="bot-status">
+            <h3>Bot Status</h3>
+            <div id="bot-status-indicator" class="bot-status-container">
+                <span class="status-indicator status-offline"></span>
+                <span id="bot-status-text">Loading...</span>
+            </div>
+        </div>
         <div class="real-time-info">
             <h3>Real-time Active Users</h3>
             <p id="active-users-count">Loading active user count...</p>
         </div>
-
         <div class="user-list">
             <h3>Active Users</h3>
             <ul id="active-ip-list" class="ip-list">Loading...</ul>
         </div>
-
-        <!-- Chart section -->
         <div class="chart-container">
             <h3>Visitors by Country</h3>
             <canvas id="locationChart" width="400" height="200"></canvas>
         </div>
     </div>
-
     <script src="/socket.io/socket.io.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            console.log('Admin dashboard script loaded.');
-
-            // Extract the 'token' cookie if available
-            const cookieString = document.cookie;
-            console.log('Current cookies:', cookieString);
-
-            const token = cookieString
-                .split('; ')
-                .find(row => row.startsWith('token='))
-                ?.split('=')[1];
-
-            if (!token) {
-                console.warn('No valid token found, redirecting to login page.');
-                window.location.href = '/auth';
-            } else {
-                console.log('Valid token detected:', token);
-
-                // Initialize Socket.IO
-                const socket = io();
-
-                // Initialize Chart.js Chart
-                const ctx = document.getElementById('locationChart').getContext('2d');
-                const locationChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: [], // Countries
-                        datasets: [{
-                            label: 'Visitors by Country',
-                            data: [], // Visitor counts
-                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                            borderColor: 'rgba(54, 162, 235, 1)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
-
-                // Function to update the chart with new data
-                function updateChart(countryData) {
-                    const countries = countryData.map(item => item._id || 'Unknown');
-                    const visitCounts = countryData.map(item => item.count);
-
-                    // Update chart data
-                    locationChart.data.labels = countries;
-                    locationChart.data.datasets[0].data = visitCounts;
-                    locationChart.update();
-                }
-
-                // Fetch initial GeoData to populate the chart
-                fetch('/api/geo-data')
-                    .then(response => response.json())
-                    .then(data => {
-                        updateChart(data);
-                    })
-                    .catch(error => console.error('Error fetching initial geo data:', error));
-
-                // Listen for geoDataUpdate events to update the chart in real-time
-                socket.on('geoDataUpdate', (data) => {
-                    console.log('Received geoDataUpdate:', data);
-                    updateChart(data);
-                });
-
-                // Listen for active users update
-                socket.on('activeUsersUpdate', (data) => {
-                    console.log('Active users data received:', data);
-                    document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`;
-                    const activeIpListElement = document.getElementById('active-ip-list');
-                    activeIpListElement.innerHTML = ''; // Clear previous content
-
-                    // Display active users
-                    data.users.forEach(user => {
-                        const ipItem = createIpItem(user);
-                        activeIpListElement.appendChild(ipItem);
-                    });
-                });
-
-                // Helper function to create an IP list item
-                function createIpItem(user) {
-                    const ipItem = document.createElement('li');
-                    ipItem.classList.add('ip-item');
-
-                    const connectionTypes = Array.from(user.connectionTypes).join(', ');
-                    ipItem.innerText = `IP: ${user.ip}, Connection Types: ${connectionTypes}`;
-
-                    // Add block and unblock buttons
-                    const blockButton = document.createElement('button');
-                    blockButton.innerText = 'Block';
-                    blockButton.onclick = () => blockUser(user.ip);
-
-                    const unblockButton = document.createElement('button');
-                    unblockButton.innerText = 'Unblock';
-                    unblockButton.onclick = () => unblockUser(user.ip);
-
-                    ipItem.appendChild(blockButton);
-                    ipItem.appendChild(unblockButton);
-
-                    return ipItem;
-                }
-
-                function blockUser(ip) {
-                    console.log(`Block button clicked for IP: ${ip}`);
-                    socket.emit('blockUser', { ip }, (response) => {
-                        console.log(`Response from blocking user:`, response);
-                        if (response.status === 'success') {
-                            alert(`User with IP ${ip} has been blocked.`);
-                        } else {
-                            alert(`Failed to block user: ${response.message}`);
-                        }
-                    });
-                }
-                
-                function unblockUser(ip) {
-                    console.log(`Unblock button clicked for IP: ${ip}`);
-                    socket.emit('unblockUser', { ip }, (response) => {
-                        console.log(`Response from unblocking user:`, response);
-                        if (response.status === 'success') {
-                            alert(`User with IP ${ip} has been unblocked.`);
-                        } else {
-                            alert(`Failed to unblock user: ${response.message}`);
-                        }
-                    });
-                }
-
-                // Logout logic
-                document.getElementById('logout').addEventListener('click', () => {
-                    console.log('Logout initiated.');
-
-                    fetch('/logout', { method: 'POST', credentials: 'include' })
-                        .then(() => {
-                            console.log('Logout request successful, clearing token cookie.');
-                            document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                            window.location.href = '/auth';
-                        })
-                        .catch(error => {
-                            console.error('Logout failed:', error);
-                        });
-                });
-            }
-        });
-    </script>
+    <script src="/admin-dashboard.js"></script>
 </body>
 </html>
