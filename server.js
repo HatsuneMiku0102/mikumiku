@@ -1458,34 +1458,41 @@ setInterval(() => {
 // Define the absolute path for the toggle file.
 const toggleFilePath = path.join(__dirname, 'toggle.json');
 
+console.log("Toggle file path:", toggleFilePath);
+
 // Serve static files from the "public" folder (if needed)
 app.use(express.static('public'));
 
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
-  // Listen for the toggleCommands event from clients
   socket.on('toggleCommands', (data) => {
+    console.log(`Received toggleCommands from ${socket.id}:`, data);
     // Expect data = { commands_enabled: true/false }
     if (typeof data.commands_enabled === 'undefined') {
+      console.error(`Missing 'commands_enabled' property in data from ${socket.id}`);
       socket.emit('toggleResponse', { status: 'error', message: "Missing 'commands_enabled' property." });
       return;
     }
     const config = { commands_enabled: data.commands_enabled };
+    console.log(`Writing new toggle configuration: ${JSON.stringify(config)}`);
     fs.writeFile(toggleFilePath, JSON.stringify(config, null, 2), (err) => {
       if (err) {
-        console.error("Error writing toggle file:", err);
+        console.error(`Error writing toggle file for ${socket.id}:`, err);
         socket.emit('toggleResponse', { status: 'error', message: 'Could not update configuration.' });
       } else {
-        console.log("Toggle updated:", config);
+        console.log(`Toggle updated successfully by ${socket.id}:`, config);
         socket.emit('toggleResponse', { status: 'success', commands_enabled: data.commands_enabled });
         // Broadcast the updated state to all other connected clients.
         socket.broadcast.emit('toggleUpdated', { commands_enabled: data.commands_enabled });
       }
     });
   });
-});
 
+  socket.on('disconnect', (reason) => {
+    console.log(`Socket disconnected: ${socket.id}, Reason: ${reason}`);
+  });
+});
 // ----------------------
 // Start the Server
 // ----------------------
