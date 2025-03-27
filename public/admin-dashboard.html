@@ -11,7 +11,7 @@
     body {
       font-family: 'Roboto', sans-serif;
       background-color: #f5f5f5;
-      color: #333333;
+      color: #333;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -19,10 +19,10 @@
       margin: 0;
     }
     .dashboard-container {
-      background-color: #ffffff;
+      background-color: #fff;
       padding: 40px;
       border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       width: 80%;
       max-width: 800px;
       margin: auto;
@@ -34,7 +34,7 @@
     }
     button {
       background-color: #007BFF;
-      color: #ffffff;
+      color: #fff;
       border: none;
       padding: 10px 20px;
       border-radius: 4px;
@@ -73,13 +73,21 @@
       margin: 0 auto;
       display: block;
     }
+    /* Status area styling */
+    .bot-status-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
     .status-indicator {
       display: inline-block;
-      width: 15px;
-      height: 15px;
-      border-radius: 50%;
-      margin-right: 8px;
-      vertical-align: middle;
+      width: 20px;
+      height: 20px;
+      transform: rotate(45deg);
+      margin-bottom: 8px;
+      transition: background-color 0.3s;
+      position: relative;
+      cursor: pointer;
     }
     .status-online {
       background-color: #28a745;
@@ -87,18 +95,51 @@
     .status-offline {
       background-color: #dc3545;
     }
-    .bot-status-container {
-      display: flex;
-      align-items: center;
-      flex-direction: column;
+    .status-highlatency {
+      background-color: #ffc107;
     }
-    .vitals {
+    .status-text {
+      font-size: 1.1em;
+      font-weight: bold;
+    }
+    /* Tooltip for update logs */
+    .tooltip {
+      position: absolute;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0,0,0,0.75);
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      white-space: nowrap;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 10;
+    }
+    .status-indicator:hover .tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+    /* Container for update log diamonds */
+    .status-logs {
       margin-top: 10px;
-      font-size: 0.9em;
-      text-align: left;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
     }
-    .vitals p {
-      margin: 2px 0;
+    .log-diamond {
+      width: 15px;
+      height: 15px;
+      transform: rotate(45deg);
+      position: relative;
+      cursor: pointer;
+    }
+    .log-diamond .tooltip {
+      bottom: 125%;
     }
   </style>
 </head>
@@ -109,14 +150,17 @@
     <div class="bot-status">
       <h3>Bot Status</h3>
       <div id="bot-status-indicator" class="bot-status-container">
-        <span class="status-indicator status-offline"></span>
-        <span id="bot-status-text">Loading...</span>
+        <div class="status-indicator status-offline" id="current-status">
+          <div class="tooltip" id="current-tooltip">Loading...</div>
+        </div>
+        <span id="bot-status-text" class="status-text">Loading...</span>
         <div id="bot-vitals" class="vitals">
           <p>Bot Name: <span id="bot-name">N/A</span></p>
           <p>Uptime: <span id="bot-uptime">N/A</span></p>
           <p>Latency: <span id="bot-latency">N/A</span></p>
           <p>Memory Usage: <span id="bot-memory">N/A</span></p>
         </div>
+        <div id="status-logs" class="status-logs"></div>
       </div>
     </div>
     <div class="real-time-info">
@@ -252,23 +296,59 @@
             console.error('Logout failed:', error);
           });
       });
+      // Function to add an update log diamond
+      function addUpdateLog(data) {
+        const logsContainer = document.getElementById('status-logs');
+        const diamond = document.createElement('div');
+        diamond.classList.add('log-diamond');
+        // Determine color based on status and latency threshold (100ms)
+        if (data.status !== 'online') {
+          diamond.style.backgroundColor = '#dc3545'; // Red for offline
+        } else if (parseInt(data.latency) > 100) {
+          diamond.style.backgroundColor = '#ffc107'; // Yellow for high latency
+        } else {
+          diamond.style.backgroundColor = '#28a745'; // Green for normal
+        }
+        // Create tooltip for diamond
+        const tooltip = document.createElement('div');
+        tooltip.classList.add('tooltip');
+        const timestamp = new Date().toLocaleTimeString();
+        tooltip.innerText = `Time: ${timestamp}\nBot: ${data.botName}\nUptime: ${data.uptime}\nLatency: ${data.latency}\nMemory: ${data.memoryUsage}`;
+        diamond.appendChild(tooltip);
+        logsContainer.appendChild(diamond);
+      }
       socket.on('botStatusUpdate', (data) => {
         console.log('Received botStatusUpdate:', data);
-        const botStatusIndicator = document.getElementById('bot-status-indicator');
+        const currentStatus = document.getElementById('current-status');
         const botStatusText = document.getElementById('bot-status-text');
+        // Update main status indicator
         if (data.status === 'online') {
-          botStatusIndicator.querySelector('.status-indicator').classList.remove('status-offline');
-          botStatusIndicator.querySelector('.status-indicator').classList.add('status-online');
+          currentStatus.classList.remove('status-offline');
+          // Check latency for high-latency warning (threshold 100ms)
+          if (parseInt(data.latency) > 100) {
+            currentStatus.classList.remove('status-online');
+            currentStatus.classList.add('status-highlatency');
+          } else {
+            currentStatus.classList.remove('status-highlatency');
+            currentStatus.classList.add('status-online');
+          }
           botStatusText.innerText = 'Online';
         } else {
-          botStatusIndicator.querySelector('.status-indicator').classList.remove('status-online');
-          botStatusIndicator.querySelector('.status-indicator').classList.add('status-offline');
+          currentStatus.classList.remove('status-online', 'status-highlatency');
+          currentStatus.classList.add('status-offline');
           botStatusText.innerText = 'Offline';
         }
+        // Update vital information
         document.getElementById('bot-name').innerText = data.botName || 'N/A';
         document.getElementById('bot-uptime').innerText = data.uptime || 'N/A';
         document.getElementById('bot-latency').innerText = data.latency || 'N/A';
         document.getElementById('bot-memory').innerText = data.memoryUsage || 'N/A';
+        // Update current tooltip info
+        const currentTooltip = document.getElementById('current-tooltip');
+        const timestamp = new Date().toLocaleTimeString();
+        currentTooltip.innerText = `Time: ${timestamp}\nBot: ${data.botName}\nUptime: ${data.uptime}\nLatency: ${data.latency}\nMemory: ${data.memoryUsage}`;
+        // Add update log diamond
+        addUpdateLog(data);
       });
     });
   </script>
