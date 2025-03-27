@@ -1,125 +1,249 @@
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Admin dashboard script loaded.');
-    const cookieString = document.cookie;
-    console.log('Current cookies:', cookieString);
-    const token = cookieString.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-    if (!token) {
-        console.warn('No valid token found, redirecting to login page.');
-        window.location.href = '/auth';
-    } else {
-        console.log('Valid token detected:', token);
-        const socket = io();
-        const ctx = document.getElementById('locationChart').getContext('2d');
-        const locationChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Visitors by Country',
-                    data: [],
-                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-        function updateChart(countryData) {
-            const countries = countryData.map(item => item._id || 'Unknown');
-            const visitCounts = countryData.map(item => item.count);
-            locationChart.data.labels = countries;
-            locationChart.data.datasets[0].data = visitCounts;
-            locationChart.update();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MikuMiku | Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f5f5f5;
+            color: #333333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
         }
-        fetch('/api/geo-data')
-            .then(response => response.json())
-            .then(data => {
-                updateChart(data);
-            })
-            .catch(error => console.error('Error fetching initial geo data:', error));
-        socket.on('geoDataUpdate', (data) => {
-            console.log('Received geoDataUpdate:', data);
-            updateChart(data);
-        });
-        socket.on('activeUsersUpdate', (data) => {
-            console.log('Active users data received:', data);
-            document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`;
-            const activeIpListElement = document.getElementById('active-ip-list');
-            activeIpListElement.innerHTML = '';
-            data.users.forEach(user => {
-                const ipItem = createIpItem(user);
-                activeIpListElement.appendChild(ipItem);
-            });
-        });
-        function createIpItem(user) {
-            const ipItem = document.createElement('li');
-            ipItem.classList.add('ip-item');
-            const connectionTypes = Array.from(user.connectionTypes).join(', ');
-            ipItem.innerText = `IP: ${user.ip}, Connection Types: ${connectionTypes}`;
-            const blockButton = document.createElement('button');
-            blockButton.innerText = 'Block';
-            blockButton.onclick = () => blockUser(user.ip);
-            const unblockButton = document.createElement('button');
-            unblockButton.innerText = 'Unblock';
-            unblockButton.onclick = () => unblockUser(user.ip);
-            ipItem.appendChild(blockButton);
-            ipItem.appendChild(unblockButton);
-            return ipItem;
+        .dashboard-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 800px;
+            margin: auto;
         }
-        function blockUser(ip) {
-            console.log(`Block button clicked for IP: ${ip}`);
-            socket.emit('blockUser', { ip }, (response) => {
-                console.log('Response from blocking user:', response);
-                if (response.status === 'success') {
-                    alert(`User with IP ${ip} has been blocked.`);
-                } else {
-                    alert(`Failed to block user: ${response.message}`);
-                }
-            });
+        h2 {
+            color: #007BFF;
+            text-align: center;
+            margin-bottom: 24px;
         }
-        function unblockUser(ip) {
-            console.log(`Unblock button clicked for IP: ${ip}`);
-            socket.emit('unblockUser', { ip }, (response) => {
-                console.log('Response from unblocking user:', response);
-                if (response.status === 'success') {
-                    alert(`User with IP ${ip} has been unblocked.`);
-                } else {
-                    alert(`Failed to unblock user: ${response.message}`);
-                }
-            });
+        button {
+            background-color: #007BFF;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
         }
-        document.getElementById('logout').addEventListener('click', () => {
-            console.log('Logout initiated.');
-            fetch('/logout', { method: 'POST', credentials: 'include' })
-                .then(() => {
-                    console.log('Logout request successful, clearing token cookie.');
-                    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                    window.location.href = '/auth';
-                })
-                .catch(error => {
-                    console.error('Logout failed:', error);
-                });
-        });
-        socket.on('botStatusUpdate', (data) => {
-            console.log('Received botStatusUpdate:', data);
-            const botStatusIndicator = document.getElementById('bot-status-indicator');
-            const botStatusText = document.getElementById('bot-status-text');
-            if (data.status === 'online') {
-                botStatusIndicator.querySelector('.status-indicator').classList.remove('status-offline');
-                botStatusIndicator.querySelector('.status-indicator').classList.add('status-online');
-                botStatusText.innerText = 'Online';
+        button:hover {
+            background-color: #0056b3;
+        }
+        .real-time-info, .bot-status, .user-list {
+            margin-top: 20px;
+        }
+        .ip-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e9e9e9;
+            border-radius: 4px;
+        }
+        .ip-item {
+            background-color: #e9e9e9;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chart-container {
+            margin-top: 40px;
+            text-align: center;
+        }
+        canvas {
+            margin: 0 auto;
+            display: block;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .status-online {
+            background-color: #28a745;
+        }
+        .status-offline {
+            background-color: #dc3545;
+        }
+        .bot-status-container {
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <h2>Admin Dashboard</h2>
+        <button id="logout">Logout</button>
+        <div class="bot-status">
+            <h3>Bot Status</h3>
+            <div id="bot-status-indicator" class="bot-status-container">
+                <span class="status-indicator status-offline"></span>
+                <span id="bot-status-text">Loading...</span>
+            </div>
+        </div>
+        <div class="real-time-info">
+            <h3>Real-time Active Users</h3>
+            <p id="active-users-count">Loading active user count...</p>
+        </div>
+        <div class="user-list">
+            <h3>Active Users</h3>
+            <ul id="active-ip-list" class="ip-list">Loading...</ul>
+        </div>
+        <div class="chart-container">
+            <h3>Visitors by Country</h3>
+            <canvas id="locationChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Admin dashboard script loaded.');
+            const cookieString = document.cookie;
+            console.log('Current cookies:', cookieString);
+            const token = cookieString.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+            if (!token) {
+                console.warn('No valid token found, redirecting to login page.');
+                window.location.href = '/auth';
             } else {
-                botStatusIndicator.querySelector('.status-indicator').classList.remove('status-online');
-                botStatusIndicator.querySelector('.status-indicator').classList.add('status-offline');
-                botStatusText.innerText = 'Offline';
+                console.log('Valid token detected:', token);
+                const socket = io();
+                const ctx = document.getElementById('locationChart').getContext('2d');
+                const locationChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Visitors by Country',
+                            data: [],
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+                function updateChart(countryData) {
+                    const countries = countryData.map(item => item._id || 'Unknown');
+                    const visitCounts = countryData.map(item => item.count);
+                    locationChart.data.labels = countries;
+                    locationChart.data.datasets[0].data = visitCounts;
+                    locationChart.update();
+                }
+                fetch('/api/geo-data')
+                    .then(response => response.json())
+                    .then(data => {
+                        updateChart(data);
+                    })
+                    .catch(error => console.error('Error fetching initial geo data:', error));
+                socket.on('geoDataUpdate', (data) => {
+                    console.log('Received geoDataUpdate:', data);
+                    updateChart(data);
+                });
+                socket.on('activeUsersUpdate', (data) => {
+                    console.log('Active users data received:', data);
+                    document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`;
+                    const activeIpListElement = document.getElementById('active-ip-list');
+                    activeIpListElement.innerHTML = '';
+                    data.users.forEach(user => {
+                        const ipItem = createIpItem(user);
+                        activeIpListElement.appendChild(ipItem);
+                    });
+                });
+                function createIpItem(user) {
+                    const ipItem = document.createElement('li');
+                    ipItem.classList.add('ip-item');
+                    const connectionTypes = Array.from(user.connectionTypes).join(', ');
+                    ipItem.innerText = `IP: ${user.ip}, Connection Types: ${connectionTypes}`;
+                    const blockButton = document.createElement('button');
+                    blockButton.innerText = 'Block';
+                    blockButton.onclick = () => blockUser(user.ip);
+                    const unblockButton = document.createElement('button');
+                    unblockButton.innerText = 'Unblock';
+                    unblockButton.onclick = () => unblockUser(user.ip);
+                    ipItem.appendChild(blockButton);
+                    ipItem.appendChild(unblockButton);
+                    return ipItem;
+                }
+                function blockUser(ip) {
+                    console.log(`Block button clicked for IP: ${ip}`);
+                    socket.emit('blockUser', { ip }, (response) => {
+                        console.log('Response from blocking user:', response);
+                        if (response.status === 'success') {
+                            alert(`User with IP ${ip} has been blocked.`);
+                        } else {
+                            alert(`Failed to block user: ${response.message}`);
+                        }
+                    });
+                }
+                function unblockUser(ip) {
+                    console.log(`Unblock button clicked for IP: ${ip}`);
+                    socket.emit('unblockUser', { ip }, (response) => {
+                        console.log('Response from unblocking user:', response);
+                        if (response.status === 'success') {
+                            alert(`User with IP ${ip} has been unblocked.`);
+                        } else {
+                            alert(`Failed to unblock user: ${response.message}`);
+                        }
+                    });
+                }
+                document.getElementById('logout').addEventListener('click', () => {
+                    console.log('Logout initiated.');
+                    fetch('/logout', { method: 'POST', credentials: 'include' })
+                        .then(() => {
+                            console.log('Logout request successful, clearing token cookie.');
+                            document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                            window.location.href = '/auth';
+                        })
+                        .catch(error => {
+                            console.error('Logout failed:', error);
+                        });
+                });
+                socket.on('botStatusUpdate', (data) => {
+                    console.log('Received botStatusUpdate:', data);
+                    const botStatusIndicator = document.getElementById('bot-status-indicator');
+                    const botStatusText = document.getElementById('bot-status-text');
+                    if (data.status === 'online') {
+                        botStatusIndicator.querySelector('.status-indicator').classList.remove('status-offline');
+                        botStatusIndicator.querySelector('.status-indicator').classList.add('status-online');
+                        botStatusText.innerText = 'Online';
+                    } else {
+                        botStatusIndicator.querySelector('.status-indicator').classList.remove('status-online');
+                        botStatusIndicator.querySelector('.status-indicator').classList.add('status-offline');
+                        botStatusText.innerText = 'Offline';
+                    }
+                });
             }
         });
-    }
-});
+    </script>
+</body>
+</html>
