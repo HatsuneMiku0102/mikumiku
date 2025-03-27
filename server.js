@@ -1399,6 +1399,33 @@ app.get('/api/weather', async (req, res) => {
     }
 });
 
+
+// -----------
+// Bot Status Update
+// ------------------
+
+io.on('connection', (socket) => {
+    console.log('Client connected:', socket.id);
+    // Emit bot status immediately upon new connection
+    socket.emit('botStatusUpdate', { status: 'online' });
+
+    socket.on('disconnect', () => {
+        console.log('Client disconnected:', socket.id);
+    });
+});
+
+// Function to update and emit bot status to all clients
+function updateBotStatus(status) {
+    console.log(`Emitting bot status update: ${status}`);
+    io.emit('botStatusUpdate', { status });
+}
+
+// For demonstration, emit the online status every 60 seconds
+setInterval(() => {
+    updateBotStatus('online');
+}, 60000);
+
+
 // ----------------------
 // Start the Server
 // ----------------------
