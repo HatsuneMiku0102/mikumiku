@@ -44,6 +44,14 @@
     button:hover {
       background-color: #0056b3;
     }
+    .command-toggle {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .command-toggle label {
+      font-size: 1.1em;
+      margin-right: 10px;
+    }
     .real-time-info, .bot-status, .user-list {
       margin-top: 20px;
     }
@@ -115,9 +123,8 @@
       display: flex;
       gap: 4px;
       justify-content: center;
-      overflow: visible; /* Changed from hidden to visible */
+      overflow: visible;
     }
-    /* Vertical bar style with hover enlargement */
     .timeline-block {
       width: 4px;
       height: 20px;
@@ -131,7 +138,6 @@
       transform: scale(1.5);
       z-index: 2;
     }
-    /* Tooltip for timeline blocks (horizontal) */
     .timeline-block .tooltip {
       position: absolute;
       bottom: 150%;
@@ -159,6 +165,14 @@
   <div class="dashboard-container">
     <h2>Admin Dashboard</h2>
     <button id="logout">Logout</button>
+
+    <!-- Command Toggle Section -->
+    <div class="command-toggle">
+      <h3>Command Toggle</h3>
+      <label for="toggleSwitch">Commands Enabled</label>
+      <input type="checkbox" id="toggleSwitch" checked>
+      <button id="updateToggle">Update Toggle</button>
+    </div>
 
     <!-- Bot Status -->
     <div class="bot-status">
@@ -214,6 +228,32 @@
       });
       socket.on('connect_error', (err) => {
         console.error('Socket.IO connection error:', err);
+      });
+
+      // Toggle Button Logic
+      const toggleSwitch = document.getElementById('toggleSwitch');
+      const updateToggleButton = document.getElementById('updateToggle');
+
+      // Optionally, fetch the current state from your server here
+      // For simplicity, we assume the checkbox reflects the current state
+
+      updateToggleButton.addEventListener('click', () => {
+        const commandsEnabled = toggleSwitch.checked;
+        console.log('Updating command toggle to:', commandsEnabled);
+        fetch('/toggle_commands', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ commands_enabled: commandsEnabled })
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Toggle update response:', data);
+          alert(`Commands are now ${data.commands_enabled ? 'enabled' : 'disabled'}.`);
+        })
+        .catch(err => {
+          console.error('Error updating toggle:', err);
+          alert('Failed to update command toggle.');
+        });
       });
 
       // Chart.js setup
@@ -394,7 +434,6 @@
       function addTimelineBlock(data) {
         const now = Date.now();
         const newMinute = Math.floor(now / 60000);
-        // If there's already a block for this minute, update it.
         if (timelineData.length > 0) {
           const lastEntry = timelineData[timelineData.length - 1];
           const lastMinute = Math.floor(lastEntry.rawTimestamp / 60000);
@@ -405,7 +444,6 @@
             return;
           }
         }
-        // If the timeline is full, remove the oldest.
         if (timelineData.length >= MAX_MINUTES) {
           timelineData.shift();
         }
@@ -415,10 +453,8 @@
         renderTimeline();
       }
       
-      // Render timeline on page load
       renderTimeline();
 
-      // ===== BOT STATUS UPDATE ======
       socket.on('botStatusUpdate', (data) => {
         console.log('Received botStatusUpdate:', data);
         lastUpdateTime = Date.now();
