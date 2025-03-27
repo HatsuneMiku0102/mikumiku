@@ -230,30 +230,28 @@
         console.error('Socket.IO connection error:', err);
       });
 
-      // Toggle Button Logic
+      // Toggle Button Logic using Socket.IO
       const toggleSwitch = document.getElementById('toggleSwitch');
       const updateToggleButton = document.getElementById('updateToggle');
 
-      // Optionally, fetch the current state from your server here
-      // For simplicity, we assume the checkbox reflects the current state
-
       updateToggleButton.addEventListener('click', () => {
         const commandsEnabled = toggleSwitch.checked;
-        console.log('Updating command toggle to:', commandsEnabled);
-        fetch('/toggle_commands', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ commands_enabled: commandsEnabled })
-        })
-        .then(response => response.json())
-        .then(data => {
-          console.log('Toggle update response:', data);
+        console.log('Emitting toggleCommands with:', commandsEnabled);
+        socket.emit('toggleCommands', { commands_enabled: commandsEnabled });
+      });
+
+      socket.on('toggleResponse', (data) => {
+        console.log('Received toggleResponse:', data);
+        if (data.status === 'success') {
           alert(`Commands are now ${data.commands_enabled ? 'enabled' : 'disabled'}.`);
-        })
-        .catch(err => {
-          console.error('Error updating toggle:', err);
-          alert('Failed to update command toggle.');
-        });
+        } else {
+          alert(`Error: ${data.message}`);
+        }
+      });
+
+      socket.on('toggleUpdated', (data) => {
+        console.log('Toggle state updated:', data);
+        // Optionally update the toggle UI if needed.
       });
 
       // Chart.js setup
