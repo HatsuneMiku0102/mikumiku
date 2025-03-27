@@ -1404,27 +1404,52 @@ app.get('/api/weather', async (req, res) => {
 // Bot Status Update
 // ------------------
 
-io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id);
-    // Emit bot status immediately upon new connection
-    socket.emit('botStatusUpdate', { status: 'online' });
+// Variables to track heartbeat and vital info
+let lastHeartbeat = 0;
+let latestBotInfo = {
+  status: 'offline',
+  uptime: 'N/A',
+  latency: 'N/A',
+  memoryUsage: 'N/A',
+  botName: 'N/A'
+};
 
-    socket.on('disconnect', () => {
-        console.log('Client disconnected:', socket.id);
-    });
+io.on('connection', (socket) => {
+  console.log('Client connected:', socket.id);
+  // Send current status when a client connects
+  socket.emit('botStatusUpdate', latestBotInfo);
+
+  // Listen for heartbeat events from the bot
+  socket.on('botHeartbeat', (data) => {
+    console.log('Received botHeartbeat:', data);
+    lastHeartbeat = Date.now();
+    latestBotInfo = {
+      status: 'online',
+      uptime: data.uptime,
+      latency: data.latency,
+      memoryUsage: data.memoryUsage,
+      botName: data.botName
+    };
+    // Broadcast the updated status with vital info to all clients
+    io.emit('botStatusUpdate', latestBotInfo);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+  });
 });
 
-// Function to update and emit bot status to all clients
-function updateBotStatus(status) {
-    console.log(`Emitting bot status update: ${status}`);
-    io.emit('botStatusUpdate', { status });
-}
-
-// For demonstration, emit the online status every 60 seconds
+// Check every 30 seconds; if no heartbeat in 2 minutes, mark bot offline.
 setInterval(() => {
-    updateBotStatus('online');
-}, 60000);
-
+  const now = Date.now();
+  if (now - lastHeartbeat > 2 * 60 * 1000) {
+    if (latestBotInfo.status !== 'offline') {
+      console.log('Heartbeat timeout. Marking bot as offline.');
+      latestBotInfo.status = 'offline';
+      io.emit('botStatusUpdate', latestBotInfo);
+    }
+  }
+}, 30000);
 
 // ----------------------
 // Start the Server
