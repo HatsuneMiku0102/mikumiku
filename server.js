@@ -1455,101 +1455,77 @@ setInterval(() => {
 // Yes
 // -------------------
 
-const toggleFilePath = path.join(__dirname, 'toggle.json');
-console.log("Toggle file path:", toggleFilePath);
+// MongoDB connection settings.
+const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017"; // Set your MongoDB URI
+const dbName = "myfirstdatabase"; // Change this to your database name.
+const client = new MongoClient(mongoUri, { useUnifiedTopology: true });
+let configCollection;
 
-// Ensure the toggle file exists; if not, create it with a default value.
-if (!fs.existsSync(toggleFilePath)) {
+// Connect to MongoDB and ensure the toggle document exists.
+async function connectToMongo() {
   try {
-    fs.writeFileSync(toggleFilePath, JSON.stringify({ commands_enabled: true }, null, 2));
-    console.log("toggle.json did not exist. Created default toggle.json with commands_enabled set to true.");
+    await client.connect();
+    const db = client.db(dbName);
+    configCollection = db.collection("config");
+    // Check if the toggle document exists.
+    let toggleDoc = await configCollection.findOne({ _id: "toggle" });
+    if (!toggleDoc) {
+      toggleDoc = { _id: "toggle", commands_enabled: true };
+      await configCollection.insertOne(toggleDoc);
+      console.log("Inserted default toggle config:", toggleDoc);
+    } else {
+      console.log("Existing toggle config:", toggleDoc);
+    }
   } catch (err) {
-    console.error("Error creating default toggle.json:", err);
+    console.error("Error connecting to MongoDB:", err);
   }
 }
+connectToMongo();
 
-// Serve static files from the "public" folder (if needed)
+// Serve static files from the "public" folder (if needed).
 app.use(express.static('public'));
 
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
-  // Handler to provide current toggle state
-  socket.on('getToggleState', () => {
-    // Check if file exists, create if not.
-    if (!fs.existsSync(toggleFilePath)) {
-      try {
-        fs.writeFileSync(toggleFilePath, JSON.stringify({ commands_enabled: true }, null, 2));
-        console.log("toggle.json did not exist on getToggleState. Created default toggle.json.");
-      } catch (err) {
-        console.error(`Error creating toggle file for ${socket.id} in getToggleState:`, err);
-        socket.emit('toggleState', { commands_enabled: true });
-        return;
-      }
+  // Provide the current toggle state to the client.
+  socket.on('getToggleState', async () => {
+    try {
+      const toggleDoc = await configCollection.findOne({ _id: "toggle" });
+      console.log(`Emitting toggleState to ${socket.id}:`, toggleDoc);
+      socket.emit('toggleState', toggleDoc);
+    } catch (err) {
+      console.error(`Error reading toggle config for ${socket.id}:`, err);
+      socket.emit('toggleState', { commands_enabled: true });
     }
-    fs.readFile(toggleFilePath, "utf8", (err, fileContent) => {
-      if (err) {
-        console.error(`Error reading toggle file for ${socket.id}:`, err);
-        socket.emit('toggleState', { commands_enabled: true }); // default to true.
-      } else {
-        let parsed;
-        try {
-          parsed = JSON.parse(fileContent);
-        } catch (parseErr) {
-          console.error(`Error parsing toggle file for ${socket.id}:`, parseErr);
-          parsed = { commands_enabled: true };
-        }
-        console.log(`Emitting toggleState to ${socket.id}:`, parsed);
-        socket.emit('toggleState', parsed);
-      }
-    });
   });
 
-  socket.on('toggleCommands', (data) => {
+  // Update the toggle state.
+  socket.on('toggleCommands', async (data) => {
     console.log(`Received toggleCommands from ${socket.id}:`, data);
-    // Expect data = { commands_enabled: true/false }
+    // Validate incoming data.
     if (typeof data.commands_enabled === 'undefined') {
-      console.error(`Missing 'commands_enabled' property in data from ${socket.id}`);
+      console.error(`Missing 'commands_enabled' property from ${socket.id}`);
       socket.emit('toggleResponse', { status: 'error', message: "Missing 'commands_enabled' property." });
       return;
     }
-    const config = { commands_enabled: data.commands_enabled };
-    console.log(`Writing new toggle configuration: ${JSON.stringify(config)}`);
-    fs.writeFile(toggleFilePath, JSON.stringify(config, null, 2), (err) => {
-      if (err) {
-        console.error(`Error writing toggle file for ${socket.id}:`, err);
-        socket.emit('toggleResponse', { status: 'error', message: 'Could not update configuration.' });
-      } else {
-        // Read back the file to verify the value.
-        fs.readFile(toggleFilePath, "utf8", (readErr, fileContent) => {
-          if (readErr) {
-            console.error(`Error reading toggle file for ${socket.id}:`, readErr);
-            socket.emit('toggleResponse', { status: 'error', message: 'Error reading configuration.' });
-          } else {
-            console.log(`Toggle file content after write: ${fileContent}`);
-            let parsed;
-            try {
-              parsed = JSON.parse(fileContent);
-            } catch (parseErr) {
-              console.error(`Error parsing toggle file for ${socket.id}:`, parseErr);
-              socket.emit('toggleResponse', { status: 'error', message: 'Error parsing configuration.' });
-              return;
-            }
-            console.log(`Toggle updated successfully by ${socket.id}:`, parsed);
-            socket.emit('toggleResponse', { status: 'success', commands_enabled: parsed.commands_enabled });
-            // Broadcast the updated state to all other connected clients.
-            socket.broadcast.emit('toggleUpdated', { commands_enabled: parsed.commands_enabled });
-          }
-        });
-      }
-    });
+    try {
+      // Update the toggle document in MongoDB.
+      await configCollection.updateOne({ _id: "toggle" }, { $set: { commands_enabled: data.commands_enabled } });
+      const toggleDoc = await configCollection.findOne({ _id: "toggle" });
+      console.log(`Toggle updated successfully by ${socket.id}:`, toggleDoc);
+      socket.emit('toggleResponse', { status: 'success', commands_enabled: toggleDoc.commands_enabled });
+      socket.broadcast.emit('toggleUpdated', { commands_enabled: toggleDoc.commands_enabled });
+    } catch (err) {
+      console.error(`Error updating toggle config for ${socket.id}:`, err);
+      socket.emit('toggleResponse', { status: 'error', message: 'Could not update configuration.' });
+    }
   });
 
   socket.on('disconnect', (reason) => {
     console.log(`Socket disconnected: ${socket.id}, Reason: ${reason}`);
   });
 });
-
 
 
 // ----------------------
