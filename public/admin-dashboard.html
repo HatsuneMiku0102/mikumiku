@@ -118,6 +118,7 @@
       opacity: 0;
       transition: opacity 0.3s;
       z-index: 10;
+      pointer-events: none; /* Ensures the tooltip doesn't block cursor */
     }
     .status-indicator:hover .tooltip {
       visibility: visible;
@@ -141,6 +142,40 @@
     .log-diamond .tooltip {
       bottom: 125%;
     }
+    .log-diamond:hover .tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+    /* Minute-by-minute timeline container */
+    .minute-timeline-container {
+      margin-top: 20px;
+    }
+    .timeline-header {
+      font-weight: bold;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .timeline-blocks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      justify-content: center;
+    }
+    .timeline-block {
+      width: 14px;
+      height: 14px;
+      transform: rotate(45deg);
+      position: relative;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+    .timeline-block .tooltip {
+      bottom: 150%;
+    }
+    .timeline-block:hover .tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
@@ -163,6 +198,12 @@
         <div id="status-logs" class="status-logs"></div>
       </div>
     </div>
+
+    <div class="minute-timeline-container">
+      <div class="timeline-header">Minute-by-Minute Status</div>
+      <div class="timeline-blocks" id="minuteTimeline"></div>
+    </div>
+
     <div class="real-time-info">
       <h3>Real-time Active Users</h3>
       <p id="active-users-count">Loading active user count...</p>
@@ -176,6 +217,7 @@
       <canvas id="locationChart" width="400" height="200"></canvas>
     </div>
   </div>
+
   <script src="/socket.io/socket.io.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -189,6 +231,7 @@
         return;
       }
       console.log('Valid token detected:', token);
+
       const socket = io();
       socket.on('connect', () => {
         console.log('Socket.IO connected, socket id:', socket.id);
@@ -196,6 +239,8 @@
       socket.on('connect_error', (err) => {
         console.error('Socket.IO connection error:', err);
       });
+
+      // Chart.js initialization
       const ctx = document.getElementById('locationChart').getContext('2d');
       const locationChart = new Chart(ctx, {
         type: 'bar',
@@ -218,6 +263,8 @@
           }
         }
       });
+
+      // Update chart with country data
       function updateChart(countryData) {
         console.log('Updating chart with data:', countryData);
         const countries = countryData.map(item => item._id || 'Unknown');
@@ -226,6 +273,8 @@
         locationChart.data.datasets[0].data = visitCounts;
         locationChart.update();
       }
+
+      // Fetch initial geo data
       fetch('/api/geo-data')
         .then(response => response.json())
         .then(data => {
@@ -233,10 +282,13 @@
           updateChart(data);
         })
         .catch(error => console.error('Error fetching initial geo data:', error));
+
+      // Socket.io events
       socket.on('geoDataUpdate', (data) => {
         console.log('Received geoDataUpdate:', data);
         updateChart(data);
       });
+
       socket.on('activeUsersUpdate', (data) => {
         console.log('Received activeUsersUpdate:', data);
         document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`;
@@ -247,6 +299,7 @@
           activeIpListElement.appendChild(ipItem);
         });
       });
+
       function createIpItem(user) {
         const ipItem = document.createElement('li');
         ipItem.classList.add('ip-item');
@@ -262,6 +315,7 @@
         ipItem.appendChild(unblockButton);
         return ipItem;
       }
+
       function blockUser(ip) {
         console.log(`Block button clicked for IP: ${ip}`);
         socket.emit('blockUser', { ip }, (response) => {
@@ -273,6 +327,7 @@
           }
         });
       }
+
       function unblockUser(ip) {
         console.log(`Unblock button clicked for IP: ${ip}`);
         socket.emit('unblockUser', { ip }, (response) => {
@@ -284,6 +339,8 @@
           }
         });
       }
+
+      // Logout button
       document.getElementById('logout').addEventListener('click', () => {
         console.log('Logout initiated.');
         fetch('/logout', { method: 'POST', credentials: 'include' })
@@ -296,11 +353,13 @@
             console.error('Logout failed:', error);
           });
       });
-      // Function to add an update log diamond
+
+      // ========== STATUS LOG DIAMONDS ==========
       function addUpdateLog(data) {
         const logsContainer = document.getElementById('status-logs');
         const diamond = document.createElement('div');
         diamond.classList.add('log-diamond');
+
         // Determine color based on status and latency threshold (100ms)
         if (data.status !== 'online') {
           diamond.style.backgroundColor = '#dc3545'; // Red for offline
@@ -309,22 +368,59 @@
         } else {
           diamond.style.backgroundColor = '#28a745'; // Green for normal
         }
+
         // Create tooltip for diamond
         const tooltip = document.createElement('div');
         tooltip.classList.add('tooltip');
         const timestamp = new Date().toLocaleTimeString();
         tooltip.innerText = `Time: ${timestamp}\nBot: ${data.botName}\nUptime: ${data.uptime}\nLatency: ${data.latency}\nMemory: ${data.memoryUsage}`;
         diamond.appendChild(tooltip);
+
         logsContainer.appendChild(diamond);
       }
+
+      // ========== MINUTE-BY-MINUTE TIMELINE ==========
+      const minuteTimelineContainer = document.getElementById('minuteTimeline');
+      const MAX_MINUTES = 60; // Keep up to 60 blocks (1 hour of minute-by-minute data)
+
+      function addMinuteBlock(data) {
+        const block = document.createElement('div');
+        block.classList.add('timeline-block');
+
+        // Determine color based on status + latency
+        if (data.status !== 'online') {
+          block.style.backgroundColor = '#dc3545'; // Red
+        } else if (parseInt(data.latency) > 100) {
+          block.style.backgroundColor = '#ffc107'; // Yellow
+        } else {
+          block.style.backgroundColor = '#28a745'; // Green
+        }
+
+        // Tooltip
+        const tooltip = document.createElement('div');
+        tooltip.classList.add('tooltip');
+        const timestamp = new Date().toLocaleTimeString();
+        tooltip.innerText = `Time: ${timestamp}\nBot: ${data.botName}\nUptime: ${data.uptime}\nLatency: ${data.latency}\nMemory: ${data.memoryUsage}`;
+        block.appendChild(tooltip);
+
+        minuteTimelineContainer.appendChild(block);
+
+        // Remove the oldest block if we exceed MAX_MINUTES
+        if (minuteTimelineContainer.children.length > MAX_MINUTES) {
+          minuteTimelineContainer.removeChild(minuteTimelineContainer.firstChild);
+        }
+      }
+
+      // Listen for bot status updates
       socket.on('botStatusUpdate', (data) => {
         console.log('Received botStatusUpdate:', data);
+
+        // Main indicator
         const currentStatus = document.getElementById('current-status');
         const botStatusText = document.getElementById('bot-status-text');
-        // Update main status indicator
+
         if (data.status === 'online') {
           currentStatus.classList.remove('status-offline');
-          // Check latency for high-latency warning (threshold 100ms)
           if (parseInt(data.latency) > 100) {
             currentStatus.classList.remove('status-online');
             currentStatus.classList.add('status-highlatency');
@@ -338,17 +434,23 @@
           currentStatus.classList.add('status-offline');
           botStatusText.innerText = 'Offline';
         }
+
         // Update vital information
         document.getElementById('bot-name').innerText = data.botName || 'N/A';
         document.getElementById('bot-uptime').innerText = data.uptime || 'N/A';
         document.getElementById('bot-latency').innerText = data.latency || 'N/A';
         document.getElementById('bot-memory').innerText = data.memoryUsage || 'N/A';
+
         // Update current tooltip info
         const currentTooltip = document.getElementById('current-tooltip');
         const timestamp = new Date().toLocaleTimeString();
         currentTooltip.innerText = `Time: ${timestamp}\nBot: ${data.botName}\nUptime: ${data.uptime}\nLatency: ${data.latency}\nMemory: ${data.memoryUsage}`;
-        // Add update log diamond
+
+        // Add a diamond to the log
         addUpdateLog(data);
+
+        // Add a block to the minute-by-minute timeline
+        addMinuteBlock(data);
       });
     });
   </script>
