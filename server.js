@@ -237,9 +237,7 @@ app.use(
         "https://cdn.socket.io",
         "https://mikumiku.dev",
         "https://api.mapbox.com",
-        "https://events.mapbox.com",
-        "http://us-nyc02.pylex.xyz:8282",
-        "https://us-nyc02.pylex.xyz:8282"
+        "https://events.mapbox.com"
       ],
       frameSrc: [
         "'self'",
@@ -261,6 +259,21 @@ app.use(
 );
 
 app.set('trust proxy', true);
+
+// Create a proxy endpoint that fetches status from your HTTP-only server
+app.get('/status-proxy', async (req, res) => {
+  try {
+    const response = await fetch('http://us-nyc02.pylex.xyz:8282/status');
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching status:', error);
+    res.status(500).json({ status: 'offline' });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Proxy server listening on port ${PORT}`));
 
 
 // Serve Static Files
