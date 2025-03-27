@@ -1458,18 +1458,39 @@ setInterval(() => {
 const toggleFilePath = path.join(__dirname, 'toggle.json');
 console.log("Toggle file path:", toggleFilePath);
 
+// Ensure the toggle file exists; if not, create it with a default value.
+if (!fs.existsSync(toggleFilePath)) {
+  try {
+    fs.writeFileSync(toggleFilePath, JSON.stringify({ commands_enabled: true }, null, 2));
+    console.log("toggle.json did not exist. Created default toggle.json with commands_enabled set to true.");
+  } catch (err) {
+    console.error("Error creating default toggle.json:", err);
+  }
+}
+
 // Serve static files from the "public" folder (if needed)
 app.use(express.static('public'));
 
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
-  // When a client wants to get the current toggle state.
+  // Handler to provide current toggle state
   socket.on('getToggleState', () => {
+    // Check if file exists, create if not.
+    if (!fs.existsSync(toggleFilePath)) {
+      try {
+        fs.writeFileSync(toggleFilePath, JSON.stringify({ commands_enabled: true }, null, 2));
+        console.log("toggle.json did not exist on getToggleState. Created default toggle.json.");
+      } catch (err) {
+        console.error(`Error creating toggle file for ${socket.id} in getToggleState:`, err);
+        socket.emit('toggleState', { commands_enabled: true });
+        return;
+      }
+    }
     fs.readFile(toggleFilePath, "utf8", (err, fileContent) => {
       if (err) {
         console.error(`Error reading toggle file for ${socket.id}:`, err);
-        socket.emit('toggleState', { commands_enabled: true }); // Default to true.
+        socket.emit('toggleState', { commands_enabled: true }); // default to true.
       } else {
         let parsed;
         try {
@@ -1484,7 +1505,6 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Handle toggle commands from clients.
   socket.on('toggleCommands', (data) => {
     console.log(`Received toggleCommands from ${socket.id}:`, data);
     // Expect data = { commands_enabled: true/false }
