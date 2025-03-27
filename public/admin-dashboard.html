@@ -168,7 +168,6 @@
       </div>
     </div>
 
-    <!-- Minute-by-minute timeline -->
     <div class="minute-timeline-container">
       <div class="timeline-header">Minute-by-Minute Status</div>
       <div class="timeline-blocks" id="minuteTimeline"></div>
@@ -324,6 +323,24 @@
           });
       });
 
+      // ====== AUTO-OFFLINE LOGIC ======
+      const OFFLINE_TIMEOUT = 90 * 1000; // 90 seconds
+      let lastUpdateTime = Date.now();
+
+      // Periodically check if the bot has gone silent
+      setInterval(() => {
+        if (Date.now() - lastUpdateTime > OFFLINE_TIMEOUT) {
+          markBotOffline();
+        }
+      }, 5000);
+
+      function markBotOffline() {
+        const statusLabel = document.getElementById('bot-status-text');
+        statusLabel.textContent = 'Offline';
+        statusLabel.classList.remove('online', 'high-latency');
+        statusLabel.classList.add('offline');
+      }
+
       // ===== MINUTE-BY-MINUTE TIMELINE =====
       const timelineContainer = document.getElementById('minuteTimeline');
       const MAX_MINUTES = 60; // Keep up to 60 blocks
@@ -363,10 +380,9 @@
       // ===== BOT STATUS UPDATE =====
       socket.on('botStatusUpdate', (data) => {
         console.log('Received botStatusUpdate:', data);
+        lastUpdateTime = Date.now(); // Reset the offline timer
 
-        // Update text label
         const statusLabel = document.getElementById('bot-status-text');
-        // Remove any old classes
         statusLabel.classList.remove('online', 'offline', 'high-latency');
 
         if (data.status === 'online') {
