@@ -230,6 +230,23 @@
         console.error('Socket.IO connection error:', err);
       });
 
+      // Logging for toggle commands events
+      socket.on('toggleResponse', (data) => {
+        console.log('Received toggleResponse:', data);
+        if (data.status === 'success') {
+          console.log('Toggle successful. New state:', data.commands_enabled);
+          alert(`Commands are now ${data.commands_enabled ? 'enabled' : 'disabled'}.`);
+        } else {
+          console.error('Toggle error:', data.message);
+          alert(`Error: ${data.message}`);
+        }
+      });
+
+      socket.on('toggleUpdated', (data) => {
+        console.log('Broadcast toggleUpdated received:', data);
+        // Optionally update UI if needed.
+      });
+
       // Toggle Button Logic using Socket.IO
       const toggleSwitch = document.getElementById('toggleSwitch');
       const updateToggleButton = document.getElementById('updateToggle');
@@ -238,20 +255,6 @@
         const commandsEnabled = toggleSwitch.checked;
         console.log('Emitting toggleCommands with:', commandsEnabled);
         socket.emit('toggleCommands', { commands_enabled: commandsEnabled });
-      });
-
-      socket.on('toggleResponse', (data) => {
-        console.log('Received toggleResponse:', data);
-        if (data.status === 'success') {
-          alert(`Commands are now ${data.commands_enabled ? 'enabled' : 'disabled'}.`);
-        } else {
-          alert(`Error: ${data.message}`);
-        }
-      });
-
-      socket.on('toggleUpdated', (data) => {
-        console.log('Toggle state updated:', data);
-        // Optionally update the toggle UI if needed.
       });
 
       // Chart.js setup
