@@ -1458,12 +1458,12 @@ setInterval(() => {
 // Define the absolute path for the toggle file.
 const toggleFilePath = path.join(__dirname, 'toggle.json');
 
-// Optionally serve static files from your "public" folder
+// Serve static files from the "public" folder (if needed)
 app.use(express.static('public'));
 
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
-  
+
   // Listen for the toggleCommands event from clients
   socket.on('toggleCommands', (data) => {
     // Expect data = { commands_enabled: true/false }
@@ -1479,12 +1479,13 @@ io.on('connection', (socket) => {
       } else {
         console.log("Toggle updated:", config);
         socket.emit('toggleResponse', { status: 'success', commands_enabled: data.commands_enabled });
-        // Optionally broadcast the updated state to all other connected clients:
+        // Broadcast the updated state to all other connected clients.
         socket.broadcast.emit('toggleUpdated', { commands_enabled: data.commands_enabled });
       }
     });
   });
 });
+
 // ----------------------
 // Start the Server
 // ----------------------
