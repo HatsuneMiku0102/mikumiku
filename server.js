@@ -1457,7 +1457,7 @@ setInterval(() => {
 // -------------------
 
 // Use the environment variable MONGO_URL for MongoDB connection.
-const mongoUrl = process.env.MONGO_URL;
+
 if (!mongoUrl) {
   console.error("Error: MONGO_URL environment variable not set.");
   process.exit(1);
