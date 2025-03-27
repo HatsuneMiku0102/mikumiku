@@ -117,19 +117,12 @@
       gap: 4px;
       justify-content: center;
     }
-    /* 
-      We use a pseudo-element to rotate the diamond,
-      so the tooltip remains horizontal.
-    */
     .timeline-block {
       width: 14px;
       height: 14px;
       position: relative;
       cursor: pointer;
       border-radius: 2px;
-      /* The actual color will be inherited from the .timeline-block's backgroundColor,
-         but the shape is handled by ::before.
-      */
     }
     .timeline-block::before {
       content: "";
@@ -185,6 +178,7 @@
       </div>
     </div>
 
+    <!-- Minute-by-minute timeline -->
     <div class="minute-timeline-container">
       <div class="timeline-header">Minute-by-Minute Status</div>
       <div class="timeline-blocks" id="minuteTimeline"></div>
@@ -274,7 +268,6 @@
         console.log('Received geoDataUpdate:', data);
         updateChart(data);
       });
-
       socket.on('activeUsersUpdate', (data) => {
         console.log('Received activeUsersUpdate:', data);
         document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`;
@@ -340,11 +333,9 @@
           });
       });
 
-      // ====== AUTO-OFFLINE LOGIC ======
+      // ===== AUTO-OFFLINE LOGIC ======
       const OFFLINE_TIMEOUT = 90 * 1000; // 90 seconds
       let lastUpdateTime = Date.now();
-
-      // Periodically check if the bot has gone silent
       setInterval(() => {
         if (Date.now() - lastUpdateTime > OFFLINE_TIMEOUT) {
           markBotCompletelyOffline();
@@ -353,19 +344,14 @@
 
       function markBotCompletelyOffline() {
         console.log('Bot timed out; marking offline.');
-        // Mark text status
         const statusLabel = document.getElementById('bot-status-text');
         statusLabel.textContent = 'Offline';
         statusLabel.classList.remove('online', 'high-latency');
         statusLabel.classList.add('offline');
-
-        // Reset vitals
         document.getElementById('bot-name').innerText = 'N/A';
         document.getElementById('bot-uptime').innerText = 'N/A';
         document.getElementById('bot-latency').innerText = 'N/A';
         document.getElementById('bot-memory').innerText = 'N/A';
-
-        // Add an offline diamond to the timeline
         const offlineData = {
           status: 'offline',
           botName: 'N/A',
@@ -376,50 +362,62 @@
         addTimelineBlock(offlineData);
       }
 
-      // ===== MINUTE-BY-MINUTE TIMELINE =====
+      // ===== PERSISTING TIMELINE DATA ======
       const timelineContainer = document.getElementById('minuteTimeline');
+      const TIMELINE_STORAGE_KEY = 'minuteTimelineData';
+      let timelineData = JSON.parse(localStorage.getItem(TIMELINE_STORAGE_KEY)) || [];
+      
+      function saveTimelineData() {
+        localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify(timelineData));
+      }
+      
+      function renderTimeline() {
+        timelineContainer.innerHTML = '';
+        timelineData.forEach(data => {
+          const block = createTimelineBlock(data);
+          timelineContainer.appendChild(block);
+        });
+      }
+      
+      // ===== MINUTE-BY-MINUTE TIMELINE ======
       const MAX_MINUTES = 60; // Keep up to 60 blocks
-      function addTimelineBlock(data) {
+      function createTimelineBlock(data) {
         const block = document.createElement('div');
         block.classList.add('timeline-block');
-
-        // Determine color
         if (data.status !== 'online') {
-          block.style.backgroundColor = '#dc3545'; // red
+          block.style.backgroundColor = '#dc3545';
         } else if (parseInt(data.latency) > 100) {
-          block.style.backgroundColor = '#ffc107'; // yellow
+          block.style.backgroundColor = '#ffc107';
         } else {
-          block.style.backgroundColor = '#28a745'; // green
+          block.style.backgroundColor = '#28a745';
         }
-
-        // Tooltip
         const tooltip = document.createElement('div');
         tooltip.classList.add('tooltip');
-        const timestamp = new Date().toLocaleTimeString();
-        tooltip.innerText = 
-          `Time: ${timestamp}\n` +
-          `Bot: ${data.botName}\n` +
-          `Uptime: ${data.uptime}\n` +
-          `Latency: ${data.latency}\n` +
-          `Memory: ${data.memoryUsage}`;
+        tooltip.innerText = `Time: ${data.timestamp}\nBot: ${data.botName}\nUptime: ${data.uptime}\nLatency: ${data.latency}\nMemory: ${data.memoryUsage}`;
         block.appendChild(tooltip);
-
-        timelineContainer.appendChild(block);
-
-        // Remove oldest if over max
-        if (timelineContainer.children.length > MAX_MINUTES) {
-          timelineContainer.removeChild(timelineContainer.firstChild);
-        }
+        return block;
       }
+      
+      function addTimelineBlock(data) {
+        const timestamp = new Date().toLocaleTimeString();
+        const blockData = { ...data, timestamp };
+        timelineData.push(blockData);
+        if (timelineData.length > MAX_MINUTES) {
+          timelineData.shift();
+        }
+        saveTimelineData();
+        renderTimeline();
+      }
+      
+      // Render timeline on page load
+      renderTimeline();
 
-      // ===== BOT STATUS UPDATE =====
+      // ===== BOT STATUS UPDATE ======
       socket.on('botStatusUpdate', (data) => {
         console.log('Received botStatusUpdate:', data);
-        lastUpdateTime = Date.now(); // Reset the offline timer
-
+        lastUpdateTime = Date.now();
         const statusLabel = document.getElementById('bot-status-text');
         statusLabel.classList.remove('online', 'offline', 'high-latency');
-
         if (data.status === 'online') {
           if (parseInt(data.latency) > 100) {
             statusLabel.textContent = 'Online (High Latency)';
@@ -432,14 +430,10 @@
           statusLabel.textContent = 'Offline';
           statusLabel.classList.add('offline');
         }
-
-        // Update vital info
         document.getElementById('bot-name').innerText = data.botName || 'N/A';
         document.getElementById('bot-uptime').innerText = data.uptime || 'N/A';
         document.getElementById('bot-latency').innerText = data.latency || 'N/A';
         document.getElementById('bot-memory').innerText = data.memoryUsage || 'N/A';
-
-        // Add timeline block
         addTimelineBlock(data);
       });
     });
