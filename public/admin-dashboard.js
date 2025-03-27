@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         });
         function updateBotStatus() {
-            fetch('http://us-nyc02.pylex.xyz:8282/status')
+            fetch('/status-proxy')
                 .then(response => response.json())
                 .then(data => {
                     const botStatusIndicator = document.getElementById('bot-status-indicator');
@@ -133,5 +133,4 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         setInterval(updateBotStatus, 5000);
         updateBotStatus();
-    }
-});
+
