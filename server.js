@@ -1455,9 +1455,10 @@ setInterval(() => {
 // Yes
 // -------------------
 
+// Define the absolute path for the toggle file.
 const toggleFilePath = path.join(__dirname, 'toggle.json');
 
-// Serve static files (if needed)
+// Optionally serve static files from your "public" folder
 app.use(express.static('public'));
 
 io.on('connection', (socket) => {
@@ -1467,7 +1468,7 @@ io.on('connection', (socket) => {
   socket.on('toggleCommands', (data) => {
     // Expect data = { commands_enabled: true/false }
     if (typeof data.commands_enabled === 'undefined') {
-      socket.emit('toggleResponse', { status: 'error', message: 'Missing commands_enabled property.' });
+      socket.emit('toggleResponse', { status: 'error', message: "Missing 'commands_enabled' property." });
       return;
     }
     const config = { commands_enabled: data.commands_enabled };
@@ -1478,13 +1479,12 @@ io.on('connection', (socket) => {
       } else {
         console.log("Toggle updated:", config);
         socket.emit('toggleResponse', { status: 'success', commands_enabled: data.commands_enabled });
-        // Optionally, broadcast the updated state to other admin clients:
+        // Optionally broadcast the updated state to all other connected clients:
         socket.broadcast.emit('toggleUpdated', { commands_enabled: data.commands_enabled });
       }
     });
   });
 });
-
 // ----------------------
 // Start the Server
 // ----------------------
