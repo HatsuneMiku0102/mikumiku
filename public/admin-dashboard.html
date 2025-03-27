@@ -225,12 +225,22 @@
       const socket = io();
       socket.on('connect', () => {
         console.log('Socket.IO connected, socket id:', socket.id);
+        // Request the current toggle state on connection.
+        socket.emit('getToggleState');
       });
       socket.on('connect_error', (err) => {
         console.error('Socket.IO connection error:', err);
       });
 
-      // Logging for toggle commands events
+      // Listen for a response with the current toggle state.
+      socket.on('toggleState', (data) => {
+        console.log('Received toggleState:', data);
+        // Update the toggleSwitch checkbox based on the state.
+        const toggleSwitch = document.getElementById('toggleSwitch');
+        toggleSwitch.checked = data.commands_enabled;
+      });
+
+      // Logging for toggle commands events.
       socket.on('toggleResponse', (data) => {
         console.log('Received toggleResponse:', data);
         if (data.status === 'success') {
@@ -244,10 +254,12 @@
 
       socket.on('toggleUpdated', (data) => {
         console.log('Broadcast toggleUpdated received:', data);
-        // Optionally update UI if needed.
+        // Optionally update the toggle UI if needed.
+        const toggleSwitch = document.getElementById('toggleSwitch');
+        toggleSwitch.checked = data.commands_enabled;
       });
 
-      // Toggle Button Logic using Socket.IO
+      // Toggle Button Logic using Socket.IO.
       const toggleSwitch = document.getElementById('toggleSwitch');
       const updateToggleButton = document.getElementById('updateToggle');
 
@@ -257,7 +269,7 @@
         socket.emit('toggleCommands', { commands_enabled: commandsEnabled });
       });
 
-      // Chart.js setup
+      // Chart.js setup.
       const ctx = document.getElementById('locationChart').getContext('2d');
       const locationChart = new Chart(ctx, {
         type: 'bar',
@@ -411,7 +423,7 @@
         });
       }
       
-      // ===== MINUTE-BY-MINUTE TIMELINE (CONVEYOR SYSTEM) ======
+      // ===== MINUTE-BY-MINUTE TIMELINE (Conveyor System) ======
       const timelineContainer = document.getElementById('minuteTimeline');
       const MAX_MINUTES = 60; // Fixed number of blocks
       
