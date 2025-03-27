@@ -1455,25 +1455,33 @@ setInterval(() => {
 // Yes
 // -------------------
 
-app.use(express.json());
-
-// Define the path for toggle.json
 const toggleFilePath = path.join(__dirname, 'toggle.json');
 
-// Endpoint to toggle command usage
-app.post('/toggle_commands', (req, res) => {
-  const { commands_enabled } = req.body;
-  if (typeof commands_enabled === 'undefined') {
-    return res.status(400).json({ error: "Missing 'commands_enabled' property in request body." });
-  }
-  const config = { commands_enabled };
+// Serve static files (if needed)
+app.use(express.static('public'));
 
-  fs.writeFile(toggleFilePath, JSON.stringify(config, null, 2), (err) => {
-    if (err) {
-      console.error("Error writing toggle file:", err);
-      return res.status(500).json({ error: 'Could not update configuration.' });
+io.on('connection', (socket) => {
+  console.log(`Socket connected: ${socket.id}`);
+  
+  // Listen for the toggleCommands event from clients
+  socket.on('toggleCommands', (data) => {
+    // Expect data = { commands_enabled: true/false }
+    if (typeof data.commands_enabled === 'undefined') {
+      socket.emit('toggleResponse', { status: 'error', message: 'Missing commands_enabled property.' });
+      return;
     }
-    return res.json({ status: "success", commands_enabled });
+    const config = { commands_enabled: data.commands_enabled };
+    fs.writeFile(toggleFilePath, JSON.stringify(config, null, 2), (err) => {
+      if (err) {
+        console.error("Error writing toggle file:", err);
+        socket.emit('toggleResponse', { status: 'error', message: 'Could not update configuration.' });
+      } else {
+        console.log("Toggle updated:", config);
+        socket.emit('toggleResponse', { status: 'success', commands_enabled: data.commands_enabled });
+        // Optionally, broadcast the updated state to other admin clients:
+        socket.broadcast.emit('toggleUpdated', { commands_enabled: data.commands_enabled });
+      }
+    });
   });
 });
 
