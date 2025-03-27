@@ -238,7 +238,8 @@ app.use(
         "https://mikumiku.dev",
         "https://api.mapbox.com",
         "https://events.mapbox.com",
-        "http://us-nyc02.pylex.xyz:8282"
+        "http://us-nyc02.pylex.xyz:8282",
+        "https://us-nyc02.pylex.xyz:8282"
       ],
       frameSrc: [
         "'self'",
