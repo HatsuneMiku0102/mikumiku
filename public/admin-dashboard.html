@@ -117,7 +117,7 @@
       justify-content: center;
       overflow: hidden;
     }
-    /* Vertical bar style */
+    /* Vertical bar style with hover enlargement */
     .timeline-block {
       width: 4px;
       height: 20px;
@@ -125,13 +125,13 @@
       position: relative;
       cursor: pointer;
       background-color: inherit;
-      transition: transform 0.3s;
+      transition: transform 0.3s, opacity 0.3s;
     }
     .timeline-block:hover {
       transform: scale(1.5);
       z-index: 2;
     }
-    /* Tooltip for timeline blocks */
+    /* Tooltip for timeline blocks (horizontal) */
     .timeline-block .tooltip {
       position: absolute;
       bottom: 150%;
@@ -174,7 +174,7 @@
       </div>
     </div>
 
-    <!-- Minute-by-minute timeline -->
+    <!-- Minute-by-minute timeline (Conveyor) -->
     <div class="minute-timeline-container">
       <div class="timeline-header">Minute-by-Minute Status</div>
       <div class="timeline-blocks" id="minuteTimeline"></div>
@@ -261,7 +261,6 @@
         console.log('Received geoDataUpdate:', data);
         updateChart(data);
       });
-
       socket.on('activeUsersUpdate', (data) => {
         console.log('Received activeUsersUpdate:', data);
         document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`;
@@ -395,7 +394,7 @@
       function addTimelineBlock(data) {
         const now = Date.now();
         const newMinute = Math.floor(now / 60000);
-        // If there is already a block for the current minute, update it instead of adding a new one.
+        // If there's already a block for this minute, update it.
         if (timelineData.length > 0) {
           const lastEntry = timelineData[timelineData.length - 1];
           const lastMinute = Math.floor(lastEntry.rawTimestamp / 60000);
@@ -406,11 +405,11 @@
             return;
           }
         }
-        const blockData = { ...data, rawTimestamp: now, timestamp: new Date(now).toLocaleTimeString() };
-        // If we already have MAX_MINUTES blocks, remove the oldest.
+        // Otherwise, if the timeline is full, remove the oldest.
         if (timelineData.length >= MAX_MINUTES) {
           timelineData.shift();
         }
+        const blockData = { ...data, rawTimestamp: now, timestamp: new Date(now).toLocaleTimeString() };
         timelineData.push(blockData);
         saveTimelineData();
         renderTimeline();
