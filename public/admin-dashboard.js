@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
         function blockUser(ip) {
             console.log(`Block button clicked for IP: ${ip}`);
             socket.emit('blockUser', { ip }, (response) => {
-                console.log(`Response from blocking user:`, response);
+                console.log('Response from blocking user:', response);
                 if (response.status === 'success') {
                     alert(`User with IP ${ip} has been blocked.`);
                 } else {
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
         function unblockUser(ip) {
             console.log(`Unblock button clicked for IP: ${ip}`);
             socket.emit('unblockUser', { ip }, (response) => {
-                console.log(`Response from unblocking user:`, response);
+                console.log('Response from unblocking user:', response);
                 if (response.status === 'success') {
                     alert(`User with IP ${ip} has been unblocked.`);
                 } else {
@@ -107,31 +107,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error('Logout failed:', error);
                 });
         });
-        function updateBotStatus() {
-            fetch('/status-proxy')
-                .then(response => response.json())
-                .then(data => {
-                    const botStatusIndicator = document.getElementById('bot-status-indicator');
-                    const botStatusText = document.getElementById('bot-status-text');
-                    if (data.status === 'online') {
-                        botStatusIndicator.querySelector('.status-indicator').classList.remove('status-offline');
-                        botStatusIndicator.querySelector('.status-indicator').classList.add('status-online');
-                        botStatusText.innerText = 'Online';
-                    } else {
-                        botStatusIndicator.querySelector('.status-indicator').classList.remove('status-online');
-                        botStatusIndicator.querySelector('.status-indicator').classList.add('status-offline');
-                        botStatusText.innerText = 'Offline';
-                    }
-                })
-                .catch(error => {
-                    const botStatusIndicator = document.getElementById('bot-status-indicator');
-                    const botStatusText = document.getElementById('bot-status-text');
-                    botStatusIndicator.querySelector('.status-indicator').classList.remove('status-online');
-                    botStatusIndicator.querySelector('.status-indicator').classList.add('status-offline');
-                    botStatusText.innerText = 'Offline';
-                });
-        }
-        setInterval(updateBotStatus, 5000);
-        updateBotStatus();
+        socket.on('botStatusUpdate', (data) => {
+            console.log('Received botStatusUpdate:', data);
+            const botStatusIndicator = document.getElementById('bot-status-indicator');
+            const botStatusText = document.getElementById('bot-status-text');
+            if (data.status === 'online') {
+                botStatusIndicator.querySelector('.status-indicator').classList.remove('status-offline');
+                botStatusIndicator.querySelector('.status-indicator').classList.add('status-online');
+                botStatusText.innerText = 'Online';
+            } else {
+                botStatusIndicator.querySelector('.status-indicator').classList.remove('status-online');
+                botStatusIndicator.querySelector('.status-indicator').classList.add('status-offline');
+                botStatusText.innerText = 'Offline';
+            }
+        });
     }
 });
