@@ -1455,7 +1455,6 @@ setInterval(() => {
 // Yes
 // -------------------
 
-// Define the absolute path for the toggle file.
 const toggleFilePath = path.join(__dirname, 'toggle.json');
 
 console.log("Toggle file path:", toggleFilePath);
@@ -1481,10 +1480,28 @@ io.on('connection', (socket) => {
         console.error(`Error writing toggle file for ${socket.id}:`, err);
         socket.emit('toggleResponse', { status: 'error', message: 'Could not update configuration.' });
       } else {
-        console.log(`Toggle updated successfully by ${socket.id}:`, config);
-        socket.emit('toggleResponse', { status: 'success', commands_enabled: data.commands_enabled });
-        // Broadcast the updated state to all other connected clients.
-        socket.broadcast.emit('toggleUpdated', { commands_enabled: data.commands_enabled });
+        // Read back the file to verify the value.
+        fs.readFile(toggleFilePath, "utf8", (readErr, fileContent) => {
+          if (readErr) {
+            console.error(`Error reading toggle file for ${socket.id}:`, readErr);
+            socket.emit('toggleResponse', { status: 'error', message: 'Error reading configuration.' });
+          } else {
+            console.log(`Toggle file content after write: ${fileContent}`);
+            // Parse the file content to get the actual flag.
+            let parsed;
+            try {
+              parsed = JSON.parse(fileContent);
+            } catch (parseErr) {
+              console.error(`Error parsing toggle file for ${socket.id}:`, parseErr);
+              socket.emit('toggleResponse', { status: 'error', message: 'Error parsing configuration.' });
+              return;
+            }
+            console.log(`Toggle updated successfully by ${socket.id}:`, parsed);
+            socket.emit('toggleResponse', { status: 'success', commands_enabled: parsed.commands_enabled });
+            // Broadcast the updated state to all other connected clients.
+            socket.broadcast.emit('toggleUpdated', { commands_enabled: parsed.commands_enabled });
+          }
+        });
       }
     });
   });
@@ -1493,6 +1510,9 @@ io.on('connection', (socket) => {
     console.log(`Socket disconnected: ${socket.id}, Reason: ${reason}`);
   });
 });
+
+
+
 // ----------------------
 // Start the Server
 // ----------------------
