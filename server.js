@@ -1456,7 +1456,25 @@ setInterval(() => {
 // Yes
 // -------------------
 
-// Use the environment variable MONGO_URL for MongoDB connection.
+let timelineData = []; // This array will persist timeline updates
+
+const MAX_MINUTES = 60; // Maximum number of blocks to keep
+
+// Endpoint to get timeline data
+app.get('/api/timeline', (req, res) => {
+  res.json(timelineData);
+});
+
+// Endpoint to record a new timeline update
+app.post('/api/timeline', (req, res) => {
+  const update = req.body;
+  // Remove oldest if necessary
+  if (timelineData.length >= MAX_MINUTES) {
+    timelineData.shift();
+  }
+  timelineData.push(update);
+  res.json({ status: 'ok' });
+});
 
 if (!mongoUrl) {
   console.error("Error: MONGO_URL environment variable not set.");
