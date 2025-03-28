@@ -52,6 +52,9 @@
       font-size: 1.1em;
       margin-right: 10px;
     }
+    .toggle-group {
+      margin: 10px 0;
+    }
     .real-time-info, .bot-status, .user-list {
       margin-top: 20px;
     }
@@ -168,10 +171,19 @@
 
     <!-- Command Toggle Section -->
     <div class="command-toggle">
-      <h3>Command Toggle</h3>
-      <label for="toggleSwitch">Commands Enabled</label>
-      <input type="checkbox" id="toggleSwitch" checked>
-      <button id="updateToggle">Update Toggle</button>
+      <h3>Command Toggles</h3>
+      <div id="toggleContainer">
+        <div class="toggle-group">
+          <label for="lfgToggle">LFG Command</label>
+          <input type="checkbox" id="lfgToggle" checked>
+        </div>
+        <div class="toggle-group">
+          <label for="otherCommandToggle">Other Command</label>
+          <input type="checkbox" id="otherCommandToggle" checked>
+        </div>
+        <!-- Additional toggle checkboxes can be added here -->
+      </div>
+      <button id="updateToggle">Update Toggles</button>
     </div>
 
     <!-- Bot Status -->
@@ -235,17 +247,25 @@
       // Listen for a response with the current toggle state.
       socket.on('toggleState', (data) => {
         console.log('Received toggleState:', data);
-        // Update the toggleSwitch checkbox based on the state.
-        const toggleSwitch = document.getElementById('toggleSwitch');
-        toggleSwitch.checked = data.commands_enabled;
+        // Update each toggle switch based on the state.
+        // Assuming the MongoDB document is structured with multiple keys.
+        // For now, we expect keys "lfg_command" and "other_command".
+        const lfgToggle = document.getElementById('lfgToggle');
+        const otherToggle = document.getElementById('otherCommandToggle');
+        if (data.lfg_command !== undefined) {
+          lfgToggle.checked = data.lfg_command;
+        }
+        if (data.other_command !== undefined) {
+          otherToggle.checked = data.other_command;
+        }
       });
 
       // Logging for toggle commands events.
       socket.on('toggleResponse', (data) => {
         console.log('Received toggleResponse:', data);
         if (data.status === 'success') {
-          console.log('Toggle successful. New state:', data.commands_enabled);
-          alert(`Commands are now ${data.commands_enabled ? 'enabled' : 'disabled'}.`);
+          console.log('Toggle successful. New state:', data);
+          alert(`Toggles updated successfully.`);
         } else {
           console.error('Toggle error:', data.message);
           alert(`Error: ${data.message}`);
@@ -254,19 +274,29 @@
 
       socket.on('toggleUpdated', (data) => {
         console.log('Broadcast toggleUpdated received:', data);
-        // Optionally update the toggle UI if needed.
-        const toggleSwitch = document.getElementById('toggleSwitch');
-        toggleSwitch.checked = data.commands_enabled;
+        // Update UI if needed.
+        const lfgToggle = document.getElementById('lfgToggle');
+        const otherToggle = document.getElementById('otherCommandToggle');
+        if (data.lfg_command !== undefined) {
+          lfgToggle.checked = data.lfg_command;
+        }
+        if (data.other_command !== undefined) {
+          otherToggle.checked = data.other_command;
+        }
       });
 
       // Toggle Button Logic using Socket.IO.
-      const toggleSwitch = document.getElementById('toggleSwitch');
       const updateToggleButton = document.getElementById('updateToggle');
 
       updateToggleButton.addEventListener('click', () => {
-        const commandsEnabled = toggleSwitch.checked;
-        console.log('Emitting toggleCommands with:', commandsEnabled);
-        socket.emit('toggleCommands', { commands_enabled: commandsEnabled });
+        const lfgCommand = document.getElementById('lfgToggle').checked;
+        const otherCommand = document.getElementById('otherCommandToggle').checked;
+        const toggles = {
+          lfg_command: lfgCommand,
+          other_command: otherCommand
+        };
+        console.log('Emitting toggleCommands with:', toggles);
+        socket.emit('toggleCommands', toggles);
       });
 
       // Chart.js setup.
