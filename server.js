@@ -1458,18 +1458,15 @@ setInterval(() => {
 
 const MAX_MINUTES = 60; // Maximum number of timeline entries
 
-// Timeline collection persistence
+// Collections for timeline and config
 let timelineCollection;
-
-// Toggle configuration collection (existing)
 let configCollection;
 
 if (!process.env.MONGO_URL) {
   console.error("Error: MONGO_URL environment variable not set.");
   process.exit(1);
 }
-
-
+const mongoUrl = process.env.MONGO_URL;
 const dbName = process.env.MONGO_DB_NAME || "myfirstdatabase";
 
 const client = new MongoClient(mongoUrl, { useUnifiedTopology: true });
@@ -1498,8 +1495,6 @@ async function connectToMongo() {
 connectToMongo();
 
 // Timeline endpoints
-
-// GET endpoint to fetch timeline data (sorted by rawTimestamp ascending)
 app.get('/api/timeline', async (req, res) => {
   try {
     const entries = await timelineCollection.find().sort({ rawTimestamp: 1 }).toArray();
@@ -1509,12 +1504,11 @@ app.get('/api/timeline', async (req, res) => {
   }
 });
 
-// POST endpoint to add a new timeline update
 app.post('/api/timeline', async (req, res) => {
   try {
     const update = req.body;
     await timelineCollection.insertOne(update);
-    // Ensure only MAX_MINUTES entries exist; remove the oldest if necessary.
+    // Remove oldest entries if count exceeds MAX_MINUTES
     const count = await timelineCollection.countDocuments();
     if (count > MAX_MINUTES) {
       const excess = count - MAX_MINUTES;
@@ -1528,7 +1522,7 @@ app.post('/api/timeline', async (req, res) => {
   }
 });
 
-// Toggle endpoints (existing)
+// Toggle endpoints (unchanged)
 app.get('/api/toggle', async (req, res) => {
   try {
     const toggleDoc = await configCollection.findOne({ _id: "toggle" });
@@ -1555,7 +1549,13 @@ app.post('/api/toggle', async (req, res) => {
   }
 });
 
-// Socket.IO integration (existing)
+// Socket.IO integration
+const http = require('http');
+const server = http.createServer(app);
+const socketIo = require('socket.io');
+const io = socketIo(server, {
+  cors: { origin: "*", methods: ["GET", "POST"] }
+});
 
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
