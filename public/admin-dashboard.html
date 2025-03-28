@@ -117,7 +117,6 @@
       justify-content: center;
       overflow: visible;
     }
-    /* Vertical bar style with hover enlargement */
     .timeline-block {
       width: 4px;
       height: 20px;
@@ -131,7 +130,6 @@
       transform: scale(1.5);
       z-index: 2;
     }
-    /* Tooltip for timeline blocks */
     .timeline-block .tooltip {
       position: absolute;
       bottom: 150%;
@@ -196,6 +194,13 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
+    // Global variable to track the last saved minute (for timeline entries)
+    let lastSavedMinute = null;
+    // Global timelineData array, fetched from server
+    let timelineData = [];
+    const TIMELINE_STORAGE_KEY = 'minuteTimelineData';
+    const MAX_MINUTES = 60; // Fixed number of blocks
+
     document.addEventListener('DOMContentLoaded', function() {
       console.log('Admin dashboard script loaded.');
       const cookieString = document.cookie;
@@ -233,9 +238,7 @@
         options: {
           responsive: true,
           scales: {
-            y: {
-              beginAtZero: true
-            }
+            y: { beginAtZero: true }
           }
         }
       });
@@ -320,9 +323,7 @@
             document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             window.location.href = '/auth';
           })
-          .catch(error => {
-            console.error('Logout failed:', error);
-          });
+          .catch(error => console.error('Logout failed:', error));
       });
 
       // ===== AUTO-OFFLINE LOGIC ======
@@ -356,22 +357,20 @@
 
       // ===== PERSISTING TIMELINE DATA ======
       const TIMELINE_STORAGE_KEY = 'minuteTimelineData';
-      let timelineData = [];
-
       // Fetch persisted timeline data from the server
       fetch('/api/timeline')
         .then(response => response.json())
         .then(data => {
           console.log('Fetched persisted timeline data:', data);
           timelineData = data || [];
-          // Set lastSavedMinute if timelineData exists
-          window.lastSavedMinute = timelineData.length > 0 ? Math.floor(timelineData[timelineData.length - 1].rawTimestamp / 60000) : null;
+          if (timelineData.length > 0) {
+            lastSavedMinute = Math.floor(timelineData[timelineData.length - 1].rawTimestamp / 60000);
+          }
           renderTimeline();
         })
         .catch(error => console.error('Error fetching persisted timeline data:', error));
 
       function saveTimelineData(entry) {
-        // Save to localStorage as fallback
         localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify(timelineData));
         // Also POST the new timeline entry to the server
         fetch('/api/timeline', {
@@ -392,9 +391,7 @@
         });
       }
 
-      // ===== MINUTE-BY-MINUTE TIMELINE (CONVEYOR SYSTEM) ======
       const timelineContainer = document.getElementById('minuteTimeline');
-      const MAX_MINUTES = 60; // Fixed number of blocks
 
       function createTimelineBlock(data) {
         const block = document.createElement('div');
@@ -413,25 +410,15 @@
         return block;
       }
 
-      // Global variable to track the last minute saved
-      let lastSavedMinute = null;
-
       function addTimelineBlock(data) {
         const now = Date.now();
         const newMinute = Math.floor(now / 60000);
-        // If there's already a block for this minute, update it.
+        // If there's already a block for this minute, update it without POSTing a duplicate.
         if (timelineData.length > 0) {
           const lastEntry = timelineData[timelineData.length - 1];
           const lastMinute = Math.floor(lastEntry.rawTimestamp / 60000);
           if (newMinute === lastMinute) {
-            // Update the last block
-            const updatedEntry = { ...data, rawTimestamp: now, timestamp: new Date(now).toLocaleTimeString() };
-            timelineData[timelineData.length - 1] = updatedEntry;
-            // Only save to server if this minute is new relative to lastSavedMinute
-            if (lastSavedMinute !== newMinute) {
-              saveTimelineData(updatedEntry);
-              lastSavedMinute = newMinute;
-            }
+            timelineData[timelineData.length - 1] = { ...data, rawTimestamp: now, timestamp: new Date(now).toLocaleTimeString() };
             renderTimeline();
             return;
           }
@@ -446,8 +433,6 @@
         saveTimelineData(blockData);
         renderTimeline();
       }
-
-      // Render timeline on page load (if data was fetched from server, it's already rendered)
 
       // ===== BOT STATUS UPDATE ======
       socket.on('botStatusUpdate', (data) => {
