@@ -1557,8 +1557,6 @@ app.post('/api/toggle', async (req, res) => {
 
 // Socket.IO integration (existing)
 
-});
-
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
