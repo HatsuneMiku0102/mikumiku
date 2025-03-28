@@ -1466,7 +1466,7 @@ if (!process.env.MONGO_URL) {
   console.error("Error: MONGO_URL environment variable not set.");
   process.exit(1);
 }
-const mongoUrl = process.env.MONGO_URL;
+
 const dbName = process.env.MONGO_DB_NAME || "myfirstdatabase";
 
 const client = new MongoClient(mongoUrl, { useUnifiedTopology: true });
