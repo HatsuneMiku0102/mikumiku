@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    /* (Your existing styles) */
     body {
       font-family: 'Roboto', sans-serif;
       background-color: #f5f5f5;
@@ -43,14 +44,6 @@
     }
     button:hover {
       background-color: #0056b3;
-    }
-    .command-toggle {
-      margin-bottom: 20px;
-      text-align: center;
-    }
-    .command-toggle label {
-      font-size: 1.1em;
-      margin-right: 10px;
     }
     .real-time-info, .bot-status, .user-list {
       margin-top: 20px;
@@ -110,7 +103,7 @@
     .vitals p {
       margin: 2px 0;
     }
-    /* Minute-by-minute timeline */
+    /* Minute-by-minute timeline (vertical bars with hover enlargement) */
     .minute-timeline-container {
       margin-top: 20px;
     }
@@ -166,19 +159,6 @@
     <h2>Admin Dashboard</h2>
     <button id="logout">Logout</button>
 
-    <!-- Command Toggle Section -->
-    <div class="command-toggle">
-      <h3>Command Toggles</h3>
-      <div id="toggleContainer">
-        <div class="toggle-group">
-          <label for="toggleSwitch">LFG Command</label>
-          <input type="checkbox" id="toggleSwitch" checked>
-        </div>
-        <!-- Future checkboxes can be added here -->
-      </div>
-      <button id="updateToggle">Update Toggles</button>
-    </div>
-
     <!-- Bot Status -->
     <div class="bot-status">
       <h3>Bot Status</h3>
@@ -193,7 +173,7 @@
       </div>
     </div>
 
-    <!-- Minute-by-minute timeline (Conveyor) -->
+    <!-- Minute-by-minute timeline -->
     <div class="minute-timeline-container">
       <div class="timeline-header">Minute-by-Minute Status</div>
       <div class="timeline-blocks" id="minuteTimeline"></div>
@@ -230,53 +210,12 @@
       const socket = io();
       socket.on('connect', () => {
         console.log('Socket.IO connected, socket id:', socket.id);
-        // Request the current toggle state on connection.
-        socket.emit('getToggleState');
       });
       socket.on('connect_error', (err) => {
         console.error('Socket.IO connection error:', err);
       });
 
-      // Listen for a response with the current toggle state.
-      socket.on('toggleState', (data) => {
-        console.log('Received toggleState:', data);
-        // Update the toggleSwitch checkbox based on the state.
-        const toggleSwitch = document.getElementById('toggleSwitch');
-        toggleSwitch.checked = data.lfg_command !== undefined ? data.lfg_command : data.commands_enabled;
-      });
-
-      // Logging for toggle commands events.
-      socket.on('toggleResponse', (data) => {
-        console.log('Received toggleResponse:', data);
-        if (data.status === 'success') {
-          console.log('Toggle successful. New state:', data);
-          alert(`Toggles updated successfully.`);
-        } else {
-          console.error('Toggle error:', data.message);
-          alert(`Error: ${data.message}`);
-        }
-      });
-
-      socket.on('toggleUpdated', (data) => {
-        console.log('Broadcast toggleUpdated received:', data);
-        // Update UI if needed.
-        const toggleSwitch = document.getElementById('toggleSwitch');
-        toggleSwitch.checked = data.lfg_command !== undefined ? data.lfg_command : data.commands_enabled;
-      });
-
-      // Toggle Button Logic using Socket.IO.
-
-      const updateToggleButton = document.getElementById('updateToggle');
-      
-      updateToggleButton.addEventListener('click', () => {
-        const lfgCommand = document.getElementById('toggleSwitch').checked;
-        // Use the key 'commands_enabled' as expected by the server.
-        const toggles = { commands_enabled: lfgCommand };
-        console.log('Emitting toggleCommands with:', toggles);
-        socket.emit('toggleCommands', toggles);
-      });
-
-      // Chart.js setup.
+      // Chart.js setup
       const ctx = document.getElementById('locationChart').getContext('2d');
       const locationChart = new Chart(ctx, {
         type: 'bar',
@@ -414,14 +353,33 @@
         addTimelineBlock(offlineData);
       }
 
-      // ===== PERSISTING TIMELINE DATA ======
+      // ===== PERSISTING TIMELINE DATA (Server-Side) ======
+      // Fetch persisted timeline data from the server
+      fetch('/api/timeline')
+        .then(response => response.json())
+        .then(data => {
+          console.log('Fetched persisted timeline data:', data);
+          timelineData = data || [];
+          renderTimeline();
+        })
+        .catch(error => console.error('Error fetching persisted timeline data:', error));
+
+      // ===== PERSISTING TIMELINE DATA (Local Storage fallback) ======
+      // If you want a fallback, you can still use localStorage:
+      // let timelineData = JSON.parse(localStorage.getItem(TIMELINE_STORAGE_KEY)) || [];
+
       const TIMELINE_STORAGE_KEY = 'minuteTimelineData';
-      let timelineData = JSON.parse(localStorage.getItem(TIMELINE_STORAGE_KEY)) || [];
-      
+
       function saveTimelineData() {
         localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify(timelineData));
+        // Optionally, also send to server for persistence:
+        fetch('/api/timeline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(timelineData)
+        }).catch(err => console.error('Error saving timeline data to server:', err));
       }
-      
+
       function renderTimeline() {
         timelineContainer.innerHTML = '';
         timelineData.forEach(data => {
@@ -429,11 +387,11 @@
           timelineContainer.appendChild(block);
         });
       }
-      
-      // ===== MINUTE-BY-MINUTE TIMELINE (Conveyor System) ======
+
+      // ===== MINUTE-BY-MINUTE TIMELINE (CONVEYOR SYSTEM) ======
       const timelineContainer = document.getElementById('minuteTimeline');
       const MAX_MINUTES = 60; // Fixed number of blocks
-      
+
       function createTimelineBlock(data) {
         const block = document.createElement('div');
         block.classList.add('timeline-block');
@@ -450,10 +408,11 @@
         block.appendChild(tooltip);
         return block;
       }
-      
+
       function addTimelineBlock(data) {
         const now = Date.now();
         const newMinute = Math.floor(now / 60000);
+        // If there's already a block for this minute, update it.
         if (timelineData.length > 0) {
           const lastEntry = timelineData[timelineData.length - 1];
           const lastMinute = Math.floor(lastEntry.rawTimestamp / 60000);
@@ -464,6 +423,7 @@
             return;
           }
         }
+        // If timeline is full, remove the oldest.
         if (timelineData.length >= MAX_MINUTES) {
           timelineData.shift();
         }
@@ -472,9 +432,8 @@
         saveTimelineData();
         renderTimeline();
       }
-      
-      renderTimeline();
 
+      // ===== BOT STATUS UPDATE ======
       socket.on('botStatusUpdate', (data) => {
         console.log('Received botStatusUpdate:', data);
         lastUpdateTime = Date.now();
