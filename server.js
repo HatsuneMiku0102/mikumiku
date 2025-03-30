@@ -1467,6 +1467,7 @@ if (!process.env.MONGO_URL) {
   process.exit(1);
 }
 
+const mongoUrl = process.env.MONGO_URL;
 const dbName = process.env.MONGO_DB_NAME || "myfirstdatabase";
 
 const client = new MongoClient(mongoUrl, { useUnifiedTopology: true });
@@ -1522,8 +1523,7 @@ app.post('/api/timeline', async (req, res) => {
   }
 });
 
-
-// Toggle endpoints (unchanged)
+// Toggle endpoints for LFG command
 app.get('/api/toggle', async (req, res) => {
   try {
     const toggleDoc = await configCollection.findOne({ _id: "toggle" });
@@ -1550,7 +1550,9 @@ app.post('/api/toggle', async (req, res) => {
   }
 });
 
-
+// Socket.IO integration
+const server = http.createServer(app);
+const io = socketIo(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
 
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
