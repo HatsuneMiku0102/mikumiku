@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    /* Dashboard styles remain as before */
+    /* General Dashboard Styles */
     body {
       font-family: 'Roboto', sans-serif;
       background-color: #f5f5f5;
@@ -172,7 +172,7 @@
       <label for="lfgToggle">LFG Command Enabled:</label>
       <input type="checkbox" id="lfgToggle">
     </div>
-
+    
     <!-- Bot Status -->
     <div class="bot-status">
       <h3>Bot Status</h3>
@@ -209,11 +209,11 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    // Global variables for timeline
+    // Global variables for timeline persistence
     let lastSavedMinute = null;
     let timelineData = [];
     const TIMELINE_STORAGE_KEY = 'minuteTimelineData';
-    const MAX_MINUTES = 60; // Fixed number of blocks
+    const MAX_MINUTES = 60; // Fixed number of timeline blocks
 
     document.addEventListener('DOMContentLoaded', function() {
       console.log('Admin dashboard script loaded.');
@@ -230,8 +230,7 @@
       const socket = io();
       socket.on('connect', () => {
         console.log('Socket.IO connected, socket id:', socket.id);
-        // Request the current toggle state for LFG command on connection
-        socket.emit('getToggleState');
+        socket.emit('getToggleState'); // Request current toggle state
       });
       socket.on('connect_error', (err) => {
         console.error('Socket.IO connection error:', err);
@@ -242,16 +241,15 @@
         console.log('Received toggleState:', data);
         document.getElementById('lfgToggle').checked = data.commands_enabled;
       });
-      // Update toggle state when changed
+      socket.on('toggleUpdated', (data) => {
+        console.log('Received toggleUpdated:', data);
+        document.getElementById('lfgToggle').checked = data.commands_enabled;
+      });
+      // When toggle switch changes, send new state
       document.getElementById('lfgToggle').addEventListener('change', function() {
         const newState = this.checked;
         console.log('Toggle changed to:', newState);
         socket.emit('toggleCommands', { commands_enabled: newState });
-      });
-      // Listen for toggle updates from other clients
-      socket.on('toggleUpdated', (data) => {
-        console.log('Received toggleUpdated:', data);
-        document.getElementById('lfgToggle').checked = data.commands_enabled;
       });
 
       // Chart.js setup
@@ -387,7 +385,6 @@
       }
 
       // ===== PERSISTING TIMELINE DATA ======
-      // Fetch persisted timeline data from the server
       fetch('/api/timeline')
         .then(response => response.json())
         .then(data => {
@@ -402,7 +399,7 @@
 
       function saveTimelineData(entry) {
         localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify(timelineData));
-        // Also POST the new timeline entry to the server
+        // POST the new timeline entry to the server
         fetch('/api/timeline', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -443,7 +440,7 @@
       function addTimelineBlock(data) {
         const now = Date.now();
         const newMinute = Math.floor(now / 60000);
-        // If there's already a block for this minute, update it without re-POSTing duplicate data.
+        // If there's already a block for this minute, update it (do not POST duplicate).
         if (timelineData.length > 0) {
           const lastEntry = timelineData[timelineData.length - 1];
           const lastMinute = Math.floor(lastEntry.rawTimestamp / 60000);
