@@ -1522,6 +1522,7 @@ app.post('/api/timeline', async (req, res) => {
   }
 });
 
+
 // Toggle endpoints (unchanged)
 app.get('/api/toggle', async (req, res) => {
   try {
