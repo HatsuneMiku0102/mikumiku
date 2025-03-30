@@ -210,7 +210,6 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     // Global variables for timeline persistence
-    let lastSavedMinute = null;
     let timelineData = [];
     const MAX_MINUTES = 60; // Fixed number of timeline blocks
 
@@ -384,15 +383,11 @@
       }
 
       // ===== PERSISTING TIMELINE DATA ======
-      // Fetch persisted timeline data from the server
       fetch('/api/timeline')
         .then(response => response.json())
         .then(data => {
           console.log('Fetched persisted timeline data:', data);
           timelineData = data || [];
-          if (timelineData.length > 0) {
-            lastSavedMinute = Math.floor(timelineData[timelineData.length - 1].rawTimestamp / 60000);
-          }
           renderTimeline();
         })
         .catch(error => console.error('Error fetching persisted timeline data:', error));
@@ -436,25 +431,15 @@
         return block;
       }
 
+      // Modified addTimelineBlock: always add a new timeline entry regardless of minute.
       function addTimelineBlock(data) {
         const now = Date.now();
-        const newMinute = Math.floor(now / 60000);
-        // If there's already a block for this minute, do not update it on refresh.
-        if (timelineData.length > 0) {
-          const lastEntry = timelineData[timelineData.length - 1];
-          const lastMinute = Math.floor(lastEntry.rawTimestamp / 60000);
-          if (newMinute === lastMinute) {
-            console.log("Same minute update detected; not updating the latest block on refresh.");
-            return;
-          }
-        }
         // If timeline is full, remove the oldest.
         if (timelineData.length >= MAX_MINUTES) {
           timelineData.shift();
         }
         const blockData = { ...data, rawTimestamp: now, timestamp: new Date(now).toLocaleTimeString() };
         timelineData.push(blockData);
-        lastSavedMinute = newMinute;
         saveTimelineData(blockData);
         renderTimeline();
       }
