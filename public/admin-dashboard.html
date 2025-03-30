@@ -383,6 +383,7 @@
       }
 
       // ===== PERSISTING TIMELINE DATA ======
+      // Fetch persisted timeline data from the server
       fetch('/api/timeline')
         .then(response => response.json())
         .then(data => {
@@ -431,20 +432,10 @@
         return block;
       }
 
-      // Modified addTimelineBlock: always add a new timeline entry regardless of minute.
+      // Always add a new timeline block from new heartbeat updates
       function addTimelineBlock(data) {
         const now = Date.now();
-        const newMinute = Math.floor(now / 60000);
-        // If there's already a block for this minute, do not update it on refresh.
-        if (timelineData.length > 0) {
-          const lastEntry = timelineData[timelineData.length - 1];
-          const lastMinute = Math.floor(lastEntry.rawTimestamp / 60000);
-          if (newMinute === lastMinute) {
-            console.log("Same minute update detected; not updating the latest block on refresh.");
-            return;
-          }
-        }
-        // If timeline is full, remove the oldest.
+        // Remove oldest if timeline is full.
         if (timelineData.length >= MAX_MINUTES) {
           timelineData.shift();
         }
@@ -453,8 +444,6 @@
         saveTimelineData(blockData);
         renderTimeline();
       }
-
-
 
       // ===== BOT STATUS UPDATE ======
       socket.on('botStatusUpdate', (data) => {
