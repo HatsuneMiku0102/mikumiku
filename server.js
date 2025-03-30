@@ -1508,6 +1508,18 @@ app.get('/api/timeline', async (req, res) => {
 app.post('/api/timeline', async (req, res) => {
   try {
     const update = req.body;
+    // Query the latest timeline entry
+    const lastEntryArray = await timelineCollection.find().sort({ rawTimestamp: -1 }).limit(1).toArray();
+    if (lastEntryArray.length > 0) {
+      const lastEntry = lastEntryArray[0];
+      const lastMinute = Math.floor(lastEntry.rawTimestamp / 60000);
+      const newMinute = Math.floor(update.rawTimestamp / 60000);
+      if (lastMinute === newMinute) {
+        console.log("Duplicate heartbeat detected; not inserting new timeline entry.");
+        return res.json({ status: 'duplicate' });
+      }
+    }
+    // Insert the new update if not a duplicate
     await timelineCollection.insertOne(update);
     // Remove oldest entries if count exceeds MAX_MINUTES
     const count = await timelineCollection.countDocuments();
@@ -1522,6 +1534,7 @@ app.post('/api/timeline', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // Toggle endpoints for LFG command
 app.get('/api/toggle', async (req, res) => {
