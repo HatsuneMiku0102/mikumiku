@@ -434,17 +434,26 @@
       // Modified addTimelineBlock: always add a new timeline entry regardless of minute.
       function addTimelineBlock(data) {
         const now = Date.now();
-        // Always add a new entry (so we capture each update even if it's the same minute)
+        const newMinute = Math.floor(now / 60000);
+        // If there's already a block for this minute, do not update it on refresh.
+        if (timelineData.length > 0) {
+          const lastEntry = timelineData[timelineData.length - 1];
+          const lastMinute = Math.floor(lastEntry.rawTimestamp / 60000);
+          if (newMinute === lastMinute) {
+            console.log("Same minute update detected; not updating the latest block on refresh.");
+            return;
+          }
+        }
+        // If timeline is full, remove the oldest.
         if (timelineData.length >= MAX_MINUTES) {
           timelineData.shift();
         }
-        // Format the time with a specific timezone (replace 'Europe/London' with your timezone)
-        const formattedTime = new Date(now).toLocaleTimeString('en-US', { timeZone: 'Europe/London', hour12: false });
-        const blockData = { ...data, rawTimestamp: now, timestamp: formattedTime };
+        const blockData = { ...data, rawTimestamp: now, timestamp: new Date(now).toLocaleTimeString() };
         timelineData.push(blockData);
         saveTimelineData(blockData);
         renderTimeline();
       }
+
 
 
       // ===== BOT STATUS UPDATE ======
