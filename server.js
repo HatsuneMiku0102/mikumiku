@@ -1552,7 +1552,6 @@ app.post('/api/toggle', async (req, res) => {
 
 // Socket.IO integration
 
-const io = socketIo(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
 
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
