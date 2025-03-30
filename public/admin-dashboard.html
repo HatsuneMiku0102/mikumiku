@@ -384,6 +384,7 @@
       }
 
       // ===== PERSISTING TIMELINE DATA ======
+      // Fetch persisted timeline data from the server
       fetch('/api/timeline')
         .then(response => response.json())
         .then(data => {
@@ -438,14 +439,12 @@
       function addTimelineBlock(data) {
         const now = Date.now();
         const newMinute = Math.floor(now / 60000);
-        // If there's already a block for this minute, update it (do not POST duplicate).
+        // If there's already a block for this minute, do not update it on refresh.
         if (timelineData.length > 0) {
           const lastEntry = timelineData[timelineData.length - 1];
           const lastMinute = Math.floor(lastEntry.rawTimestamp / 60000);
           if (newMinute === lastMinute) {
-            const updatedEntry = { ...data, rawTimestamp: now, timestamp: new Date(now).toLocaleTimeString() };
-            timelineData[timelineData.length - 1] = updatedEntry;
-            renderTimeline();
+            console.log("Same minute update detected; not updating the latest block on refresh.");
             return;
           }
         }
