@@ -1,90 +1,80 @@
 document.addEventListener('DOMContentLoaded', function() {
-  const socket = io()
-  let lastUpdateTime = Date.now()
-  const OFFLINE_TIMEOUT = 90000
-  let timelineData = []
-  const MAX_MINUTES = 60
+  const socket = io();
+  let lastUpdateTime = Date.now();
+  const OFFLINE_TIMEOUT = 90000;
+  let timelineData = [];
+  const MAX_MINUTES = 60;
 
-  function markBotCompletelyOffline() {
-    const statusText = document.getElementById('bot-status-text')
-    statusText.textContent = 'Offline'
-    statusText.classList.remove('status-online','status-high-latency')
-    statusText.classList.add('status-offline')
-    document.getElementById('bot-name').innerText = 'N/A'
-    document.getElementById('bot-uptime').innerText = 'N/A'
-    document.getElementById('bot-latency').innerText = 'N/A'
-    document.getElementById('bot-memory').innerText = 'N/A'
-  }
-
+  // Update the timeline summary in real time
   function updateTimelineSummary() {
-    let offlineCount = 0
-    let highLatencyCount = 0
-    let normalOnlineCount = 0
+    let offlineCount = 0;
+    let highLatencyCount = 0;
+    let normalOnlineCount = 0;
 
     timelineData.forEach(item => {
       if (item.status !== 'online') {
-        offlineCount++
+        offlineCount++;
       } else if (parseInt(item.latency) > 100) {
-        highLatencyCount++
+        highLatencyCount++;
       } else {
-        normalOnlineCount++
+        normalOnlineCount++;
       }
-    })
+    });
 
     const summaryText = 
-      `Last hour: 
-       Online (Normal) - ${normalOnlineCount} 
-       | High Latency - ${highLatencyCount} 
-       | Offline - ${offlineCount}`
+`Last hour:
+Online (Normal)  : ${normalOnlineCount}
+High Latency     : ${highLatencyCount}
+Offline          : ${offlineCount}`;
 
-    document.getElementById('timeline-summary').innerText = summaryText
+    document.getElementById('timeline-summary').innerText = summaryText;
   }
 
   function renderTimeline() {
-    const timelineContainer = document.getElementById('timeline-container')
-    timelineContainer.innerHTML = ''
+    const timelineContainer = document.getElementById('timeline-container');
+    timelineContainer.innerHTML = '';
 
     timelineData.forEach(item => {
-      const block = document.createElement('div')
-      block.classList.add('timeline-block')
+      const block = document.createElement('div');
+      block.classList.add('timeline-block');
 
-      // Color code
+      // Color code the block
       if (item.status !== 'online') {
-        block.style.backgroundColor = '#dc3545' // red
+        block.style.backgroundColor = '#e74c3c'; // red
       } else if (parseInt(item.latency) > 100) {
-        block.style.backgroundColor = '#ffc107' // yellow
+        block.style.backgroundColor = '#f1c40f'; // yellow
       } else {
-        block.style.backgroundColor = '#28a745' // green
+        block.style.backgroundColor = '#2ecc71'; // green
       }
 
-      const tooltip = document.createElement('div')
-      tooltip.classList.add('tooltip')
+      const tooltip = document.createElement('div');
+      tooltip.classList.add('tooltip');
       tooltip.innerText = 
-        `Time: ${item.timestamp}
-Bot: ${item.botName}
-Uptime: ${item.uptime}
+`Time   : ${item.timestamp}
+Bot    : ${item.botName}
+Uptime : ${item.uptime}
 Latency: ${item.latency}
-Memory: ${item.memoryUsage}`
-      block.appendChild(tooltip)
-      timelineContainer.appendChild(block)
-    })
+Memory : ${item.memoryUsage}`;
+      block.appendChild(tooltip);
+      timelineContainer.appendChild(block);
+    });
 
-    updateTimelineSummary()
+    updateTimelineSummary();
   }
 
   function addTimelineBlock(data) {
-    const now = Date.now()
+    const now = Date.now();
     if (timelineData.length >= MAX_MINUTES) {
-      timelineData.shift()
+      timelineData.shift();
     }
     const blockData = {
       ...data,
       rawTimestamp: now,
       timestamp: new Date(now).toLocaleTimeString()
-    }
-    timelineData.push(blockData)
-    saveTimelineData(blockData)
-    renderTimeline()
+    };
+    timelineData.push(blockData);
+    saveTimelineData(blockData);
+    renderTimeline();
   }
 
   function saveTimelineData(entry) {
@@ -94,48 +84,59 @@ Memory: ${item.memoryUsage}`
       body: JSON.stringify(entry)
     })
     .then(response => response.json())
-    .catch(err => console.error('Error saving timeline entry:', err))
+    .catch(err => console.error('Error saving timeline entry:', err));
+  }
+
+  function markBotCompletelyOffline() {
+    const statusText = document.getElementById('bot-status-text');
+    statusText.textContent = 'Offline';
+    statusText.classList.remove('status-online', 'status-high-latency');
+    statusText.classList.add('status-offline');
+    document.getElementById('bot-name').innerText = 'N/A';
+    document.getElementById('bot-uptime').innerText = 'N/A';
+    document.getElementById('bot-latency').innerText = 'N/A';
+    document.getElementById('bot-memory').innerText = 'N/A';
   }
 
   function handleBotStatusUpdate(data) {
-    lastUpdateTime = Date.now()
-    const statusText = document.getElementById('bot-status-text')
-    statusText.classList.remove('status-online','status-offline','status-high-latency')
+    lastUpdateTime = Date.now();
+    const statusText = document.getElementById('bot-status-text');
+    statusText.classList.remove('status-online','status-offline','status-high-latency');
 
     if (data.status === 'online') {
       if (parseInt(data.latency) > 100) {
-        statusText.textContent = 'Online (High Latency)'
-        statusText.classList.add('status-high-latency')
+        statusText.textContent = 'Online (High Latency)';
+        statusText.classList.add('status-high-latency');
       } else {
-        statusText.textContent = 'Online'
-        statusText.classList.add('status-online')
+        statusText.textContent = 'Online';
+        statusText.classList.add('status-online');
       }
     } else {
-      statusText.textContent = 'Offline'
-      statusText.classList.add('status-offline')
+      statusText.textContent = 'Offline';
+      statusText.classList.add('status-offline');
     }
 
-    document.getElementById('bot-name').innerText = data.botName || 'N/A'
-    document.getElementById('bot-uptime').innerText = data.uptime || 'N/A'
-    document.getElementById('bot-latency').innerText = data.latency || 'N/A'
-    document.getElementById('bot-memory').innerText = data.memoryUsage || 'N/A'
+    document.getElementById('bot-name').innerText = data.botName || 'N/A';
+    document.getElementById('bot-uptime').innerText = data.uptime || 'N/A';
+    document.getElementById('bot-latency').innerText = data.latency || 'N/A';
+    document.getElementById('bot-memory').innerText = data.memoryUsage || 'N/A';
 
-    addTimelineBlock(data)
+    addTimelineBlock(data);
   }
 
   setInterval(() => {
     if (Date.now() - lastUpdateTime > OFFLINE_TIMEOUT) {
-      markBotCompletelyOffline()
+      markBotCompletelyOffline();
     }
-  }, 5000)
+  }, 5000);
 
-  socket.on('botStatusUpdate', handleBotStatusUpdate)
+  socket.on('botStatusUpdate', handleBotStatusUpdate);
 
   fetch('/api/timeline')
     .then(response => response.json())
     .then(data => {
-      timelineData = data || []
-      renderTimeline()
+      timelineData = data || [];
+      renderTimeline();
     })
-    .catch(error => console.error('Error fetching timeline data:', error))
-})
+    .catch(error => console.error('Error fetching timeline data:', error));
+});
