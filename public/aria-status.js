@@ -1,12 +1,12 @@
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Aria status script loaded.')
   const socket = io()
   let lastUpdateTime = Date.now()
-  const OFFLINE_TIMEOUT = 90 * 1000
+  const OFFLINE_TIMEOUT = 90000
   function markBotCompletelyOffline() {
-    document.getElementById('bot-status-text').textContent = 'Offline'
-    document.getElementById('bot-status-text').classList.remove('status-online','status-high-latency')
-    document.getElementById('bot-status-text').classList.add('status-offline')
+    const statusText = document.getElementById('bot-status-text')
+    statusText.textContent = 'Offline'
+    statusText.classList.remove('status-online','status-high-latency')
+    statusText.classList.add('status-offline')
     document.getElementById('bot-name').innerText = 'N/A'
     document.getElementById('bot-uptime').innerText = 'N/A'
     document.getElementById('bot-latency').innerText = 'N/A'
@@ -48,39 +48,39 @@ document.addEventListener('DOMContentLoaded', function() {
       body: JSON.stringify(entry)
     })
     .then(response => response.json())
-    .then(data => console.log('Timeline entry saved:', data))
-    .catch(err => console.error('Error saving timeline entry:', err))
+    .then(data => {})
+    .catch(err => {})
   }
   function renderTimeline() {
     const timelineContainer = document.getElementById('timeline-container')
     timelineContainer.innerHTML = ''
-    timelineData.forEach(data => {
-      const block = createTimelineBlock(data)
+    timelineData.forEach(item => {
+      const block = document.createElement('div')
+      block.classList.add('timeline-block')
+      if (item.status !== 'online') {
+        block.style.backgroundColor = '#dc3545'
+      } else if (parseInt(item.latency) > 100) {
+        block.style.backgroundColor = '#ffc107'
+      } else {
+        block.style.backgroundColor = '#28a745'
+      }
+      const tooltip = document.createElement('div')
+      tooltip.classList.add('tooltip')
+      tooltip.innerText = `Time: ${item.timestamp}\nBot: ${item.botName}\nUptime: ${item.uptime}\nLatency: ${item.latency}\nMemory: ${item.memoryUsage}`
+      block.appendChild(tooltip)
       timelineContainer.appendChild(block)
     })
-  }
-  function createTimelineBlock(data) {
-    const block = document.createElement('div')
-    block.classList.add('timeline-block')
-    if (data.status !== 'online') {
-      block.style.backgroundColor = '#dc3545'
-    } else if (parseInt(data.latency) > 100) {
-      block.style.backgroundColor = '#ffc107'
-    } else {
-      block.style.backgroundColor = '#28a745'
-    }
-    const tooltip = document.createElement('div')
-    tooltip.classList.add('tooltip')
-    tooltip.innerText = `Time: ${data.timestamp}\nBot: ${data.botName}\nUptime: ${data.uptime}\nLatency: ${data.latency}\nMemory: ${data.memoryUsage}`
-    block.appendChild(tooltip)
-    return block
   }
   function addTimelineBlock(data) {
     const now = Date.now()
     if (timelineData.length >= MAX_MINUTES) {
       timelineData.shift()
     }
-    const blockData = Object.assign({}, data, { rawTimestamp: now, timestamp: new Date(now).toLocaleTimeString() })
+    const blockData = {
+      ...data,
+      rawTimestamp: now,
+      timestamp: new Date(now).toLocaleTimeString()
+    }
     timelineData.push(blockData)
     saveTimelineData(blockData)
     renderTimeline()
@@ -91,5 +91,5 @@ document.addEventListener('DOMContentLoaded', function() {
       timelineData = data || []
       renderTimeline()
     })
-    .catch(error => console.error('Error fetching timeline data:', error))
+    .catch(error => {})
 })
