@@ -1606,34 +1606,33 @@ io.on('connection', (socket) => {
   })
 
   // Listen for botStatusUpdate events from your bot
-socket.on('botStatusUpdate', (data) => {
-  // Normalize the status string
-  const status = (data.status || "").toLowerCase().trim();
-  console.log(`Bot status update received. Status: "${status}", Latency: ${data.latency}`);
-  
-  // Update last status update time
-  lastBotStatusUpdate = Date.now();
-  
-  // If the bot is online, reset the offline SMS flag
-  if (status === 'online') {
-    smsSent = false;
-    
-    // Check latency
-    const latency = parseInt(data.latency);
-    if (latency > HIGH_LATENCY_THRESHOLD && !highLatencyAlertSent) {
-      console.log(`High latency detected (${latency}ms). Sending SMS alert.`);
-      sendSMSAlert("Alert: The bot is experiencing high latency!");
-      highLatencyAlertSent = true;
-    } else if (latency <= HIGH_LATENCY_THRESHOLD) {
-      if (highLatencyAlertSent) {
-        console.log(`Latency back to normal (${latency}ms). Resetting high latency alert flag.`);
+  socket.on('botStatusUpdate', (data) => {
+    // Normalize and log status update
+    const status = (data.status || "").toLowerCase().trim();
+    console.log(`Received botStatusUpdate from ${socket.id}: status: "${status}", latency: ${data.latency}`);
+    lastBotStatusUpdate = Date.now();
+    if (status === 'online') {
+      smsSent = false;
+      const latency = parseInt(data.latency);
+      if (latency > HIGH_LATENCY_THRESHOLD && !highLatencyAlertSent) {
+        console.log(`High latency detected (${latency}ms). Sending SMS alert.`);
+        sendSMSAlert("Alert: The bot is experiencing high latency!");
+        highLatencyAlertSent = true;
+      } else if (latency <= HIGH_LATENCY_THRESHOLD) {
+        if (highLatencyAlertSent) {
+          console.log(`Latency back to normal (${latency}ms). Resetting high latency alert flag.`);
+        }
+        highLatencyAlertSent = false;
       }
-      highLatencyAlertSent = false;
+    } else {
+      console.log(`Bot status is not online: "${status}"`);
     }
-  } else {
-    console.log(`Bot status is not online: "${status}"`);
-  }
-});
+  })
+
+  socket.on('disconnect', (reason) => {
+    console.log(`Socket disconnected: ${socket.id}, Reason: ${reason}`)
+  })
+})
 
 // Serve the Aria status page
 app.get('/aria-status', (req, res) => {
