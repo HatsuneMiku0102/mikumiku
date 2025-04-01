@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const socket = io()
   let lastUpdateTime = Date.now()
   const OFFLINE_TIMEOUT = 90000
+  let timelineData = []
+  const MAX_MINUTES = 60
 
   function markBotCompletelyOffline() {
     const statusText = document.getElementById('bot-status-text')
@@ -14,67 +16,60 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('bot-memory').innerText = 'N/A'
   }
 
-  setInterval(() => {
-    if (Date.now() - lastUpdateTime > OFFLINE_TIMEOUT) {
-      markBotCompletelyOffline()
-    }
-  }, 5000)
+  function updateTimelineSummary() {
+    let offlineCount = 0
+    let highLatencyCount = 0
+    let normalOnlineCount = 0
 
-  socket.on('botStatusUpdate', (data) => {
-    lastUpdateTime = Date.now()
-    const statusText = document.getElementById('bot-status-text')
-    statusText.classList.remove('status-online','status-offline','status-high-latency')
-    if (data.status === 'online') {
-      if (parseInt(data.latency) > 100) {
-        statusText.textContent = 'Online (High Latency)'
-        statusText.classList.add('status-high-latency')
+    timelineData.forEach(item => {
+      if (item.status !== 'online') {
+        offlineCount++
+      } else if (parseInt(item.latency) > 100) {
+        highLatencyCount++
       } else {
-        statusText.textContent = 'Online'
-        statusText.classList.add('status-online')
+        normalOnlineCount++
       }
-    } else {
-      statusText.textContent = 'Offline'
-      statusText.classList.add('status-offline')
-    }
-    document.getElementById('bot-name').innerText = data.botName || 'N/A'
-    document.getElementById('bot-uptime').innerText = data.uptime || 'N/A'
-    document.getElementById('bot-latency').innerText = data.latency || 'N/A'
-    document.getElementById('bot-memory').innerText = data.memoryUsage || 'N/A'
-    addTimelineBlock(data)
-  })
-
-  let timelineData = []
-  const MAX_MINUTES = 60
-
-  function saveTimelineData(entry) {
-    fetch('/api/timeline', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(entry)
     })
-    .then(response => response.json())
-    .catch(err => console.error('Error saving timeline entry:', err))
+
+    const summaryText = 
+      `Last hour: 
+       Online (Normal) - ${normalOnlineCount} 
+       | High Latency - ${highLatencyCount} 
+       | Offline - ${offlineCount}`
+
+    document.getElementById('timeline-summary').innerText = summaryText
   }
 
   function renderTimeline() {
     const timelineContainer = document.getElementById('timeline-container')
     timelineContainer.innerHTML = ''
+
     timelineData.forEach(item => {
       const block = document.createElement('div')
       block.classList.add('timeline-block')
+
+      // Color code
       if (item.status !== 'online') {
-        block.style.backgroundColor = '#dc3545'
+        block.style.backgroundColor = '#dc3545' // red
       } else if (parseInt(item.latency) > 100) {
-        block.style.backgroundColor = '#ffc107'
+        block.style.backgroundColor = '#ffc107' // yellow
       } else {
-        block.style.backgroundColor = '#28a745'
+        block.style.backgroundColor = '#28a745' // green
       }
+
       const tooltip = document.createElement('div')
       tooltip.classList.add('tooltip')
-      tooltip.innerText = `Time: ${item.timestamp}\nBot: ${item.botName}\nUptime: ${item.uptime}\nLatency: ${item.latency}\nMemory: ${item.memoryUsage}`
+      tooltip.innerText = 
+        `Time: ${item.timestamp}
+Bot: ${item.botName}
+Uptime: ${item.uptime}
+Latency: ${item.latency}
+Memory: ${item.memoryUsage}`
       block.appendChild(tooltip)
       timelineContainer.appendChild(block)
     })
+
+    updateTimelineSummary()
   }
 
   function addTimelineBlock(data) {
@@ -91,6 +86,50 @@ document.addEventListener('DOMContentLoaded', function() {
     saveTimelineData(blockData)
     renderTimeline()
   }
+
+  function saveTimelineData(entry) {
+    fetch('/api/timeline', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry)
+    })
+    .then(response => response.json())
+    .catch(err => console.error('Error saving timeline entry:', err))
+  }
+
+  function handleBotStatusUpdate(data) {
+    lastUpdateTime = Date.now()
+    const statusText = document.getElementById('bot-status-text')
+    statusText.classList.remove('status-online','status-offline','status-high-latency')
+
+    if (data.status === 'online') {
+      if (parseInt(data.latency) > 100) {
+        statusText.textContent = 'Online (High Latency)'
+        statusText.classList.add('status-high-latency')
+      } else {
+        statusText.textContent = 'Online'
+        statusText.classList.add('status-online')
+      }
+    } else {
+      statusText.textContent = 'Offline'
+      statusText.classList.add('status-offline')
+    }
+
+    document.getElementById('bot-name').innerText = data.botName || 'N/A'
+    document.getElementById('bot-uptime').innerText = data.uptime || 'N/A'
+    document.getElementById('bot-latency').innerText = data.latency || 'N/A'
+    document.getElementById('bot-memory').innerText = data.memoryUsage || 'N/A'
+
+    addTimelineBlock(data)
+  }
+
+  setInterval(() => {
+    if (Date.now() - lastUpdateTime > OFFLINE_TIMEOUT) {
+      markBotCompletelyOffline()
+    }
+  }, 5000)
+
+  socket.on('botStatusUpdate', handleBotStatusUpdate)
 
   fetch('/api/timeline')
     .then(response => response.json())
