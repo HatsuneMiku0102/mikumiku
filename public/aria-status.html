@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Aria Status</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body { font-family: 'Roboto', sans-serif; background-color: #f5f5f5; color: #333; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    .status-container { background-color: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 80%; max-width: 600px; text-align: center; }
+    .status-label { font-size: 2em; font-weight: bold; margin-bottom: 20px; }
+    .status-label.online { color: #28a745; }
+    .status-label.offline { color: #dc3545; }
+    .status-label.high-latency { color: #ffc107; }
+    .vitals { font-size: 1em; line-height: 1.6em; }
+  </style>
+</head>
+<body>
+  <div class="status-container">
+    <h2>Aria Bot Status</h2>
+    <div id="bot-status">
+      <span id="bot-status-text" class="status-label offline">Loading...</span>
+      <div class="vitals">
+        <p>Bot Name: <span id="bot-name">N/A</span></p>
+        <p>Uptime: <span id="bot-uptime">N/A</span></p>
+        <p>Latency: <span id="bot-latency">N/A</span></p>
+        <p>Memory Usage: <span id="bot-memory">N/A</span></p>
+      </div>
+    </div>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    let lastUpdateTime = Date.now()
+    const OFFLINE_TIMEOUT = 90 * 1000
+    const socket = io()
+    socket.on('connect', () => {
+      socket.emit('getToggleState')
+    })
+    function markBotCompletelyOffline() {
+      document.getElementById('bot-status-text').textContent = 'Offline'
+      document.getElementById('bot-status-text').classList.remove('online','high-latency')
+      document.getElementById('bot-status-text').classList.add('offline')
+      document.getElementById('bot-name').innerText = 'N/A'
+      document.getElementById('bot-uptime').innerText = 'N/A'
+      document.getElementById('bot-latency').innerText = 'N/A'
+      document.getElementById('bot-memory').innerText = 'N/A'
+    }
+    setInterval(() => {
+      if (Date.now() - lastUpdateTime > OFFLINE_TIMEOUT) {
+        markBotCompletelyOffline()
+      }
+    }, 5000)
+    socket.on('botStatusUpdate', (data) => {
+      lastUpdateTime = Date.now()
+      const statusLabel = document.getElementById('bot-status-text')
+      statusLabel.classList.remove('online','offline','high-latency')
+      if (data.status === 'online') {
+        if (parseInt(data.latency) > 100) {
+          statusLabel.textContent = 'Online (High Latency)'
+          statusLabel.classList.add('high-latency')
+        } else {
+          statusLabel.textContent = 'Online'
+          statusLabel.classList.add('online')
+        }
+      } else {
+        statusLabel.textContent = 'Offline'
+        statusLabel.classList.add('offline')
+      }
+      document.getElementById('bot-name').innerText = data.botName || 'N/A'
+      document.getElementById('bot-uptime').innerText = data.uptime || 'N/A'
+      document.getElementById('bot-latency').innerText = data.latency || 'N/A'
+      document.getElementById('bot-memory').innerText = data.memoryUsage || 'N/A'
+    })
+  </script>
+</body>
+</html>
