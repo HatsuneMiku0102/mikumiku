@@ -1628,12 +1628,15 @@ app.get('/aria-status', (req, res) => {
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 587,
-  secure: false, // false for port 587
+  secure: false,
   auth: {
-    user: process.env.EMAIL_USER, // Your Gmail address
-    pass: process.env.EMAIL_PASS  // Your Gmail password or app-specific password
-  }
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  },
+  debug: true, // Enable debug output
+  logger: true // Log to console
 });
+
 
 // Function to send an SMS via email using the email-to-SMS gateway
 function sendOfflineSMS() {
@@ -1654,14 +1657,17 @@ function sendOfflineSMS() {
 
 // Periodically check if the bot has gone offline and send SMS if needed
 setInterval(() => {
-  if (Date.now() - lastBotStatusUpdate > OFFLINE_TIMEOUT) {
+  const elapsed = Date.now() - lastBotStatusUpdate;
+  console.log(`Time elapsed since last update: ${elapsed} ms`);
+  if (elapsed > OFFLINE_TIMEOUT) {
     if (!smsSent) {
-      console.log('Bot appears offline. Sending SMS alert.')
-      sendOfflineSMS()
-      smsSent = true
+      console.log('Bot appears offline. Sending SMS alert.');
+      sendOfflineSMS();
+      smsSent = true;
     }
   }
-}, 5000)
+}, 5000);
+
 
 
 // ----------------------
