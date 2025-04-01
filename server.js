@@ -1456,163 +1456,150 @@ setInterval(() => {
 // Yes
 // -------------------
 
-const MAX_MINUTES = 60; // Maximum number of timeline entries
-
-// Collections for timeline and config
-let timelineCollection;
-let configCollection;
+const MAX_MINUTES = 60
+let timelineCollection
+let configCollection
 
 if (!process.env.MONGO_URL) {
-  console.error("Error: MONGO_URL environment variable not set.");
-  process.exit(1);
+  console.error("Error: MONGO_URL environment variable not set.")
+  process.exit(1)
 }
 
-
-const dbName = process.env.MONGO_DB_NAME || "myfirstdatabase";
-
-const client = new MongoClient(mongoUrl, { useUnifiedTopology: true });
+const dbName = process.env.MONGO_DB_NAME || "myfirstdatabase"
+const client = new MongoClient(process.env.MONGO_URL, { useUnifiedTopology: true })
 
 async function connectToMongo() {
   try {
-    await client.connect();
-    const db = client.db(dbName);
-    configCollection = db.collection("config");
-    timelineCollection = db.collection("timeline");
-    console.log("Connected to MongoDB.");
-
-    // Ensure the toggle document exists.
-    let toggleDoc = await configCollection.findOne({ _id: "toggle" });
+    await client.connect()
+    const db = client.db(dbName)
+    configCollection = db.collection("config")
+    timelineCollection = db.collection("timeline")
+    console.log("Connected to MongoDB.")
+    let toggleDoc = await configCollection.findOne({ _id: "toggle" })
     if (!toggleDoc) {
-      toggleDoc = { _id: "toggle", commands_enabled: true };
-      await configCollection.insertOne(toggleDoc);
-      console.log("Inserted default toggle config:", toggleDoc);
+      toggleDoc = { _id: "toggle", commands_enabled: true }
+      await configCollection.insertOne(toggleDoc)
+      console.log("Inserted default toggle config:", toggleDoc)
     } else {
-      console.log("Existing toggle config:", toggleDoc);
+      console.log("Existing toggle config:", toggleDoc)
     }
   } catch (err) {
-    console.error("Error connecting to MongoDB:", err);
+    console.error("Error connecting to MongoDB:", err)
   }
 }
-connectToMongo();
+connectToMongo()
 
-// Timeline endpoints
 app.get('/api/timeline', async (req, res) => {
   try {
-    const entries = await timelineCollection.find().sort({ rawTimestamp: 1 }).toArray();
-    res.json(entries);
+    const entries = await timelineCollection.find().sort({ rawTimestamp: 1 }).toArray()
+    res.json(entries)
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
 app.post('/api/timeline', async (req, res) => {
   try {
-    const update = req.body;
-    // Query the latest timeline entry
-    const lastEntryArray = await timelineCollection.find().sort({ rawTimestamp: -1 }).limit(1).toArray();
+    const update = req.body
+    const lastEntryArray = await timelineCollection.find().sort({ rawTimestamp: -1 }).limit(1).toArray()
     if (lastEntryArray.length > 0) {
-      const lastEntry = lastEntryArray[0];
-      const lastMinute = Math.floor(lastEntry.rawTimestamp / 60000);
-      const newMinute = Math.floor(update.rawTimestamp / 60000);
+      const lastEntry = lastEntryArray[0]
+      const lastMinute = Math.floor(lastEntry.rawTimestamp / 60000)
+      const newMinute = Math.floor(update.rawTimestamp / 60000)
       if (lastMinute === newMinute) {
-        console.log("Duplicate heartbeat detected; not inserting new timeline entry.");
-        return res.json({ status: 'duplicate' });
+        console.log("Duplicate heartbeat detected; not inserting new timeline entry.")
+        return res.json({ status: 'duplicate' })
       }
     }
-    // Insert the new update if not a duplicate
-    await timelineCollection.insertOne(update);
-    // Remove oldest entries if count exceeds MAX_MINUTES
-    const count = await timelineCollection.countDocuments();
+    await timelineCollection.insertOne(update)
+    const count = await timelineCollection.countDocuments()
     if (count > MAX_MINUTES) {
-      const excess = count - MAX_MINUTES;
-      const oldestEntries = await timelineCollection.find().sort({ rawTimestamp: 1 }).limit(excess).toArray();
-      const idsToDelete = oldestEntries.map(entry => entry._id);
-      await timelineCollection.deleteMany({ _id: { $in: idsToDelete } });
+      const excess = count - MAX_MINUTES
+      const oldestEntries = await timelineCollection.find().sort({ rawTimestamp: 1 }).limit(excess).toArray()
+      const idsToDelete = oldestEntries.map(entry => entry._id)
+      await timelineCollection.deleteMany({ _id: { $in: idsToDelete } })
     }
-    res.json({ status: 'ok' });
+    res.json({ status: 'ok' })
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
-
-// Toggle endpoints for LFG command
 app.get('/api/toggle', async (req, res) => {
   try {
-    const toggleDoc = await configCollection.findOne({ _id: "toggle" });
-    res.json(toggleDoc);
+    const toggleDoc = await configCollection.findOne({ _id: "toggle" })
+    res.json(toggleDoc)
   } catch (err) {
-    console.error("Error reading toggle config:", err);
-    res.status(500).json({ error: err.message });
+    console.error("Error reading toggle config:", err)
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
 app.post('/api/toggle', async (req, res) => {
   try {
-    const data = req.body;
+    const data = req.body
     if (typeof data.commands_enabled === 'undefined') {
-      res.status(400).json({ status: 'error', message: "Missing 'commands_enabled' property." });
-      return;
+      res.status(400).json({ status: 'error', message: "Missing 'commands_enabled' property." })
+      return
     }
-    await configCollection.updateOne({ _id: "toggle" }, { $set: { commands_enabled: data.commands_enabled } });
-    const toggleDoc = await configCollection.findOne({ _id: "toggle" });
-    res.json({ status: 'success', commands_enabled: toggleDoc.commands_enabled });
+    await configCollection.updateOne({ _id: "toggle" }, { $set: { commands_enabled: data.commands_enabled } })
+    const toggleDoc = await configCollection.findOne({ _id: "toggle" })
+    res.json({ status: 'success', commands_enabled: toggleDoc.commands_enabled })
   } catch (err) {
-    console.error("Error updating toggle config:", err);
-    res.status(500).json({ status: 'error', message: 'Could not update configuration.' });
+    console.error("Error updating toggle config:", err)
+    res.status(500).json({ status: 'error', message: 'Could not update configuration.' })
   }
-});
-
-// Socket.IO integration
-
+})
 
 io.on('connection', (socket) => {
-  console.log(`Socket connected: ${socket.id}`);
-
+  console.log(`Socket connected: ${socket.id}`)
   socket.on('getToggleState', async () => {
     if (!configCollection) {
-      console.error(`configCollection is undefined for ${socket.id}`);
-      socket.emit('toggleState', { commands_enabled: true });
-      return;
+      console.error(`configCollection is undefined for ${socket.id}`)
+      socket.emit('toggleState', { commands_enabled: true })
+      return
     }
     try {
-      const toggleDoc = await configCollection.findOne({ _id: "toggle" });
-      console.log(`Emitting toggleState to ${socket.id}:`, toggleDoc);
-      socket.emit('toggleState', toggleDoc);
+      const toggleDoc = await configCollection.findOne({ _id: "toggle" })
+      console.log(`Emitting toggleState to ${socket.id}:`, toggleDoc)
+      socket.emit('toggleState', toggleDoc)
     } catch (err) {
-      console.error(`Error reading toggle config for ${socket.id}:`, err);
-      socket.emit('toggleState', { commands_enabled: true });
+      console.error(`Error reading toggle config for ${socket.id}:`, err)
+      socket.emit('toggleState', { commands_enabled: true })
     }
-  });
-
+  })
   socket.on('toggleCommands', async (data) => {
-    console.log(`Received toggleCommands from ${socket.id}:`, data);
+    console.log(`Received toggleCommands from ${socket.id}:`, data)
     if (typeof data.commands_enabled === 'undefined') {
-      console.error(`Missing 'commands_enabled' property from ${socket.id}`);
-      socket.emit('toggleResponse', { status: 'error', message: "Missing 'commands_enabled' property." });
-      return;
+      console.error(`Missing 'commands_enabled' property from ${socket.id}`)
+      socket.emit('toggleResponse', { status: 'error', message: "Missing 'commands_enabled' property." })
+      return
     }
     if (!configCollection) {
-      console.error(`configCollection is undefined for ${socket.id} when updating toggle.`);
-      socket.emit('toggleResponse', { status: 'error', message: "Database not connected." });
-      return;
+      console.error(`configCollection is undefined for ${socket.id} when updating toggle.`)
+      socket.emit('toggleResponse', { status: 'error', message: "Database not connected." })
+      return
     }
     try {
-      await configCollection.updateOne({ _id: "toggle" }, { $set: { commands_enabled: data.commands_enabled } });
-      const toggleDoc = await configCollection.findOne({ _id: "toggle" });
-      console.log(`Toggle updated successfully by ${socket.id}:`, toggleDoc);
-      socket.emit('toggleResponse', { status: 'success', commands_enabled: toggleDoc.commands_enabled });
-      socket.broadcast.emit('toggleUpdated', { commands_enabled: toggleDoc.commands_enabled });
+      await configCollection.updateOne({ _id: "toggle" }, { $set: { commands_enabled: data.commands_enabled } })
+      const toggleDoc = await configCollection.findOne({ _id: "toggle" })
+      console.log(`Toggle updated successfully by ${socket.id}:`, toggleDoc)
+      socket.emit('toggleResponse', { status: 'success', commands_enabled: toggleDoc.commands_enabled })
+      socket.broadcast.emit('toggleUpdated', { commands_enabled: toggleDoc.commands_enabled })
     } catch (err) {
-      console.error(`Error updating toggle config for ${socket.id}:`, err);
-      socket.emit('toggleResponse', { status: 'error', message: 'Could not update configuration.' });
+      console.error(`Error updating toggle config for ${socket.id}:`, err)
+      socket.emit('toggleResponse', { status: 'error', message: 'Could not update configuration.' })
     }
-  });
-
+  })
   socket.on('disconnect', (reason) => {
-    console.log(`Socket disconnected: ${socket.id}, Reason: ${reason}`);
-  });
-});
+    console.log(`Socket disconnected: ${socket.id}, Reason: ${reason}`)
+  })
+})
+
+app.get('/aria-status', (req, res) => {
+  res.sendFile(__dirname + '/aria-status.html')
+})
+
 
 // ----------------------
 // Start the Server
