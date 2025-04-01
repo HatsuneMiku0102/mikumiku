@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const socket = io()
   let lastUpdateTime = Date.now()
   const OFFLINE_TIMEOUT = 90000
+
   function markBotCompletelyOffline() {
     const statusText = document.getElementById('bot-status-text')
     statusText.textContent = 'Offline'
@@ -12,11 +13,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('bot-latency').innerText = 'N/A'
     document.getElementById('bot-memory').innerText = 'N/A'
   }
+
   setInterval(() => {
     if (Date.now() - lastUpdateTime > OFFLINE_TIMEOUT) {
       markBotCompletelyOffline()
     }
   }, 5000)
+
   socket.on('botStatusUpdate', (data) => {
     lastUpdateTime = Date.now()
     const statusText = document.getElementById('bot-status-text')
@@ -39,8 +42,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('bot-memory').innerText = data.memoryUsage || 'N/A'
     addTimelineBlock(data)
   })
+
   let timelineData = []
   const MAX_MINUTES = 60
+
   function saveTimelineData(entry) {
     fetch('/api/timeline', {
       method: 'POST',
@@ -48,9 +53,9 @@ document.addEventListener('DOMContentLoaded', function() {
       body: JSON.stringify(entry)
     })
     .then(response => response.json())
-    .then(data => {})
-    .catch(err => {})
+    .catch(err => console.error('Error saving timeline entry:', err))
   }
+
   function renderTimeline() {
     const timelineContainer = document.getElementById('timeline-container')
     timelineContainer.innerHTML = ''
@@ -71,6 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
       timelineContainer.appendChild(block)
     })
   }
+
   function addTimelineBlock(data) {
     const now = Date.now()
     if (timelineData.length >= MAX_MINUTES) {
@@ -85,11 +91,12 @@ document.addEventListener('DOMContentLoaded', function() {
     saveTimelineData(blockData)
     renderTimeline()
   }
+
   fetch('/api/timeline')
     .then(response => response.json())
     .then(data => {
       timelineData = data || []
       renderTimeline()
     })
-    .catch(error => {})
+    .catch(error => console.error('Error fetching timeline data:', error))
 })
