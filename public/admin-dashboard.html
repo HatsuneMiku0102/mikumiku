@@ -8,191 +8,35 @@
   <link rel="stylesheet" href="/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    /* General Dashboard Styles */
-    body {
-      font-family: 'Roboto', sans-serif;
-      background-color: #f5f5f5;
-      color: #333;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
-    .dashboard-container {
-      background-color: #fff;
-      padding: 40px;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      width: 80%;
-      max-width: 800px;
-      margin: auto;
-    }
-    h2 {
-      color: #007BFF;
-      text-align: center;
-      margin-bottom: 24px;
-    }
-    button {
-      background-color: #007BFF;
-      color: #fff;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-left: 10px;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    .real-time-info, .bot-status, .user-list, .toggle-section {
-      margin-top: 20px;
-    }
-    .ip-list {
-      margin: 0;
-      padding: 0;
-      list-style: none;
-      max-height: 200px;
-      overflow-y: auto;
-      border: 1px solid #e9e9e9;
-      border-radius: 4px;
-    }
-    .ip-item {
-      background-color: #e9e9e9;
-      padding: 10px;
-      margin: 5px 0;
-      border-radius: 4px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .chart-container {
-      margin-top: 40px;
-      text-align: center;
-    }
-    canvas {
-      margin: 0 auto;
-      display: block;
-    }
-    /* Bot Status Section */
-    .bot-status-info {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-top: 10px;
-    }
-    .status-label {
-      font-size: 1.2em;
-      font-weight: bold;
-      margin-bottom: 6px;
-    }
-    .status-label.online {
-      color: #28a745;
-    }
-    .status-label.offline {
-      color: #dc3545;
-    }
-    .status-label.high-latency {
-      color: #ffc107;
-    }
-    .vitals {
-      font-size: 0.9em;
-      text-align: center;
-      line-height: 1.4em;
-    }
-    .vitals p {
-      margin: 2px 0;
-    }
-    /* Toggle Section for LFG Command */
-    .toggle-section {
-      text-align: center;
-    }
-    .toggle-section label {
-      font-size: 1em;
-      margin-right: 8px;
-    }
-    /* Minute-by-minute timeline */
-    .minute-timeline-container {
-      margin-top: 20px;
-    }
-    .timeline-header {
-      font-weight: bold;
-      margin-bottom: 10px;
-      text-align: center;
-    }
-    .timeline-blocks {
-      display: flex;
-      gap: 4px;
-      justify-content: center;
-      overflow: visible;
-    }
-    .timeline-block {
-      width: 4px;
-      height: 20px;
-      border-radius: 2px;
-      position: relative;
-      cursor: pointer;
-      background-color: inherit;
-      transition: transform 0.3s, opacity 0.3s;
-    }
-    .timeline-block:hover {
-      transform: scale(1.5);
-      z-index: 2;
-    }
-    .timeline-block .tooltip {
-      position: absolute;
-      bottom: 150%;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: rgba(0,0,0,0.75);
-      color: #fff;
-      padding: 5px 8px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      white-space: pre;
-      visibility: hidden;
-      opacity: 0;
-      transition: opacity 0.3s;
-      z-index: 10;
-      pointer-events: none;
-    }
-    .timeline-block:hover .tooltip {
-      visibility: visible;
-      opacity: 1;
-    }
+    body { font-family: 'Roboto', sans-serif; background-color: #f5f5f5; color: #333; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    .dashboard-container { background-color: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 80%; max-width: 800px; margin: auto; }
+    h2 { color: #007BFF; text-align: center; margin-bottom: 24px; }
+    button { background-color: #007BFF; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-left: 10px; }
+    button:hover { background-color: #0056b3; }
+    .real-time-info, .user-list, .toggle-section { margin-top: 20px; }
+    .ip-list { margin: 0; padding: 0; list-style: none; max-height: 200px; overflow-y: auto; border: 1px solid #e9e9e9; border-radius: 4px; }
+    .ip-item { background-color: #e9e9e9; padding: 10px; margin: 5px 0; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+    .chart-container { margin-top: 40px; text-align: center; }
+    canvas { margin: 0 auto; display: block; }
+    .toggle-section { text-align: center; }
+    .toggle-section label { font-size: 1em; margin-right: 8px; }
+    .minute-timeline-container { margin-top: 20px; }
+    .timeline-header { font-weight: bold; margin-bottom: 10px; text-align: center; }
+    .timeline-blocks { display: flex; gap: 4px; justify-content: center; overflow: visible; }
+    .timeline-block { width: 4px; height: 20px; border-radius: 2px; position: relative; cursor: pointer; background-color: inherit; transition: transform 0.3s, opacity 0.3s; }
+    .timeline-block:hover { transform: scale(1.5); z-index: 2; }
+    .timeline-block .tooltip { position: absolute; bottom: 150%; left: 50%; transform: translateX(-50%); background-color: rgba(0,0,0,0.75); color: #fff; padding: 5px 8px; border-radius: 4px; font-size: 0.75rem; white-space: pre; visibility: hidden; opacity: 0; transition: opacity 0.3s; z-index: 10; pointer-events: none; }
+    .timeline-block:hover .tooltip { visibility: visible; opacity: 1; }
   </style>
 </head>
 <body>
   <div class="dashboard-container">
     <h2>Admin Dashboard</h2>
     <button id="logout">Logout</button>
-    
-    <!-- Toggle Switch for LFG Command -->
     <div class="toggle-section">
       <label for="lfgToggle">LFG Command Enabled:</label>
       <input type="checkbox" id="lfgToggle">
     </div>
-    
-    <!-- Bot Status -->
-    <div class="bot-status">
-      <h3>Bot Status</h3>
-      <div class="bot-status-info">
-        <span id="bot-status-text" class="status-label offline">Loading...</span>
-        <div id="bot-vitals" class="vitals">
-          <p>Bot Name: <span id="bot-name">N/A</span></p>
-          <p>Uptime: <span id="bot-uptime">N/A</span></p>
-          <p>Latency: <span id="bot-latency">N/A</span></p>
-          <p>Memory Usage: <span id="bot-memory">N/A</span></p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Minute-by-minute timeline (Conveyor System) -->
-    <div class="minute-timeline-container">
-      <div class="timeline-header">Minute-by-Minute Status</div>
-      <div class="timeline-blocks" id="minuteTimeline"></div>
-    </div>
-
     <div class="real-time-info">
       <h3>Real-time Active Users</h3>
       <p id="active-users-count">Loading active user count...</p>
@@ -205,53 +49,37 @@
       <h3>Visitors by Country</h3>
       <canvas id="locationChart" width="400" height="200"></canvas>
     </div>
+    <div class="minute-timeline-container">
+      <div class="timeline-header">Minute-by-Minute Status</div>
+      <div class="timeline-blocks" id="minuteTimeline"></div>
+    </div>
   </div>
-
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    // Global variables for timeline persistence
-    let timelineData = [];
-    const MAX_MINUTES = 60; // Fixed number of timeline blocks
-
+    let timelineData = []
+    const MAX_MINUTES = 60
     document.addEventListener('DOMContentLoaded', function() {
-      console.log('Admin dashboard script loaded.');
-      const cookieString = document.cookie;
-      console.log('Current cookies:', cookieString);
-      const token = cookieString.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+      const cookieString = document.cookie
+      const token = cookieString.split('; ').find(row => row.startsWith('token='))?.split('=')[1]
       if (!token) {
-        console.warn('No valid token found, redirecting to login page.');
-        window.location.href = '/auth';
-        return;
+        window.location.href = '/auth'
+        return
       }
-      console.log('Valid token detected:', token);
-
-      const socket = io();
+      const socket = io()
       socket.on('connect', () => {
-        console.log('Socket.IO connected, socket id:', socket.id);
-        socket.emit('getToggleState'); // Request current toggle state
-      });
-      socket.on('connect_error', (err) => {
-        console.error('Socket.IO connection error:', err);
-      });
-
-      // Handle toggle state from server
+        socket.emit('getToggleState')
+      })
       socket.on('toggleState', (data) => {
-        console.log('Received toggleState:', data);
-        document.getElementById('lfgToggle').checked = data.commands_enabled;
-      });
+        document.getElementById('lfgToggle').checked = data.commands_enabled
+      })
       socket.on('toggleUpdated', (data) => {
-        console.log('Received toggleUpdated:', data);
-        document.getElementById('lfgToggle').checked = data.commands_enabled;
-      });
-      // When toggle switch changes, send new state
+        document.getElementById('lfgToggle').checked = data.commands_enabled
+      })
       document.getElementById('lfgToggle').addEventListener('change', function() {
-        const newState = this.checked;
-        console.log('Toggle changed to:', newState);
-        socket.emit('toggleCommands', { commands_enabled: newState });
-      });
-
-      // Chart.js setup
-      const ctx = document.getElementById('locationChart').getContext('2d');
+        const newState = this.checked
+        socket.emit('toggleCommands', { commands_enabled: newState })
+      })
+      const ctx = document.getElementById('locationChart').getContext('2d')
       const locationChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -264,212 +92,127 @@
             borderWidth: 1
           }]
         },
-        options: {
-          responsive: true,
-          scales: { y: { beginAtZero: true } }
-        }
-      });
-
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      })
       function updateChart(countryData) {
-        console.log('Updating chart with data:', countryData);
-        const countries = countryData.map(item => item._id || 'Unknown');
-        const visitCounts = countryData.map(item => item.count);
-        locationChart.data.labels = countries;
-        locationChart.data.datasets[0].data = visitCounts;
-        locationChart.update();
+        const countries = countryData.map(item => item._id || 'Unknown')
+        const visitCounts = countryData.map(item => item.count)
+        locationChart.data.labels = countries
+        locationChart.data.datasets[0].data = visitCounts
+        locationChart.update()
       }
-
       fetch('/api/geo-data')
         .then(response => response.json())
-        .then(data => {
-          console.log('Fetched initial geo data:', data);
-          updateChart(data);
-        })
-        .catch(error => console.error('Error fetching initial geo data:', error));
-
+        .then(data => updateChart(data))
+        .catch(error => console.error('Error fetching geo data:', error))
       socket.on('geoDataUpdate', (data) => {
-        console.log('Received geoDataUpdate:', data);
-        updateChart(data);
-      });
+        updateChart(data)
+      })
       socket.on('activeUsersUpdate', (data) => {
-        console.log('Received activeUsersUpdate:', data);
-        document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`;
-        const activeIpListElement = document.getElementById('active-ip-list');
-        activeIpListElement.innerHTML = '';
+        document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`
+        const activeIpListElement = document.getElementById('active-ip-list')
+        activeIpListElement.innerHTML = ''
         data.users.forEach(user => {
-          const ipItem = createIpItem(user);
-          activeIpListElement.appendChild(ipItem);
-        });
-      });
-
+          const ipItem = createIpItem(user)
+          activeIpListElement.appendChild(ipItem)
+        })
+      })
       function createIpItem(user) {
-        const ipItem = document.createElement('li');
-        ipItem.classList.add('ip-item');
-        const connectionTypes = Array.from(user.connectionTypes).join(', ');
-        ipItem.innerText = `IP: ${user.ip}, Connection Types: ${connectionTypes}`;
-        const blockButton = document.createElement('button');
-        blockButton.innerText = 'Block';
-        blockButton.onclick = () => blockUser(user.ip);
-        const unblockButton = document.createElement('button');
-        unblockButton.innerText = 'Unblock';
-        unblockButton.onclick = () => unblockUser(user.ip);
-        ipItem.appendChild(blockButton);
-        ipItem.appendChild(unblockButton);
-        return ipItem;
+        const ipItem = document.createElement('li')
+        ipItem.classList.add('ip-item')
+        const connectionTypes = Array.from(user.connectionTypes).join(', ')
+        ipItem.innerText = `IP: ${user.ip}, Connection Types: ${connectionTypes}`
+        const blockButton = document.createElement('button')
+        blockButton.innerText = 'Block'
+        blockButton.onclick = () => blockUser(user.ip)
+        const unblockButton = document.createElement('button')
+        unblockButton.innerText = 'Unblock'
+        unblockButton.onclick = () => unblockUser(user.ip)
+        ipItem.appendChild(blockButton)
+        ipItem.appendChild(unblockButton)
+        return ipItem
       }
-
       function blockUser(ip) {
-        console.log(`Block button clicked for IP: ${ip}`);
         socket.emit('blockUser', { ip }, (response) => {
-          console.log('Response from blocking user:', response);
           if (response.status === 'success') {
-            alert(`User with IP ${ip} has been blocked.`);
+            alert(`User with IP ${ip} has been blocked.`)
           } else {
-            alert(`Failed to block user: ${response.message}`);
+            alert(`Failed to block user: ${response.message}`)
           }
-        });
+        })
       }
-
       function unblockUser(ip) {
-        console.log(`Unblock button clicked for IP: ${ip}`);
         socket.emit('unblockUser', { ip }, (response) => {
-          console.log('Response from unblocking user:', response);
           if (response.status === 'success') {
-            alert(`User with IP ${ip} has been unblocked.`);
+            alert(`User with IP ${ip} has been unblocked.`)
           } else {
-            alert(`Failed to unblock user: ${response.message}`);
+            alert(`Failed to unblock user: ${response.message}`)
           }
-        });
+        })
       }
-
       document.getElementById('logout').addEventListener('click', () => {
-        console.log('Logout initiated.');
         fetch('/logout', { method: 'POST', credentials: 'include' })
           .then(() => {
-            console.log('Logout successful, clearing token cookie.');
-            document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-            window.location.href = '/auth';
+            document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+            window.location.href = '/auth'
           })
-          .catch(error => console.error('Logout failed:', error));
-      });
-
-      // ===== AUTO-OFFLINE LOGIC ======
-      const OFFLINE_TIMEOUT = 90 * 1000; // 90 seconds
-      let lastUpdateTime = Date.now();
-      setInterval(() => {
-        if (Date.now() - lastUpdateTime > OFFLINE_TIMEOUT) {
-          markBotCompletelyOffline();
-        }
-      }, 5000);
-
-      function markBotCompletelyOffline() {
-        console.log('Bot timed out; marking offline.');
-        const statusLabel = document.getElementById('bot-status-text');
-        statusLabel.textContent = 'Offline';
-        statusLabel.classList.remove('online', 'high-latency');
-        statusLabel.classList.add('offline');
-        document.getElementById('bot-name').innerText = 'N/A';
-        document.getElementById('bot-uptime').innerText = 'N/A';
-        document.getElementById('bot-latency').innerText = 'N/A';
-        document.getElementById('bot-memory').innerText = 'N/A';
-        const offlineData = {
-          status: 'offline',
-          botName: 'N/A',
-          uptime: 'N/A',
-          latency: 'N/A',
-          memoryUsage: 'N/A'
-        };
-        addTimelineBlock(offlineData);
-      }
-
-      // ===== PERSISTING TIMELINE DATA ======
+          .catch(error => console.error('Logout failed:', error))
+      })
       fetch('/api/timeline')
         .then(response => response.json())
         .then(data => {
-          console.log('Fetched persisted timeline data:', data);
-          timelineData = data || [];
-          renderTimeline();
+          timelineData = data || []
+          renderTimeline()
         })
-        .catch(error => console.error('Error fetching persisted timeline data:', error));
-
+        .catch(error => console.error('Error fetching timeline data:', error))
       function saveTimelineData(entry) {
-        // POST the new timeline entry to the server
         fetch('/api/timeline', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(entry)
         })
         .then(response => response.json())
-        .then(data => console.log('Timeline entry saved to server:', data))
-        .catch(err => console.error('Error saving timeline entry to server:', err));
+        .then(data => console.log('Timeline entry saved:', data))
+        .catch(err => console.error('Error saving timeline entry:', err))
       }
-
       function renderTimeline() {
-        timelineContainer.innerHTML = '';
+        timelineContainer.innerHTML = ''
         timelineData.forEach(data => {
-          const block = createTimelineBlock(data);
-          timelineContainer.appendChild(block);
-        });
+          const block = createTimelineBlock(data)
+          timelineContainer.appendChild(block)
+        })
       }
-
-      const timelineContainer = document.getElementById('minuteTimeline');
-
+      const timelineContainer = document.getElementById('minuteTimeline')
       function createTimelineBlock(data) {
-        const block = document.createElement('div');
-        block.classList.add('timeline-block');
+        const block = document.createElement('div')
+        block.classList.add('timeline-block')
         if (data.status !== 'online') {
-          block.style.backgroundColor = '#dc3545';
+          block.style.backgroundColor = '#dc3545'
         } else if (parseInt(data.latency) > 100) {
-          block.style.backgroundColor = '#ffc107';
+          block.style.backgroundColor = '#ffc107'
         } else {
-          block.style.backgroundColor = '#28a745';
+          block.style.backgroundColor = '#28a745'
         }
-        const tooltip = document.createElement('div');
-        tooltip.classList.add('tooltip');
-        tooltip.innerText = `Time: ${data.timestamp}\nBot: ${data.botName}\nUptime: ${data.uptime}\nLatency: ${data.latency}\nMemory: ${data.memoryUsage}`;
-        block.appendChild(tooltip);
-        return block;
+        const tooltip = document.createElement('div')
+        tooltip.classList.add('tooltip')
+        tooltip.innerText = `Time: ${data.timestamp}\nBot: ${data.botName}\nUptime: ${data.uptime}\nLatency: ${data.latency}\nMemory: ${data.memoryUsage}`
+        block.appendChild(tooltip)
+        return block
       }
-
-      // Always add a new timeline block from new heartbeat updates,
-      // without updating existing entries on page refresh.
       function addTimelineBlock(data) {
-        const now = Date.now();
-        // Remove oldest if timeline is full.
+        const now = Date.now()
         if (timelineData.length >= MAX_MINUTES) {
-          timelineData.shift();
+          timelineData.shift()
         }
-        const blockData = { ...data, rawTimestamp: now, timestamp: new Date(now).toLocaleTimeString() };
-        timelineData.push(blockData);
-        saveTimelineData(blockData);
-        renderTimeline();
+        const blockData = { ...data, rawTimestamp: now, timestamp: new Date(now).toLocaleTimeString() }
+        timelineData.push(blockData)
+        saveTimelineData(blockData)
+        renderTimeline()
       }
-
-      // ===== BOT STATUS UPDATE ======
       socket.on('botStatusUpdate', (data) => {
-        console.log('Received botStatusUpdate:', data);
-        lastUpdateTime = Date.now();
-        const statusLabel = document.getElementById('bot-status-text');
-        statusLabel.classList.remove('online', 'offline', 'high-latency');
-        if (data.status === 'online') {
-          if (parseInt(data.latency) > 100) {
-            statusLabel.textContent = 'Online (High Latency)';
-            statusLabel.classList.add('high-latency');
-          } else {
-            statusLabel.textContent = 'Online';
-            statusLabel.classList.add('online');
-          }
-        } else {
-          statusLabel.textContent = 'Offline';
-          statusLabel.classList.add('offline');
-        }
-        document.getElementById('bot-name').innerText = data.botName || 'N/A';
-        document.getElementById('bot-uptime').innerText = data.uptime || 'N/A';
-        document.getElementById('bot-latency').innerText = data.latency || 'N/A';
-        document.getElementById('bot-memory').innerText = data.memoryUsage || 'N/A';
-        addTimelineBlock(data);
-      });
-    });
+        addTimelineBlock(data)
+      })
+    })
   </script>
 </body>
 </html>
