@@ -1,122 +1,95 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Aria Bot Status</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css">
-  <!-- Include Socket.IO client library -->
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/aria-status.js" defer></script>
-  <style>
-    body {
-      font-family: 'Roboto', sans-serif;
-      background: linear-gradient(120deg, #f0f4f8, #cfe0f0);
-      color: #333;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
+document.addEventListener('DOMContentLoaded', function() {
+  const socket = io()
+  let lastUpdateTime = Date.now()
+  const OFFLINE_TIMEOUT = 90000
+  function markBotCompletelyOffline() {
+    const statusText = document.getElementById('bot-status-text')
+    statusText.textContent = 'Offline'
+    statusText.classList.remove('status-online','status-high-latency')
+    statusText.classList.add('status-offline')
+    document.getElementById('bot-name').innerText = 'N/A'
+    document.getElementById('bot-uptime').innerText = 'N/A'
+    document.getElementById('bot-latency').innerText = 'N/A'
+    document.getElementById('bot-memory').innerText = 'N/A'
+  }
+  setInterval(() => {
+    if (Date.now() - lastUpdateTime > OFFLINE_TIMEOUT) {
+      markBotCompletelyOffline()
     }
-    .status-container {
-      background-color: #fff;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      padding: 30px;
-      width: 90%;
-      max-width: 600px;
-      text-align: center;
+  }, 5000)
+  socket.on('botStatusUpdate', (data) => {
+    lastUpdateTime = Date.now()
+    const statusText = document.getElementById('bot-status-text')
+    statusText.classList.remove('status-online','status-offline','status-high-latency')
+    if (data.status === 'online') {
+      if (parseInt(data.latency) > 100) {
+        statusText.textContent = 'Online (High Latency)'
+        statusText.classList.add('status-high-latency')
+      } else {
+        statusText.textContent = 'Online'
+        statusText.classList.add('status-online')
+      }
+    } else {
+      statusText.textContent = 'Offline'
+      statusText.classList.add('status-offline')
     }
-    .status-title {
-      font-size: 1.8rem;
-      margin-bottom: 20px;
-      color: #007BFF;
+    document.getElementById('bot-name').innerText = data.botName || 'N/A'
+    document.getElementById('bot-uptime').innerText = data.uptime || 'N/A'
+    document.getElementById('bot-latency').innerText = data.latency || 'N/A'
+    document.getElementById('bot-memory').innerText = data.memoryUsage || 'N/A'
+    addTimelineBlock(data)
+  })
+  let timelineData = []
+  const MAX_MINUTES = 60
+  function saveTimelineData(entry) {
+    fetch('/api/timeline', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry)
+    })
+    .then(response => response.json())
+    .then(data => {})
+    .catch(err => {})
+  }
+  function renderTimeline() {
+    const timelineContainer = document.getElementById('timeline-container')
+    timelineContainer.innerHTML = ''
+    timelineData.forEach(item => {
+      const block = document.createElement('div')
+      block.classList.add('timeline-block')
+      if (item.status !== 'online') {
+        block.style.backgroundColor = '#dc3545'
+      } else if (parseInt(item.latency) > 100) {
+        block.style.backgroundColor = '#ffc107'
+      } else {
+        block.style.backgroundColor = '#28a745'
+      }
+      const tooltip = document.createElement('div')
+      tooltip.classList.add('tooltip')
+      tooltip.innerText = `Time: ${item.timestamp}\nBot: ${item.botName}\nUptime: ${item.uptime}\nLatency: ${item.latency}\nMemory: ${item.memoryUsage}`
+      block.appendChild(tooltip)
+      timelineContainer.appendChild(block)
+    })
+  }
+  function addTimelineBlock(data) {
+    const now = Date.now()
+    if (timelineData.length >= MAX_MINUTES) {
+      timelineData.shift()
     }
-    .status-text {
-      font-size: 1.4rem;
-      margin: 10px 0;
-      padding: 6px 12px;
-      border-radius: 4px;
-      display: inline-block;
+    const blockData = {
+      ...data,
+      rawTimestamp: now,
+      timestamp: new Date(now).toLocaleTimeString()
     }
-    .status-online {
-      background-color: #d4edda;
-      color: #155724;
-    }
-    .status-offline {
-      background-color: #f8d7da;
-      color: #721c24;
-    }
-    .status-high-latency {
-      background-color: #fff3cd;
-      color: #856404;
-    }
-    .vitals {
-      margin-top: 15px;
-      line-height: 1.6em;
-    }
-    .minute-timeline-header {
-      font-weight: 700;
-      margin: 30px 0 15px 0;
-      font-size: 1.2rem;
-      color: #333;
-    }
-    .timeline-container {
-      display: flex;
-      gap: 4px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-    .timeline-block {
-      width: 6px;
-      height: 24px;
-      border-radius: 3px;
-      position: relative;
-      cursor: pointer;
-      background-color: inherit;
-      transition: transform 0.3s, opacity 0.3s;
-    }
-    .timeline-block:hover {
-      transform: scale(1.5);
-      z-index: 2;
-    }
-    .tooltip {
-      position: absolute;
-      bottom: 150%;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: rgba(0,0,0,0.75);
-      color: #fff;
-      padding: 5px 8px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      white-space: pre;
-      visibility: hidden;
-      opacity: 0;
-      transition: opacity 0.3s;
-      z-index: 10;
-      pointer-events: none;
-    }
-    .timeline-block:hover .tooltip {
-      visibility: visible;
-      opacity: 1;
-    }
-  </style>
-</head>
-<body>
-  <div class="status-container">
-    <div class="status-title">Aria Bot Status</div>
-    <div id="bot-status-text" class="status-text status-offline">Loading...</div>
-    <div class="vitals">
-      <p>Bot Name: <span id="bot-name">N/A</span></p>
-      <p>Uptime: <span id="bot-uptime">N/A</span></p>
-      <p>Latency: <span id="bot-latency">N/A</span></p>
-      <p>Memory Usage: <span id="bot-memory">N/A</span></p>
-    </div>
-    <div class="minute-timeline-header">Minute-by-Minute Status</div>
-    <div id="timeline-container" class="timeline-container"></div>
-  </div>
-</body>
-</html>
+    timelineData.push(blockData)
+    saveTimelineData(blockData)
+    renderTimeline()
+  }
+  fetch('/api/timeline')
+    .then(response => response.json())
+    .then(data => {
+      timelineData = data || []
+      renderTimeline()
+    })
+    .catch(error => {})
+})
