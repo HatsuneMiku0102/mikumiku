@@ -5,19 +5,22 @@ document.addEventListener('DOMContentLoaded', function() {
   let timelineData = [];
   const MAX_MINUTES = 60;
 
-  // Update the timeline summary in real time
+  // Dynamically update the timeline summary based on entries within the last hour
   function updateTimelineSummary() {
+    const oneHourAgo = Date.now() - 3600000;
     let offlineCount = 0;
     let highLatencyCount = 0;
     let normalOnlineCount = 0;
 
     timelineData.forEach(item => {
-      if (item.status !== 'online') {
-        offlineCount++;
-      } else if (parseInt(item.latency) > 100) {
-        highLatencyCount++;
-      } else {
-        normalOnlineCount++;
+      if (item.rawTimestamp >= oneHourAgo) {
+        if (item.status !== 'online') {
+          offlineCount++;
+        } else if (parseInt(item.latency) > 100) {
+          highLatencyCount++;
+        } else {
+          normalOnlineCount++;
+        }
       }
     });
 
@@ -123,6 +126,9 @@ Memory : ${item.memoryUsage}`;
 
     addTimelineBlock(data);
   }
+
+  // Periodically update summary in case entries age out
+  setInterval(updateTimelineSummary, 5000);
 
   setInterval(() => {
     if (Date.now() - lastUpdateTime > OFFLINE_TIMEOUT) {
