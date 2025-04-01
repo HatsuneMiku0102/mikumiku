@@ -1606,28 +1606,34 @@ io.on('connection', (socket) => {
   })
 
   // Listen for botStatusUpdate events from your bot
-  socket.on('botStatusUpdate', (data) => {
-    console.log(`Received botStatusUpdate from ${socket.id}:`, data)
-    lastBotStatusUpdate = Date.now()
-    // Reset offline SMS flag if bot is online
-    if (data.status === 'online') {
-      smsSent = false
-      // Check for high latency and send alert if needed
-      if (parseInt(data.latency) > HIGH_LATENCY_THRESHOLD && !highLatencyAlertSent) {
-        console.log('Bot is experiencing high latency. Sending SMS alert.')
-        sendSMSAlert("Alert: The bot is experiencing high latency!")
-        highLatencyAlertSent = true
-      } else if (parseInt(data.latency) <= HIGH_LATENCY_THRESHOLD) {
-        highLatencyAlertSent = false
+socket.on('botStatusUpdate', (data) => {
+  // Normalize the status string
+  const status = (data.status || "").toLowerCase().trim();
+  console.log(`Bot status update received. Status: "${status}", Latency: ${data.latency}`);
+  
+  // Update last status update time
+  lastBotStatusUpdate = Date.now();
+  
+  // If the bot is online, reset the offline SMS flag
+  if (status === 'online') {
+    smsSent = false;
+    
+    // Check latency
+    const latency = parseInt(data.latency);
+    if (latency > HIGH_LATENCY_THRESHOLD && !highLatencyAlertSent) {
+      console.log(`High latency detected (${latency}ms). Sending SMS alert.`);
+      sendSMSAlert("Alert: The bot is experiencing high latency!");
+      highLatencyAlertSent = true;
+    } else if (latency <= HIGH_LATENCY_THRESHOLD) {
+      if (highLatencyAlertSent) {
+        console.log(`Latency back to normal (${latency}ms). Resetting high latency alert flag.`);
       }
+      highLatencyAlertSent = false;
     }
-    // Additional processing for timeline data can be done here
-  })
-
-  socket.on('disconnect', (reason) => {
-    console.log(`Socket disconnected: ${socket.id}, Reason: ${reason}`)
-  })
-})
+  } else {
+    console.log(`Bot status is not online: "${status}"`);
+  }
+});
 
 // Serve the Aria status page
 app.get('/aria-status', (req, res) => {
