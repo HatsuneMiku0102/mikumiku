@@ -1460,10 +1460,12 @@ const MAX_MINUTES = 60
 let timelineCollection
 let configCollection
 
-// Global variables for offline detection
+// Global variables for offline detection and latency alerts
 let lastBotStatusUpdate = Date.now()
 let smsSent = false
+let highLatencyAlertSent = false
 const OFFLINE_TIMEOUT = 90000 // 90 seconds
+const HIGH_LATENCY_THRESHOLD = 100 // in milliseconds
 
 if (!process.env.MONGO_URL) {
   console.error("Error: MONGO_URL environment variable not set.")
@@ -1607,9 +1609,17 @@ io.on('connection', (socket) => {
   socket.on('botStatusUpdate', (data) => {
     console.log(`Received botStatusUpdate from ${socket.id}:`, data)
     lastBotStatusUpdate = Date.now()
-    // Reset SMS flag if bot is online
+    // Reset offline SMS flag if bot is online
     if (data.status === 'online') {
       smsSent = false
+      // Check for high latency and send alert if needed
+      if (parseInt(data.latency) > HIGH_LATENCY_THRESHOLD && !highLatencyAlertSent) {
+        console.log('Bot is experiencing high latency. Sending SMS alert.')
+        sendSMSAlert("Alert: The bot is experiencing high latency!")
+        highLatencyAlertSent = true
+      } else if (parseInt(data.latency) <= HIGH_LATENCY_THRESHOLD) {
+        highLatencyAlertSent = false
+      }
     }
     // Additional processing for timeline data can be done here
   })
@@ -1625,14 +1635,14 @@ app.get('/aria-status', (req, res) => {
 })
 
 // Function to send an SMS via ClickSend
-function sendOfflineSMS() {
+function sendSMSAlert(message) {
   const smsData = {
     messages: [
       {
         source: "nodejs",
         from: process.env.SMS_SENDER,       // e.g., "YourApp"
-        to: process.env.TO_PHONE_NUMBER,      // e.g., "447852492759" in international format
-        body: "Alert: The bot is offline!"
+        to: process.env.TO_PHONE_NUMBER,      // e.g., "447852492759" (international format)
+        body: message
       }
     ]
   }
@@ -1658,7 +1668,7 @@ setInterval(() => {
   if (elapsed > OFFLINE_TIMEOUT) {
     if (!smsSent) {
       console.log('Bot appears offline. Sending SMS alert.')
-      sendOfflineSMS()
+      sendSMSAlert("Alert: The bot is offline!")
       smsSent = true
     }
   }
