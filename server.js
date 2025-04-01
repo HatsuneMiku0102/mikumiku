@@ -1611,7 +1611,7 @@ io.on('connection', (socket) => {
     if (data.status === 'online') {
       smsSent = false
     }
-    // You might also insert timeline data here or broadcast it as needed
+    // Additional processing for timeline data can be done here
   })
 
   socket.on('disconnect', (reason) => {
@@ -1624,50 +1624,45 @@ app.get('/aria-status', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'aria-status.html'))
 })
 
-// Configure Nodemailer transporter for Gmail
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  debug: true, // Enable debug output
-  logger: true // Log to console
-});
-
-
-// Function to send an SMS via email using the email-to-SMS gateway
+// Function to send an SMS via ClickSend
 function sendOfflineSMS() {
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: process.env.TO_SMS_EMAIL, // 
-    subject: '', // Subject is typically ignored by SMS gateways
-    text: 'Alert: The bot is offline!'
-  };
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error('Error sending SMS via email:', error);
-    } else {
-      console.log('SMS sent successfully via email:', info.response);
-    }
-  });
+  const smsData = {
+    messages: [
+      {
+        source: "nodejs",
+        from: process.env.SMS_SENDER,       // e.g., "YourApp"
+        to: process.env.TO_PHONE_NUMBER,      // e.g., "447852492759" in international format
+        body: "Alert: The bot is offline!"
+      }
+    ]
+  }
+
+  const auth = {
+    username: process.env.CLICKSEND_USERNAME,
+    password: process.env.CLICKSEND_API_KEY
+  }
+
+  axios.post('https://rest.clicksend.com/v3/sms/send', smsData, { auth })
+    .then(response => {
+      console.log('SMS sent successfully via ClickSend:', response.data)
+    })
+    .catch(error => {
+      console.error('Error sending SMS via ClickSend:', error.response ? error.response.data : error.message)
+    })
 }
 
 // Periodically check if the bot has gone offline and send SMS if needed
 setInterval(() => {
-  const elapsed = Date.now() - lastBotStatusUpdate;
-  console.log(`Time elapsed since last update: ${elapsed} ms`);
+  const elapsed = Date.now() - lastBotStatusUpdate
+  console.log(`Time elapsed since last update: ${elapsed} ms`)
   if (elapsed > OFFLINE_TIMEOUT) {
     if (!smsSent) {
-      console.log('Bot appears offline. Sending SMS alert.');
-      sendOfflineSMS();
-      smsSent = true;
+      console.log('Bot appears offline. Sending SMS alert.')
+      sendOfflineSMS()
+      smsSent = true
     }
   }
-}, 5000);
-
+}, 5000)
 
 
 // ----------------------
