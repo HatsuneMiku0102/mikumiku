@@ -4,13 +4,14 @@
   <meta charset="UTF-8">
   <title>Aria Bot Status</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Include Socket.IO client library -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="/aria-status.js" defer></script>
   <style>
     body {
       font-family: 'Roboto', sans-serif;
-      background: linear-gradient(120deg, #f0f4f8, #cfe0f0);
-      color: #333;
+      background: linear-gradient(120deg, #2c3e50, #34495e);
+      color: #ecf0f1;
       margin: 0;
       padding: 20px;
       display: flex;
@@ -20,19 +21,19 @@
     }
 
     .status-container {
-      background-color: #fff;
+      background-color: #1a252f;
       border-radius: 10px;
-      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
       padding: 40px;
       width: 95%;
-      max-width: 800px;
+      max-width: 900px;
       text-align: center;
     }
 
     .status-title {
-      font-size: 2rem;
+      font-size: 2.2rem;
       margin-bottom: 20px;
-      color: #007BFF;
+      color: #3498db;
       letter-spacing: 0.5px;
     }
 
@@ -47,21 +48,21 @@
     }
 
     .status-online {
-      background-color: #d4edda;
-      color: #155724;
-      border-color: #c3e6cb;
+      background-color: #27ae60;
+      color: #ecf0f1;
+      border-color: #2ecc71;
     }
 
     .status-offline {
-      background-color: #f8d7da;
-      color: #721c24;
-      border-color: #f5c6cb;
+      background-color: #c0392b;
+      color: #ecf0f1;
+      border-color: #e74c3c;
     }
 
     .status-high-latency {
-      background-color: #fff3cd;
-      color: #856404;
-      border-color: #ffeeba;
+      background-color: #f39c12;
+      color: #2c3e50;
+      border-color: #f1c40f;
     }
 
     .vitals {
@@ -73,11 +74,11 @@
       margin-left: auto;
       margin-right: auto;
       display: grid;
-      grid-gap: 10px;
+      gap: 10px;
     }
 
     .vitals p {
-      background: #f0f4f8;
+      background: #27323a;
       padding: 10px;
       border-radius: 5px;
       margin: 0;
@@ -88,39 +89,37 @@
 
     .vitals p strong {
       margin-right: 10px;
+      color: #bdc3c7;
     }
 
     .minute-timeline-header {
       font-weight: 700;
       margin: 30px 0 15px 0;
       font-size: 1.3rem;
-      color: #333;
+      color: #ecf0f1;
     }
 
+    /* Use CSS grid to display all 60 bars in one row */
     .timeline-container {
-      display: flex;
-      flex-wrap: nowrap; /* Keep bars on one line */
+      display: grid;
+      grid-template-columns: repeat(60, 1fr);
       gap: 6px;
-      overflow-x: auto; /* Allow horizontal scrolling if needed */
-      max-width: 700px;
-      margin: 0 auto 10px auto; /* Center the container */
-      padding-bottom: 5px;
+      margin: 0 auto 10px auto;
+      max-width: 100%;
     }
 
     .timeline-block {
-      width: 10px;
+      width: 100%;
       height: 30px;
       border-radius: 4px;
       position: relative;
       cursor: pointer;
-      background-color: #eee;
       transition: transform 0.3s ease, box-shadow 0.3s ease;
-      flex-shrink: 0; /* So bars don't shrink in a narrow container */
     }
 
     .timeline-block:hover {
       transform: scale(1.4);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
       z-index: 2;
     }
 
@@ -129,11 +128,12 @@
       bottom: 110%;
       left: 50%;
       transform: translateX(-50%);
-      background-color: rgba(0,0,0,0.8);
-      color: #fff;
-      padding: 4px 8px;
+      background-color: rgba(0, 0, 0, 0.85);
+      color: #ecf0f1;
+      padding: 6px 10px;
       border-radius: 4px;
       font-size: 0.75rem;
+      line-height: 1.3;
       white-space: pre-line;
       visibility: hidden;
       opacity: 0;
@@ -150,7 +150,8 @@
     .timeline-summary {
       font-size: 0.95rem;
       margin-top: 10px;
-      color: #555;
+      color: #bdc3c7;
+      white-space: pre-line;
     }
   </style>
 </head>
@@ -158,14 +159,12 @@
   <div class="status-container">
     <div class="status-title">Aria Bot Status</div>
     <div id="bot-status-text" class="status-text status-offline">Loading...</div>
-
     <div class="vitals">
       <p><strong>Bot Name:</strong> <span id="bot-name">N/A</span></p>
       <p><strong>Uptime:</strong> <span id="bot-uptime">N/A</span></p>
       <p><strong>Latency:</strong> <span id="bot-latency">N/A</span></p>
       <p><strong>Memory Usage:</strong> <span id="bot-memory">N/A</span></p>
     </div>
-
     <div class="minute-timeline-header">Minute-by-Minute Status</div>
     <div id="timeline-container" class="timeline-container"></div>
     <div id="timeline-summary" class="timeline-summary"></div>
