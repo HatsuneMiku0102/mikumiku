@@ -1597,7 +1597,7 @@ io.on('connection', (socket) => {
 })
 
 app.get('/aria-status', (req, res) => {
-  res.sendFile(__dirname + '/aria-status.html')
+  res.sendFile(__dirname + '/aria-status')
 })
 
 
