@@ -27,6 +27,7 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { Configuration, OpenAIApi } = require('openai');
 const { MongoClient } = require('mongodb');
+const nodemailer = require('nodemailer');
 
 // ----------------------
 // Load Environment Variables
@@ -1599,6 +1600,34 @@ io.on('connection', (socket) => {
 app.get('/aria-status', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'aria-status.html'))
 })
+
+
+const transporter = nodemailer.createTransport({
+  host: 'smtp.example.com', // Replace with your SMTP server host
+  port: 587, // Replace with your SMTP server port
+  secure: false, // true for 465, false for other ports
+  auth: {
+    user: process.env.EMAIL_USER, // Your email address
+    pass: process.env.EMAIL_PASS  // Your email password
+  }
+});
+
+function sendOfflineSMS() {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: process.env.TO_SMS_EMAIL, // e.g., '1234567890@txt.att.net'
+    subject: '', // Subject is typically ignored by SMS gateways
+    text: 'Alert: The bot is offline!'
+  };
+
+  transporter.sendMail(mailOptions, function(error, info) {
+    if (error) {
+      console.error('Error sending SMS via email:', error);
+    } else {
+      console.log('SMS sent successfully via email:', info.response);
+    }
+  });
+}
 
 
 // ----------------------
