@@ -1,9 +1,13 @@
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('Admin dashboard script loaded.')
   const cookieString = document.cookie
+  console.log('Current cookies:', cookieString)
   const token = cookieString.split('; ').find(row => row.startsWith('token='))?.split('=')[1]
   if (!token) {
+    console.warn('No valid token found, redirecting to login page.')
     window.location.href = '/auth'
   } else {
+    console.log('Valid token detected:', token)
     const socket = io()
     const ctx = document.getElementById('locationChart').getContext('2d')
     const locationChart = new Chart(ctx, {
@@ -41,9 +45,11 @@ document.addEventListener('DOMContentLoaded', function() {
       })
       .catch(error => console.error('Error fetching initial geo data:', error))
     socket.on('geoDataUpdate', (data) => {
+      console.log('Received geoDataUpdate:', data)
       updateChart(data)
     })
     socket.on('activeUsersUpdate', (data) => {
+      console.log('Active users data received:', data)
       document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`
       const activeIpListElement = document.getElementById('active-ip-list')
       activeIpListElement.innerHTML = ''
@@ -68,7 +74,9 @@ document.addEventListener('DOMContentLoaded', function() {
       return ipItem
     }
     function blockUser(ip) {
+      console.log(`Block button clicked for IP: ${ip}`)
       socket.emit('blockUser', { ip }, (response) => {
+        console.log('Response from blocking user:', response)
         if (response.status === 'success') {
           alert(`User with IP ${ip} has been blocked.`)
         } else {
@@ -77,7 +85,9 @@ document.addEventListener('DOMContentLoaded', function() {
       })
     }
     function unblockUser(ip) {
+      console.log(`Unblock button clicked for IP: ${ip}`)
       socket.emit('unblockUser', { ip }, (response) => {
+        console.log('Response from unblocking user:', response)
         if (response.status === 'success') {
           alert(`User with IP ${ip} has been unblocked.`)
         } else {
@@ -86,8 +96,10 @@ document.addEventListener('DOMContentLoaded', function() {
       })
     }
     document.getElementById('logout').addEventListener('click', () => {
+      console.log('Logout initiated.')
       fetch('/logout', { method: 'POST', credentials: 'include' })
         .then(() => {
+          console.log('Logout request successful, clearing token cookie.')
           document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
           window.location.href = '/auth'
         })
@@ -95,16 +107,5 @@ document.addEventListener('DOMContentLoaded', function() {
           console.error('Logout failed:', error)
         })
     })
-    socket.on('toggleState', (data) => {
-      document.getElementById('lfgToggle').checked = data.commands_enabled
-    })
-    socket.on('toggleUpdated', (data) => {
-      document.getElementById('lfgToggle').checked = data.commands_enabled
-    })
-    document.getElementById('lfgToggle').addEventListener('change', function() {
-      const newState = this.checked
-      socket.emit('toggleCommands', { commands_enabled: newState })
-    })
-    socket.emit('getToggleState')
   }
 })
