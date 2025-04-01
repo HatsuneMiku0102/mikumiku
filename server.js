@@ -1456,10 +1456,14 @@ setInterval(() => {
 // -------------------
 // Yes
 // -------------------
-
 const MAX_MINUTES = 60
 let timelineCollection
 let configCollection
+
+// Global variables for offline detection
+let lastBotStatusUpdate = Date.now()
+let smsSent = false
+const OFFLINE_TIMEOUT = 90000 // 90 seconds
 
 if (!process.env.MONGO_URL) {
   console.error("Error: MONGO_URL environment variable not set.")
@@ -1476,6 +1480,7 @@ async function connectToMongo() {
     configCollection = db.collection("config")
     timelineCollection = db.collection("timeline")
     console.log("Connected to MongoDB.")
+
     let toggleDoc = await configCollection.findOne({ _id: "toggle" })
     if (!toggleDoc) {
       toggleDoc = { _id: "toggle", commands_enabled: true }
@@ -1489,6 +1494,8 @@ async function connectToMongo() {
   }
 }
 connectToMongo()
+
+app.use(express.json())
 
 app.get('/api/timeline', async (req, res) => {
   try {
@@ -1552,8 +1559,10 @@ app.post('/api/toggle', async (req, res) => {
   }
 })
 
+// Socket.IO integration
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`)
+
   socket.on('getToggleState', async () => {
     if (!configCollection) {
       console.error(`configCollection is undefined for ${socket.id}`)
@@ -1569,6 +1578,7 @@ io.on('connection', (socket) => {
       socket.emit('toggleState', { commands_enabled: true })
     }
   })
+
   socket.on('toggleCommands', async (data) => {
     console.log(`Received toggleCommands from ${socket.id}:`, data)
     if (typeof data.commands_enabled === 'undefined') {
@@ -1592,35 +1602,48 @@ io.on('connection', (socket) => {
       socket.emit('toggleResponse', { status: 'error', message: 'Could not update configuration.' })
     }
   })
+
+  // Listen for botStatusUpdate events from your bot
+  socket.on('botStatusUpdate', (data) => {
+    console.log(`Received botStatusUpdate from ${socket.id}:`, data)
+    lastBotStatusUpdate = Date.now()
+    // Reset SMS flag if bot is online
+    if (data.status === 'online') {
+      smsSent = false
+    }
+    // You might also insert timeline data here or broadcast it as needed
+  })
+
   socket.on('disconnect', (reason) => {
     console.log(`Socket disconnected: ${socket.id}, Reason: ${reason}`)
   })
 })
 
+// Serve the Aria status page
 app.get('/aria-status', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'aria-status.html'))
 })
 
-
+// Configure Nodemailer transporter for Gmail
 const transporter = nodemailer.createTransport({
-  host: 'smtp.example.com', // Replace with your SMTP server host
-  port: 587, // Replace with your SMTP server port
-  secure: false, // true for 465, false for other ports
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // false for port 587
   auth: {
-    user: process.env.EMAIL_USER, // Your email address
-    pass: process.env.EMAIL_PASS  // Your email password
+    user: process.env.EMAIL_USER, // Your Gmail address
+    pass: process.env.EMAIL_PASS  // Your Gmail password or app-specific password
   }
 });
 
+// Function to send an SMS via email using the email-to-SMS gateway
 function sendOfflineSMS() {
   const mailOptions = {
     from: process.env.EMAIL_USER,
-    to: process.env.TO_SMS_EMAIL, // e.g., '1234567890@txt.att.net'
+    to: process.env.TO_SMS_EMAIL, // 
     subject: '', // Subject is typically ignored by SMS gateways
     text: 'Alert: The bot is offline!'
   };
-
-  transporter.sendMail(mailOptions, function(error, info) {
+  transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
       console.error('Error sending SMS via email:', error);
     } else {
@@ -1628,6 +1651,17 @@ function sendOfflineSMS() {
     }
   });
 }
+
+// Periodically check if the bot has gone offline and send SMS if needed
+setInterval(() => {
+  if (Date.now() - lastBotStatusUpdate > OFFLINE_TIMEOUT) {
+    if (!smsSent) {
+      console.log('Bot appears offline. Sending SMS alert.')
+      sendOfflineSMS()
+      smsSent = true
+    }
+  }
+}, 5000)
 
 
 // ----------------------
