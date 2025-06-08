@@ -86,18 +86,21 @@ app.use(bodyParser.json({
 
 
 app.post('/interactions', (req, res) => {
+  logger.info('[Discord] /interactions hit');
   const signature = req.get('X-Signature-Ed25519') || '';
   const timestamp = req.get('X-Signature-Timestamp') || '';
-  const raw = req.rawBody || '';
-
-  const isValid = nacl.sign.detached.verify(
+  const raw       = req.rawBody || '';
+  const valid     = nacl.sign.detached.verify(
     Buffer.from(timestamp + raw),
     Buffer.from(signature, 'hex'),
     Buffer.from(DISCORD_PUBLIC_KEY, 'hex')
   );
-  if (!isValid) return res.sendStatus(401);
-
+  if (!valid) {
+    logger.warn('[Discord] Signature verification failed');
+    return res.sendStatus(401);
+  }
   const payload = JSON.parse(raw);
+  logger.info(`[Discord] Valid interaction — type=${payload.type}${payload.data?.name ? `, command=${payload.data.name}` : ''}`);
   if (payload.type === 1) {
     return res.json({ type: 1 });
   }
