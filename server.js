@@ -36,11 +36,7 @@ const nacl = require('tweetnacl');
 dotenv.config();
 const rateLimitMap = new Map();
 
-app.use(bodyParser.json({
-  verify: (req, res, buf) => {
-    if (req.path === '/interactions') req.rawBody = buf.toString();
-  }
-}));
+
 
 
 const DISCORD_PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY;
@@ -100,6 +96,13 @@ const logger = winston.createLogger({
         new winston.transports.File({ filename: 'server.log' })
     ]
 });
+
+
+app.use(bodyParser.json({
+  verify: (req, res, buf) => {
+    if (req.path === '/interactions') req.rawBody = buf.toString();
+  }
+}));
 
 // ----------------------
 // Connect to MongoDB
