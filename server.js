@@ -29,6 +29,7 @@ const { Configuration, OpenAIApi } = require('openai');
 const { MongoClient } = require('mongodb');
 const nodemailer = require('nodemailer');
 const nacl = require('tweetnacl');
+const os   = require('os');
 
 // ----------------------
 // Load Environment Variables
@@ -86,9 +87,8 @@ app.use(bodyParser.json({
 
 
 
-const os   = require('os');
-const nacl = require('tweetnacl');
-const axios = require('axios');
+
+
 
 app.post('/interactions', async (req, res) => {
   // … signature verification …
