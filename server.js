@@ -41,27 +41,7 @@ const rateLimitMap = new Map();
 
 const DISCORD_PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY;
 
-app.post('/interactions', (req, res) => {
-  const signature = req.get('X-Signature-Ed25519') || '';
-  const timestamp = req.get('X-Signature-Timestamp') || '';
-  const raw = req.rawBody || '';
 
-  const isValid = nacl.sign.detached.verify(
-    Buffer.from(timestamp + raw),
-    Buffer.from(signature, 'hex'),
-    Buffer.from(DISCORD_PUBLIC_KEY, 'hex')
-  );
-  if (!isValid) return res.sendStatus(401);
-
-  const payload = JSON.parse(raw);
-  if (payload.type === 1) {
-    return res.json({ type: 1 });
-  }
-  if (payload.type === 2 && payload.data.name === 'ping') {
-    return res.json({ type: 4, data: { content: 'Pong!' } });
-  }
-  return res.sendStatus(400);
-});
 
 
 // ---------------------
@@ -103,6 +83,30 @@ app.use(bodyParser.json({
     if (req.path === '/interactions') req.rawBody = buf.toString();
   }
 }));
+
+
+app.post('/interactions', (req, res) => {
+  const signature = req.get('X-Signature-Ed25519') || '';
+  const timestamp = req.get('X-Signature-Timestamp') || '';
+  const raw = req.rawBody || '';
+
+  const isValid = nacl.sign.detached.verify(
+    Buffer.from(timestamp + raw),
+    Buffer.from(signature, 'hex'),
+    Buffer.from(DISCORD_PUBLIC_KEY, 'hex')
+  );
+  if (!isValid) return res.sendStatus(401);
+
+  const payload = JSON.parse(raw);
+  if (payload.type === 1) {
+    return res.json({ type: 1 });
+  }
+  if (payload.type === 2 && payload.data.name === 'ping') {
+    return res.json({ type: 4, data: { content: 'Pong!' } });
+  }
+  return res.sendStatus(400);
+});
+
 
 // ----------------------
 // Connect to MongoDB
