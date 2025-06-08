@@ -85,6 +85,7 @@ app.use(bodyParser.json({
 }));
 
 
+
 app.post('/interactions', (req, res) => {
   logger.info('[Discord] /interactions hit');
   const signature = req.get('X-Signature-Ed25519') || '';
@@ -100,10 +101,11 @@ app.post('/interactions', (req, res) => {
     return res.sendStatus(401);
   }
   const payload = JSON.parse(raw);
-  logger.info(`[Discord] Valid interaction — type=${payload.type}${payload.data?.name ? `, command=${payload.data.name}` : ''}`);
-  if (payload.type === 1) {
-    return res.json({ type: 1 });
-  }
+  logger.info(
+    `[Discord] Valid interaction — type=${payload.type}` +
+    (payload.data?.name ? `, command=${payload.data.name}` : '')
+  );
+  if (payload.type === 1) return res.json({ type: 1 });
   if (payload.type === 2 && payload.data.name === 'ping') {
     return res.json({ type: 4, data: { content: 'Pong!' } });
   }
