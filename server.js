@@ -130,11 +130,11 @@ app.post('/interactions', async (req, res) => {
     try {
       const start = Date.now();
       const resp  = await axios.get('https://mikumiku.dev/');
-      webStatus   = `${resp.status} ${resp.statusText}`;
-      webLatency  = `${Date.now() - start} ms`;
+      webStatus   = `✅ ${resp.status} ${resp.statusText}`;
+      webLatency  = `⏱️ ${Date.now() - start} ms`;
     } catch (err) {
       logger.warn('Website check failed:', err);
-      webStatus  = 'Error';
+      webStatus  = '❌ Error';
       webLatency = 'N/A';
     }
 
@@ -142,42 +142,41 @@ app.post('/interactions', async (req, res) => {
     const hrs    = Math.floor(upSec / 3600);
     const mins   = Math.floor((upSec % 3600) / 60);
     const secs   = Math.floor(upSec % 60);
-    const uptime = `${hrs}h ${mins}m ${secs}s`;
+    const uptime = `⏰ ${hrs}h ${mins}m ${secs}s`;
 
     const memMb   = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
     const loadAvg = os.loadavg()[0].toFixed(2);
-    const dbState = mongoose.connection.readyState; 
+    const dbState = mongoose.connection.readyState === 1 ? '🟢 Connected' : '🔴 Disconnected';
     const sockets = io.engine.clientsCount;
-    const env     = process.env.NODE_ENV || 'unknown';
+    const env     = process.env.NODE_ENV === 'production' ? '🟢 Production' : '🟡 Development';
     const version = process.env.COMMIT_SHA?.slice(0, 7) || process.version;
 
     const embed = {
       author: {
-        name: '🔧 Mikumiku Status',
-        icon_url: 'https://mikumiku.dev/assets/miku_icon.png'
+        name: '🎤 Mikumiku Status',
+        icon_url: 'https://mikumiku.dev/logo.webp'
       },
       thumbnail: {
-        url: 'https://mikumiku.dev/assets/status_thumb.png'
+        url: 'https://mikumiku.dev/logo.webp'
       },
-      title: 'System Overview',
+      title: '📊 System Overview',
       color: 0x39C5BB,
       description:
-        `> **Latency:** \`${latency} ms\`\n` +
-        `> **Web:** \`${webStatus}\` (\`${webLatency}\`)\n` +
-        `> **Load Avg (1m):** \`${loadAvg}\`\n`,
+        `> **⏱️ Latency:** \`${latency} ms\`\n` +
+        `> **🌐 Web:** \`${webStatus}\` (${webLatency})\n` +
+        `> **⚙️ Load Avg:** \`${loadAvg}\`\n`,
       fields: [
-        { name: 'Uptime',        value: uptime,       inline: true },
-        { name: 'Memory',        value: `${memMb} MB`, inline: true },
-        { name: 'DB Status',     value: `${dbState}`,  inline: true },
-        { name: 'Sockets',       value: `${sockets}`,  inline: true },
-        { name: 'Env',           value: env,          inline: true },
-        { name: 'Version',       value: version,      inline: true }
+        { name: '⏰ Uptime',        value: uptime,                inline: true },
+        { name: '💾 Memory',        value: `${memMb} MB`,         inline: true },
+        { name: '🗄️ DB Status',     value: dbState,               inline: true },
+        { name: '🔌 Sockets',       value: `${sockets}`,          inline: true },
+        { name: '🔧 Environment',   value: env,                   inline: true },
+        { name: '📦 Version',       value: version,               inline: true }
       ],
       footer: {
         text: 'Powered by mikumiku.dev',
-        icon_url: 'https://mikumiku.dev/assets/logo.png'
-      },
-      timestamp: new Date().toISOString()
+        icon_url: 'https://mikumiku.dev/logo.webp'
+      }
     };
 
     return res.json({ type: 4, data: { embeds: [embed] } });
