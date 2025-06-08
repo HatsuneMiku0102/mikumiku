@@ -86,28 +86,13 @@ app.use(bodyParser.json({
 
 
 
+const os   = require('os');
+const nacl = require('tweetnacl');
+const axios = require('axios');
+
 app.post('/interactions', async (req, res) => {
-  logger.info('[Discord] /interactions hit');
-  const signature = req.get('X-Signature-Ed25519') || '';
-  const timestamp = req.get('X-Signature-Timestamp') || '';
-  const raw       = req.rawBody || '';
-  const valid     = nacl.sign.detached.verify(
-    Buffer.from(timestamp + raw),
-    Buffer.from(signature, 'hex'),
-    Buffer.from(DISCORD_PUBLIC_KEY, 'hex')
-  );
-  if (!valid) {
-    logger.warn('[Discord] Signature verification failed');
-    return res.sendStatus(401);
-  }
-  const payload = JSON.parse(raw);
-  logger.info(
-    `[Discord] Valid interaction — type=${payload.type}` +
-    (payload.data?.name ? `, command=${payload.data.name}` : '')
-  );
-  if (payload.type === 1) {
-    return res.json({ type: 1 });
-  }
+  // … signature verification …
+
   if (payload.type === 2 && payload.data.name === 'status') {
     const now        = Date.now();
     const sentMs     = Number(timestamp) * 1000;
@@ -128,21 +113,44 @@ app.post('/interactions', async (req, res) => {
     const secs      = Math.floor(upSec % 60);
     const uptime    = `${hours}h ${mins}m ${secs}s`;
     const memMb     = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
-    const embed     = {
-      title:     'Bot & Site Status',
-      color:     0x39C5BB,
-      timestamp: new Date().toISOString(),
+    const loadAvg   = os.loadavg()[0].toFixed(2);
+    const dbState   = mongoose.connection.readyState; 
+    const sockets   = io.engine.clientsCount;
+    const env       = process.env.NODE_ENV || 'unknown';
+    const version   = process.env.COMMIT_SHA?.slice(0,7) || process.version;
+
+    const embed = {
+      author: {
+        name:  '🔧 Mikumiku Status',
+        icon_url: 'https://mikumiku.dev/assets/miku_icon.png'
+      },
+      thumbnail: {
+        url: 'https://mikumiku.dev/assets/status_thumb.png'
+      },
+      title: 'System Overview',
+      color: 0x39C5BB,
+      description:
+        `> **Latency:** \`${latency} ms\`\n` +
+        `> **Web:** \`${webStatus}\` (\`${webLatency}\`)\n` +
+        `> **Load Avg (1m):** \`${loadAvg}\`\n`,
       fields: [
-        { name: 'Latency',          value: `${latency} ms`,         inline: true },
-        { name: 'Website Status',   value: webStatus,              inline: true },
-        { name: 'Website Latency',  value: webLatency,             inline: true },
-        { name: 'Uptime',           value: uptime,                 inline: true },
-        { name: 'Memory Usage',     value: `${memMb} MB`,           inline: true },
-        { name: 'Node Version',     value: process.version,        inline: true }
-      ]
+        { name: 'Uptime',            value: uptime,             inline: true },
+        { name: 'Memory',            value: `${memMb} MB`,       inline: true },
+        { name: 'DB Status',         value: `${dbState}`,        inline: true },
+        { name: 'Sockets',           value: `${sockets}`,        inline: true },
+        { name: 'Env',               value: env,                 inline: true },
+        { name: 'Version',           value: version,             inline: true }
+      ],
+      footer: {
+        text: 'Powered by mikumiku.dev',
+        icon_url: 'https://mikumiku.dev/assets/logo.png'
+      },
+      timestamp: new Date().toISOString()
     };
+
     return res.json({ type: 4, data: { embeds: [embed] } });
   }
+
   return res.sendStatus(400);
 });
 
