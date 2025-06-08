@@ -86,7 +86,7 @@ app.use(bodyParser.json({
 
 
 
-app.post('/interactions', (req, res) => {
+app.post('/interactions', async (req, res) => {
   logger.info('[Discord] /interactions hit');
   const signature = req.get('X-Signature-Ed25519') || '';
   const timestamp = req.get('X-Signature-Timestamp') || '';
@@ -105,9 +105,43 @@ app.post('/interactions', (req, res) => {
     `[Discord] Valid interaction — type=${payload.type}` +
     (payload.data?.name ? `, command=${payload.data.name}` : '')
   );
-  if (payload.type === 1) return res.json({ type: 1 });
-  if (payload.type === 2 && payload.data.name === 'ping') {
-    return res.json({ type: 4, data: { content: 'Pong!' } });
+  if (payload.type === 1) {
+    return res.json({ type: 1 });
+  }
+  if (payload.type === 2 && payload.data.name === 'status') {
+    const now        = Date.now();
+    const sentMs     = Number(timestamp) * 1000;
+    const latency    = now - sentMs;
+    let webStatus, webLatency;
+    try {
+      const start    = Date.now();
+      const resp     = await axios.get('https://mikumiku.dev/');
+      webStatus      = `${resp.status} ${resp.statusText}`;
+      webLatency     = `${Date.now() - start} ms`;
+    } catch {
+      webStatus      = 'Error';
+      webLatency     = 'N/A';
+    }
+    const upSec     = process.uptime();
+    const hours     = Math.floor(upSec / 3600);
+    const mins      = Math.floor((upSec % 3600) / 60);
+    const secs      = Math.floor(upSec % 60);
+    const uptime    = `${hours}h ${mins}m ${secs}s`;
+    const memMb     = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
+    const embed     = {
+      title:     'Bot & Site Status',
+      color:     0x39C5BB,
+      timestamp: new Date().toISOString(),
+      fields: [
+        { name: 'Latency',          value: `${latency} ms`,         inline: true },
+        { name: 'Website Status',   value: webStatus,              inline: true },
+        { name: 'Website Latency',  value: webLatency,             inline: true },
+        { name: 'Uptime',           value: uptime,                 inline: true },
+        { name: 'Memory Usage',     value: `${memMb} MB`,           inline: true },
+        { name: 'Node Version',     value: process.version,        inline: true }
+      ]
+    };
+    return res.json({ type: 4, data: { embeds: [embed] } });
   }
   return res.sendStatus(400);
 });
