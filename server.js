@@ -204,7 +204,7 @@ app.post('/interactions', async (req, res) => {
   // CAT COMMAND
   if (payload.type === 2 && payload.data.name === 'cat') {
     const gifUrl = `https://cataas.com/cat/gif?${Date.now()}`;
-    const userOption = payload.data.options.find(o => o.name === 'user');
+    const userOption = payload.data.options?.find(o => o.name === 'user');
     const mention = userOption ? `<@${userOption.value}>` : '';
     const embed = {
       title: '😺 Here’s a random cat for you!',
