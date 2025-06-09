@@ -92,17 +92,14 @@ app.post('/interactions', async (req, res) => {
   console.log('[Discord] /interactions hit');
   const signature = req.get('X-Signature-Ed25519') || '';
   const timestamp = req.get('X-Signature-Timestamp') || '';
-  const raw = req.rawBody || '';
+  const raw       = req.rawBody || '';
 
   const valid = nacl.sign.detached.verify(
     Buffer.from(timestamp + raw),
     Buffer.from(signature, 'hex'),
     Buffer.from(DISCORD_PUBLIC_KEY, 'hex')
   );
-  if (!valid) {
-    console.warn('[Discord] Signature verification failed');
-    return res.sendStatus(401);
-  }
+  if (!valid) return res.sendStatus(401);
 
   let payload;
   try {
@@ -116,63 +113,62 @@ app.post('/interactions', async (req, res) => {
     return res.json({ type: 1 });
   }
 
-  // STATUS
+  // STATUS COMMAND
   if (payload.type === 2 && payload.data.name === 'status') {
-    const now = Date.now();
-    const sentMs = Number(timestamp) * 1000;
-    const latency = now - sentMs;
+    const now       = Date.now();
+    const sentMs    = Number(timestamp) * 1000;
+    const latency   = now - sentMs;
 
     let webStatus, webLatency;
     try {
       const start = Date.now();
-      const resp = await axios.get('https://mikumiku.dev/');
-      webStatus = `✅ ${resp.status} ${resp.statusText}`;
-      webLatency = `⏱️ ${Date.now() - start} ms`;
-    } catch (err) {
-      console.warn('Website check failed:', err);
-      webStatus = '❌ Error';
+      const resp  = await axios.get('https://mikumiku.dev/');
+      webStatus   = `✅ ${resp.status} ${resp.statusText}`;
+      webLatency  = `⏱️ ${Date.now() - start} ms`;
+    } catch {
+      webStatus  = '❌ Error';
       webLatency = 'N/A';
     }
 
-    const upSec = process.uptime();
-    const hrs = Math.floor(upSec / 3600);
-    const mins = Math.floor((upSec % 3600) / 60);
-    const secs = Math.floor(upSec % 60);
+    const upSec  = process.uptime();
+    const hrs    = Math.floor(upSec / 3600);
+    const mins   = Math.floor((upSec % 3600) / 60);
+    const secs   = Math.floor(upSec % 60);
     const uptime = `⏰ ${hrs}h ${mins}m ${secs}s`;
 
-    const memMb = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
-    const loadAvg = os.loadavg()[0].toFixed(2);
-    const dbState = mongoose.connection.readyState === 1 ? '🟢 Connected' : '🔴 Disconnected';
-    const sockets = io.engine.clientsCount;
-    const env = process.env.NODE_ENV === 'production' ? '🟢 Production' : '🟡 Dev';
-    const version = process.env.COMMIT_SHA?.slice(0, 7) || process.version;
+    const memMb    = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
+    const loadAvg  = os.loadavg()[0].toFixed(2);
+    const dbState  = mongoose.connection.readyState === 1 ? '🟢 Connected' : '🔴 Disconnected';
+    const sockets  = io.engine.clientsCount;
+    const env      = process.env.NODE_ENV === 'production' ? '🟢 Production' : '🟡 Dev';
+    const version  = process.env.COMMIT_SHA?.slice(0,7) || process.version;
 
     const statusEmbed = {
-      author: { name: '🎤 Mikumiku Status', icon_url: 'https://mikumiku.dev/logo.webp' },
-      thumbnail: { url: 'https://mikumiku.dev/logo.webp' },
-      title: '📊 System Overview',
-      color: 0x39C5BB,
+      author:    { name: '🎤 Mikumiku Status', icon_url: 'https://mikumiku.dev/logo.webp' },
+      thumbnail: { url:  'https://mikumiku.dev/logo.webp' },
+      title:     '📊 System Overview',
+      color:     0x39C5BB,
       description:
         `> **Latency:** \`${latency} ms\`\n` +
         `> **Web:** \`${webStatus}\` (${webLatency})\n` +
         `> **Load Avg:** \`${loadAvg}\`\n`,
       fields: [
-        { name: '⏰ Uptime', value: uptime, inline: true },
-        { name: '💾 Memory', value: `${memMb} MB`, inline: true },
-        { name: '🗄 DB Status', value: dbState, inline: true },
-        { name: '🔌 Sockets', value: `${sockets}`, inline: true },
-        { name: '🔧 Environment', value: env, inline: true },
-        { name: '📦 Version', value: version, inline: true }
+        { name: '⏰ Uptime',      value: uptime,            inline: true },
+        { name: '💾 Memory',      value: `${memMb} MB`,     inline: true },
+        { name: '🗄 DB Status',   value: dbState,           inline: true },
+        { name: '🔌 Sockets',     value: `${sockets}`,      inline: true },
+        { name: '🔧 Environment', value: env,               inline: true },
+        { name: '📦 Version',     value: version,           inline: true }
       ],
-      footer: { text: 'Powered by mikumiku.dev', icon_url: 'https://mikumiku.dev/logo.webp' }
+      footer:    { text: 'Powered by mikumiku.dev', icon_url: 'https://mikumiku.dev/logo.webp' }
     };
 
     return res.json({ type: 4, data: { embeds: [statusEmbed] } });
   }
 
-  // WEATHER
+  // WEATHER COMMAND
   if (payload.type === 2 && payload.data.name === 'weather') {
-    const city = payload.data.options.find(o => o.name === 'city').value;
+    const city   = payload.data.options.find(o => o.name === 'city').value;
     if (!OPENWEATHER_API_KEY) {
       console.error('OPENWEATHER_API_KEY not set');
       return res.json({ type: 4, data: { content: '❌ Weather service not configured.' } });
@@ -183,36 +179,40 @@ app.post('/interactions', async (req, res) => {
         `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&appid=${OPENWEATHER_API_KEY}`
       );
       weatherData = resp.data;
-    } catch (err) {
-      console.warn('Weather API error:', err);
+    } catch {
       return res.json({ type: 4, data: { content: `❌ Could not fetch weather for \`${city}\`.` } });
     }
     const { weather, main, wind, sys, name, coord } = weatherData;
     const weatherEmbed = {
-      author: { name: `🌤️ Weather in ${name}, ${sys.country}`, icon_url: `http://openweathermap.org/img/wn/${weather[0].icon}@2x.png` },
-      color: 0x39C5BB,
+      author:    { name: `🌤️ Weather in ${name}, ${sys.country}`, icon_url: `http://openweathermap.org/img/wn/${weather[0].icon}@2x.png` },
+      color:     0x39C5BB,
       fields: [
-        { name: '🌡️ Temp', value: `${main.temp}°C`, inline: true },
-        { name: '📈 Feels Like', value: `${main.feels_like}°C`, inline: true },
-        { name: '💧 Humidity', value: `${main.humidity}%`, inline: true },
-        { name: '🌬️ Wind', value: `${wind.speed} m/s`, inline: true },
-        { name: '⛅ Condition', value: weather[0].description, inline: true },
-        { name: '📍 Coordinates', value: `[${coord.lat}, ${coord.lon}]`, inline: true }
+        { name: '🌡️ Temp',       value: `${main.temp}°C`,      inline: true },
+        { name: '📈 Feels Like',  value: `${main.feels_like}°C`, inline: true },
+        { name: '💧 Humidity',    value: `${main.humidity}%`,   inline: true },
+        { name: '🌬️ Wind',       value: `${wind.speed} m/s`,   inline: true },
+        { name: '⛅ Condition',   value: weather[0].description,inline: true },
+        { name: '📍 Coordinates', value: `[${coord.lat}, ${coord.lon}]`,inline: true }
       ],
       thumbnail: { url: 'https://mikumiku.dev/logo.webp' },
-      footer: { text: 'Powered by OpenWeatherMap', icon_url: 'https://openweathermap.org/themes/openweathermap/assets/vendor/owm/img/widgets/logo_60x60.png' }
+      footer:    { text: 'Powered by OpenWeatherMap', icon_url: 'https://openweathermap.org/themes/openweathermap/assets/vendor/owm/img/widgets/logo_60x60.png' }
     };
 
     return res.json({ type: 4, data: { embeds: [weatherEmbed] } });
   }
 
-  // CAT
+  // CAT COMMAND
   if (payload.type === 2 && payload.data.name === 'cat') {
     const gifUrl = `https://cataas.com/cat/gif?${Date.now()}`;
+    const userOption = payload.data.options?.find(o => o.name === 'user');
+    const target = userOption ? `<@${userOption.value}>` : null;
+    const title = target
+      ? `${target} 😺 here's a random cat for you!`
+      : "😺 Here's a random cat for you!";
     const embed = {
-      title: "😺 Here's a random cat for you!",
-      color: 0x39C5BB,
-      image: { url: gifUrl },
+      title:  title,
+      color:  0x39C5BB,
+      image:  { url: gifUrl },
       footer: { text: 'Enjoy! 🐾', icon_url: 'https://mikumiku.dev/logo.webp' }
     };
     return res.json({ type: 4, data: { embeds: [embed] } });
@@ -220,7 +220,6 @@ app.post('/interactions', async (req, res) => {
 
   return res.sendStatus(400);
 });
-
 
 // ----------------------
 // Connect to MongoDB
