@@ -221,6 +221,60 @@ app.post('/interactions', async (req, res) => {
   return res.sendStatus(400);
 });
 
+  // ─── REMIND COMMAND ───────────────────────────────────────────────────────────
+  if (payload.type === 2 && payload.data.name === 'remind') {
+    const timeStr = payload.data.options.find(o => o.name === 'time').value;
+    const msg     = payload.data.options.find(o => o.name === 'message').value;
+    const userId  = payload.member.user.id;
+
+    const m = timeStr.match(/in (\d+) minutes?/i);
+    if (!m) {
+      return res.json({ type: 4, data: { content: 
+        "❌ Invalid time format. Use something like `/remind time:\"in 10 minutes\" message:\"Do the thing\"`."
+      }});
+    }
+
+    const delayMs = parseInt(m[1], 10) * 60000;
+    res.json({ type: 4, data: { content: `✅ Okay, I'll remind you in ${m[1]} minutes.` } });
+
+    setTimeout(async () => {
+      try {
+        const dm = await axios.post(
+          'https://discord.com/api/v10/users/@me/channels',
+          { recipient_id: userId },
+          { headers: { Authorization: `Bot ${BOT_TOKEN}`, 'Content-Type': 'application/json' } }
+        );
+        await axios.post(
+          `https://discord.com/api/v10/channels/${dm.data.id}/messages`,
+          { content: `<@${userId}> ⏰ Reminder: ${msg}` },
+          { headers: { Authorization: `Bot ${BOT_TOKEN}`, 'Content-Type': 'application/json' } }
+        );
+      } catch {}
+    }, delayMs);
+
+    return;
+  }
+
+  // ─── TIME COMMAND ──────────────────────────────────────────────────────────────
+  if (payload.type === 2 && payload.data.name === 'time') {
+    const loc = payload.data.options.find(o => o.name === 'location')?.value || 'UTC';
+    let dt;
+    try {
+      dt = DateTime.now().setZone(loc);
+    } catch {
+      dt = null;
+    }
+    if (!dt || !dt.isValid) {
+      return res.json({ type: 4, data: { content:
+        '❌ Invalid timezone. Please provide an IANA zone like `Europe/London`.'
+      }});
+    }
+    const formatted = dt.toFormat('DDD, t');
+    return res.json({ type: 4, data: { content:
+      `⏰ Current time in **${loc}**: \`${formatted}\``
+    }});
+  }
+
 
 // ----------------------
 // Connect to MongoDB
