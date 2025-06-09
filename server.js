@@ -128,7 +128,8 @@ app.post('/interactions', async (req, res) => {
       const resp  = await axios.get('https://mikumiku.dev/');
       webStatus   = `✅ ${resp.status} ${resp.statusText}`;
       webLatency  = `⏱️ ${Date.now() - start} ms`;
-    } catch {
+    } catch (err) {
+      logger.warn('Website check failed:', err);
       webStatus   = '❌ Error';
       webLatency  = 'N/A';
     }
@@ -159,12 +160,12 @@ app.post('/interactions', async (req, res) => {
         `> **Web:** \`${webStatus}\` (${webLatency})\n` +
         `> **Load Avg:** \`${loadAvg}\`\n`,
       fields: [
-        { name: '⏰ Uptime',      value: uptime,      inline: true },
-        { name: '💾 Memory',      value: `${memMb} MB`,inline: true },
-        { name: '🗄 DB Status',   value: dbState,     inline: true },
-        { name: '🔌 Sockets',     value: `${sockets}`, inline: true },
-        { name: '🔧 Environment', value: env,         inline: true },
-        { name: '📦 Version',     value: version,     inline: true }
+        { name: '⏰ Uptime',      value: uptime,            inline: true },
+        { name: '💾 Memory',      value: `${memMb} MB`,     inline: true },
+        { name: '🗄 DB Status',   value: dbState,           inline: true },
+        { name: '🔌 Sockets',     value: `${sockets}`,      inline: true },
+        { name: '🔧 Environment', value: env,               inline: true },
+        { name: '📦 Version',     value: version,           inline: true }
       ],
       footer: {
         text: 'Powered by mikumiku.dev',
@@ -175,62 +176,65 @@ app.post('/interactions', async (req, res) => {
     return res.json({ type: 4, data: { embeds: [statusEmbed] } });
   }
 
-    // ─── WEATHER COMMAND ───────────────────────────────────────────────────────────
-    if (payload.type === 2 && payload.data.name === 'weather') {
-      const city   = payload.data.options.find(o => o.name === 'city').value;
-      const apiKey = process.env.OPENWEATHER_API_KEY;         // ← now using the env var
-    
-      if (!apiKey) {
-        logger.error('OPENWEATHER_API_KEY is not set');
-        return res.json({
-          type: 4,
-          data: { content: '❌ Weather service is not configured.' }
-        });
-      }
-    
-      let weatherData;
-      try {
-        const resp = await axios.get(
-          `https://api.openweathermap.org/data/2.5/weather` +
-          `?q=${encodeURIComponent(city)}` +
-          `&units=metric` +
-          `&appid=${apiKey}`
-        );
-        weatherData = resp.data;
-      } catch (err) {
-        logger.warn('Weather API error:', err);
-        return res.json({
-          type: 4,
-          data: { content: `❌ Could not fetch weather for \`${city}\`.` }
-        });
-      }
-    
-      const { weather, main, wind, sys, name, coord } = weatherData;
-      const weatherEmbed = {
-        author: {
-          name: `🌤️ Weather in ${name}, ${sys.country}`,
-          icon_url: `http://openweathermap.org/img/wn/${weather[0].icon}@2x.png`
-        },
-        color: 0x39C5BB,
-        fields: [
-          { name: '🌡️ Temp',       value: `${main.temp}°C`,      inline: true },
-          { name: '📈 Feels Like',  value: `${main.feels_like}°C`, inline: true },
-          { name: '💧 Humidity',    value: `${main.humidity}%`,   inline: true },
-          { name: '🌬️ Wind',       value: `${wind.speed} m/s`,   inline: true },
-          { name: '⛅ Condition',   value: weather[0].description, inline: true },
-          { name: '📍 Coordinates', value: `[${coord.lat}, ${coord.lon}]`, inline: true }
-        ],
-        thumbnail: {
-          url: 'https://mikumiku.dev/logo.webp'
-        },
-        footer: {
-          text: 'Powered by OpenWeatherMap',
-          icon_url: 'https://openweathermap.org/themes/openweathermap/assets/vendor/owm/img/widgets/logo_60x60.png'
-        }
-      };
-    
-      return res.json({ type: 4, data: { embeds: [weatherEmbed] } });
+  // ─── WEATHER COMMAND ───────────────────────────────────────────────────────────
+  if (payload.type === 2 && payload.data.name === 'weather') {
+    const city   = payload.data.options.find(o => o.name === 'city').value;
+    const apiKey = process.env.OPENWEATHER_API_KEY;
+
+    if (!apiKey) {
+      logger.error('OPENWEATHER_API_KEY is not set');
+      return res.json({
+        type: 4,
+        data: { content: '❌ Weather service is not configured.' }
+      });
     }
+
+    let weatherData;
+    try {
+      const resp = await axios.get(
+        `https://api.openweathermap.org/data/2.5/weather` +
+        `?q=${encodeURIComponent(city)}` +
+        `&units=metric` +
+        `&appid=${apiKey}`
+      );
+      weatherData = resp.data;
+    } catch (err) {
+      logger.warn('Weather API error:', err);
+      return res.json({
+        type: 4,
+        data: { content: `❌ Could not fetch weather for \`${city}\`.` }
+      });
+    }
+
+    const { weather, main, wind, sys, name, coord } = weatherData;
+    const weatherEmbed = {
+      author: {
+        name: `🌤️ Weather in ${name}, ${sys.country}`,
+        icon_url: `http://openweathermap.org/img/wn/${weather[0].icon}@2x.png`
+      },
+      color: 0x39C5BB,
+      fields: [
+        { name: '🌡️ Temp',       value: `${main.temp}°C`,      inline: true },
+        { name: '📈 Feels Like',  value: `${main.feels_like}°C`, inline: true },
+        { name: '💧 Humidity',    value: `${main.humidity}%`,   inline: true },
+        { name: '🌬️ Wind',       value: `${wind.speed} m/s`,   inline: true },
+        { name: '⛅ Condition',   value: weather[0].description, inline: true },
+        { name: '📍 Coordinates', value: `[${coord.lat}, ${coord.lon}]`, inline: true }
+      ],
+      thumbnail: {
+        url: 'https://mikumiku.dev/logo.webp'
+      },
+      footer: {
+        text: 'Powered by OpenWeatherMap',
+        icon_url: 'https://openweathermap.org/themes/openweathermap/assets/vendor/owm/img/widgets/logo_60x60.png'
+      }
+    };
+
+    return res.json({ type: 4, data: { embeds: [weatherEmbed] } });
+  }
+
+  return res.sendStatus(400);
+});
 
 
 // ----------------------
