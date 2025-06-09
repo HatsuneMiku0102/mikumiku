@@ -218,9 +218,6 @@ app.post('/interactions', async (req, res) => {
     });
   }
 
-  return res.sendStatus(400);
-});
-
   // ─── REMIND COMMAND ───────────────────────────────────────────────────────────
   if (payload.type === 2 && payload.data.name === 'remind') {
     const timeStr = payload.data.options.find(o => o.name === 'time').value;
@@ -274,6 +271,11 @@ app.post('/interactions', async (req, res) => {
       `⏰ Current time in **${loc}**: \`${formatted}\``
     }});
   }
+
+
+  return res.sendStatus(400);
+});
+
 
 
 // ----------------------
