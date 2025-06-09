@@ -108,19 +108,15 @@ app.post('/interactions', async (req, res) => {
   try {
     payload = JSON.parse(raw);
   } catch (err) {
-    logger.error('Failed to parse interaction payload:', err);
+    logger.error('Invalid JSON payload:', err);
     return res.sendStatus(400);
   }
-
-  logger.info(
-    `[Discord] Valid interaction — type=${payload.type}` +
-    (payload.data?.name ? `, command=${payload.data.name}` : '')
-  );
 
   if (payload.type === 1) {
     return res.json({ type: 1 });
   }
 
+  // ─── STATUS COMMAND ────────────────────────────────────────────────────────────
   if (payload.type === 2 && payload.data.name === 'status') {
     const now     = Date.now();
     const sentMs  = Number(timestamp) * 1000;
@@ -132,10 +128,9 @@ app.post('/interactions', async (req, res) => {
       const resp  = await axios.get('https://mikumiku.dev/');
       webStatus   = `✅ ${resp.status} ${resp.statusText}`;
       webLatency  = `⏱️ ${Date.now() - start} ms`;
-    } catch (err) {
-      logger.warn('Website check failed:', err);
-      webStatus  = '❌ Error';
-      webLatency = 'N/A';
+    } catch {
+      webStatus   = '❌ Error';
+      webLatency  = 'N/A';
     }
 
     const upSec  = process.uptime();
@@ -148,88 +143,85 @@ app.post('/interactions', async (req, res) => {
     const loadAvg = os.loadavg()[0].toFixed(2);
     const dbState = mongoose.connection.readyState === 1 ? '🟢 Connected' : '🔴 Disconnected';
     const sockets = io.engine.clientsCount;
-    const env     = process.env.NODE_ENV === 'production' ? '🟢 Production' : '🟡 Development';
-    const version = process.env.COMMIT_SHA?.slice(0, 7) || process.version;
+    const env     = process.env.NODE_ENV === 'production' ? '🟢 Production' : '🟡 Dev';
+    const version = process.env.COMMIT_SHA?.slice(0,7) || process.version;
 
-    const embed = {
+    const statusEmbed = {
       author: {
-        name: '🌐 Mikumiku Status 🌐',
-        icon_url: 'https://mikumiku.dev/favicon.ico'
+        name: '🎤 Mikumiku Status',
+        icon_url: 'https://mikumiku.dev/logo.webp'
       },
-      thumbnail: {
-        url: 'https://mikumiku.dev/logo.webp'
-      },
+      thumbnail: { url: 'https://mikumiku.dev/logo.webp' },
       title: '📊 System Overview',
       color: 0x39C5BB,
       description:
-        `> **⏱️ Latency:** \`${latency} ms\`\n` +
-        `> **🌐 Web:** \`${webStatus}\` (${webLatency})\n` +
-        `> **⚙️ Load Avg:** \`${loadAvg}\`\n`,
+        `> **Latency:** \`${latency} ms\`\n` +
+        `> **Web:** \`${webStatus}\` (${webLatency})\n` +
+        `> **Load Avg:** \`${loadAvg}\`\n`,
       fields: [
-        { name: '⏰ Uptime',        value: uptime,                inline: true },
-        { name: '💾 Memory',        value: `${memMb} MB`,         inline: true },
-        { name: '🗄️ DB Status',     value: dbState,               inline: true },
-        { name: '🔌 Sockets',       value: `${sockets}`,          inline: true },
-        { name: '🔧 Environment',   value: env,                   inline: true },
-        { name: '📦 Version',       value: version,               inline: true }
+        { name: '⏰ Uptime',      value: uptime,      inline: true },
+        { name: '💾 Memory',      value: `${memMb} MB`,inline: true },
+        { name: '🗄 DB Status',   value: dbState,     inline: true },
+        { name: '🔌 Sockets',     value: `${sockets}`, inline: true },
+        { name: '🔧 Environment', value: env,         inline: true },
+        { name: '📦 Version',     value: version,     inline: true }
       ],
       footer: {
         text: 'Powered by mikumiku.dev',
-        icon_url: 'https://mikumiku.dev/favicon.ico'
+        icon_url: 'https://mikumiku.dev/logo.webp'
       }
     };
 
-    return res.json({ type: 4, data: { embeds: [embed] } });
+    return res.json({ type: 4, data: { embeds: [statusEmbed] } });
+  }
+
+  // ─── WEATHER COMMAND ───────────────────────────────────────────────────────────
+  if (payload.type === 2 && payload.data.name === 'weather') {
+    const city = payload.data.options.find(o => o.name === 'city').value;
+    const apiKey = process.env.OPENWEATHER_API_KEY;
+    let weatherData;
+    try {
+      const resp = await axios.get(
+        `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&appid=${apiKey}`
+      );
+      weatherData = resp.data;
+    } catch (err) {
+      logger.warn('Weather API error:', err);
+      return res.json({
+        type: 4,
+        data: { content: `❌ Could not fetch weather for \`${city}\`.` }
+      });
+    }
+
+    const { weather, main, wind, sys, name, coord } = weatherData;
+    const weatherEmbed = {
+      author: {
+        name: `🌤️ Weather in ${name}, ${sys.country}`,
+        icon_url: `http://openweathermap.org/img/wn/${weather[0].icon}@2x.png`
+      },
+      color: 0x39C5BB,
+      fields: [
+        { name: '🌡️ Temp',       value: `${main.temp}°C`,     inline: true },
+        { name: '📈 Feels Like',  value: `${main.feels_like}°C`,inline: true },
+        { name: '💧 Humidity',    value: `${main.humidity}%`,  inline: true },
+        { name: '🌬️ Wind',       value: `${wind.speed} m/s`,  inline: true },
+        { name: '⛅ Condition',   value: weather[0].description, inline: true },
+        { name: '📍 Coordinates', value: `[${coord.lat}, ${coord.lon}]`, inline: true }
+      ],
+      thumbnail: {
+        url: 'https://mikumiku.dev/logo.webp'
+      },
+      footer: {
+        text: 'Powered by OpenWeatherMap',
+        icon_url: 'https://openweathermap.org/themes/openweathermap/assets/vendor/owm/img/widgets/logo_60x60.png'
+      }
+    };
+
+    return res.json({ type: 4, data: { embeds: [weatherEmbed] } });
   }
 
   return res.sendStatus(400);
 });
-
-
-
-if (payload.type === 2 && payload.data.name === 'weather') {
-  const city = payload.data.options.find(o => o.name === 'city').value;
-  const apiKey = process.env.OPENWEATHER_API_KEY;
-  let weatherData;
-  try {
-    const resp = await axios.get(
-      `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&appid=${apiKey}`
-    );
-    weatherData = resp.data;
-  } catch (err) {
-    logger.warn('Weather API error:', err);
-    return res.json({
-      type: 4,
-      data: { content: `❌ Could not fetch weather for \`${city}\`.` }
-    });
-  }
-
-  const { weather, main, wind, sys, name } = weatherData;
-  const embed = {
-    author: {
-      name: `🌤️ Weather in ${name}, ${sys.country}`,
-      icon_url: `http://openweathermap.org/img/wn/${weather[0].icon}@2x.png`
-    },
-    color: 0x39C5BB,
-    fields: [
-      { name: '🌡️ Temp',        value: `${main.temp}°C`,      inline: true },
-      { name: '📈 Feels Like',   value: `${main.feels_like}°C`,inline: true },
-      { name: '💧 Humidity',     value: `${main.humidity}%`,   inline: true },
-      { name: '🌬️ Wind',        value: `${wind.speed} m/s`,  inline: true },
-      { name: '⛅ Condition',    value: `${weather[0].description}`, inline: true },
-      { name: '📍 Coordinates',  value: `[${weatherData.coord.lat}, ${weatherData.coord.lon}]`, inline: true }
-    ],
-    thumbnail: {
-      url: 'https://mikumiku.dev/logo.webp'
-    },
-    footer: {
-      text: 'Powered by OpenWeatherMap',
-      icon_url: 'https://openweathermap.org/themes/openweathermap/assets/vendor/owm/img/widgets/logo_60x60.png'
-    }
-  };
-
-  return res.json({ type: 4, data: { embeds: [embed] } });
-}
 
 
 // ----------------------
