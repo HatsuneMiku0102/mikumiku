@@ -201,25 +201,26 @@ app.post('/interactions', async (req, res) => {
     return res.json({ type: 4, data: { embeds: [weatherEmbed] } });
   }
 
-  // CAT COMMAND
-  if (payload.type === 2 && payload.data.name === 'cat') {
-    const gifUrl = `https://cataas.com/cat/gif?${Date.now()}`;
-    const userOption = payload.data.options?.find(o => o.name === 'user');
-    const target = userOption ? `<@${userOption.value}>` : null;
-    const title = target
-      ? `${target} 😺 here's a random cat for you!`
-      : "😺 Here's a random cat for you!";
-    const embed = {
-      title:  title,
-      color:  0x39C5BB,
-      image:  { url: gifUrl },
-      footer: { text: 'Enjoy! 🐾', icon_url: 'https://mikumiku.dev/logo.webp' }
-    };
-    return res.json({ type: 4, data: { embeds: [embed] } });
-  }
+// ─── CAT COMMAND ─────────────────────────────────────────────────────────────
+if (payload.type === 2 && payload.data.name === 'cat') {
+  const gifUrl     = `https://cataas.com/cat/gif?${Date.now()}`;
+  const userOption = payload.data.options.find(o => o.name === 'user');
+  const mention    = userOption ? `<@${userOption.value}>` : '';
+  const embed = {
+    title:  '😺 Here’s a random cat for you!',
+    color:  0x39C5BB,
+    image:  { url: gifUrl },
+    footer: { text: 'Enjoy! 🐾', icon_url: 'https://mikumiku.dev/logo.webp' }
+  };
+  return res.json({
+    type: 4,
+    data: {
+      content: mention,
+      embeds:  [embed]
+    }
+  });
+}
 
-  return res.sendStatus(400);
-});
 
 // ----------------------
 // Connect to MongoDB
