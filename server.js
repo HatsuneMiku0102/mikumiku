@@ -237,6 +237,22 @@ app.post('/interactions', async (req, res) => {
 });
 
 
+// ─── CAT COMMAND ─────────────────────────────────────────────────────────────
+  if (payload.type === 2 && payload.data.name === 'cat') {
+    const gifUrl = `https://cataas.com/cat/gif?${Date.now()}`;
+    const embed = {
+      title: "😺 Here's a random cat for you!",
+      color: 0x39C5BB,
+      image: { url: gifUrl },
+      footer: {
+        text: 'Enjoy! 🐾',
+        icon_url: 'https://mikumiku.dev/logo.webp'
+      }
+    };
+    return res.json({ type: 4, data: { embeds: [embed] } });
+  }
+
+
 // ----------------------
 // Connect to MongoDB
 // ----------------------
