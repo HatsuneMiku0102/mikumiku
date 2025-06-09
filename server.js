@@ -153,7 +153,7 @@ app.post('/interactions', async (req, res) => {
 
     const embed = {
       author: {
-        name: '🎤 Mikumiku Status',
+        name: '🌐 Mikumiku Status 🌐',
         icon_url: 'https://mikumiku.dev/favicon.ico'
       },
       thumbnail: {
