@@ -89,10 +89,10 @@ app.use(bodyParser.json({
 
 
 app.post('/interactions', async (req, res) => {
-  logger.info('[Discord] /interactions hit');
+  console.log('[Discord] /interactions hit');
   const signature = req.get('X-Signature-Ed25519') || '';
   const timestamp = req.get('X-Signature-Timestamp') || '';
-  const raw       = req.rawBody || '';
+  const raw = req.rawBody || '';
 
   const valid = nacl.sign.detached.verify(
     Buffer.from(timestamp + raw),
@@ -100,7 +100,7 @@ app.post('/interactions', async (req, res) => {
     Buffer.from(DISCORD_PUBLIC_KEY, 'hex')
   );
   if (!valid) {
-    logger.warn('[Discord] Signature verification failed');
+    console.warn('[Discord] Signature verification failed');
     return res.sendStatus(401);
   }
 
@@ -108,7 +108,7 @@ app.post('/interactions', async (req, res) => {
   try {
     payload = JSON.parse(raw);
   } catch (err) {
-    logger.error('Invalid JSON payload:', err);
+    console.error('Invalid JSON payload:', err);
     return res.sendStatus(400);
   }
 
@@ -116,42 +116,39 @@ app.post('/interactions', async (req, res) => {
     return res.json({ type: 1 });
   }
 
-  // ─── STATUS COMMAND ────────────────────────────────────────────────────────────
+  // STATUS
   if (payload.type === 2 && payload.data.name === 'status') {
-    const now     = Date.now();
-    const sentMs  = Number(timestamp) * 1000;
+    const now = Date.now();
+    const sentMs = Number(timestamp) * 1000;
     const latency = now - sentMs;
 
     let webStatus, webLatency;
     try {
       const start = Date.now();
-      const resp  = await axios.get('https://mikumiku.dev/');
-      webStatus   = `✅ ${resp.status} ${resp.statusText}`;
-      webLatency  = `⏱️ ${Date.now() - start} ms`;
+      const resp = await axios.get('https://mikumiku.dev/');
+      webStatus = `✅ ${resp.status} ${resp.statusText}`;
+      webLatency = `⏱️ ${Date.now() - start} ms`;
     } catch (err) {
-      logger.warn('Website check failed:', err);
-      webStatus   = '❌ Error';
-      webLatency  = 'N/A';
+      console.warn('Website check failed:', err);
+      webStatus = '❌ Error';
+      webLatency = 'N/A';
     }
 
-    const upSec  = process.uptime();
-    const hrs    = Math.floor(upSec / 3600);
-    const mins   = Math.floor((upSec % 3600) / 60);
-    const secs   = Math.floor(upSec % 60);
+    const upSec = process.uptime();
+    const hrs = Math.floor(upSec / 3600);
+    const mins = Math.floor((upSec % 3600) / 60);
+    const secs = Math.floor(upSec % 60);
     const uptime = `⏰ ${hrs}h ${mins}m ${secs}s`;
 
-    const memMb   = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
+    const memMb = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
     const loadAvg = os.loadavg()[0].toFixed(2);
     const dbState = mongoose.connection.readyState === 1 ? '🟢 Connected' : '🔴 Disconnected';
     const sockets = io.engine.clientsCount;
-    const env     = process.env.NODE_ENV === 'production' ? '🟢 Production' : '🟡 Dev';
-    const version = process.env.COMMIT_SHA?.slice(0,7) || process.version;
+    const env = process.env.NODE_ENV === 'production' ? '🟢 Production' : '🟡 Dev';
+    const version = process.env.COMMIT_SHA?.slice(0, 7) || process.version;
 
     const statusEmbed = {
-      author: {
-        name: '🎤 Mikumiku Status',
-        icon_url: 'https://mikumiku.dev/logo.webp'
-      },
+      author: { name: '🎤 Mikumiku Status', icon_url: 'https://mikumiku.dev/logo.webp' },
       thumbnail: { url: 'https://mikumiku.dev/logo.webp' },
       title: '📊 System Overview',
       color: 0x39C5BB,
@@ -160,97 +157,69 @@ app.post('/interactions', async (req, res) => {
         `> **Web:** \`${webStatus}\` (${webLatency})\n` +
         `> **Load Avg:** \`${loadAvg}\`\n`,
       fields: [
-        { name: '⏰ Uptime',      value: uptime,            inline: true },
-        { name: '💾 Memory',      value: `${memMb} MB`,     inline: true },
-        { name: '🗄 DB Status',   value: dbState,           inline: true },
-        { name: '🔌 Sockets',     value: `${sockets}`,      inline: true },
-        { name: '🔧 Environment', value: env,               inline: true },
-        { name: '📦 Version',     value: version,           inline: true }
+        { name: '⏰ Uptime', value: uptime, inline: true },
+        { name: '💾 Memory', value: `${memMb} MB`, inline: true },
+        { name: '🗄 DB Status', value: dbState, inline: true },
+        { name: '🔌 Sockets', value: `${sockets}`, inline: true },
+        { name: '🔧 Environment', value: env, inline: true },
+        { name: '📦 Version', value: version, inline: true }
       ],
-      footer: {
-        text: 'Powered by mikumiku.dev',
-        icon_url: 'https://mikumiku.dev/logo.webp'
-      }
+      footer: { text: 'Powered by mikumiku.dev', icon_url: 'https://mikumiku.dev/logo.webp' }
     };
 
     return res.json({ type: 4, data: { embeds: [statusEmbed] } });
   }
 
-  // ─── WEATHER COMMAND ───────────────────────────────────────────────────────────
+  // WEATHER
   if (payload.type === 2 && payload.data.name === 'weather') {
-    const city   = payload.data.options.find(o => o.name === 'city').value;
-    const apiKey = process.env.OPENWEATHER_API_KEY;
-
-    if (!apiKey) {
-      logger.error('OPENWEATHER_API_KEY is not set');
-      return res.json({
-        type: 4,
-        data: { content: '❌ Weather service is not configured.' }
-      });
+    const city = payload.data.options.find(o => o.name === 'city').value;
+    if (!OPENWEATHER_API_KEY) {
+      console.error('OPENWEATHER_API_KEY not set');
+      return res.json({ type: 4, data: { content: '❌ Weather service not configured.' } });
     }
-
     let weatherData;
     try {
       const resp = await axios.get(
-        `https://api.openweathermap.org/data/2.5/weather` +
-        `?q=${encodeURIComponent(city)}` +
-        `&units=metric` +
-        `&appid=${apiKey}`
+        `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&appid=${OPENWEATHER_API_KEY}`
       );
       weatherData = resp.data;
     } catch (err) {
-      logger.warn('Weather API error:', err);
-      return res.json({
-        type: 4,
-        data: { content: `❌ Could not fetch weather for \`${city}\`.` }
-      });
+      console.warn('Weather API error:', err);
+      return res.json({ type: 4, data: { content: `❌ Could not fetch weather for \`${city}\`.` } });
     }
-
     const { weather, main, wind, sys, name, coord } = weatherData;
     const weatherEmbed = {
-      author: {
-        name: `🌤️ Weather in ${name}, ${sys.country}`,
-        icon_url: `http://openweathermap.org/img/wn/${weather[0].icon}@2x.png`
-      },
+      author: { name: `🌤️ Weather in ${name}, ${sys.country}`, icon_url: `http://openweathermap.org/img/wn/${weather[0].icon}@2x.png` },
       color: 0x39C5BB,
       fields: [
-        { name: '🌡️ Temp',       value: `${main.temp}°C`,      inline: true },
-        { name: '📈 Feels Like',  value: `${main.feels_like}°C`, inline: true },
-        { name: '💧 Humidity',    value: `${main.humidity}%`,   inline: true },
-        { name: '🌬️ Wind',       value: `${wind.speed} m/s`,   inline: true },
-        { name: '⛅ Condition',   value: weather[0].description, inline: true },
+        { name: '🌡️ Temp', value: `${main.temp}°C`, inline: true },
+        { name: '📈 Feels Like', value: `${main.feels_like}°C`, inline: true },
+        { name: '💧 Humidity', value: `${main.humidity}%`, inline: true },
+        { name: '🌬️ Wind', value: `${wind.speed} m/s`, inline: true },
+        { name: '⛅ Condition', value: weather[0].description, inline: true },
         { name: '📍 Coordinates', value: `[${coord.lat}, ${coord.lon}]`, inline: true }
       ],
-      thumbnail: {
-        url: 'https://mikumiku.dev/logo.webp'
-      },
-      footer: {
-        text: 'Powered by OpenWeatherMap',
-        icon_url: 'https://openweathermap.org/themes/openweathermap/assets/vendor/owm/img/widgets/logo_60x60.png'
-      }
+      thumbnail: { url: 'https://mikumiku.dev/logo.webp' },
+      footer: { text: 'Powered by OpenWeatherMap', icon_url: 'https://openweathermap.org/themes/openweathermap/assets/vendor/owm/img/widgets/logo_60x60.png' }
     };
 
     return res.json({ type: 4, data: { embeds: [weatherEmbed] } });
   }
 
-  return res.sendStatus(400);
-});
-
-
-// ─── CAT COMMAND ─────────────────────────────────────────────────────────────
+  // CAT
   if (payload.type === 2 && payload.data.name === 'cat') {
     const gifUrl = `https://cataas.com/cat/gif?${Date.now()}`;
     const embed = {
       title: "😺 Here's a random cat for you!",
       color: 0x39C5BB,
       image: { url: gifUrl },
-      footer: {
-        text: 'Enjoy! 🐾',
-        icon_url: 'https://mikumiku.dev/logo.webp'
-      }
+      footer: { text: 'Enjoy! 🐾', icon_url: 'https://mikumiku.dev/logo.webp' }
     };
     return res.json({ type: 4, data: { embeds: [embed] } });
   }
+
+  return res.sendStatus(400);
+});
 
 
 // ----------------------
