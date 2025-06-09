@@ -175,53 +175,62 @@ app.post('/interactions', async (req, res) => {
     return res.json({ type: 4, data: { embeds: [statusEmbed] } });
   }
 
-  // ─── WEATHER COMMAND ───────────────────────────────────────────────────────────
-  if (payload.type === 2 && payload.data.name === 'weather') {
-    const city = payload.data.options.find(o => o.name === 'city').value;
-    const apiKey = process.env.OPENWEATHER_API_KEY;
-    let weatherData;
-    try {
-      const resp = await axios.get(
-        `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&appid=${apiKey}`
-      );
-      weatherData = resp.data;
-    } catch (err) {
-      logger.warn('Weather API error:', err);
-      return res.json({
-        type: 4,
-        data: { content: `❌ Could not fetch weather for \`${city}\`.` }
-      });
-    }
-
-    const { weather, main, wind, sys, name, coord } = weatherData;
-    const weatherEmbed = {
-      author: {
-        name: `🌤️ Weather in ${name}, ${sys.country}`,
-        icon_url: `http://openweathermap.org/img/wn/${weather[0].icon}@2x.png`
-      },
-      color: 0x39C5BB,
-      fields: [
-        { name: '🌡️ Temp',       value: `${main.temp}°C`,     inline: true },
-        { name: '📈 Feels Like',  value: `${main.feels_like}°C`,inline: true },
-        { name: '💧 Humidity',    value: `${main.humidity}%`,  inline: true },
-        { name: '🌬️ Wind',       value: `${wind.speed} m/s`,  inline: true },
-        { name: '⛅ Condition',   value: weather[0].description, inline: true },
-        { name: '📍 Coordinates', value: `[${coord.lat}, ${coord.lon}]`, inline: true }
-      ],
-      thumbnail: {
-        url: 'https://mikumiku.dev/logo.webp'
-      },
-      footer: {
-        text: 'Powered by OpenWeatherMap',
-        icon_url: 'https://openweathermap.org/themes/openweathermap/assets/vendor/owm/img/widgets/logo_60x60.png'
+    // ─── WEATHER COMMAND ───────────────────────────────────────────────────────────
+    if (payload.type === 2 && payload.data.name === 'weather') {
+      const city   = payload.data.options.find(o => o.name === 'city').value;
+      const apiKey = process.env.OPENWEATHER_API_KEY;         // ← now using the env var
+    
+      if (!apiKey) {
+        logger.error('OPENWEATHER_API_KEY is not set');
+        return res.json({
+          type: 4,
+          data: { content: '❌ Weather service is not configured.' }
+        });
       }
-    };
-
-    return res.json({ type: 4, data: { embeds: [weatherEmbed] } });
-  }
-
-  return res.sendStatus(400);
-});
+    
+      let weatherData;
+      try {
+        const resp = await axios.get(
+          `https://api.openweathermap.org/data/2.5/weather` +
+          `?q=${encodeURIComponent(city)}` +
+          `&units=metric` +
+          `&appid=${apiKey}`
+        );
+        weatherData = resp.data;
+      } catch (err) {
+        logger.warn('Weather API error:', err);
+        return res.json({
+          type: 4,
+          data: { content: `❌ Could not fetch weather for \`${city}\`.` }
+        });
+      }
+    
+      const { weather, main, wind, sys, name, coord } = weatherData;
+      const weatherEmbed = {
+        author: {
+          name: `🌤️ Weather in ${name}, ${sys.country}`,
+          icon_url: `http://openweathermap.org/img/wn/${weather[0].icon}@2x.png`
+        },
+        color: 0x39C5BB,
+        fields: [
+          { name: '🌡️ Temp',       value: `${main.temp}°C`,      inline: true },
+          { name: '📈 Feels Like',  value: `${main.feels_like}°C`, inline: true },
+          { name: '💧 Humidity',    value: `${main.humidity}%`,   inline: true },
+          { name: '🌬️ Wind',       value: `${wind.speed} m/s`,   inline: true },
+          { name: '⛅ Condition',   value: weather[0].description, inline: true },
+          { name: '📍 Coordinates', value: `[${coord.lat}, ${coord.lon}]`, inline: true }
+        ],
+        thumbnail: {
+          url: 'https://mikumiku.dev/logo.webp'
+        },
+        footer: {
+          text: 'Powered by OpenWeatherMap',
+          icon_url: 'https://openweathermap.org/themes/openweathermap/assets/vendor/owm/img/widgets/logo_60x60.png'
+        }
+      };
+    
+      return res.json({ type: 4, data: { embeds: [weatherEmbed] } });
+    }
 
 
 // ----------------------
