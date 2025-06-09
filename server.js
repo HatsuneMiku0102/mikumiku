@@ -154,7 +154,7 @@ app.post('/interactions', async (req, res) => {
     const embed = {
       author: {
         name: '🎤 Mikumiku Status',
-        icon_url: 'https://mikumiku.dev/favicon.webp'
+        icon_url: 'https://mikumiku.dev/favicon.ico'
       },
       thumbnail: {
         url: 'https://mikumiku.dev/logo.webp'
@@ -175,7 +175,7 @@ app.post('/interactions', async (req, res) => {
       ],
       footer: {
         text: 'Powered by mikumiku.dev',
-        icon_url: 'https://mikumiku.dev/favicon.webp'
+        icon_url: 'https://mikumiku.dev/favicon.ico'
       }
     };
 
