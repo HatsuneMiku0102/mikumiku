@@ -41,7 +41,7 @@ const rateLimitMap = new Map();
 
 
 const DISCORD_PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY;
-
+const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
 
 
 
