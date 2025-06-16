@@ -435,255 +435,317 @@
       });
     </script>
     <script>
-      document.addEventListener("DOMContentLoaded",function(){
-        let nowPlayingBox=document.getElementById("nowPlayingBox")
-        let videoTitleElement=document.getElementById("videoTitle")
-        let videoThumbnailImage=document.getElementById("videoThumbnailImage")
-        let offlineIndicatorElement=document.getElementById("offline-indicator")
-        let progressBarElement=document.getElementById("progressBar")
-        let channelNameElement=document.getElementById("channelName")
-        let viewCountElement=document.getElementById("viewCount")
-        let likeCountElement=document.getElementById("likeCount")
-        let publishedDateElement=document.getElementById("publishedDate")
-        let videoCategoryElement=document.getElementById("videoCategory")
-        let timeElapsedContainer=document.getElementById("timeElapsedContainer")
-        let liveIndicatorElement=document.getElementById("liveIndicator")
-        let pauseIndicatorElement=document.getElementById("pauseIndicator")
-        let youtubeSection=document.getElementById("youtubeSection")
-        let bufferOverlay=document.getElementById("bufferOverlay")
-        let currentVideoTitle=""
-        let currentVideoThumbnail=""
-        let isBrowsing=false
-        let isOffline=false
-        let browsingStartTime=null
-        let browsingInterval=null
-        let isBuffering=false
-        let lastHeartbeatReceived=Date.now()
-        let isSessionExpired=false
-        let offlineTimer=null
-        const log=message=>console.log(`[Haru.js] ${message}`)
-        
-        function formatNumber(number){
-          if(typeof number==="string")number=number.replace(/,/g,"")
-          const num=Number(number)
-          return isNaN(num)?"N/A":num.toLocaleString()
+      document.addEventListener("DOMContentLoaded", function() {
+        let nowPlayingBox = document.getElementById("nowPlayingBox");
+        let videoTitleElement = document.getElementById("videoTitle");
+        let videoThumbnailImage = document.getElementById("videoThumbnailImage");
+        let offlineIndicatorElement = document.getElementById("offline-indicator");
+        let progressBarElement = document.getElementById("progressBar");
+        let channelNameElement = document.getElementById("channelName");
+        let viewCountElement = document.getElementById("viewCount");
+        let likeCountElement = document.getElementById("likeCount");
+        let publishedDateElement = document.getElementById("publishedDate");
+        let videoCategoryElement = document.getElementById("videoCategory");
+        let timeElapsedContainer = document.getElementById("timeElapsedContainer");
+        let liveIndicatorElement = document.getElementById("liveIndicator");
+        let pauseIndicatorElement = document.getElementById("pauseIndicator");
+        let youtubeSection = document.getElementById("youtubeSection");
+        let bufferOverlay = document.getElementById("bufferOverlay");
+      
+        let currentVideoTitle = "";
+        let currentVideoThumbnail = "";
+        let isBrowsing = false;
+        let isOffline = false;
+        let browsingStartTime = null;
+        let browsingInterval = null;
+        let isBuffering = false;
+        let lastHeartbeatReceived = Date.now();
+        let isSessionExpired = false;
+        let offlineTimer = null;
+      
+        const log = message => console.log("[Haru.js] " + message);
+      
+        function formatNumber(number) {
+          if (typeof number === "string") {
+            number = number.replace(/,/g, "");
+          }
+          const num = Number(number);
+          return isNaN(num) ? "N/A" : num.toLocaleString();
         }
-        
-        function formatElapsedTime(seconds){
-          const minutes=Math.floor(seconds/60)
-          const secs=seconds%60
-          return`${minutes.toString().padStart(2,"0")}:${secs.toString().padStart(2,"0")}`
+      
+        function formatElapsedTime(seconds) {
+          const minutes = Math.floor(seconds / 60);
+          const secs = seconds % 60;
+          return (
+            minutes.toString().padStart(2, "0") +
+            ":" +
+            secs.toString().padStart(2, "0")
+          );
         }
-        
-        function updateBrowsingElapsed(){
-          if(browsingStartTime&&timeElapsedContainer){
-            const elapsedSec=Math.floor((Date.now()-browsingStartTime)/1000)
-            timeElapsedContainer.style.display="block"
-            timeElapsedContainer.innerHTML=`<i class="fas fa-clock"></i> ${formatElapsedTime(elapsedSec)}`
+      
+        function updateBrowsingElapsed() {
+          if (browsingStartTime && timeElapsedContainer) {
+            const elapsedSec = Math.floor((Date.now() - browsingStartTime) / 1000);
+            timeElapsedContainer.style.display = "block";
+            timeElapsedContainer.innerHTML =
+              '<i class="fas fa-clock"></i> ' + formatElapsedTime(elapsedSec);
           }
         }
-        
-        function restoreYoutubeSection(){
-          const ytSection=document.getElementById("youtubeSection")
-          if(ytSection)Array.from(ytSection.children).forEach(child=>{
-            if(child.id==="offline-indicator")child.style.display="none"
-            else child.style.display="block"
-          })
-        }
-        
-        function clearDisplay(){
-          if(isBuffering)return
-          if(nowPlayingBox)nowPlayingBox.classList.add("offline")
-          const ytSection=document.getElementById("youtubeSection")
-          if(ytSection)Array.from(ytSection.children).forEach(child=>{
-            if(child.id!=="offline-indicator")child.style.display="none"
-          })
-          if(offlineIndicatorElement){
-            offlineIndicatorElement.style.display="block"
-            offlineIndicatorElement.classList.add("visible")
+      
+        function restoreYoutubeSection() {
+          const ytSection = document.getElementById("youtubeSection");
+          if (ytSection) {
+            Array.from(ytSection.children).forEach(child => {
+              if (child.id === "offline-indicator") {
+                child.style.display = "none";
+              } else {
+                child.style.display = "block";
+              }
+            });
           }
-          const videoTitleContainer=document.querySelector(".video-title-container")
-          if(videoTitleContainer)videoTitleContainer.innerHTML='<h2>Currently Playing</h2><p id="videoTitle"></p>'
-          const thumbnailContainer=document.querySelector(".thumbnail-container")
-          if(thumbnailContainer)thumbnailContainer.style.display="none"
-          if(channelNameElement)channelNameElement.textContent=""
-          if(viewCountElement)viewCountElement.textContent=""
-          if(likeCountElement)likeCountElement.textContent=""
-          if(publishedDateElement)publishedDateElement.textContent=""
-          if(videoCategoryElement)videoCategoryElement.textContent=""
-          if(progressBarElement)progressBarElement.style.width="0%"
-          if(timeElapsedContainer)timeElapsedContainer.style.display="none"
-          if(browsingInterval){clearInterval(browsingInterval);browsingInterval=null}
-          browsingStartTime=null
-          localStorage.removeItem("browsingStartTime")
-          const toggleButton=document.getElementById("toggleDescriptionButton")
-          if(toggleButton)toggleButton.style.display="none"
-          log("Display cleared (offline).")
         }
-        
-        function handleRealTimeProgress(data){
-          if(data.duration&&data.currentTime!==undefined){
-            const progressPercentage=(data.currentTime/data.duration)*100
-            if(progressBarElement)progressBarElement.style.width=progressPercentage+"%"
-            log(`handleRealTimeProgress: isLive=${data.isLive}, isPaused=${data.isPaused}, progress=${progressPercentage.toFixed(2)}%`)
-            if(data.isLive&&data.isPaused)log("Conflict: Both isLive and isPaused are true. Prioritizing live indicator.")
-            if(data.isLive){
-              if(liveIndicatorElement)liveIndicatorElement.classList.add("active")
-              if(pauseIndicatorElement)pauseIndicatorElement.classList.remove("active")
-              log("Live stream indicator activated.")
-            } else if(data.isPaused){
-              if(liveIndicatorElement)liveIndicatorElement.classList.remove("active")
-              if(pauseIndicatorElement)pauseIndicatorElement.classList.add("active")
-              log("Pause indicator activated.")
+      
+        function clearDisplay() {
+          if (isBuffering) return;
+          if (nowPlayingBox) nowPlayingBox.classList.add("offline");
+          const ytSection = document.getElementById("youtubeSection");
+          if (ytSection) {
+            Array.from(ytSection.children).forEach(child => {
+              if (child.id !== "offline-indicator") child.style.display = "none";
+            });
+          }
+          if (offlineIndicatorElement) {
+            offlineIndicatorElement.style.display = "block";
+            offlineIndicatorElement.classList.add("visible");
+          }
+          const videoTitleContainer = document.querySelector(
+            ".video-title-container"
+          );
+          if (videoTitleContainer)
+            videoTitleContainer.innerHTML =
+              '<h2>Currently Playing</h2><p id="videoTitle"></p>';
+          const thumbnailContainer = document.querySelector(".thumbnail-container");
+          if (thumbnailContainer) thumbnailContainer.style.display = "none";
+          if (channelNameElement) channelNameElement.textContent = "";
+          if (viewCountElement) viewCountElement.textContent = "";
+          if (likeCountElement) likeCountElement.textContent = "";
+          if (publishedDateElement) publishedDateElement.textContent = "";
+          if (videoCategoryElement) videoCategoryElement.textContent = "";
+          if (progressBarElement) progressBarElement.style.width = "0%";
+          if (timeElapsedContainer) timeElapsedContainer.style.display = "none";
+          if (browsingInterval) {
+            clearInterval(browsingInterval);
+            browsingInterval = null;
+          }
+          browsingStartTime = null;
+          localStorage.removeItem("browsingStartTime");
+          const toggleButton = document.getElementById("toggleDescriptionButton");
+          if (toggleButton) toggleButton.style.display = "none";
+          log("Display cleared (offline).");
+        }
+      
+        function handleRealTimeProgress(data) {
+          if (data.duration && data.currentTime !== undefined) {
+            const progressPercentage = (data.currentTime / data.duration) * 100;
+            if (progressBarElement)
+              progressBarElement.style.width = progressPercentage + "%";
+            log(
+              `handleRealTimeProgress: isLive=${data.isLive}, isPaused=${data.isPaused}, progress=${progressPercentage.toFixed(
+                2
+              )}%`
+            );
+            if (data.isLive && data.isPaused)
+              log("Conflict: Both isLive and isPaused are true. Prioritizing live.");
+            if (data.isLive) {
+              liveIndicatorElement?.classList.add("active");
+              pauseIndicatorElement?.classList.remove("active");
+            } else if (data.isPaused) {
+              liveIndicatorElement?.classList.remove("active");
+              pauseIndicatorElement?.classList.add("active");
             } else {
-              if(liveIndicatorElement)liveIndicatorElement.classList.remove("active")
-              if(pauseIndicatorElement)pauseIndicatorElement.classList.remove("active")
-              log("Both indicators deactivated.")
+              liveIndicatorElement?.classList.remove("active");
+              pauseIndicatorElement?.classList.remove("active");
             }
           } else {
-            if(progressBarElement)progressBarElement.style.width="0%"
-            log("handleRealTimeProgress: Invalid data received.")
+            if (progressBarElement) progressBarElement.style.width = "0%";
+            log("handleRealTimeProgress: Invalid data received.");
           }
-          if(!data.isPaused&&!data.isLive&&videoTitleElement)videoTitleElement.classList.add("playing")
-          else if(videoTitleElement)videoTitleElement.classList.remove("playing")
-        }
-        
-        function animateTitle(text){
-          const oldTitle=document.getElementById("videoTitle")
-          if(!oldTitle)return
-          const newTitle=oldTitle.cloneNode(true)
-          newTitle.textContent=text
-          newTitle.classList.remove("new-video-title")
-          void newTitle.offsetWidth
-          newTitle.classList.add("new-video-title")
-          oldTitle.parentNode.replaceChild(newTitle,oldTitle)
-          localStorage.setItem("currentVideoTitle",text)
-        }
-        
-        function animateThumbnail(src){
-          const oldThumb=document.getElementById("videoThumbnailImage")
-          if(!oldThumb)return
-          const newThumb=oldThumb.cloneNode(true)
-          newThumb.src=src
-          newThumb.style.display="block"
-          newThumb.classList.remove("new-video-thumbnail")
-          void newThumb.offsetWidth
-          newThumb.classList.add("new-video-thumbnail")
-          oldThumb.parentNode.replaceChild(newThumb,oldThumb)
-          localStorage.setItem("currentVideoThumbnail",src)
-        }
-        
-        function setupDescriptionToggle(){
-          const toggleButton=document.getElementById("toggleDescriptionButton")
-          const descriptionModal=document.getElementById("descriptionModal")
-          if(!toggleButton||!descriptionModal)return
-          function setShow(){
-            const btn=document.getElementById("toggleDescriptionButton")
-            if(btn)btn.innerHTML='<i class="fas fa-info-circle"></i> Show Description'
-            localStorage.setItem("descriptionModalOpen","false")
-          }
-          function setHide(){
-            const btn=document.getElementById("toggleDescriptionButton")
-            if(btn)btn.innerHTML='<i class="fas fa-info-circle"></i> Hide Description'
-            localStorage.setItem("descriptionModalOpen","true")
-          }
-          const newBtn=toggleButton.cloneNode(true)
-          toggleButton.parentNode.replaceChild(newBtn,toggleButton)
-          if(descriptionModal.classList.contains("active"))setHide()else setShow()
-          newBtn.addEventListener("click",function(e){
-            e.stopPropagation()
-            if(descriptionModal.classList.toggle("active"))setHide()else setShow()
-          })
-        }
-        
-        function transitionToVideo(data){
-          const card=document.querySelector(".now-playing-card")
-          card.classList.add("fade-out")
-          setTimeout(()=>{
-            displayVideoPresence(data)
-            card.classList.remove("fade-out")
-            card.classList.add("fade-in")
-            setTimeout(()=>card.classList.remove("fade-in"),600)
-          },500)
-        }
-        
-        function transitionToBrowsing(data){
-          const card=document.querySelector(".now-playing-card")
-          card.classList.add("fade-out")
-          setTimeout(()=>{
-            displayBrowsingPresence(data)
-            card.classList.remove("fade-out")
-            card.classList.add("fade-in")
-            setTimeout(()=>card.classList.remove("fade-in"),600)
-          },500)
-        }
-        
-        if(localStorage.getItem("browsingStartTime")){
-          browsingStartTime=parseInt(localStorage.getItem("browsingStartTime"))
-          isBrowsing=true
-          displayBrowsingPresence({presenceType:"browsing",title:"Browsing YouTube",description:"Browsing videos on YouTube",channelTitle:"Browsing...",viewCount:"",likeCount:"",publishedAt:"",category:""})
-        }
-        
-        const socket=io("https://mikumiku.dev")
-        socket.on("connect",function(){
-          log("Connected to server via Socket.IO.")
-          isSessionExpired=false
-          socket.emit("requestLatestData")
-        })
-        socket.on("disconnect",function(){
-          log("Disconnected from server.")
-          clearDisplay()
-        })
-        socket.on("presenceUpdate",function(data){
-          if(isSessionExpired)return
-          log("Received presenceUpdate: "+JSON.stringify(data))
-          if(data.presenceType==="offline"){
-            if(offlineTimer)clearTimeout(offlineTimer)
-            offlineTimer=setTimeout(clearDisplay,3000)
+          if (!data.isPaused && !data.isLive) {
+            videoTitleElement?.classList.add("playing");
           } else {
-            if(offlineTimer){clearTimeout(offlineTimer);offlineTimer=null}
-            if(data.presenceType==="video"){
-              if(browsingInterval){clearInterval(browsingInterval);browsingInterval=null}
-              browsingStartTime=null
-              localStorage.removeItem("browsingStartTime")
-              transitionToVideo(data)
-            } else if(data.presenceType==="browsing"){
-              transitionToBrowsing(data)
+            videoTitleElement?.classList.remove("playing");
+          }
+        }
+      
+        function animateTitle(text) {
+          const oldTitle = document.getElementById("videoTitle");
+          if (!oldTitle) return;
+          const newTitle = oldTitle.cloneNode(true);
+          newTitle.textContent = text;
+          newTitle.classList.remove("new-video-title");
+          void newTitle.offsetWidth;
+          newTitle.classList.add("new-video-title");
+          oldTitle.parentNode.replaceChild(newTitle, oldTitle);
+          localStorage.setItem("currentVideoTitle", text);
+        }
+      
+        function animateThumbnail(src) {
+          const oldThumb = document.getElementById("videoThumbnailImage");
+          if (!oldThumb) return;
+          const newThumb = oldThumb.cloneNode(true);
+          newThumb.src = src;
+          newThumb.style.display = "block";
+          newThumb.classList.remove("new-video-thumbnail");
+          void newThumb.offsetWidth;
+          newThumb.classList.add("new-video-thumbnail");
+          oldThumb.parentNode.replaceChild(newThumb, oldThumb);
+          localStorage.setItem("currentVideoThumbnail", src);
+        }
+      
+        function setupDescriptionToggle() {
+          const toggleButton = document.getElementById("toggleDescriptionButton");
+          const descriptionModal = document.getElementById("descriptionModal");
+          if (!toggleButton || !descriptionModal) return;
+          function setShow() {
+            const btn = document.getElementById("toggleDescriptionButton");
+            if (btn)
+              btn.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
+            localStorage.setItem("descriptionModalOpen", "false");
+          }
+          function setHide() {
+            const btn = document.getElementById("toggleDescriptionButton");
+            if (btn)
+              btn.innerHTML = '<i class="fas fa-info-circle"></i> Hide Description';
+            localStorage.setItem("descriptionModalOpen", "true");
+          }
+          const newBtn = toggleButton.cloneNode(true);
+          toggleButton.parentNode.replaceChild(newBtn, toggleButton);
+          if (descriptionModal.classList.contains("active")) setHide();
+          else setShow();
+          newBtn.addEventListener("click", function(e) {
+            e.stopPropagation();
+            if (descriptionModal.classList.toggle("active")) setHide();
+            else setShow();
+          });
+        }
+      
+        function transitionToVideo(data) {
+          const card = document.querySelector(".now-playing-card");
+          card.classList.add("fade-out");
+          setTimeout(() => {
+            displayVideoPresence(data);
+            card.classList.remove("fade-out");
+            card.classList.add("fade-in");
+            setTimeout(() => card.classList.remove("fade-in"), 600);
+          }, 500);
+        }
+      
+        function transitionToBrowsing(data) {
+          const card = document.querySelector(".now-playing-card");
+          card.classList.add("fade-out");
+          setTimeout(() => {
+            displayBrowsingPresence(data);
+            card.classList.remove("fade-out");
+            card.classList.add("fade-in");
+            setTimeout(() => card.classList.remove("fade-in"), 600);
+          }, 500);
+        }
+      
+        if (localStorage.getItem("browsingStartTime")) {
+          browsingStartTime = parseInt(localStorage.getItem("browsingStartTime"));
+          isBrowsing = true;
+          displayBrowsingPresence({
+            presenceType: "browsing",
+            title: "Browsing YouTube",
+            description: "Browsing videos on YouTube",
+            channelTitle: "Browsing...",
+            viewCount: "",
+            likeCount: "",
+            publishedAt: "",
+            category: ""
+          });
+        }
+      
+        const socket = io("https://mikumiku.dev");
+      
+        socket.on("connect", function() {
+          log("Connected to server via Socket.IO.");
+          isSessionExpired = false;
+          socket.emit("requestLatestData");
+        });
+      
+        socket.on("disconnect", function() {
+          log("Disconnected from server.");
+          clearDisplay();
+        });
+      
+        socket.on("presenceUpdate", function(data) {
+          if (isSessionExpired) {
+            return;
+          }
+          log("Received presenceUpdate: " + JSON.stringify(data));
+          if (data.presenceType === "offline") {
+            if (offlineTimer) {
+              clearTimeout(offlineTimer);
+            }
+            offlineTimer = setTimeout(clearDisplay, 3000);
+          } else {
+            if (offlineTimer) {
+              clearTimeout(offlineTimer);
+              offlineTimer = null;
+            }
+            if (data.presenceType === "video") {
+              if (browsingInterval) {
+                clearInterval(browsingInterval);
+                browsingInterval = null;
+              }
+              browsingStartTime = null;
+              localStorage.removeItem("browsingStartTime");
+              transitionToVideo(data);
+            } else if (data.presenceType === "browsing") {
+              transitionToBrowsing(data);
             } else {
-              clearDisplay()
+              clearDisplay();
             }
           }
-        })
-        
-        setInterval(function(){
-          if(!isBuffering&&Date.now()-lastHeartbeatReceived>15000){
-            if(!isOffline){
-              log("No heartbeat received in 15 seconds. Marking as offline.")
-              isOffline=true
-              if(offlineIndicatorElement){
-                offlineIndicatorElement.classList.add("visible")
-                offlineIndicatorElement.style.display="block"
+        });
+      
+        setInterval(function() {
+          if (!isBuffering && Date.now() - lastHeartbeatReceived > 15000) {
+            if (!isOffline) {
+              log("No heartbeat received in 15 seconds. Marking as offline.");
+              isOffline = true;
+              if (offlineIndicatorElement) {
+                offlineIndicatorElement.classList.add("visible");
+                offlineIndicatorElement.style.display = "block";
               }
             }
-            clearDisplay()
+            clearDisplay();
           }
-        },5000)
-        
-        document.addEventListener("click",function(e){
-          const descriptionModal=document.getElementById("descriptionModal")
-          const toggleButton=document.getElementById("toggleDescriptionButton")
-          if(descriptionModal&&descriptionModal.classList.contains("active")&&!descriptionModal.contains(e.target)&&e.target!==toggleButton){
-            descriptionModal.classList.remove("active")
-            if(toggleButton){
-              toggleButton.innerHTML='<i class="fas fa-info-circle"></i> Show Description'
-              localStorage.setItem("descriptionModalOpen","false")
+        }, 5000);
+      
+        document.addEventListener("click", function(e) {
+          const descriptionModal = document.getElementById("descriptionModal");
+          const toggleButton = document.getElementById("toggleDescriptionButton");
+          if (
+            descriptionModal &&
+            descriptionModal.classList.contains("active") &&
+            !descriptionModal.contains(e.target) &&
+            e.target !== toggleButton
+          ) {
+            descriptionModal.classList.remove("active");
+            if (toggleButton) {
+              toggleButton.innerHTML =
+                '<i class="fas fa-info-circle"></i> Show Description';
+              localStorage.setItem("descriptionModalOpen", "false");
             }
           }
-        })
-        
-        setupDescriptionToggle()
-      })
+        });
+      
+        setupDescriptionToggle();
+      });
     </script>
+
 
 
 
