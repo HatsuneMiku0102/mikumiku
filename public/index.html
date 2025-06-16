@@ -461,20 +461,20 @@
         let lastHeartbeatReceived = Date.now();
         let isSessionExpired = false;
         const log = (message) => console.log(`[Haru.js] ${message}`);
-    
+      
         function formatNumber(number) {
           if (typeof number === "string")
             number = number.replace(/,/g, "");
           const num = Number(number);
           return isNaN(num) ? "N/A" : num.toLocaleString();
         }
-    
+      
         function formatElapsedTime(seconds) {
           const minutes = Math.floor(seconds / 60);
           const secs = seconds % 60;
           return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
         }
-    
+      
         function updateBrowsingElapsed() {
           if (browsingStartTime && timeElapsedContainer) {
             const elapsedSec = Math.floor((Date.now() - browsingStartTime) / 1000);
@@ -482,7 +482,7 @@
             timeElapsedContainer.innerHTML = `<i class="fas fa-clock"></i> ${formatElapsedTime(elapsedSec)}`;
           }
         }
-    
+      
         function restoreYoutubeSection() {
           const ytSection = document.getElementById("youtubeSection");
           if (ytSection) {
@@ -493,7 +493,7 @@
             });
           }
         }
-    
+      
         function clearDisplay() {
           if (isBuffering) return;
           if (nowPlayingBox) nowPlayingBox.classList.add("offline");
@@ -531,7 +531,7 @@
           const toggleButton = document.getElementById("toggleDescriptionButton");
           if (toggleButton) toggleButton.style.display = "none";
         }
-    
+      
         function handleRealTimeProgress(data) {
           if (data.duration && data.currentTime !== undefined) {
             const progressPercentage = (data.currentTime / data.duration) * 100;
@@ -563,7 +563,7 @@
             videoTitleElement.classList.remove("playing");
           }
         }
-    
+      
         function animateTitle(text) {
           const oldTitle = document.getElementById("videoTitle");
           if (!oldTitle) return;
@@ -575,7 +575,7 @@
           oldTitle.parentNode.replaceChild(newTitle, oldTitle);
           localStorage.setItem("currentVideoTitle", text);
         }
-    
+      
         function animateThumbnail(src) {
           const oldThumb = document.getElementById("videoThumbnailImage");
           if (!oldThumb) return;
@@ -588,7 +588,7 @@
           oldThumb.parentNode.replaceChild(newThumb, oldThumb);
           localStorage.setItem("currentVideoThumbnail", src);
         }
-    
+      
         function displayVideoPresence(data) {
           lastHeartbeatReceived = Date.now();
           isBrowsing = false;
@@ -655,7 +655,7 @@
             handleRealTimeProgress(data);
           }, 300);
         }
-    
+      
         function displayBrowsingPresence(data) {
           lastHeartbeatReceived = Date.now();
           if (nowPlayingBox) nowPlayingBox.classList.remove("offline");
@@ -714,7 +714,7 @@
           const toggleButton = document.getElementById("toggleDescriptionButton");
           if (toggleButton) toggleButton.style.display = "block";
         }
-    
+      
         if (localStorage.getItem("browsingStartTime")) {
           browsingStartTime = parseInt(localStorage.getItem("browsingStartTime"));
           isBrowsing = true;
@@ -729,19 +729,19 @@
             category: ""
           });
         }
-    
+      
         const socket = io("https://mikumiku.dev");
         socket.on("connect", function() {
           log("Connected to server via Socket.IO.");
           isSessionExpired = false;
           socket.emit("requestLatestData");
         });
-    
+      
         socket.on("disconnect", function() {
           log("Disconnected from server.");
           clearDisplay();
         });
-    
+      
         socket.on("presenceUpdate", function(data) {
           if (isSessionExpired) {
             log("Ignoring presenceUpdate due to expired session.");
@@ -766,7 +766,7 @@
             clearDisplay();
           }
         });
-    
+      
         setInterval(function() {
           if (!isBuffering && Date.now() - lastHeartbeatReceived > 15000) {
             if (!isOffline) {
@@ -780,29 +780,45 @@
             clearDisplay();
           }
         }, 5000);
-    
-        // Toggle description modal and button text
-        const toggleButton = document.getElementById('toggleDescriptionButton');
-        const descriptionModal = document.getElementById('descriptionModal');
+      
+        // Toggle description modal and button text with icon and localStorage
+        const toggleButton = document.getElementById("toggleDescriptionButton");
+        const descriptionModal = document.getElementById("descriptionModal");
       
         if (!toggleButton || !descriptionModal) return;
       
-        toggleButton.textContent = "Show Description";
+        // Initialize state from localStorage
+        const isOpen = localStorage.getItem("descriptionModalOpen") === "true";
+        if (isOpen) {
+          descriptionModal.classList.add("active");
+          toggleButton.innerHTML = '<i class="fas fa-info-circle"></i> Hide Description';
+        } else {
+          descriptionModal.classList.remove("active");
+          toggleButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
+        }
       
-        toggleButton.addEventListener('click', function(e) {
+        toggleButton.addEventListener("click", function(e) {
           e.stopPropagation();
-          const isActive = descriptionModal.classList.toggle('active');
-          toggleButton.textContent = isActive ? "Hide Description" : "Show Description";
+          const isActive = descriptionModal.classList.toggle("active");
+          if (isActive) {
+            toggleButton.innerHTML = '<i class="fas fa-info-circle"></i> Hide Description';
+            localStorage.setItem("descriptionModalOpen", "true");
+          } else {
+            toggleButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
+            localStorage.setItem("descriptionModalOpen", "false");
+          }
         });
       
-        document.addEventListener('click', function(e) {
-          if (!descriptionModal.classList.contains('active')) return;
+        document.addEventListener("click", function(e) {
+          if (!descriptionModal.classList.contains("active")) return;
           if (!descriptionModal.contains(e.target) && e.target !== toggleButton) {
-            descriptionModal.classList.remove('active');
-            toggleButton.textContent = "Show Description";
+            descriptionModal.classList.remove("active");
+            toggleButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
+            localStorage.setItem("descriptionModalOpen", "false");
           }
         });
       });
+
     </script>
 
 
