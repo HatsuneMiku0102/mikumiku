@@ -1133,45 +1133,46 @@ const ipBanSchema = new mongoose.Schema({
 
 const IPbans = mongoose.model('IPbans', ipBanSchema);
 
-const HEARTBEAT_TIMEOUT = 60000;
+const HEARTBEAT_TIMEOUT = 60000; // 60s
 const blockedIps = new Set();
 let currentVideo = null;
 let currentBrowsing = null;
 const videoHeartbeat = {};
-const activeUsers = new Map();
+const activeUsers = new Map(); // ip → { connectionTypes: Set }
 
 app.post('/api/block-user', async (req, res) => {
   const { ip } = req.body;
-  if (!ip) return res.status(400).send({ status: 'error', message: 'IP address is required.' });
+  if (!ip) return res.status(400).send({ status:'error', message:'IP required' });
   blockedIps.add(ip);
-  await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
+  await IPbans.updateOne({ ip }, { $set:{ ip, blockedAt:new Date() }}, { upsert:true });
+  // only broadcast to other clients
   io.emit('ipBlocked', { ip });
-  res.send({ status: 'success', message: `Blocked ${ip}` });
+  res.send({ status:'success', message:`Blocked ${ip}` });
 });
 
 app.post('/api/unblock-user', async (req, res) => {
   const { ip } = req.body;
-  if (!ip) return res.status(400).send({ status: 'error', message: 'IP address is required.' });
-  if (!blockedIps.has(ip)) return res.status(400).send({ status: 'error', message: `${ip} is not blocked.` });
+  if (!ip) return res.status(400).send({ status:'error', message:'IP required' });
+  if (!blockedIps.has(ip)) return res.status(400).send({ status:'error', message:`${ip} not blocked` });
   blockedIps.delete(ip);
   await IPbans.deleteOne({ ip });
   io.emit('ipUnblocked', { ip });
-  res.send({ status: 'success', message: `Unblocked ${ip}` });
+  res.send({ status:'success', message:`Unblocked ${ip}` });
 });
 
 io.on('connection', socket => {
-  const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
-  const connectionType = socket.handshake.query.connectionType || 'website';
+  const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() 
+           || socket.handshake.address;
+  const type = socket.handshake.query.connectionType || 'website';
 
-  if (blockedIps.has(ip)) {
-    return socket.disconnect(true);
-  }
+  // Immediately disconnect blocked IPs
+  if (blockedIps.has(ip)) return socket.disconnect(true);
 
-  if (!activeUsers.has(ip)) {
-    activeUsers.set(ip, { ip, connectionTypes: new Set() });
-  }
-  activeUsers.get(ip).connectionTypes.add(connectionType);
+  // Track multiple connections (tabs/devices) per IP
+  if (!activeUsers.has(ip)) activeUsers.set(ip, { connectionTypes:new Set() });
+  activeUsers.get(ip).connectionTypes.add(type);
 
+  // Notify other clients of the updated user list
   socket.broadcast.emit('activeUsersUpdate', {
     users: Array.from(activeUsers.values()).map(u => ({
       ip: u.ip,
@@ -1179,43 +1180,50 @@ io.on('connection', socket => {
     }))
   });
 
+  // Send this newcomer the current presence
   emitCurrentPresence(socket);
 
+  // When this socket sends a presenceUpdate, propagate only to others
   socket.on('presenceUpdate', data => {
-    if (data.presenceType === 'video') handleVideoPresence(data);
-    else if (data.presenceType === 'browsing') handleBrowsingPresence(data);
-    else if (data.presenceType === 'offline') handleOfflinePresence();
-
+    switch (data.presenceType) {
+      case 'video':   handleVideoPresence(data);   break;
+      case 'browsing':handleBrowsingPresence(data);break;
+      case 'offline': handleOfflinePresence();     break;
+    }
     socket.broadcast.emit('presenceUpdate', data);
   });
 
+  // Support direct browsing/video progress updates
   socket.on('updateBrowsingPresence', data => {
     handleBrowsingPresence(data);
-    socket.broadcast.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
+    socket.broadcast.emit('presenceUpdate', { presenceType:'browsing', ...currentBrowsing });
   });
 
   socket.on('updateVideoProgress', data => {
     handleVideoPresence(data);
-    socket.broadcast.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
+    socket.broadcast.emit('presenceUpdate', { presenceType:'video', ...currentVideo });
   });
 
+  // Heartbeat keeps the “video” alive
   socket.on('heartbeat', (data, ack) => {
     const { videoId } = data;
     if (currentVideo?.videoId === videoId) {
       videoHeartbeat[videoId] = Date.now();
-      if (ack) ack({ status: 'ok' });
+      if (ack) ack({ status:'ok' });
     } else if (ack) {
-      ack({ status: 'error', message: 'Unknown video ID' });
+      ack({ status:'error', message:'Unknown video ID' });
     }
   });
 
   socket.on('disconnect', () => {
-    if (activeUsers.has(ip)) {
-      const u = activeUsers.get(ip);
-      u.connectionTypes.delete(connectionType);
-      if (!u.connectionTypes.size) activeUsers.delete(ip);
+    // Remove this connectionType for that IP
+    const user = activeUsers.get(ip);
+    if (user) {
+      user.connectionTypes.delete(type);
+      if (user.connectionTypes.size === 0) activeUsers.delete(ip);
     }
 
+    // Broadcast updated user list
     socket.broadcast.emit('activeUsersUpdate', {
       users: Array.from(activeUsers.values()).map(u => ({
         ip: u.ip,
@@ -1223,57 +1231,61 @@ io.on('connection', socket => {
       }))
     });
 
-    if (currentVideo || currentBrowsing) {
-      currentVideo = null;
-      currentBrowsing = null;
-      socket.broadcast.emit('presenceUpdate', { presenceType: 'offline' });
-    }
+    // **DO NOT** broadcast a global “offline” here —
+    // let clients retain their UI unless *they* disconnect.
   });
 });
 
+// If a heartbeat times out, we still want to mark the video session offline,
+// but again only broadcast *once* to others.
 setInterval(() => {
   const now = Date.now();
-  for (const [vid, ts] of Object.entries(videoHeartbeat)) {
+  for (const [videoId, ts] of Object.entries(videoHeartbeat)) {
     if (now - ts > HEARTBEAT_TIMEOUT) {
-      delete videoHeartbeat[vid];
+      delete videoHeartbeat[videoId];
       currentVideo = null;
       currentBrowsing = null;
-      io.emit('presenceUpdate', { presenceType: 'offline' });
+      io.emit('presenceUpdate', { presenceType:'offline' });
+      break; // only once
     }
   }
-}, HEARTBEAT_TIMEOUT / 2);
+}, HEARTBEAT_TIMEOUT/2);
 
 function emitCurrentPresence(socket) {
-  if (currentVideo) socket.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
-  else if (currentBrowsing) socket.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
-  else socket.emit('presenceUpdate', { presenceType: 'offline' });
+  if (currentVideo) {
+    socket.emit('presenceUpdate', { presenceType:'video', ...currentVideo });
+  } else if (currentBrowsing) {
+    socket.emit('presenceUpdate', { presenceType:'browsing', ...currentBrowsing });
+  } else {
+    socket.emit('presenceUpdate', { presenceType:'offline' });
+  }
 }
 
 function handleBrowsingPresence(data) {
   currentVideo = null;
   currentBrowsing = {
-    title: data.title || 'YouTube',
+    title:       data.title       || 'YouTube',
     description: data.description || 'Browsing videos',
-    thumbnail: data.thumbnail || 'https://www.youtube.com/img/desktop/yt_1200.png',
+    thumbnail:   data.thumbnail   || 'https://www.youtube.com/img/desktop/yt_1200.png',
     timeElapsed: data.timeElapsed || 0
   };
 }
 
 function handleVideoPresence(data) {
   const presence = {
-    videoId: data.videoId,
-    title: data.title,
+    videoId:     data.videoId,
+    title:       data.title,
     description: data.description,
-    channelTitle: data.channelTitle,
-    viewCount: data.viewCount,
-    likeCount: data.likeCount,
+    channelTitle:data.channelTitle,
+    viewCount:   data.viewCount,
+    likeCount:   data.likeCount,
     publishedAt: data.publishedAt,
-    category: data.category,
-    thumbnail: data.thumbnail,
+    category:    data.category,
+    thumbnail:   data.thumbnail,
     currentTime: data.currentTime,
-    duration: data.duration,
-    isPaused: data.isPaused,
-    isLive: data.isLive
+    duration:    data.duration,
+    isPaused:    data.isPaused,
+    isLive:      data.isLive
   };
   if (currentVideo?.videoId === data.videoId) {
     Object.assign(currentVideo, presence);
@@ -1287,6 +1299,7 @@ function handleOfflinePresence() {
   currentVideo = null;
   currentBrowsing = null;
 }
+
 
 
 // ----------------------
