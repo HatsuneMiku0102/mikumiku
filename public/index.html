@@ -460,6 +460,7 @@
         let isBuffering=false
         let lastHeartbeatReceived=Date.now()
         let isSessionExpired=false
+        let offlineTimer=null
         const log=message=>console.log(`[Haru.js] ${message}`)
         
         function formatNumber(number){
@@ -575,155 +576,46 @@
         function setupDescriptionToggle(){
           const toggleButton=document.getElementById("toggleDescriptionButton")
           const descriptionModal=document.getElementById("descriptionModal")
-          
-          if(!toggleButton||!descriptionModal){
-            log("Description elements not found, skipping setup")
-            return
-          }
-          
+          if(!toggleButton||!descriptionModal)return
           function setShow(){
-            const newToggleButton=document.getElementById("toggleDescriptionButton")
-            if(newToggleButton){
-              newToggleButton.innerHTML='<i class="fas fa-info-circle"></i> Show Description'
-            }
+            const btn=document.getElementById("toggleDescriptionButton")
+            if(btn)btn.innerHTML='<i class="fas fa-info-circle"></i> Show Description'
             localStorage.setItem("descriptionModalOpen","false")
           }
-          
           function setHide(){
-            const newToggleButton=document.getElementById("toggleDescriptionButton")
-            if(newToggleButton){
-              newToggleButton.innerHTML='<i class="fas fa-info-circle"></i> Hide Description'
-            }
+            const btn=document.getElementById("toggleDescriptionButton")
+            if(btn)btn.innerHTML='<i class="fas fa-info-circle"></i> Hide Description'
             localStorage.setItem("descriptionModalOpen","true")
           }
-          
-          // Remove existing listeners to prevent duplicates
-          const newToggleButton=toggleButton.cloneNode(true)
-          toggleButton.parentNode.replaceChild(newToggleButton,toggleButton)
-          
-          // Initialize state based on modal's current state
-          if(descriptionModal.classList.contains("active")){
-            setHide()
-            localStorage.setItem("descriptionModalOpen","true")
-          } else {
-            setShow()
-            localStorage.setItem("descriptionModalOpen","false")
-          }
-          
-          // Add click listener
-          newToggleButton.addEventListener("click",function(e){
+          const newBtn=toggleButton.cloneNode(true)
+          toggleButton.parentNode.replaceChild(newBtn,toggleButton)
+          if(descriptionModal.classList.contains("active"))setHide()else setShow()
+          newBtn.addEventListener("click",function(e){
             e.stopPropagation()
-            if(descriptionModal.classList.toggle("active")){
-              setHide()
-            } else {
-              setShow()
-            }
+            if(descriptionModal.classList.toggle("active"))setHide()else setShow()
           })
-          
-          log("Description toggle setup complete")
         }
         
-        function displayVideoPresence(data){
-          lastHeartbeatReceived=Date.now()
-          isBrowsing=false
-          if(offlineIndicatorElement){
-            offlineIndicatorElement.classList.remove("visible")
-            offlineIndicatorElement.style.display="none"
-            isOffline=false
-          }
-          if(timeElapsedContainer)timeElapsedContainer.style.display="none"
-          restoreYoutubeSection()
-          if(data.title===currentVideoTitle&&data.thumbnail===currentVideoThumbnail){
-            handleRealTimeProgress(data)
-            return
-          }
-          currentVideoTitle=data.title
-          currentVideoThumbnail=data.thumbnail
-          isBuffering=true
-          if(bufferOverlay)bufferOverlay.classList.add("active")
-          if(youtubeSection)youtubeSection.classList.add("fade-out")
-          setTimeout(function(){
-            animateTitle(data.title||"Unknown Title")
-            if(data.thumbnail)animateThumbnail(data.thumbnail)
-            else if(videoThumbnailImage){videoThumbnailImage.src="";videoThumbnailImage.style.display="none"}
-            if(channelNameElement)channelNameElement.textContent=data.channelTitle||"Unknown Channel"
-            if(viewCountElement)viewCountElement.textContent=formatNumber(data.viewCount)||"N/A"
-            if(likeCountElement)likeCountElement.textContent=formatNumber(data.likeCount)||"N/A"
-            if(publishedDateElement){
-              if(data.publishedAt){
-                const publishedDate=new Date(data.publishedAt)
-                publishedDateElement.textContent=publishedDate.toLocaleDateString()||"Published on: N/A"
-              } else publishedDateElement.textContent="Published on: N/A"
-            }
-            if(videoCategoryElement)videoCategoryElement.textContent=data.category||"N/A"
-            const descModal=document.getElementById("descriptionModal")
-            if(descModal){
-              const p=descModal.querySelector("p")
-              if(p)p.textContent=data.description||"No description available."
-              descModal.classList.remove("active")
-            }
-            if(youtubeSection){youtubeSection.classList.remove("fade-out");youtubeSection.classList.add("fade-in")}
-            if(nowPlayingBox)nowPlayingBox.classList.remove("offline")
-            if(offlineIndicatorElement){
-              offlineIndicatorElement.classList.remove("visible")
-              offlineIndicatorElement.style.display="none"
-            }
-            if(bufferOverlay)bufferOverlay.classList.remove("active")
-            isBuffering=false
-            log("Video presence updated in UI.")
-            const toggleButton=document.getElementById("toggleDescriptionButton")
-            if(toggleButton)toggleButton.style.display="block"
-            setupDescriptionToggle()
-            handleRealTimeProgress(data)
-          },300)
+        function transitionToVideo(data){
+          const card=document.querySelector(".now-playing-card")
+          card.classList.add("fade-out")
+          setTimeout(()=>{
+            displayVideoPresence(data)
+            card.classList.remove("fade-out")
+            card.classList.add("fade-in")
+            setTimeout(()=>card.classList.remove("fade-in"),600)
+          },500)
         }
         
-        function displayBrowsingPresence(data){
-          lastHeartbeatReceived=Date.now()
-          if(nowPlayingBox)nowPlayingBox.classList.remove("offline")
-          if(offlineIndicatorElement){
-            offlineIndicatorElement.classList.remove("visible")
-            offlineIndicatorElement.style.display="none"
-            isOffline=false
-          }
-          log("Updating browsing presence...")
-          if(!isBrowsing){
-            currentVideoTitle=""
-            currentVideoThumbnail=""
-            animateTitle(data.title||"Browsing YouTube")
-            const thumbImg=document.getElementById("videoThumbnailImage")
-            if(thumbImg){thumbImg.src="https://www.youtube.com/img/desktop/yt_1200.png";thumbImg.style.display="block"}
-            const thumbnailContainer=document.querySelector(".thumbnail-container")
-            if(thumbnailContainer)thumbnailContainer.style.display="block"
-            isBrowsing=true
-            browsingStartTime=Date.now()
-            localStorage.setItem("browsingStartTime",browsingStartTime)
-          } else {
-            if(videoTitleElement)videoTitleElement.textContent=data.title||"Browsing YouTube"
-            const thumbImg=document.getElementById("videoThumbnailImage")
-            if(thumbImg)thumbImg.src="https://www.youtube.com/img/desktop/yt_1200.png"
-          }
-          if(channelNameElement)channelNameElement.textContent="Browsing..."
-          if(viewCountElement)viewCountElement.textContent=""
-          if(likeCountElement)likeCountElement.textContent=""
-          if(publishedDateElement)publishedDateElement.textContent=""
-          if(videoCategoryElement)videoCategoryElement.textContent=""
-          const descModal=document.getElementById("descriptionModal")
-          if(descModal){
-            const p=descModal.querySelector("p")
-            if(p)p.textContent=data.description||"Browsing videos on YouTube"
-            descModal.classList.remove("active")
-          }
-          updateBrowsingElapsed()
-          if(!browsingInterval)browsingInterval=setInterval(updateBrowsingElapsed,1000)
-          if(liveIndicatorElement)liveIndicatorElement.classList.remove("active")
-          if(pauseIndicatorElement)pauseIndicatorElement.classList.remove("active")
-          if(progressBarElement)progressBarElement.style.width="0%"
-          if(youtubeSection){youtubeSection.classList.remove("fade-out");youtubeSection.classList.add("fade-in")}
-          log("Browsing presence updated in UI.")
-          const toggleButton=document.getElementById("toggleDescriptionButton")
-          if(toggleButton)toggleButton.style.display="block"
-          setupDescriptionToggle()
+        function transitionToBrowsing(data){
+          const card=document.querySelector(".now-playing-card")
+          card.classList.add("fade-out")
+          setTimeout(()=>{
+            displayBrowsingPresence(data)
+            card.classList.remove("fade-out")
+            card.classList.add("fade-in")
+            setTimeout(()=>card.classList.remove("fade-in"),600)
+          },500)
         }
         
         if(localStorage.getItem("browsingStartTime")){
@@ -733,28 +625,50 @@
         }
         
         const socket=io("https://mikumiku.dev")
-        socket.on("connect",function(){log("Connected to server via Socket.IO.");isSessionExpired=false;socket.emit("requestLatestData")})
-        socket.on("disconnect",function(){log("Disconnected from server.");clearDisplay()})
+        socket.on("connect",function(){
+          log("Connected to server via Socket.IO.")
+          isSessionExpired=false
+          socket.emit("requestLatestData")
+        })
+        socket.on("disconnect",function(){
+          log("Disconnected from server.")
+          clearDisplay()
+        })
         socket.on("presenceUpdate",function(data){
-          if(isSessionExpired){log("Ignoring presenceUpdate due to expired session.");return}
+          if(isSessionExpired)return
           log("Received presenceUpdate: "+JSON.stringify(data))
-          if(data.presenceType==="video"){
-            if(browsingInterval){clearInterval(browsingInterval);browsingInterval=null}
-            browsingStartTime=null
-            localStorage.removeItem("browsingStartTime")
-            displayVideoPresence(data)
-          } else if(data.presenceType==="browsing"){log("Browsing presence update received.");displayBrowsingPresence(data)}
-          else if(data.presenceType==="offline"){log("Offline presence update received.");clearDisplay()}
-          else clearDisplay()
+          if(data.presenceType==="offline"){
+            if(offlineTimer)clearTimeout(offlineTimer)
+            offlineTimer=setTimeout(clearDisplay,3000)
+          } else {
+            if(offlineTimer){clearTimeout(offlineTimer);offlineTimer=null}
+            if(data.presenceType==="video"){
+              if(browsingInterval){clearInterval(browsingInterval);browsingInterval=null}
+              browsingStartTime=null
+              localStorage.removeItem("browsingStartTime")
+              transitionToVideo(data)
+            } else if(data.presenceType==="browsing"){
+              transitionToBrowsing(data)
+            } else {
+              clearDisplay()
+            }
+          }
         })
         
         setInterval(function(){
           if(!isBuffering&&Date.now()-lastHeartbeatReceived>15000){
-            if(!isOffline){log("No heartbeat received in 15 seconds. Marking as offline.");isOffline=true;if(offlineIndicatorElement){offlineIndicatorElement.classList.add("visible");offlineIndicatorElement.style.display="block"}}clearDisplay()
+            if(!isOffline){
+              log("No heartbeat received in 15 seconds. Marking as offline.")
+              isOffline=true
+              if(offlineIndicatorElement){
+                offlineIndicatorElement.classList.add("visible")
+                offlineIndicatorElement.style.display="block"
+              }
+            }
+            clearDisplay()
           }
         },5000)
         
-        // Add global click handler for closing modal
         document.addEventListener("click",function(e){
           const descriptionModal=document.getElementById("descriptionModal")
           const toggleButton=document.getElementById("toggleDescriptionButton")
@@ -767,10 +681,10 @@
           }
         })
         
-        // Initial setup
         setupDescriptionToggle()
       })
     </script>
+
 
 
     <script>
