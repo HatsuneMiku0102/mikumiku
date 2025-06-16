@@ -55,6 +55,7 @@ body {
   z-index: 1;
   opacity: 0;
   animation: fadeInPage var(--animation-duration) ease-out forwards;
+  padding-bottom: 3.5rem; /* space for fixed footer */
 }
 
 #soundWaveCanvas {
@@ -404,6 +405,16 @@ body {
   position: relative;
 }
 
+.video-details #videoTitle {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--secondary-color);
+  text-shadow: 0 0 8px var(--secondary-color);
+  margin-top: 0.25rem;
+  margin-bottom: 0.75rem;
+  user-select: text;
+}
+
 .progress-bar {
   margin-top: 2.5rem;
   width: 100%;
@@ -498,6 +509,7 @@ body {
   max-width: 400px;
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
   transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s;
   background: var(--modal-background);
   padding: var(--padding-large);
@@ -510,38 +522,30 @@ body {
 #descriptionModal.active {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
   transform: translate(-50%, -50%) scale(1);
 }
 
-.video-details h3 {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--primary-color);
-  text-shadow: 0 0 8px var(--primary-color);
-  margin-bottom: 0.75rem;
-}
-
 /* Status boxes for Live/Paused */
-
 .status-boxes {
   position: absolute;
-  top: 50%;
-  left: 0;
-  transform: translateY(-50%);
+  top: 10px;
+  right: 10px;
+  transform: none;
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-direction: row;
+  gap: 8px;
   z-index: 10;
   user-select: none;
 }
 
 .status-box {
-  width: 120px;
-  padding: 0.6rem 1.2rem;
+  width: auto;
+  padding: 0.4rem 0.8rem;
   font-weight: 700;
-  font-size: 1.3rem;
+  font-size: 1rem;
   text-align: center;
-  border-radius: 6px;
+  border-radius: 12px;
   box-shadow: inset 0 0 10px rgba(0,0,0,0.7);
   color: #aaa;
   background-color: #222;
@@ -549,6 +553,7 @@ body {
   transition: all 0.3s ease;
   font-family: 'Roboto', sans-serif;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .status-box.live.active {
@@ -578,7 +583,6 @@ body {
 }
 
 /* Weather Info */
-
 .weather-info {
   border-bottom: 1px solid rgba(255,255,255,0.3);
   background: rgba(0, 0, 0, 0.65);
@@ -592,6 +596,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0.3rem;
+  grid-area: weatherSection;
 }
 
 .weather-info img {
@@ -606,7 +611,6 @@ body {
 }
 
 /* Offline Indicator */
-
 .offline-indicator {
   display: none;
   color: #ff5c5c;
@@ -626,15 +630,21 @@ body {
 }
 
 /* Footer */
-
 .footer {
   background-color: rgba(0, 0, 0, 0.8);
   padding: var(--padding-base);
   text-align: center;
   font-size: var(--small-font-size);
   color: #888;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 5000;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.7);
 }
 
+/* Manage Consent Button */
 .manage-consent-button {
   background: none;
   border: none;
@@ -649,8 +659,34 @@ body {
   color: var(--primary-color);
 }
 
-/* Animations */
+/* Cookie Consent Modal */
+#consentModal {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  z-index: 10000;
+  background: var(--modal-background);
+  padding: var(--padding-large);
+  border-radius: var(--border-radius);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.9);
+  color: var(--text-color);
+  max-width: 400px;
+  width: 90%;
+}
 
+#consentModal.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Animations */
 @keyframes fadeInPage {
   to {
     opacity: 1;
@@ -658,7 +694,6 @@ body {
 }
 
 /* Scrollbar */
-
 ::-webkit-scrollbar {
   width: 8px;
 }
