@@ -462,11 +462,6 @@
         let isSessionExpired = false;
         const log = (message) => console.log(`[Haru.js] ${message}`);
     
-        const toggleButton = document.getElementById('toggleDescriptionButton');
-        if (toggleButton) {
-          toggleButton.textContent = "Show Description";
-        }
-    
         function formatNumber(number) {
           if (typeof number === "string")
             number = number.replace(/,/g, "");
@@ -533,6 +528,7 @@
           browsingStartTime = null;
           localStorage.removeItem("browsingStartTime");
           log("Display cleared (offline).");
+          const toggleButton = document.getElementById("toggleDescriptionButton");
           if (toggleButton) toggleButton.style.display = "none";
         }
     
@@ -654,6 +650,7 @@
             if (bufferOverlay) bufferOverlay.classList.remove("active");
             isBuffering = false;
             log("Video presence updated in UI.");
+            const toggleButton = document.getElementById("toggleDescriptionButton");
             if (toggleButton) toggleButton.style.display = "block";
             handleRealTimeProgress(data);
           }, 300);
@@ -714,6 +711,7 @@
             youtubeSection.classList.add("fade-in");
           }
           log("Browsing presence updated in UI.");
+          const toggleButton = document.getElementById("toggleDescriptionButton");
           if (toggleButton) toggleButton.style.display = "block";
         }
     
@@ -783,21 +781,31 @@
           }
         }, 5000);
     
+        // Toggle description modal and button text
+        const toggleButton = document.getElementById('toggleDescriptionButton');
+        const descriptionModal = document.getElementById('descriptionModal');
+    
+        if (toggleButton && descriptionModal) {
+          toggleButton.textContent = "Show Description";
+          toggleButton.addEventListener('click', () => {
+            const isActive = descriptionModal.classList.toggle('active');
+            toggleButton.textContent = isActive ? "Hide Description" : "Show Description";
+          });
+        }
+    
         // Close description modal on clicking outside and reset button text
         document.addEventListener('click', (e) => {
-          const descriptionModal = document.getElementById('descriptionModal');
           if (!descriptionModal) return;
           if (!descriptionModal.classList.contains('active')) return;
-          const toggleButton = document.getElementById('toggleDescriptionButton');
           if (!descriptionModal.contains(e.target) && e.target !== toggleButton) {
             descriptionModal.classList.remove('active');
-            if (toggleButton) {
-              toggleButton.textContent = "Show Description";
-            }
+            if (toggleButton) toggleButton.textContent = "Show Description";
           }
         });
+    
       });
     </script>
+
 
 
     <script>
