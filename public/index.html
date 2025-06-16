@@ -781,49 +781,33 @@
           }
         }, 5000);
       
-        // Description modal toggle and button text handling
-        const toggleButton = document.getElementById("toggleDescriptionButton");
-        const descriptionModal = document.getElementById("descriptionModal");
-      
-        if (toggleButton && descriptionModal) {
-          function setButtonToShow() {
-            toggleButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
-            localStorage.setItem("descriptionModalOpen", "false");
-          }
-      
-          function setButtonToHide() {
-            toggleButton.innerHTML = '<i class="fas fa-info-circle"></i> Hide Description';
-            localStorage.setItem("descriptionModalOpen", "true");
-          }
-      
-          if (localStorage.getItem("descriptionModalOpen") === "true") {
-            descriptionModal.classList.add("active");
-            setButtonToHide();
-          } else {
-            descriptionModal.classList.remove("active");
-            setButtonToShow();
-          }
-      
-          toggleButton.addEventListener("click", function(e) {
-            e.stopPropagation();
-            const isActive = descriptionModal.classList.toggle("active");
-            if (isActive) {
-              setButtonToHide();
-            } else {
-              setButtonToShow();
-            }
-          });
-      
-          document.addEventListener("click", function(e) {
-            if (!descriptionModal.classList.contains("active")) return;
-            if (!descriptionModal.contains(e.target) && e.target !== toggleButton) {
-              descriptionModal.classList.remove("active");
-              setButtonToShow();
-            }
-          });
+    <script>
+      document.addEventListener("DOMContentLoaded",function(){
+        const toggleButton=document.getElementById("toggleDescriptionButton")
+        const descriptionModal=document.getElementById("descriptionModal")
+        function setShow(){toggleButton.innerHTML='<i class="fas fa-info-circle"></i> Show Description';localStorage.setItem("descriptionModalOpen","false")}
+        function setHide(){toggleButton.innerHTML='<i class="fas fa-info-circle"></i> Hide Description';localStorage.setItem("descriptionModalOpen","true")}
+        if(localStorage.getItem("descriptionModalOpen")==="true"){
+          descriptionModal.classList.add("active")
+          setHide()
+        } else {
+          descriptionModal.classList.remove("active")
+          setShow()
         }
-      });
+        toggleButton.addEventListener("click",function(e){
+          e.stopPropagation()
+          if(descriptionModal.classList.toggle("active")) setHide()
+          else setShow()
+        })
+        document.addEventListener("click",function(e){
+          if(descriptionModal.classList.contains("active") && !descriptionModal.contains(e.target) && e.target!==toggleButton){
+            descriptionModal.classList.remove("active")
+            setShow()
+          }
+        })
+      })
     </script>
+
 
 
 
