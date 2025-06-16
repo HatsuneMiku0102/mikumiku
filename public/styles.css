@@ -279,20 +279,22 @@ body {
   justify-content: center;
   align-items: center;
   padding: var(--padding-large);
-  background: transparent;
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .now-playing-card {
-  max-width: 1000px;
   width: 100%;
-  position: relative;
+  max-width: 1000px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: var(--border-radius);
+  padding: var(--padding-large);
+  box-shadow: 0 8px 20px var(--shadow-color);
 }
 
-/* Video Info Section */
 .video-info {
   border-right: 1px solid rgba(255, 255, 255, 0.3);
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 1rem;
+  padding: var(--padding-base);
 }
 
 .video-info .info-item {
@@ -312,11 +314,10 @@ body {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
 }
 
-/* Time Info Section */
 .time-info {
   border-right: 1px solid rgba(255, 255, 255, 0.3);
   background: rgba(0, 0, 0, 0.05);
-  padding: 1rem;
+  padding: var(--padding-base);
   border-radius: var(--border-radius);
   text-align: center;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -327,76 +328,65 @@ body {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
 }
 
-.greeting {
-  font-weight: 600;
-  margin-bottom: 1rem;
-}
-
-/* YouTube Section */
-.youtube-section {
-  border-right: 1px solid rgba(255, 255, 255, 0.3);
-  position: relative;
-  padding: 1rem;
-}
-
-.video-title-container {
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
-#videoTitle {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--primary-color);
-  text-shadow: 0 0 5px rgba(0, 198, 255, 0.8);
-  letter-spacing: 0.05rem;
-  margin: 0.5rem 0;
-  transition: color 0.25s ease;
-}
-
-#videoTitle:hover {
-  color: var(--secondary-color);
-  text-shadow: 0 0 8px var(--secondary-color);
-}
-
-#videoTitle.playing {
-  animation: titlePlaying 4s infinite ease-in-out;
-}
-
-@keyframes titlePlaying {
-  0%, 100% {
-    text-shadow: 0 0 5px rgba(0, 198, 255, 0.8);
-  }
-  50% {
-    text-shadow: 0 0 7px rgba(0, 198, 255, 0.8);
-  }
-}
-
-/* Thumbnail */
-.video-thumb img,
-.video-thumb video {
+.video-thumb img {
   display: block;
   max-width: 320px;
   max-height: 400px;
   object-fit: cover;
   border-radius: var(--border-radius);
   margin: 0 auto;
+  border: 3px solid var(--primary-color);
+  box-shadow: 0 4px 15px var(--shadow-color);
+  transition: transform var(--transition-duration) ease;
 }
 
-/* Progress Bar */
+.video-thumb img:hover {
+  transform: scale(1.05);
+}
+
+.youtube-section {
+  border-right: 1px solid rgba(255, 255, 255, 0.3);
+  position: relative;
+  padding: var(--padding-base);
+}
+
+#descriptionModal {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--modal-background);
+  padding: var(--padding-base);
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 8px var(--shadow-color);
+  z-index: 10;
+  max-width: 300px;
+}
+
+#descriptionModal.active {
+  display: block;
+}
+
 .progress-bar {
+  width: 100%;
   height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-bar #progressBar {
   width: 0%;
+  height: 100%;
   background: linear-gradient(90deg, var(--primary-color), var(--secondary-color), var(--primary-color));
   background-size: 300% 100%;
-  border-radius: 10px;
   animation: futuristicGradient 2.5s linear infinite;
   box-shadow: 0 0 20px var(--primary-color), 0 0 20px var(--secondary-color);
   transition: width 0.5s ease-out;
   position: relative;
 }
 
-.progress-bar::after {
+.progress-bar #progressBar::after {
   content: "";
   position: absolute;
   top: 0;
@@ -421,56 +411,13 @@ body {
   100% { transform: translateX(100%); opacity: 0; }
 }
 
-/* Indicators */
-.indicator {
-  padding: 0.75rem 1.25rem;
-  font-size: 1.2rem;
-  font-weight: bold;
-  border-radius: 12px;
-  text-transform: uppercase;
-  color: #fff;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  position: relative;
+.weather-info {
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: var(--padding-base);
+  margin-top: var(--padding-base);
 }
 
-.indicator.active {
-  opacity: 1;
-}
-
-.indicator.live {
-  background: linear-gradient(90deg, #ff0000, #ff7373);
-  box-shadow: 0 0 8px rgba(255, 0, 0, 0.8);
-  text-shadow: 0 0 8px rgba(255, 0, 0, 0.8);
-}
-
-.indicator.live::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 120%;
-  height: 120%;
-  border: 2px solid rgba(255, 0, 0, 0.5);
-  border-radius: 50%;
-  transform: translate(-50%, -50%) scale(1);
-  opacity: 0.8;
-  animation: pulseRadiowave 2.5s ease-out infinite;
-  pointer-events: none;
-}
-
-@keyframes pulseRadiowave {
-  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
-  50% { transform: translate(-50%, -50%) scale(1.4); opacity: 0.4; }
-  100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
-}
-
-.indicator.paused {
-  background: linear-gradient(90deg, #ff4081, #ff73a0);
-  box-shadow: 0 0 8px rgba(255, 64, 129, 0.8);
-}
-
-/* Weather Section */
 .weather-section {
   background: rgba(0, 0, 0, 0.65);
   padding: 20px;
@@ -492,7 +439,7 @@ body {
 
 .weather-section p {
   font-family: var(--font-family);
-  font-size: 1rem;
+  font-size: var(--content-font-size);
   margin: 8px 0;
 }
 
