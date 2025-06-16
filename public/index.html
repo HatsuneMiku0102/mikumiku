@@ -782,42 +782,50 @@
         }, 5000);
       
         // Toggle description modal and button text with icon and localStorage
-        const toggleButton = document.getElementById("toggleDescriptionButton");
-        const descriptionModal = document.getElementById("descriptionModal");
-      
-        if (!toggleButton || !descriptionModal) return;
-      
-        // Initialize state from localStorage
-        const isOpen = localStorage.getItem("descriptionModalOpen") === "true";
-        if (isOpen) {
-          descriptionModal.classList.add("active");
-          toggleButton.innerHTML = '<i class="fas fa-info-circle"></i> Hide Description';
-        } else {
-          descriptionModal.classList.remove("active");
-          toggleButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
-        }
-      
-        toggleButton.addEventListener("click", function(e) {
-          e.stopPropagation();
-          const isActive = descriptionModal.classList.toggle("active");
-          if (isActive) {
+        document.addEventListener("DOMContentLoaded", function() {
+          const toggleButton = document.getElementById("toggleDescriptionButton");
+          const descriptionModal = document.getElementById("descriptionModal");
+        
+          if (!toggleButton || !descriptionModal) return;
+        
+          function setButtonToShow() {
+            toggleButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
+            localStorage.setItem("descriptionModalOpen", "false");
+          }
+        
+          function setButtonToHide() {
             toggleButton.innerHTML = '<i class="fas fa-info-circle"></i> Hide Description';
             localStorage.setItem("descriptionModalOpen", "true");
+          }
+        
+          // Initialize state on page load
+          if (localStorage.getItem("descriptionModalOpen") === "true") {
+            descriptionModal.classList.add("active");
+            setButtonToHide();
           } else {
-            toggleButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
-            localStorage.setItem("descriptionModalOpen", "false");
-          }
-        });
-      
-        document.addEventListener("click", function(e) {
-          if (!descriptionModal.classList.contains("active")) return;
-          if (!descriptionModal.contains(e.target) && e.target !== toggleButton) {
             descriptionModal.classList.remove("active");
-            toggleButton.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
-            localStorage.setItem("descriptionModalOpen", "false");
+            setButtonToShow();
           }
+        
+          toggleButton.addEventListener("click", function(e) {
+            e.stopPropagation();
+            const isActive = descriptionModal.classList.toggle("active");
+            if (isActive) {
+              setButtonToHide();
+            } else {
+              setButtonToShow();
+            }
+          });
+        
+          document.addEventListener("click", function(e) {
+            if (!descriptionModal.classList.contains("active")) return;
+            if (!descriptionModal.contains(e.target) && e.target !== toggleButton) {
+              descriptionModal.classList.remove("active");
+              setButtonToShow();
+            }
+          });
         });
-      });
+
 
     </script>
 
