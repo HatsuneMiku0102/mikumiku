@@ -436,316 +436,299 @@
     </script>
     <script>
       document.addEventListener("DOMContentLoaded", function() {
-        let nowPlayingBox = document.getElementById("nowPlayingBox");
-        let videoTitleElement = document.getElementById("videoTitle");
-        let videoThumbnailImage = document.getElementById("videoThumbnailImage");
-        let offlineIndicatorElement = document.getElementById("offline-indicator");
-        let progressBarElement = document.getElementById("progressBar");
-        let channelNameElement = document.getElementById("channelName");
-        let viewCountElement = document.getElementById("viewCount");
-        let likeCountElement = document.getElementById("likeCount");
-        let publishedDateElement = document.getElementById("publishedDate");
-        let videoCategoryElement = document.getElementById("videoCategory");
-        let timeElapsedContainer = document.getElementById("timeElapsedContainer");
-        let liveIndicatorElement = document.getElementById("liveIndicator");
-        let pauseIndicatorElement = document.getElementById("pauseIndicator");
-        let youtubeSection = document.getElementById("youtubeSection");
-        let bufferOverlay = document.getElementById("bufferOverlay");
+        let nowPlayingBox = document.getElementById("nowPlayingBox")
+        let videoTitleElement = document.getElementById("videoTitle")
+        let videoThumbnailImage = document.getElementById("videoThumbnailImage")
+        let offlineIndicatorElement = document.getElementById("offline-indicator")
+        let progressBarElement = document.getElementById("progressBar")
+        let channelNameElement = document.getElementById("channelName")
+        let viewCountElement = document.getElementById("viewCount")
+        let likeCountElement = document.getElementById("likeCount")
+        let publishedDateElement = document.getElementById("publishedDate")
+        let videoCategoryElement = document.getElementById("videoCategory")
+        let timeElapsedContainer = document.getElementById("timeElapsedContainer")
+        let liveIndicatorElement = document.getElementById("liveIndicator")
+        let pauseIndicatorElement = document.getElementById("pauseIndicator")
+        let youtubeSection = document.getElementById("youtubeSection")
+        let bufferOverlay = document.getElementById("bufferOverlay")
+        let currentVideoTitle = ""
+        let currentVideoThumbnail = ""
+        let isBrowsing = false
+        let isOffline = false
+        let browsingStartTime = null
+        let browsingInterval = null
+        let isBuffering = false
+        let lastHeartbeatReceived = Date.now()
+        let isSessionExpired = false
+        let offlineTimer = null
       
-        let currentVideoTitle = "";
-        let currentVideoThumbnail = "";
-        let isBrowsing = false;
-        let isOffline = false;
-        let browsingStartTime = null;
-        let browsingInterval = null;
-        let isBuffering = false;
-        let lastHeartbeatReceived = Date.now();
-        let isSessionExpired = false;
-        let offlineTimer = null;
-      
-        const log = message => console.log("[Haru.js] " + message);
+        const log = message => console.log("[Haru.js] " + message)
       
         function formatNumber(number) {
-          if (typeof number === "string") {
-            number = number.replace(/,/g, "");
-          }
-          const num = Number(number);
-          return isNaN(num) ? "N/A" : num.toLocaleString();
+          if (typeof number === "string") number = number.replace(/,/g, "")
+          const num = Number(number)
+          return isNaN(num) ? "N/A" : num.toLocaleString()
         }
       
         function formatElapsedTime(seconds) {
-          const minutes = Math.floor(seconds / 60);
-          const secs = seconds % 60;
-          return (
-            minutes.toString().padStart(2, "0") +
-            ":" +
-            secs.toString().padStart(2, "0")
-          );
+          const minutes = Math.floor(seconds / 60)
+          const secs = seconds % 60
+          return minutes.toString().padStart(2, "0") + ":" + secs.toString().padStart(2, "0")
         }
       
         function updateBrowsingElapsed() {
           if (browsingStartTime && timeElapsedContainer) {
-            const elapsedSec = Math.floor((Date.now() - browsingStartTime) / 1000);
-            timeElapsedContainer.style.display = "block";
-            timeElapsedContainer.innerHTML =
-              '<i class="fas fa-clock"></i> ' + formatElapsedTime(elapsedSec);
+            const elapsedSec = Math.floor((Date.now() - browsingStartTime) / 1000)
+            timeElapsedContainer.style.display = "block"
+            timeElapsedContainer.innerHTML = '<i class="fas fa-clock"></i> ' + formatElapsedTime(elapsedSec)
           }
         }
       
         function restoreYoutubeSection() {
-          const ytSection = document.getElementById("youtubeSection");
+          const ytSection = document.getElementById("youtubeSection")
           if (ytSection) {
             Array.from(ytSection.children).forEach(child => {
-              if (child.id === "offline-indicator") {
-                child.style.display = "none";
-              } else {
-                child.style.display = "block";
-              }
-            });
+              child.id === "offline-indicator" ? child.style.display = "none" : child.style.display = "block"
+            })
           }
         }
       
         function clearDisplay() {
-          if (isBuffering) return;
-          if (nowPlayingBox) nowPlayingBox.classList.add("offline");
-          const ytSection = document.getElementById("youtubeSection");
-          if (ytSection) {
-            Array.from(ytSection.children).forEach(child => {
-              if (child.id !== "offline-indicator") child.style.display = "none";
-            });
-          }
-          if (offlineIndicatorElement) {
-            offlineIndicatorElement.style.display = "block";
-            offlineIndicatorElement.classList.add("visible");
-          }
-          const videoTitleContainer = document.querySelector(
-            ".video-title-container"
-          );
-          if (videoTitleContainer)
-            videoTitleContainer.innerHTML =
-              '<h2>Currently Playing</h2><p id="videoTitle"></p>';
-          const thumbnailContainer = document.querySelector(".thumbnail-container");
-          if (thumbnailContainer) thumbnailContainer.style.display = "none";
-          if (channelNameElement) channelNameElement.textContent = "";
-          if (viewCountElement) viewCountElement.textContent = "";
-          if (likeCountElement) likeCountElement.textContent = "";
-          if (publishedDateElement) publishedDateElement.textContent = "";
-          if (videoCategoryElement) videoCategoryElement.textContent = "";
-          if (progressBarElement) progressBarElement.style.width = "0%";
-          if (timeElapsedContainer) timeElapsedContainer.style.display = "none";
-          if (browsingInterval) {
-            clearInterval(browsingInterval);
-            browsingInterval = null;
-          }
-          browsingStartTime = null;
-          localStorage.removeItem("browsingStartTime");
-          const toggleButton = document.getElementById("toggleDescriptionButton");
-          if (toggleButton) toggleButton.style.display = "none";
-          log("Display cleared (offline).");
+          if (isBuffering) return
+          nowPlayingBox?.classList.add("offline")
+          const ytSection = document.getElementById("youtubeSection")
+          ytSection && Array.from(ytSection.children).forEach(child => {
+            if (child.id !== "offline-indicator") child.style.display = "none"
+          })
+          offlineIndicatorElement && (offlineIndicatorElement.style.display = "block", offlineIndicatorElement.classList.add("visible"))
+          document.querySelector(".video-title-container")?.innerHTML = '<h2>Currently Playing</h2><p id="videoTitle"></p>'
+          document.querySelector(".thumbnail-container")?.style.display = "none"
+          channelNameElement.textContent = ""
+          viewCountElement.textContent = ""
+          likeCountElement.textContent = ""
+          publishedDateElement.textContent = ""
+          videoCategoryElement.textContent = ""
+          progressBarElement.style.width = "0%"
+          timeElapsedContainer.style.display = "none"
+          if (browsingInterval) { clearInterval(browsingInterval); browsingInterval = null }
+          browsingStartTime = null
+          localStorage.removeItem("browsingStartTime")
+          document.getElementById("toggleDescriptionButton")?.style.display = "none"
+          log("Display cleared (offline).")
         }
       
         function handleRealTimeProgress(data) {
           if (data.duration && data.currentTime !== undefined) {
-            const progressPercentage = (data.currentTime / data.duration) * 100;
-            if (progressBarElement)
-              progressBarElement.style.width = progressPercentage + "%";
-            log(
-              `handleRealTimeProgress: isLive=${data.isLive}, isPaused=${data.isPaused}, progress=${progressPercentage.toFixed(
-                2
-              )}%`
-            );
-            if (data.isLive && data.isPaused)
-              log("Conflict: Both isLive and isPaused are true. Prioritizing live.");
-            if (data.isLive) {
-              liveIndicatorElement?.classList.add("active");
-              pauseIndicatorElement?.classList.remove("active");
-            } else if (data.isPaused) {
-              liveIndicatorElement?.classList.remove("active");
-              pauseIndicatorElement?.classList.add("active");
-            } else {
-              liveIndicatorElement?.classList.remove("active");
-              pauseIndicatorElement?.classList.remove("active");
-            }
+            const pct = (data.currentTime / data.duration) * 100
+            progressBarElement.style.width = pct + "%"
+            log(`isLive=${data.isLive}, isPaused=${data.isPaused}, pct=${pct.toFixed(2)}%`)
+            if (data.isLive && data.isPaused) log("Conflict")
+            data.isLive
+              ? (liveIndicatorElement.classList.add("active"), pauseIndicatorElement.classList.remove("active"))
+              : data.isPaused
+                ? (liveIndicatorElement.classList.remove("active"), pauseIndicatorElement.classList.add("active"))
+                : (liveIndicatorElement.classList.remove("active"), pauseIndicatorElement.classList.remove("active"))
           } else {
-            if (progressBarElement) progressBarElement.style.width = "0%";
-            log("handleRealTimeProgress: Invalid data received.");
+            progressBarElement.style.width = "0%"
+            log("Invalid progress data")
           }
-          if (!data.isPaused && !data.isLive) {
-            videoTitleElement?.classList.add("playing");
-          } else {
-            videoTitleElement?.classList.remove("playing");
-          }
+          if (!data.isPaused && !data.isLive) videoTitleElement.classList.add("playing")
+          else videoTitleElement.classList.remove("playing")
         }
       
         function animateTitle(text) {
-          const oldTitle = document.getElementById("videoTitle");
-          if (!oldTitle) return;
-          const newTitle = oldTitle.cloneNode(true);
-          newTitle.textContent = text;
-          newTitle.classList.remove("new-video-title");
-          void newTitle.offsetWidth;
-          newTitle.classList.add("new-video-title");
-          oldTitle.parentNode.replaceChild(newTitle, oldTitle);
-          localStorage.setItem("currentVideoTitle", text);
+          const oldT = document.getElementById("videoTitle")
+          if (!oldT) return
+          const newT = oldT.cloneNode(true)
+          newT.textContent = text
+          newT.classList.remove("new-video-title")
+          void newT.offsetWidth
+          newT.classList.add("new-video-title")
+          oldT.parentNode.replaceChild(newT, oldT)
+          localStorage.setItem("currentVideoTitle", text)
         }
       
         function animateThumbnail(src) {
-          const oldThumb = document.getElementById("videoThumbnailImage");
-          if (!oldThumb) return;
-          const newThumb = oldThumb.cloneNode(true);
-          newThumb.src = src;
-          newThumb.style.display = "block";
-          newThumb.classList.remove("new-video-thumbnail");
-          void newThumb.offsetWidth;
-          newThumb.classList.add("new-video-thumbnail");
-          oldThumb.parentNode.replaceChild(newThumb, oldThumb);
-          localStorage.setItem("currentVideoThumbnail", src);
+          const old = document.getElementById("videoThumbnailImage")
+          if (!old) return
+          const nw = old.cloneNode(true)
+          nw.src = src
+          nw.style.display = "block"
+          nw.classList.remove("new-video-thumbnail")
+          void nw.offsetWidth
+          nw.classList.add("new-video-thumbnail")
+          old.parentNode.replaceChild(nw, old)
+          localStorage.setItem("currentVideoThumbnail", src)
         }
       
         function setupDescriptionToggle() {
-          const toggleButton = document.getElementById("toggleDescriptionButton");
-          const descriptionModal = document.getElementById("descriptionModal");
-          if (!toggleButton || !descriptionModal) return;
-          function setShow() {
-            const btn = document.getElementById("toggleDescriptionButton");
-            if (btn)
-              btn.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
-            localStorage.setItem("descriptionModalOpen", "false");
+          const btn = document.getElementById("toggleDescriptionButton")
+          const mod = document.getElementById("descriptionModal")
+          if (!btn || !mod) return
+          function s() { btn.innerHTML = '<i class="fas fa-info-circle"></i> Show Description'; localStorage.setItem("descriptionModalOpen", "false") }
+          function h() { btn.innerHTML = '<i class="fas fa-info-circle"></i> Hide Description'; localStorage.setItem("descriptionModalOpen", "true") }
+          const clone = btn.cloneNode(true)
+          btn.parentNode.replaceChild(clone, btn)
+          mod.classList.contains("active") ? h() : s()
+          clone.addEventListener("click", e => {
+            e.stopPropagation()
+            mod.classList.toggle("active") ? h() : s()
+          })
+        }
+      
+        function displayVideoPresence(data) {
+          lastHeartbeatReceived = Date.now()
+          isBrowsing = false
+          offlineIndicatorElement.classList.remove("visible")
+          offlineIndicatorElement.style.display = "none"
+          timeElapsedContainer.style.display = "none"
+          restoreYoutubeSection()
+          if (data.title === currentVideoTitle && data.thumbnail === currentVideoThumbnail) {
+            handleRealTimeProgress(data)
+            return
           }
-          function setHide() {
-            const btn = document.getElementById("toggleDescriptionButton");
-            if (btn)
-              btn.innerHTML = '<i class="fas fa-info-circle"></i> Hide Description';
-            localStorage.setItem("descriptionModalOpen", "true");
+          currentVideoTitle = data.title
+          currentVideoThumbnail = data.thumbnail
+          isBuffering = true
+          bufferOverlay?.classList.add("active")
+          youtubeSection.classList.add("fade-out")
+          setTimeout(() => {
+            animateTitle(data.title || "Unknown Title")
+            data.thumbnail ? animateThumbnail(data.thumbnail) : (videoThumbnailImage.src = "", videoThumbnailImage.style.display = "none")
+            channelNameElement.textContent = data.channelTitle || "Unknown Channel"
+            viewCountElement.textContent = formatNumber(data.viewCount) || "N/A"
+            likeCountElement.textContent = formatNumber(data.likeCount) || "N/A"
+            if (data.publishedAt) publishedDateElement.textContent = new Date(data.publishedAt).toLocaleDateString()
+            else publishedDateElement.textContent = "Published on: N/A"
+            videoCategoryElement.textContent = data.category || "N/A"
+            const pmod = document.getElementById("descriptionModal")
+            if (pmod) {
+              pmod.querySelector("p").textContent = data.description || "No description available."
+              pmod.classList.remove("active")
+            }
+            youtubeSection.classList.replace("fade-out","fade-in")
+            nowPlayingBox.classList.remove("offline")
+            bufferOverlay.classList.remove("active")
+            isBuffering = false
+            document.getElementById("toggleDescriptionButton").style.display = "block"
+            setupDescriptionToggle()
+            handleRealTimeProgress(data)
+            log("Video updated.")
+          }, 300)
+        }
+      
+        function displayBrowsingPresence(data) {
+          lastHeartbeatReceived = Date.now()
+          nowPlayingBox.classList.remove("offline")
+          offlineIndicatorElement.classList.remove("visible")
+          offlineIndicatorElement.style.display = "none"
+          if (!isBrowsing) {
+            currentVideoTitle = ""
+            currentVideoThumbnail = ""
+            animateTitle(data.title || "Browsing YouTube")
+            videoThumbnailImage.src = "https://www.youtube.com/img/desktop/yt_1200.png"
+            videoThumbnailImage.style.display = "block"
+            browsingStartTime = Date.now()
+            localStorage.setItem("browsingStartTime", browsingStartTime)
+            isBrowsing = true
+          } else {
+            videoTitleElement.textContent = data.title || "Browsing YouTube"
+            videoThumbnailImage.src = "https://www.youtube.com/img/desktop/yt_1200.png"
           }
-          const newBtn = toggleButton.cloneNode(true);
-          toggleButton.parentNode.replaceChild(newBtn, toggleButton);
-          if (descriptionModal.classList.contains("active")) setHide();
-          else setShow();
-          newBtn.addEventListener("click", function(e) {
-            e.stopPropagation();
-            if (descriptionModal.classList.toggle("active")) setHide();
-            else setShow();
-          });
+          channelNameElement.textContent = "Browsing..."
+          viewCountElement.textContent = ""
+          likeCountElement.textContent = ""
+          publishedDateElement.textContent = ""
+          videoCategoryElement.textContent = ""
+          document.getElementById("descriptionModal").querySelector("p").textContent = data.description || "Browsing videos on YouTube"
+          updateBrowsingElapsed()
+          if (!browsingInterval) browsingInterval = setInterval(updateBrowsingElapsed, 1000)
+          liveIndicatorElement.classList.remove("active")
+          pauseIndicatorElement.classList.remove("active")
+          progressBarElement.style.width = "0%"
+          youtubeSection.classList.replace("fade-out","fade-in")
+          document.getElementById("toggleDescriptionButton").style.display = "block"
+          setupDescriptionToggle()
+          log("Browsing updated.")
         }
       
         function transitionToVideo(data) {
-          const card = document.querySelector(".now-playing-card");
-          card.classList.add("fade-out");
+          document.querySelector(".now-playing-card").classList.add("fade-out")
           setTimeout(() => {
-            displayVideoPresence(data);
-            card.classList.remove("fade-out");
-            card.classList.add("fade-in");
-            setTimeout(() => card.classList.remove("fade-in"), 600);
-          }, 500);
+            displayVideoPresence(data)
+            const card = document.querySelector(".now-playing-card")
+            card.classList.remove("fade-out")
+            card.classList.add("fade-in")
+            setTimeout(() => card.classList.remove("fade-in"), 600)
+          }, 500)
         }
       
         function transitionToBrowsing(data) {
-          const card = document.querySelector(".now-playing-card");
-          card.classList.add("fade-out");
+          document.querySelector(".now-playing-card").classList.add("fade-out")
           setTimeout(() => {
-            displayBrowsingPresence(data);
-            card.classList.remove("fade-out");
-            card.classList.add("fade-in");
-            setTimeout(() => card.classList.remove("fade-in"), 600);
-          }, 500);
+            displayBrowsingPresence(data)
+            const card = document.querySelector(".now-playing-card")
+            card.classList.remove("fade-out")
+            card.classList.add("fade-in")
+            setTimeout(() => card.classList.remove("fade-in"), 600)
+          }, 500)
         }
       
         if (localStorage.getItem("browsingStartTime")) {
-          browsingStartTime = parseInt(localStorage.getItem("browsingStartTime"));
-          isBrowsing = true;
-          displayBrowsingPresence({
-            presenceType: "browsing",
-            title: "Browsing YouTube",
-            description: "Browsing videos on YouTube",
-            channelTitle: "Browsing...",
-            viewCount: "",
-            likeCount: "",
-            publishedAt: "",
-            category: ""
-          });
+          browsingStartTime = parseInt(localStorage.getItem("browsingStartTime"))
+          isBrowsing = true
+          displayBrowsingPresence({ presenceType:"browsing", title:"Browsing YouTube", description:"Browsing videos on YouTube" })
         }
       
-        const socket = io("https://mikumiku.dev");
+        const socket = io("https://mikumiku.dev")
+        socket.on("connect", () => { log("Connected"); isSessionExpired = false; socket.emit("requestLatestData") })
+        socket.on("disconnect", () => { log("Disconnected"); clearDisplay() })
       
-        socket.on("connect", function() {
-          log("Connected to server via Socket.IO.");
-          isSessionExpired = false;
-          socket.emit("requestLatestData");
-        });
-      
-        socket.on("disconnect", function() {
-          log("Disconnected from server.");
-          clearDisplay();
-        });
-      
-        socket.on("presenceUpdate", function(data) {
-          if (isSessionExpired) {
-            return;
-          }
-          log("Received presenceUpdate: " + JSON.stringify(data));
+        socket.on("presenceUpdate", data => {
+          if (isSessionExpired) return
+          log("presenceUpdate: " + JSON.stringify(data))
           if (data.presenceType === "offline") {
-            if (offlineTimer) {
-              clearTimeout(offlineTimer);
-            }
-            offlineTimer = setTimeout(clearDisplay, 3000);
+            clearTimeout(offlineTimer)
+            offlineTimer = setTimeout(clearDisplay, 3000)
           } else {
-            if (offlineTimer) {
-              clearTimeout(offlineTimer);
-              offlineTimer = null;
-            }
+            clearTimeout(offlineTimer)
             if (data.presenceType === "video") {
-              if (browsingInterval) {
-                clearInterval(browsingInterval);
-                browsingInterval = null;
-              }
-              browsingStartTime = null;
-              localStorage.removeItem("browsingStartTime");
-              transitionToVideo(data);
+              clearInterval(browsingInterval); browsingInterval = null
+              browsingStartTime = null; localStorage.removeItem("browsingStartTime")
+              transitionToVideo(data)
             } else if (data.presenceType === "browsing") {
-              transitionToBrowsing(data);
+              transitionToBrowsing(data)
             } else {
-              clearDisplay();
+              clearDisplay()
             }
           }
-        });
+        })
       
-        setInterval(function() {
+        setInterval(() => {
           if (!isBuffering && Date.now() - lastHeartbeatReceived > 15000) {
             if (!isOffline) {
-              log("No heartbeat received in 15 seconds. Marking as offline.");
-              isOffline = true;
-              if (offlineIndicatorElement) {
-                offlineIndicatorElement.classList.add("visible");
-                offlineIndicatorElement.style.display = "block";
-              }
+              log("No heartbeat; offline")
+              isOffline = true
+              offlineIndicatorElement.classList.add("visible")
+              offlineIndicatorElement.style.display = "block"
             }
-            clearDisplay();
+            clearDisplay()
           }
-        }, 5000);
+        }, 5000)
       
-        document.addEventListener("click", function(e) {
-          const descriptionModal = document.getElementById("descriptionModal");
-          const toggleButton = document.getElementById("toggleDescriptionButton");
-          if (
-            descriptionModal &&
-            descriptionModal.classList.contains("active") &&
-            !descriptionModal.contains(e.target) &&
-            e.target !== toggleButton
-          ) {
-            descriptionModal.classList.remove("active");
-            if (toggleButton) {
-              toggleButton.innerHTML =
-                '<i class="fas fa-info-circle"></i> Show Description';
-              localStorage.setItem("descriptionModalOpen", "false");
-            }
+        document.addEventListener("click", e => {
+          const mod = document.getElementById("descriptionModal")
+          const btn = document.getElementById("toggleDescriptionButton")
+          if (mod?.classList.contains("active") && !mod.contains(e.target) && e.target !== btn) {
+            mod.classList.remove("active")
+            btn.innerHTML = '<i class="fas fa-info-circle"></i> Show Description'
+            localStorage.setItem("descriptionModalOpen","false")
           }
-        });
+        })
       
-        setupDescriptionToggle();
-      });
+        setupDescriptionToggle()
+      })
     </script>
-
 
 
 
