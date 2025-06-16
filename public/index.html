@@ -787,7 +787,8 @@
     
         if (toggleButton && descriptionModal) {
           toggleButton.textContent = "Show Description";
-          toggleButton.addEventListener('click', () => {
+          toggleButton.addEventListener('click', (e) => {
+            e.stopPropagation();
             const isActive = descriptionModal.classList.toggle('active');
             toggleButton.textContent = isActive ? "Hide Description" : "Show Description";
           });
@@ -797,12 +798,6 @@
         document.addEventListener('click', (e) => {
           if (!descriptionModal) return;
           if (!descriptionModal.classList.contains('active')) return;
-        
-          if (toggleButton && (toggleButton === e.target || toggleButton.contains(e.target))) {
-            // Click was on toggleButton itself, so don’t close modal here
-            return;
-          }
-        
           if (!descriptionModal.contains(e.target)) {
             descriptionModal.classList.remove('active');
             if (toggleButton) toggleButton.textContent = "Show Description";
@@ -811,6 +806,7 @@
     
       });
     </script>
+
 
 
 
