@@ -1133,302 +1133,161 @@ const ipBanSchema = new mongoose.Schema({
 
 const IPbans = mongoose.model('IPbans', ipBanSchema);
 
-const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
-const blockedIps = new Set(); // Set to track blocked IPs
-
+const HEARTBEAT_TIMEOUT = 60000;
+const blockedIps = new Set();
 let currentVideo = null;
 let currentBrowsing = null;
 const videoHeartbeat = {};
-const activeUsers = new Map(); // Tracks active users by IP and connection type
+const activeUsers = new Map();
 
 app.post('/api/block-user', async (req, res) => {
-    const { ip } = req.body;
-    if (ip) {
-        blockedIps.add(ip);
-        logger.info(`Blocked user with IP: ${ip}`);
-
-        try {
-            await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
-            logger.info(`IP ${ip} has been added to IPbans collection.`);
-        } catch (error) {
-            logger.error(`Error adding IP ${ip} to IPbans collection: ${error.message}`);
-            return res.status(500).send({ status: 'error', message: 'Failed to block user.' });
-        }
-
-        io.emit('ipBlocked', { ip });
-        res.status(200).send({ status: 'success', message: `User with IP ${ip} has been blocked.` });
-    } else {
-        res.status(400).send({ status: 'error', message: 'IP address is required.' });
-    }
+  const { ip } = req.body;
+  if (!ip) return res.status(400).send({ status: 'error', message: 'IP address is required.' });
+  blockedIps.add(ip);
+  await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
+  io.emit('ipBlocked', { ip });
+  res.send({ status: 'success', message: `Blocked ${ip}` });
 });
 
 app.post('/api/unblock-user', async (req, res) => {
-    const { ip } = req.body;
-    if (ip) {
-        if (blockedIps.has(ip)) {
-            blockedIps.delete(ip);
-            logger.info(`Unblocked user with IP: ${ip}`);
-
-            try {
-                await IPbans.deleteOne({ ip });
-                logger.info(`IP ${ip} has been removed from IPbans collection.`);
-            } catch (error) {
-                logger.error(`Error removing IP ${ip} from IPbans collection: ${error.message}`);
-                return res.status(500).send({ status: 'error', message: 'Failed to unblock user.' });
-            }
-
-            io.emit('ipUnblocked', { ip });
-            // Acknowledge the unblock via the socket if available
-            res.status(200).send({ status: 'success', message: `User with IP ${ip} has been unblocked.` });
-        } else {
-            res.status(400).send({ status: 'error', message: `User with IP ${ip} is not blocked.` });
-        }
-    } else {
-        res.status(400).send({ status: 'error', message: 'IP address is required.' });
-    }
+  const { ip } = req.body;
+  if (!ip) return res.status(400).send({ status: 'error', message: 'IP address is required.' });
+  if (!blockedIps.has(ip)) return res.status(400).send({ status: 'error', message: `${ip} is not blocked.` });
+  blockedIps.delete(ip);
+  await IPbans.deleteOne({ ip });
+  io.emit('ipUnblocked', { ip });
+  res.send({ status: 'success', message: `Unblocked ${ip}` });
 });
 
-io.on('connection', async (socket) => {
-    logger.info(`[Socket.IO] New client connected: ${socket.id}`);
+io.on('connection', socket => {
+  const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
+  const connectionType = socket.handshake.query.connectionType || 'website';
 
-    const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
-    const connectionType = socket.handshake.query.connectionType || 'website';
+  if (blockedIps.has(ip)) {
+    return socket.disconnect(true);
+  }
 
-    if (blockedIps.has(ip)) {
-        logger.warn(`Blocked connection attempt from IP: ${ip}`);
-        socket.disconnect();
-        return;
+  if (!activeUsers.has(ip)) {
+    activeUsers.set(ip, { ip, connectionTypes: new Set() });
+  }
+  activeUsers.get(ip).connectionTypes.add(connectionType);
+
+  socket.broadcast.emit('activeUsersUpdate', {
+    users: Array.from(activeUsers.values()).map(u => ({
+      ip: u.ip,
+      connectionTypes: Array.from(u.connectionTypes)
+    }))
+  });
+
+  emitCurrentPresence(socket);
+
+  socket.on('presenceUpdate', data => {
+    if (data.presenceType === 'video') handleVideoPresence(data);
+    else if (data.presenceType === 'browsing') handleBrowsingPresence(data);
+    else if (data.presenceType === 'offline') handleOfflinePresence();
+
+    socket.broadcast.emit('presenceUpdate', data);
+  });
+
+  socket.on('updateBrowsingPresence', data => {
+    handleBrowsingPresence(data);
+    socket.broadcast.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
+  });
+
+  socket.on('updateVideoProgress', data => {
+    handleVideoPresence(data);
+    socket.broadcast.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
+  });
+
+  socket.on('heartbeat', (data, ack) => {
+    const { videoId } = data;
+    if (currentVideo?.videoId === videoId) {
+      videoHeartbeat[videoId] = Date.now();
+      if (ack) ack({ status: 'ok' });
+    } else if (ack) {
+      ack({ status: 'error', message: 'Unknown video ID' });
+    }
+  });
+
+  socket.on('disconnect', () => {
+    if (activeUsers.has(ip)) {
+      const u = activeUsers.get(ip);
+      u.connectionTypes.delete(connectionType);
+      if (!u.connectionTypes.size) activeUsers.delete(ip);
     }
 
-    logger.info(`New connection from IP: ${ip}, Type: ${connectionType}`);
+    socket.broadcast.emit('activeUsersUpdate', {
+      users: Array.from(activeUsers.values()).map(u => ({
+        ip: u.ip,
+        connectionTypes: Array.from(u.connectionTypes)
+      }))
+    });
 
-    if (!activeUsers.has(ip)) {
-        activeUsers.set(ip, { id: socket.id, ip, connectionTypes: new Set() });
+    if (currentVideo || currentBrowsing) {
+      currentVideo = null;
+      currentBrowsing = null;
+      socket.broadcast.emit('presenceUpdate', { presenceType: 'offline' });
     }
-    activeUsers.get(ip).connectionTypes.add(connectionType);
-
-    io.emit('activeUsersUpdate', {
-        users: Array.from(activeUsers.values()).map(user => ({
-            ip: user.ip,
-            connectionTypes: Array.from(user.connectionTypes)
-        }))
-    });
-
-    emitCurrentPresence(socket);
-
-    socket.on('presenceUpdate', (data) => {
-        switch (data.presenceType) {
-            case 'browsing':
-                handleBrowsingPresence(data);
-                break;
-            case 'video':
-                handleVideoPresence(data);
-                break;
-            case 'offline':
-                handleOfflinePresence();
-                break;
-            default:
-                logger.warn(`Unknown presenceType received: ${data.presenceType}`);
-        }
-        io.emit('presenceUpdate', data);
-    });
-
-    socket.on('blockUser', async (data) => {
-        const { ip } = data;
-        if (ip) {
-            if (!blockedIps.has(ip)) {
-                blockedIps.add(ip);
-                logger.info(`Blocking user with IP: ${ip}`);
-
-                try {
-                    await IPbans.updateOne({ ip }, { $set: { ip, blockedAt: new Date() } }, { upsert: true });
-                    logger.info(`IP ${ip} has been added to IPbans collection.`);
-                } catch (error) {
-                    logger.error(`Error adding IP ${ip} to IPbans collection: ${error.message}`);
-                    socket.emit('blockUserResponse', { status: 'error', message: 'Failed to block user.' });
-                    return;
-                }
-
-                io.emit('ipBlocked', { ip });
-                socket.emit('blockUserResponse', { status: 'success', message: `User with IP ${ip} has been blocked.` });
-            } else {
-                socket.emit('blockUserResponse', { status: 'error', message: `User with IP ${ip} is already blocked.` });
-            }
-        } else {
-            socket.emit('blockUserResponse', { status: 'error', message: 'IP address is required.' });
-        }
-    });
-
-    socket.on('unblockUser', async (data) => {
-        const { ip } = data;
-        if (ip) {
-            if (blockedIps.has(ip)) {
-                blockedIps.delete(ip);
-                logger.info(`Unblocking user with IP: ${ip}`);
-
-                try {
-                    await IPbans.deleteOne({ ip });
-                    logger.info(`IP ${ip} has been removed from IPbans collection.`);
-                } catch (error) {
-                    logger.error(`Error removing IP ${ip} from IPbans collection: ${error.message}`);
-                    socket.emit('unblockUserResponse', { status: 'error', message: 'Failed to unblock user.' });
-                    return;
-                }
-
-                io.emit('ipUnblocked', { ip });
-                socket.emit('unblockUserResponse', { status: 'success', message: `User with IP ${ip} has been unblocked.` });
-            } else {
-                socket.emit('unblockUserResponse', { status: 'error', message: `User with IP ${ip} is not blocked.` });
-            }
-        } else {
-            socket.emit('unblockUserResponse', { status: 'error', message: 'IP address is required.' });
-        }
-    });
-
-    socket.on('updateBrowsingPresence', (data) => {
-        handleBrowsingPresence(data);
-        io.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
-    });
-
-    socket.on('updateVideoProgress', (data) => {
-        handleVideoPresence(data);
-        io.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
-    });
-
-    socket.on('heartbeat', (data, callback) => {
-        const { videoId } = data;
-        if (videoId && currentVideo && currentVideo.videoId === videoId) {
-            videoHeartbeat[videoId] = Date.now();
-            if (callback) callback({ status: "ok" });
-        } else {
-            if (callback) callback({ status: "error", message: "Unknown video ID" });
-        }
-    });
-
-    socket.on('disconnect', () => {
-        logger.info(`[Socket.IO] Client disconnected: ${socket.id}`);
-        
-        if (activeUsers.has(ip)) {
-            const user = activeUsers.get(ip);
-            user.connectionTypes.delete(connectionType);
-            if (user.connectionTypes.size === 0) {
-                activeUsers.delete(ip);
-            }
-        }
-
-        io.emit('activeUsersUpdate', { users: Array.from(activeUsers.values()).map(user => ({
-            ip: user.ip,
-            connectionTypes: Array.from(user.connectionTypes)
-        })) });
-
-        if (currentVideo || currentBrowsing) {
-            currentVideo = null;
-            currentBrowsing = null;
-            io.emit('presenceUpdate', { presenceType: 'offline' });
-            logger.info(`[Socket.IO] Emitted offline presence due to disconnection.`);
-        }
-    });
+  });
 });
 
 setInterval(() => {
-    const now = Date.now();
-    for (const [videoId, lastHeartbeat] of Object.entries(videoHeartbeat)) {
-        if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
-            currentVideo = null;
-            currentBrowsing = null;
-            io.emit('presenceUpdate', { presenceType: 'offline' });
-            delete videoHeartbeat[videoId];
-            logger.info(`[Socket.IO] Heartbeat timeout for video ID: ${videoId}. Marked as offline.`);
-        }
+  const now = Date.now();
+  for (const [vid, ts] of Object.entries(videoHeartbeat)) {
+    if (now - ts > HEARTBEAT_TIMEOUT) {
+      delete videoHeartbeat[vid];
+      currentVideo = null;
+      currentBrowsing = null;
+      io.emit('presenceUpdate', { presenceType: 'offline' });
     }
+  }
 }, HEARTBEAT_TIMEOUT / 2);
 
 function emitCurrentPresence(socket) {
-    if (currentVideo) {
-        socket.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
-    } else if (currentBrowsing) {
-        socket.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
-    } else {
-        socket.emit('presenceUpdate', { presenceType: 'offline' });
-    }
+  if (currentVideo) socket.emit('presenceUpdate', { presenceType: 'video', ...currentVideo });
+  else if (currentBrowsing) socket.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing });
+  else socket.emit('presenceUpdate', { presenceType: 'offline' });
 }
 
 function handleBrowsingPresence(data) {
-    logger.info(`[Socket.IO] Browsing presence detected.`);
-    if (currentVideo) {
-        currentVideo = null;
-        logger.info(`[Socket.IO] Cleared current video presence.`);
-    }
-
-    currentBrowsing = {
-        title: data.title || 'YouTube',
-        description: data.description || 'Browsing videos',
-        thumbnail: 'https://www.youtube.com/img/desktop/yt_1200.png',
-        timeElapsed: data.timeElapsed || 0,
-        presenceType: 'browsing'
-    };
+  currentVideo = null;
+  currentBrowsing = {
+    title: data.title || 'YouTube',
+    description: data.description || 'Browsing videos',
+    thumbnail: data.thumbnail || 'https://www.youtube.com/img/desktop/yt_1200.png',
+    timeElapsed: data.timeElapsed || 0
+  };
 }
 
 function handleVideoPresence(data) {
-    const {
-        videoId,
-        title,
-        description,
-        channelTitle,
-        viewCount,
-        likeCount,
-        publishedAt,
-        category,
-        thumbnail,
-        currentTime,
-        duration,
-        isPaused,
-        isLive
-    } = data;
-
-    if (currentVideo && currentVideo.videoId === videoId) {
-        Object.assign(currentVideo, {
-            currentTime,
-            duration,
-            isPaused,
-            title,
-            description,
-            channelTitle,
-            viewCount,
-            likeCount,
-            publishedAt,
-            category,
-            thumbnail,
-            isLive
-        });
-        logger.info(`[Socket.IO] Updated video: "${title}" (Live: ${isLive}, Paused: ${isPaused})`);
-    } else {
-        currentVideo = {
-            videoId,
-            title,
-            description,
-            channelTitle,
-            viewCount,
-            likeCount,
-            publishedAt,
-            category,
-            thumbnail,
-            currentTime,
-            duration,
-            isPaused,
-            isLive,
-            presenceType: 'video'
-        };
-        currentBrowsing = null;
-        logger.info(`[Socket.IO] New video detected: "${title}" (Live: ${isLive}, Paused: ${isPaused})`);
-    }
+  const presence = {
+    videoId: data.videoId,
+    title: data.title,
+    description: data.description,
+    channelTitle: data.channelTitle,
+    viewCount: data.viewCount,
+    likeCount: data.likeCount,
+    publishedAt: data.publishedAt,
+    category: data.category,
+    thumbnail: data.thumbnail,
+    currentTime: data.currentTime,
+    duration: data.duration,
+    isPaused: data.isPaused,
+    isLive: data.isLive
+  };
+  if (currentVideo?.videoId === data.videoId) {
+    Object.assign(currentVideo, presence);
+  } else {
+    currentVideo = presence;
+    currentBrowsing = null;
+  }
 }
 
 function handleOfflinePresence() {
-    currentVideo = null;
-    currentBrowsing = null;
-    logger.info(`[Socket.IO] User marked as offline.`);
+  currentVideo = null;
+  currentBrowsing = null;
 }
+
 
 // ----------------------
 // Real-time Data Endpoint
