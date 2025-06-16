@@ -797,7 +797,13 @@
         document.addEventListener('click', (e) => {
           if (!descriptionModal) return;
           if (!descriptionModal.classList.contains('active')) return;
-          if (!descriptionModal.contains(e.target) && e.target !== toggleButton) {
+        
+          if (toggleButton && (toggleButton === e.target || toggleButton.contains(e.target))) {
+            // Click was on toggleButton itself, so don’t close modal here
+            return;
+          }
+        
+          if (!descriptionModal.contains(e.target)) {
             descriptionModal.classList.remove('active');
             if (toggleButton) toggleButton.textContent = "Show Description";
           }
