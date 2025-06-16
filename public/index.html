@@ -461,17 +461,20 @@
         let lastHeartbeatReceived = Date.now();
         let isSessionExpired = false;
         const log = (message) => console.log(`[Haru.js] ${message}`);
+    
         function formatNumber(number) {
           if (typeof number === "string")
             number = number.replace(/,/g, "");
           const num = Number(number);
           return isNaN(num) ? "N/A" : num.toLocaleString();
         }
+    
         function formatElapsedTime(seconds) {
           const minutes = Math.floor(seconds / 60);
           const secs = seconds % 60;
           return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
         }
+    
         function updateBrowsingElapsed() {
           if (browsingStartTime && timeElapsedContainer) {
             const elapsedSec = Math.floor((Date.now() - browsingStartTime) / 1000);
@@ -479,6 +482,7 @@
             timeElapsedContainer.innerHTML = `<i class="fas fa-clock"></i> ${formatElapsedTime(elapsedSec)}`;
           }
         }
+    
         function restoreYoutubeSection() {
           const ytSection = document.getElementById("youtubeSection");
           if (ytSection) {
@@ -489,6 +493,7 @@
             });
           }
         }
+    
         function clearDisplay() {
           if (isBuffering) return;
           if (nowPlayingBox) nowPlayingBox.classList.add("offline");
@@ -526,6 +531,7 @@
           const toggleButton = document.getElementById("toggleDescriptionButton");
           if (toggleButton) toggleButton.style.display = "none";
         }
+    
         function handleRealTimeProgress(data) {
           if (data.duration && data.currentTime !== undefined) {
             const progressPercentage = (data.currentTime / data.duration) * 100;
@@ -557,6 +563,7 @@
             videoTitleElement.classList.remove("playing");
           }
         }
+    
         function animateTitle(text) {
           const oldTitle = document.getElementById("videoTitle");
           if (!oldTitle) return;
@@ -568,6 +575,7 @@
           oldTitle.parentNode.replaceChild(newTitle, oldTitle);
           localStorage.setItem("currentVideoTitle", text);
         }
+    
         function animateThumbnail(src) {
           const oldThumb = document.getElementById("videoThumbnailImage");
           if (!oldThumb) return;
@@ -580,6 +588,7 @@
           oldThumb.parentNode.replaceChild(newThumb, oldThumb);
           localStorage.setItem("currentVideoThumbnail", src);
         }
+    
         function displayVideoPresence(data) {
           lastHeartbeatReceived = Date.now();
           isBrowsing = false;
@@ -646,6 +655,7 @@
             handleRealTimeProgress(data);
           }, 300);
         }
+    
         function displayBrowsingPresence(data) {
           lastHeartbeatReceived = Date.now();
           if (nowPlayingBox) nowPlayingBox.classList.remove("offline");
@@ -704,6 +714,7 @@
           const toggleButton = document.getElementById("toggleDescriptionButton");
           if (toggleButton) toggleButton.style.display = "block";
         }
+    
         if (localStorage.getItem("browsingStartTime")) {
           browsingStartTime = parseInt(localStorage.getItem("browsingStartTime"));
           isBrowsing = true;
@@ -718,16 +729,19 @@
             category: ""
           });
         }
+    
         const socket = io("https://mikumiku.dev");
         socket.on("connect", function() {
           log("Connected to server via Socket.IO.");
           isSessionExpired = false;
           socket.emit("requestLatestData");
         });
+    
         socket.on("disconnect", function() {
           log("Disconnected from server.");
           clearDisplay();
         });
+    
         socket.on("presenceUpdate", function(data) {
           if (isSessionExpired) {
             log("Ignoring presenceUpdate due to expired session.");
@@ -752,6 +766,7 @@
             clearDisplay();
           }
         });
+    
         setInterval(function() {
           if (!isBuffering && Date.now() - lastHeartbeatReceived > 15000) {
             if (!isOffline) {
@@ -765,8 +780,20 @@
             clearDisplay();
           }
         }, 5000);
+    
+        // New: close description modal on click outside
+        document.addEventListener('click', (e) => {
+          const descriptionModal = document.getElementById('descriptionModal');
+          const toggleButton = document.getElementById('toggleDescriptionButton');
+          if (!descriptionModal.classList.contains('active')) return;
+          if (!descriptionModal.contains(e.target) && e.target !== toggleButton) {
+            descriptionModal.classList.remove('active');
+          }
+        });
+    
       });
     </script>
+
     <script>
       document.addEventListener("DOMContentLoaded", function() {
         function updateClocks() {
