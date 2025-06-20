@@ -434,7 +434,7 @@
         }
       });
     </script>
-
+    
     <script>
     // Now Playing Script
     
@@ -476,7 +476,7 @@
         return m.toString().padStart(2,'0') + ':' + s.toString().padStart(2,'0');
       }
     
-      // update browsing elapsed time
+      // update browse timer
       function updateBrowseTime() {
         if (browseStartTime && timeElapsedEl) {
           const elapsed = Math.floor((Date.now() - browseStartTime) / 1000);
@@ -496,7 +496,7 @@
       // clear UI for offline
       function clearDisplay() {
         log('clearDisplay');
-        if (nowPlayingBox) nowPlayingBox.classList.add('offline');
+        nowPlayingBox?.classList.add('offline');
         if (offlineBanner) {
           offlineBanner.style.display = 'block';
           offlineBanner.classList.add('visible');
@@ -506,37 +506,34 @@
             if (child.id !== 'offline-indicator') child.style.display = 'none';
           });
         }
-        if (progressBarEl) progressBarEl.style.width = '0%';
-        if (timeElapsedEl) timeElapsedEl.style.display = 'none';
-        if (thumbnailEl && thumbnailEl.parentElement) thumbnailEl.parentElement.style.display = 'none';
+        progressBarEl && (progressBarEl.style.width = '0%');
+        timeElapsedEl && (timeElapsedEl.style.display = 'none');
+        thumbnailEl && thumbnailEl.parentElement && (thumbnailEl.parentElement.style.display = 'none');
     
         [videoTitleEl, channelNameEl, viewCountEl, likeCountEl, publishedDateEl, categoryEl].forEach(el => {
-          if (el) el.textContent = '';
+          el && (el.textContent = '');
         });
     
-        if (browseInterval) {
-          clearInterval(browseInterval);
-          browseInterval = null;
-        }
+        if (browseInterval) { clearInterval(browseInterval); browseInterval = null; }
         browseStartTime = null;
-        if (toggleBtn) toggleBtn.style.display = 'none';
+        toggleBtn && (toggleBtn.style.display = 'none');
       }
     
-      // update play/pause progress bar
+      // update play/pause progress
       function updateProgress(data) {
         hideOffline();
-        if (nowPlayingBox) nowPlayingBox.classList.remove('offline');
-        if (youtubeSection) youtubeSection.style.display = 'block';
+        nowPlayingBox?.classList.remove('offline');
+        youtubeSection && (youtubeSection.style.display = 'block');
     
-        if (data.duration != null && data.currentTime != null && progressBarEl) {
+        if (data.duration != null && data.currentTime != null) {
           const pct = data.currentTime / data.duration * 100;
-          progressBarEl.style.width = pct + '%';
+          progressBarEl && (progressBarEl.style.width = pct + '%');
         }
-        if (liveIndicatorEl) liveIndicatorEl.classList.toggle('active', !!data.isLive);
-        if (pauseIndicatorEl) pauseIndicatorEl.classList.toggle('active', !!data.isPaused);
+        liveIndicatorEl && liveIndicatorEl.classList.toggle('active', !!data.isLive);
+        pauseIndicatorEl && pauseIndicatorEl.classList.toggle('active', !!data.isPaused);
       }
     
-      // animate class replace
+      // animate class replace for titles
       function animateClass(el, cls) {
         if (!el || !el.parentNode) return el;
         const clone = el.cloneNode(true);
@@ -551,39 +548,41 @@
       function displayVideo(data) {
         log('displayVideo');
         hideOffline();
-        if (nowPlayingBox) nowPlayingBox.classList.remove('offline');
+        nowPlayingBox?.classList.remove('offline');
         currentVideoId = data.videoId;
     
-        if (bufferOverlay) bufferOverlay.style.display = 'block';
-        if (youtubeSection) youtubeSection.classList.add('fade-out');
+        bufferOverlay && (bufferOverlay.style.display = 'block');
+        youtubeSection && youtubeSection.classList.add('fade-out');
     
         setTimeout(() => {
+          // Title animation
           const newTitleEl = animateClass(videoTitleEl, 'new-video-title');
-          if (newTitleEl) newTitleEl.textContent = data.title || '';
+          newTitleEl && (newTitleEl.textContent = data.title || '');
     
+          // Thumbnail update without clone
           if (data.thumbnail && thumbnailEl) {
-            const newThumb = animateClass(thumbnailEl, 'new-video-thumbnail');
-            newThumb.src = data.thumbnail;
-            if (newThumb.parentElement) newThumb.parentElement.style.display = 'block';
+            thumbnailEl.classList.remove('new-video-thumbnail');
+            void thumbnailEl.offsetWidth;
+            thumbnailEl.src = data.thumbnail;
+            thumbnailEl.classList.add('new-video-thumbnail');
+            thumbnailEl.parentElement && (thumbnailEl.parentElement.style.display = 'block');
           }
     
-          if (channelNameEl) channelNameEl.textContent = data.channelTitle || '';
-          if (viewCountEl) viewCountEl.textContent = formatNumber(data.viewCount);
-          if (likeCountEl) likeCountEl.textContent = formatNumber(data.likeCount);
-          if (publishedDateEl) publishedDateEl.textContent = data.publishedAt ?
-            new Date(data.publishedAt).toLocaleDateString() : '';
-          if (categoryEl) categoryEl.textContent = data.category || '';
+          channelNameEl && (channelNameEl.textContent = data.channelTitle || '');
+          viewCountEl   && (viewCountEl.textContent = formatNumber(data.viewCount));
+          likeCountEl   && (likeCountEl.textContent = formatNumber(data.likeCount));
+          publishedDateEl && (publishedDateEl.textContent = data.publishedAt ? new Date(data.publishedAt).toLocaleDateString() : '');
+          categoryEl    && (categoryEl.textContent = data.category || '');
     
           if (descModal) {
             const p = descModal.querySelector('p');
-            if (p) p.textContent = data.description || '';
+            p && (p.textContent = data.description || '');
             descModal.classList.remove('active');
           }
     
-          if (youtubeSection) youtubeSection.classList.replace('fade-out','fade-in');
-          if (bufferOverlay) bufferOverlay.style.display = 'none';
+          youtubeSection && youtubeSection.classList.replace('fade-out','fade-in');
+          bufferOverlay && (bufferOverlay.style.display = 'none');
     
-          // final progress update
           updateProgress(data);
         }, 300);
       }
@@ -592,7 +591,7 @@
       function displayBrowse(data) {
         log('displayBrowse');
         hideOffline();
-        if (nowPlayingBox) nowPlayingBox.classList.remove('offline');
+        nowPlayingBox?.classList.remove('offline');
     
         if (!browseStartTime) {
           browseStartTime = Date.now();
@@ -600,7 +599,7 @@
         }
     
         const newTitleEl = animateClass(videoTitleEl, 'new-video-title');
-        if (newTitleEl) newTitleEl.textContent = data.title || '';
+        newTitleEl && (newTitleEl.textContent = data.title || '');
     
         if (thumbnailEl) {
           if (data.thumbnail) {
@@ -621,7 +620,6 @@
           e.stopPropagation();
           descModal.classList.toggle('active');
         });
-    
         document.addEventListener('click', e => {
           if (descModal.classList.contains('active') && !descModal.contains(e.target)) {
             descModal.classList.remove('active');
