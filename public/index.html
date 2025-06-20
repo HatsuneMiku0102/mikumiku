@@ -475,48 +475,68 @@
         const m = Math.floor(sec/60), s = sec%60;
         return m.toString().padStart(2,'0') + ':' + s.toString().padStart(2,'0');
       }
-      function hideOffline() {
-        offlineBanner && (offlineBanner.style.display = 'none', offlineBanner.classList.remove('visible'));
+    
+      // update browsing elapsed time
+      function updateBrowseTime() {
+        if (browseStartTime && timeElapsedEl) {
+          const elapsed = Math.floor((Date.now() - browseStartTime) / 1000);
+          timeElapsedEl.style.display = 'block';
+          timeElapsedEl.textContent = '⏱️ ' + formatTime(elapsed);
+        }
       }
     
-      // Clear UI (offline)
+      // hide offline banner
+      function hideOffline() {
+        if (offlineBanner) {
+          offlineBanner.style.display = 'none';
+          offlineBanner.classList.remove('visible');
+        }
+      }
+    
+      // clear UI for offline
       function clearDisplay() {
         log('clearDisplay');
-        nowPlayingBox?.classList.add('offline');
-        offlineBanner && (offlineBanner.style.display = 'block', offlineBanner.classList.add('visible'));
-        // hide all except offline indicator
+        if (nowPlayingBox) nowPlayingBox.classList.add('offline');
+        if (offlineBanner) {
+          offlineBanner.style.display = 'block';
+          offlineBanner.classList.add('visible');
+        }
         if (youtubeSection) {
           Array.from(youtubeSection.children).forEach(child => {
-            if (child.id !== 'offline-indicator') {
-              child.style.display = 'none';
-            }
+            if (child.id !== 'offline-indicator') child.style.display = 'none';
           });
         }
-        progressBarEl && (progressBarEl.style.width = '0%');
-        timeElapsedEl && (timeElapsedEl.style.display = 'none');
-        thumbnailEl && thumbnailEl.parentElement && (thumbnailEl.parentElement.style.display = 'none');
-        [videoTitleEl, channelNameEl, viewCountEl, likeCountEl, publishedDateEl, categoryEl]
-          .forEach(el => el && (el.textContent = ''));
-        // stop browse timer
-        if (browseInterval) { clearInterval(browseInterval); browseInterval = null; }
+        if (progressBarEl) progressBarEl.style.width = '0%';
+        if (timeElapsedEl) timeElapsedEl.style.display = 'none';
+        if (thumbnailEl && thumbnailEl.parentElement) thumbnailEl.parentElement.style.display = 'none';
+    
+        [videoTitleEl, channelNameEl, viewCountEl, likeCountEl, publishedDateEl, categoryEl].forEach(el => {
+          if (el) el.textContent = '';
+        });
+    
+        if (browseInterval) {
+          clearInterval(browseInterval);
+          browseInterval = null;
+        }
         browseStartTime = null;
-        toggleBtn && (toggleBtn.style.display = 'none');
+        if (toggleBtn) toggleBtn.style.display = 'none';
       }
     
-      // Update progress (play/pause)
+      // update play/pause progress bar
       function updateProgress(data) {
         hideOffline();
-        nowPlayingBox?.classList.remove('offline');
+        if (nowPlayingBox) nowPlayingBox.classList.remove('offline');
         if (youtubeSection) youtubeSection.style.display = 'block';
-        if (data.duration != null && data.currentTime != null) {
+    
+        if (data.duration != null && data.currentTime != null && progressBarEl) {
           const pct = data.currentTime / data.duration * 100;
-          progressBarEl && (progressBarEl.style.width = pct + '%');
+          progressBarEl.style.width = pct + '%';
         }
-        liveIndicatorEl && liveIndicatorEl.classList.toggle('active', !!data.isLive);
-        pauseIndicatorEl && pauseIndicatorEl.classList.toggle('active', !!data.isPaused);
+        if (liveIndicatorEl) liveIndicatorEl.classList.toggle('active', !!data.isLive);
+        if (pauseIndicatorEl) pauseIndicatorEl.classList.toggle('active', !!data.isPaused);
       }
     
-      // Animate element class
+      // animate class replace
       function animateClass(el, cls) {
         if (!el || !el.parentNode) return el;
         const clone = el.cloneNode(true);
@@ -527,85 +547,107 @@
         return clone;
       }
     
-      // Display new video
+      // display new video
       function displayVideo(data) {
         log('displayVideo');
         hideOffline();
-        nowPlayingBox?.classList.remove('offline');
+        if (nowPlayingBox) nowPlayingBox.classList.remove('offline');
         currentVideoId = data.videoId;
-        bufferOverlay && (bufferOverlay.style.display = 'block');
+    
+        if (bufferOverlay) bufferOverlay.style.display = 'block';
         if (youtubeSection) youtubeSection.classList.add('fade-out');
     
         setTimeout(() => {
-          animateClass(videoTitleEl, 'new-video-title').textContent = data.title || '';
-          if (data.thumbnail) {
-            const thumb = animateClass(thumbnailEl, 'new-video-thumbnail');
-            thumb.src = data.thumbnail;
-            thumb.parentElement && (thumb.parentElement.style.display = 'block');
+          const newTitleEl = animateClass(videoTitleEl, 'new-video-title');
+          if (newTitleEl) newTitleEl.textContent = data.title || '';
+    
+          if (data.thumbnail && thumbnailEl) {
+            const newThumb = animateClass(thumbnailEl, 'new-video-thumbnail');
+            newThumb.src = data.thumbnail;
+            if (newThumb.parentElement) newThumb.parentElement.style.display = 'block';
           }
-          channelNameEl && (channelNameEl.textContent = data.channelTitle || '');
-          viewCountEl && (viewCountEl.textContent = formatNumber(data.viewCount));
-          likeCountEl && (likeCountEl.textContent = formatNumber(data.likeCount));
-          publishedDateEl && (publishedDateEl.textContent = data.publishedAt ? new Date(data.publishedAt).toLocaleDateString() : '');
-          categoryEl && (categoryEl.textContent = data.category || '');
-          descModal?.querySelector('p')?.textContent = data.description || '';
-          descModal && descModal.classList.remove('active');
+    
+          if (channelNameEl) channelNameEl.textContent = data.channelTitle || '';
+          if (viewCountEl) viewCountEl.textContent = formatNumber(data.viewCount);
+          if (likeCountEl) likeCountEl.textContent = formatNumber(data.likeCount);
+          if (publishedDateEl) publishedDateEl.textContent = data.publishedAt ?
+            new Date(data.publishedAt).toLocaleDateString() : '';
+          if (categoryEl) categoryEl.textContent = data.category || '';
+    
+          if (descModal) {
+            const p = descModal.querySelector('p');
+            if (p) p.textContent = data.description || '';
+            descModal.classList.remove('active');
+          }
+    
           if (youtubeSection) youtubeSection.classList.replace('fade-out','fade-in');
-          bufferOverlay && (bufferOverlay.style.display = 'none');
+          if (bufferOverlay) bufferOverlay.style.display = 'none';
+    
           // final progress update
           updateProgress(data);
         }, 300);
       }
     
-      // Display browsing
+      // display browsing presence
       function displayBrowse(data) {
         log('displayBrowse');
         hideOffline();
-        nowPlayingBox?.classList.remove('offline');
+        if (nowPlayingBox) nowPlayingBox.classList.remove('offline');
+    
         if (!browseStartTime) {
           browseStartTime = Date.now();
           browseInterval = setInterval(updateBrowseTime, 1000);
         }
-        animateClass(videoTitleEl, 'new-video-title').textContent = data.title || '';
-        if (data.thumbnail) {
-          thumbnailEl.src = data.thumbnail;
-          thumbnailEl.parentElement && (thumbnailEl.parentElement.style.display = 'block');
-        } else {
-          thumbnailEl.parentElement && (thumbnailEl.parentElement.style.display = 'none');
+    
+        const newTitleEl = animateClass(videoTitleEl, 'new-video-title');
+        if (newTitleEl) newTitleEl.textContent = data.title || '';
+    
+        if (thumbnailEl) {
+          if (data.thumbnail) {
+            thumbnailEl.src = data.thumbnail;
+            thumbnailEl.parentElement && (thumbnailEl.parentElement.style.display = 'block');
+          } else {
+            thumbnailEl.parentElement && (thumbnailEl.parentElement.style.display = 'none');
+          }
         }
+    
         updateBrowseTime();
         updateProgress({ duration:0, currentTime:0, isLive:false, isPaused:false });
       }
     
-      // Description toggle
-      toggleBtn && toggleBtn.addEventListener('click', e=>{
-        e.stopPropagation();
-        descModal?.classList.toggle('active');
-      });
-      document.addEventListener('click', e=>{
-        if (descModal?.classList.contains('active') && !descModal.contains(e.target)) {
-          descModal.classList.remove('active');
-        }
-      });
+      // toggle description modal
+      if (toggleBtn && descModal) {
+        toggleBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          descModal.classList.toggle('active');
+        });
     
-      // Socket.IO
+        document.addEventListener('click', e => {
+          if (descModal.classList.contains('active') && !descModal.contains(e.target)) {
+            descModal.classList.remove('active');
+          }
+        });
+      }
+    
+      // Socket.IO handler
       const socket = io();
       socket.on('presenceUpdate', data => {
-        if (data.presenceType === 'offline') return clearDisplay();
-        if (data.presenceType === 'video') {
-          if (data.videoId === currentVideoId) return updateProgress(data);
-          return displayVideo(data);
+        if (data.presenceType === 'offline') {
+          clearDisplay();
+        } else if (data.presenceType === 'video') {
+          if (data.videoId === currentVideoId) {
+            updateProgress(data);
+          } else {
+            displayVideo(data);
+          }
+        } else if (data.presenceType === 'browsing') {
+          displayBrowse(data);
+        } else {
+          clearDisplay();
         }
-        if (data.presenceType === 'browsing') return displayBrowse(data);
-        clearDisplay();
       });
     });
     </script>
-
-
-
-
-
 
 
     <script>
