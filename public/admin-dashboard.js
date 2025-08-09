@@ -1,111 +1,64 @@
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Admin dashboard script loaded.')
-  const cookieString = document.cookie
-  console.log('Current cookies:', cookieString)
-  const token = cookieString.split('; ').find(row => row.startsWith('token='))?.split('=')[1]
+  const token = document.cookie.split('; ').find(v => v.startsWith('token='))?.split('=')[1]
   if (!token) {
-    console.warn('No valid token found, redirecting to login page.')
     window.location.href = '/auth'
-  } else {
-    console.log('Valid token detected:', token)
-    const socket = io()
-    const ctx = document.getElementById('locationChart').getContext('2d')
-    const locationChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: [],
-        datasets: [{
-          label: 'Visitors by Country',
-          data: [],
-          backgroundColor: 'rgba(54, 162, 235, 0.6)',
-          borderColor: 'rgba(54, 162, 235, 1)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            beginAtZero: true
-          }
-        }
-      }
-    })
-    function updateChart(countryData) {
-      const countries = countryData.map(item => item._id || 'Unknown')
-      const visitCounts = countryData.map(item => item.count)
-      locationChart.data.labels = countries
-      locationChart.data.datasets[0].data = visitCounts
-      locationChart.update()
-    }
-    fetch('/api/geo-data')
-      .then(response => response.json())
-      .then(data => {
-        updateChart(data)
-      })
-      .catch(error => console.error('Error fetching initial geo data:', error))
-    socket.on('geoDataUpdate', (data) => {
-      console.log('Received geoDataUpdate:', data)
-      updateChart(data)
-    })
-    socket.on('activeUsersUpdate', (data) => {
-      console.log('Active users data received:', data)
-      document.getElementById('active-users-count').innerText = `Currently Active Users: ${data.users.length}`
-      const activeIpListElement = document.getElementById('active-ip-list')
-      activeIpListElement.innerHTML = ''
-      data.users.forEach(user => {
-        const ipItem = createIpItem(user)
-        activeIpListElement.appendChild(ipItem)
-      })
-    })
-    function createIpItem(user) {
-      const ipItem = document.createElement('li')
-      ipItem.classList.add('ip-item')
-      const connectionTypes = Array.from(user.connectionTypes).join(', ')
-      ipItem.innerText = `IP: ${user.ip}, Connection Types: ${connectionTypes}`
-      const blockButton = document.createElement('button')
-      blockButton.innerText = 'Block'
-      blockButton.onclick = () => blockUser(user.ip)
-      const unblockButton = document.createElement('button')
-      unblockButton.innerText = 'Unblock'
-      unblockButton.onclick = () => unblockUser(user.ip)
-      ipItem.appendChild(blockButton)
-      ipItem.appendChild(unblockButton)
-      return ipItem
-    }
-    function blockUser(ip) {
-      console.log(`Block button clicked for IP: ${ip}`)
-      socket.emit('blockUser', { ip }, (response) => {
-        console.log('Response from blocking user:', response)
-        if (response.status === 'success') {
-          alert(`User with IP ${ip} has been blocked.`)
-        } else {
-          alert(`Failed to block user: ${response.message}`)
-        }
-      })
-    }
-    function unblockUser(ip) {
-      console.log(`Unblock button clicked for IP: ${ip}`)
-      socket.emit('unblockUser', { ip }, (response) => {
-        console.log('Response from unblocking user:', response)
-        if (response.status === 'success') {
-          alert(`User with IP ${ip} has been unblocked.`)
-        } else {
-          alert(`Failed to unblock user: ${response.message}`)
-        }
-      })
-    }
-    document.getElementById('logout').addEventListener('click', () => {
-      console.log('Logout initiated.')
-      fetch('/logout', { method: 'POST', credentials: 'include' })
-        .then(() => {
-          console.log('Logout request successful, clearing token cookie.')
-          document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-          window.location.href = '/auth'
-        })
-        .catch(error => {
-          console.error('Logout failed:', error)
-        })
-    })
+    return
   }
+  const socket = io({ query: { connectionType: 'admin' } })
+  const chartEl = document.getElementById('locationChart')
+  const usersCountEl = document.getElementById('active-users-count')
+  const usersListEl = document.getElementById('active-ip-list')
+  const logoutBtn = document.getElementById('logout')
+  if (!chartEl || !usersCountEl || !usersListEl || !logoutBtn) return
+  const ctx = chartEl.getContext('2d')
+  const locationChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: [], datasets: [{ label: 'Visitors by Country', data: [], backgroundColor: 'rgba(54, 162, 235, 0.6)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 }] },
+    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+  })
+  function updateChart(countryData) {
+    const countries = countryData.map(i => i._id || 'Unknown')
+    const counts = countryData.map(i => i.count)
+    locationChart.data.labels = countries
+    locationChart.data.datasets[0].data = counts
+    locationChart.update()
+  }
+  fetch('/api/geo-data').then(r => r.json()).then(updateChart).catch(() => {})
+  socket.on('geoDataUpdate', updateChart)
+  socket.on('activeUsersUpdate', data => {
+    usersCountEl.innerText = `Currently Active Users: ${data.users.length}`
+    usersListEl.innerHTML = ''
+    data.users.forEach(user => {
+      const li = document.createElement('li')
+      li.classList.add('ip-item')
+      const types = Array.isArray(user.connectionTypes) ? user.connectionTypes.join(', ') : String(user.connectionTypes || '')
+      li.innerText = `IP: ${user.ip}, Connection Types: ${types}`
+      const blockBtn = document.createElement('button')
+      blockBtn.innerText = 'Block'
+      blockBtn.onclick = () => blockUser(user.ip)
+      const unblockBtn = document.createElement('button')
+      unblockBtn.innerText = 'Unblock'
+      unblockBtn.onclick = () => unblockUser(user.ip)
+      li.appendChild(blockBtn)
+      li.appendChild(unblockBtn)
+      usersListEl.appendChild(li)
+    })
+  })
+  function blockUser(ip) {
+    fetch('/api/block-user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip }) })
+      .then(r => r.json())
+      .then(res => { alert(res.status === 'success' ? `User with IP ${ip} has been blocked.` : `Failed to block user: ${res.message || 'Unknown error'}`) })
+      .catch(() => { alert('Failed to block user') })
+  }
+  function unblockUser(ip) {
+    fetch('/api/unblock-user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip }) })
+      .then(r => r.json())
+      .then(res => { alert(res.status === 'success' ? `User with IP ${ip} has been unblocked.` : `Failed to unblock user: ${res.message || 'Unknown error'}`) })
+      .catch(() => { alert('Failed to unblock user') })
+  }
+  logoutBtn.addEventListener('click', () => {
+    fetch('/logout', { method: 'POST', credentials: 'include' })
+      .then(() => { document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'; window.location.href = '/auth' })
+      .catch(() => {})
+  })
 })
