@@ -214,6 +214,48 @@
     </script>
 
     <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      const key = "lastVisitTimestamp"
+      const now = Date.now()
+      const lastVisit = localStorage.getItem(key)
+      
+      let message
+      if (lastVisit) {
+        const diffMs = now - parseInt(lastVisit, 10)
+        const diffSec = Math.floor(diffMs / 1000)
+        const diffMin = Math.floor(diffSec / 60)
+        const diffHr = Math.floor(diffMin / 60)
+        const diffDay = Math.floor(diffHr / 24)
+    
+        if (diffDay > 0) {
+          message = `Last visited ${diffDay} day${diffDay>1?'s':''} ago`
+        } else if (diffHr > 0) {
+          message = `Last visited ${diffHr} hour${diffHr>1?'s':''} ago`
+        } else if (diffMin > 0) {
+          message = `Last visited ${diffMin} minute${diffMin>1?'s':''} ago`
+        } else {
+          message = `Last visited just now`
+        }
+      } else {
+        message = "This is your first visit!"
+      }
+    
+      localStorage.setItem(key, now.toString())
+    
+      const footerContainer = document.querySelector(".footer .container")
+      if (footerContainer) {
+        const span = document.createElement("span")
+        span.style.display = "block"
+        span.style.marginTop = "4px"
+        span.style.opacity = "0.8"
+        span.textContent = message
+        footerContainer.appendChild(span)
+      }
+    })
+    </script>
+
+
+    <script>
     (function(){
       const cfg={name:"cookieConsent",days:365,path:"/",modalId:"consentModal",acceptId:"acceptConsent",declineId:"declineConsent",manageIds:["manageConsentFooter"],closeId:"closeConsentModal"}
       const modal=document.getElementById(cfg.modalId)
@@ -281,4 +323,5 @@ const z=io();z.on("connect",function(){D()}),z.on("disconnect",function(){M()}),
     </script>
   </body>
 </html>
+
 
