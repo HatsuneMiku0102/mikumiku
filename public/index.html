@@ -14,6 +14,24 @@
       .modal-description.active{opacity:1;transform:translate(-50%,-50%) scale(1);pointer-events:auto}
       body.modal-open{overflow:hidden}
       .modal-description h4{margin:0 0 .5rem 0}
+      .transition-layer{position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,198,255,.12),rgba(255,64,129,.12));backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:5}
+      .transition-layer.active{opacity:1;pointer-events:auto}
+      .youtube-section.entering .video-thumb,.youtube-section.entering .video-details{filter:blur(3px);transform:scale(.98);transition:all .25s ease}
+      .video-details .animate-in{opacity:0;transform:translateY(8px);animation:fadeInUp .5s ease forwards}
+      .video-details .animate-in.delay-1{animation-delay:.08s}
+      .video-details .animate-in.delay-2{animation-delay:.16s}
+      .video-details .animate-in.delay-3{animation-delay:.24s}
+      .video-details .animate-in.delay-4{animation-delay:.32s}
+      .video-thumb .thumb-img{opacity:0;transform:scale(.96);animation:popIn .45s ease forwards}
+      @keyframes fadeInUp{to{opacity:1;transform:translateY(0)}}
+      @keyframes popIn{to{opacity:1;transform:scale(1)}}
+      .skeleton{position:relative;overflow:hidden;background:rgba(255,255,255,.08);border-radius:8px}
+      .skeleton::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);animation:shimmer 1.1s infinite}
+      @keyframes shimmer{100%{transform:translateX(100%)}}
+      .skeleton.title{height:20px;width:70%}
+      .skeleton.line{height:12px;width:50%}
+      .progress-bar{position:relative;overflow:hidden}
+      .progress-bar #progressBar{transition:width .25s ease}
     </style>
   </head>
   <body>
@@ -102,19 +120,25 @@
               </div>
             </div>
             <div class="youtube-section" id="youtubeSection" style="position: relative;">
+              <div class="transition-layer" id="ytTransition"></div>
               <div class="video-thumb">
-                <img id="videoThumbnailImage" src="" alt="Thumbnail" loading="lazy"/>
+                <img id="videoThumbnailImage" class="thumb-img" src="" alt="Thumbnail" loading="lazy"/>
+                <div id="thumbSkeleton" class="skeleton" style="position:absolute;inset:0;display:none;"></div>
               </div>
               <div class="video-details">
-                <h3>Currently Playing</h3>
-                <p id="videoTitle">Loading…</p>
-                <div class="progress-bar"><div id="progressBar"></div></div>
-                <button id="toggleDescriptionButton">Show Description</button>
+                <h3 class="animate-in">Currently Playing</h3>
+                <p id="videoTitle" class="animate-in delay-1">Loading…</p>
+                <div class="progress-bar animate-in delay-2"><div id="progressBar"></div></div>
+                <div class="animate-in delay-3">
+                  <button id="toggleDescriptionButton"><i class="fas fa-info-circle"></i> Show Description</button>
+                </div>
                 <div id="backdrop" class="backdrop" aria-hidden="true"></div>
                 <div id="descriptionModal" class="modal-description" role="dialog" aria-modal="true" aria-labelledby="descriptionModalTitle" aria-describedby="descriptionModalDescription">
                   <h4 id="descriptionModalTitle">Description</h4>
                   <p id="descriptionModalDescription">Loading description…</p>
                 </div>
+                <div id="titleSkeleton" class="skeleton title" style="margin-top:.5rem;display:none;"></div>
+                <div id="lineSkeleton" class="skeleton line" style="margin-top:.5rem;display:none;"></div>
               </div>
               <div class="status-boxes">
                 <div id="liveIndicator" class="status-box live">Live</div>
@@ -141,7 +165,7 @@
       <div id="consentModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="consentModalTitle" aria-describedby="consentModalDescription">
         <div class="modal-content">
           <button class="close-button" id="closeConsentModal" aria-label="Close Consent Modal"><i class="fas fa-times"></i></button>
-          <h2 id="consentModalTitle"><i class="fas fa-cookie"></i> Cookie Consent</h2>
+          <h2 id="consentModalTitle"><i class="fas a-cookie"></i> Cookie Consent</h2>
           <p id="consentModalDescription">I use cookies stored in your browser to enhance your experience on my personal website. These cookies are essential for the website's functionality. By clicking "Accept," you consent to their use. You can also manage your cookie preferences in the "Manage Cookie Preferences" section.</p>
           <div class="consent-buttons">
             <button id="acceptConsent" class="consent-button"><i class="fas fa-check"></i> Accept</button>
@@ -184,14 +208,14 @@
     </script>
 
     <script>
-      document.addEventListener("DOMContentLoaded",function(){const e=document.getElementById("nowPlayingCard"),t=document.getElementById("youtubeSection"),n=document.getElementById("offline-indicator"),o=document.getElementById("videoTitle"),a=document.getElementById("videoThumbnailImage"),i=document.getElementById("channelName"),d=document.getElementById("viewCount"),l=document.getElementById("likeCount"),c=document.getElementById("publishedDate"),s=document.getElementById("videoCategory"),r=document.getElementById("progressBar"),m=document.getElementById("liveIndicator"),g=document.getElementById("pauseIndicator"),f=document.getElementById("descriptionModalDescription"),v=document.getElementById("toggleDescriptionButton");let h=null;let p=null;function y(e){return e==null?null:Number(e)}function u(e){return e===true||e==="true"||e===1||e==="1"}function w(e){if(!r)return;const t=u(e.isLive);if(t){r.style.width="100%";return}const n=y(e.duration),o=y(e.currentTime),a=y(e.percent);if(typeof n==="number"&&n>0&&typeof o==="number"&&o>=0){const e=Math.max(0,Math.min(100,(o/n)*100));r.style.width=e+"%";p=e}else if(typeof a==="number"&&!isNaN(a)){const e=Math.max(0,Math.min(100,a));r.style.width=e+"%";p=e}else if(p==null){r.style.width="0%"}}
-function S(e){const t=u(e.isLive),n=u(e.isPaused);m&&m.classList.toggle("active",t),g&&g.classList.toggle("active",n)}
-function E(){n&&n.classList.remove("visible"),e&&e.classList.remove("offline"),t&&(t.style.display="block")}
-function b(e){h=e.videoId||null,o&&(o.textContent=e.title||""),i&&(i.textContent=e.channelTitle||""),d&&(d.textContent=A(e.viewCount)),l&&(l.textContent=A(e.likeCount)),c&&(c.textContent=e.publishedAt?new Date(e.publishedAt).toLocaleDateString():c.textContent),s&&(s.textContent=e.category||""),f&&(f.textContent=e.description||""),a&&(e.thumbnail?(a.removeAttribute("loading"),a.src=e.thumbnail,a.style.display="block"):a.style.display=""),E(),w(e),S(e),v&&(v.style.display="block"),localStorage.setItem("currentVideoTitle",o?o.textContent:""),localStorage.setItem("currentVideoThumbnail",a&&a.src?a.src:""),localStorage.setItem("currentVideoChannel",i?i.textContent:""),localStorage.setItem("currentVideoViews",d?d.textContent:""),localStorage.setItem("currentVideoLikes",l?l.textContent:""),localStorage.setItem("currentVideoPublished",c?c.textContent:""),localStorage.setItem("currentVideoCategory",s?s.textContent:""),localStorage.setItem("currentVideoDescription",f?f.textContent:"")}
-function T(e){E(),w(e),S(e)}
-function A(e){if(typeof e==="string")e=e.replace(/,/g,"");const t=Number(e);return isNaN(t)?"N/A":t.toLocaleString()}
-function C(){n&&n.classList.add("visible"),e&&e.classList.add("offline")}
-const L=io();L.on("connect",function(){E()}),L.on("disconnect",function(){C()}),L.on("presenceUpdate",function(e){"offline"===e.presenceType?C():"video"===e.presenceType?(e.videoId===h?T(e):b(e)):"browsing"===e.presenceType?(o&&(o.textContent=e.title||o.textContent),a&&(e.thumbnail?(a.src=e.thumbnail,a.style.display="block"):a.style.display=""),E(),S({isLive:false,isPaused:false})):void 0});setTimeout(function(){if(!o||!o.textContent||o.textContent==="Loading…"){const e=localStorage.getItem("currentVideoTitle");if(e&&o)o.textContent=e}},0)});
+      document.addEventListener("DOMContentLoaded",function(){const e=document.getElementById("nowPlayingCard"),t=document.getElementById("youtubeSection"),n=document.getElementById("offline-indicator"),o=document.getElementById("videoTitle"),a=document.getElementById("videoThumbnailImage"),i=document.getElementById("thumbSkeleton"),d=document.getElementById("titleSkeleton"),l=document.getElementById("lineSkeleton"),c=document.getElementById("channelName"),s=document.getElementById("viewCount"),r=document.getElementById("likeCount"),m=document.getElementById("publishedDate"),g=document.getElementById("videoCategory"),f=document.getElementById("progressBar"),v=document.getElementById("liveIndicator"),h=document.getElementById("pauseIndicator"),p=document.getElementById("descriptionModalDescription"),y=document.getElementById("toggleDescriptionButton"),u=document.getElementById("ytTransition");let w=null;let S=null;function E(e){return e==null?null:Number(e)}function T(e){return e===true||e==="true"||e===1||e==="1"}function A(e){if(!f)return;const t=T(e.isLive);if(t){f.style.width="100%";return}const n=E(e.duration),o=E(e.currentTime),a=E(e.percent);if(typeof n==="number"&&n>0&&typeof o==="number"&&o>=0){const e=Math.max(0,Math.min(100,(o/n)*100));f.style.width=e+"%";S=e}else if(typeof a==="number"&&!isNaN(a)){const e=Math.max(0,Math.min(100,a));f.style.width=e+"%";S=e}else if(S==null){f.style.width="0%"}}
+function C(e){const t=T(e.isLive),n=T(e.isPaused);v&&v.classList.toggle("active",t),h&&h.classList.toggle("active",n)}
+function L(){n&&n.classList.remove("visible"),e&&e.classList.remove("offline"),t&&(t.style.display="block")}
+function N(e){w=e.videoId||null,o&&(o.textContent=e.title||""),c&&(c.textContent=e.channelTitle||""),s&&(s.textContent=O(e.viewCount)),r&&(r.textContent=O(e.likeCount)),m&&(m.textContent=e.publishedAt?new Date(e.publishedAt).toLocaleDateString():m.textContent),g&&(g.textContent=e.category||""),p&&(p.textContent=e.description||""),a&&(e.thumbnail?(a.removeAttribute("loading"),a.src=e.thumbnail,a.style.display="block"):a.style.display=""),L(),A(e),C(e),y&&(y.style.display="block"),localStorage.setItem("currentVideoTitle",o?o.textContent:""),localStorage.setItem("currentVideoThumbnail",a&&a.src?a.src:""),localStorage.setItem("currentVideoChannel",c?c.textContent:""),localStorage.setItem("currentVideoViews",s?s.textContent:""),localStorage.setItem("currentVideoLikes",r?r.textContent:""),localStorage.setItem("currentVideoPublished",m?m.textContent:""),localStorage.setItem("currentVideoCategory",g?g.textContent:""),localStorage.setItem("currentVideoDescription",p?p.textContent:""),a.classList.remove("thumb-img"),void a.offsetWidth,a.classList.add("thumb-img");const q=document.querySelectorAll(".video-details .animate-in");q.forEach(x=>{x.style.opacity="0";x.style.transform="translateY(8px)";void x.offsetWidth;x.classList.add("animate-in")})}
+function O(e){if(typeof e==="string")e=e.replace(/,/g,"");const t=Number(e);return isNaN(t)?"N/A":t.toLocaleString()}
+function D(){n&&n.classList.add("visible"),e&&e.classList.add("offline")}
+function P(e){t.classList.add("entering");u.classList.add("active");i.style.display="block";d.style.display="block";l.style.display="block";const n=new Image;const s=new Promise(r=>{n.onload=()=>r(true);n.onerror=()=>r(false);if(e.thumbnail)n.src=e.thumbnail});const o=new Promise(r=>setTimeout(()=>r(false),800));Promise.race([s,o]).then(()=>{N(e);setTimeout(()=>{u.classList.remove("active");t.classList.remove("entering");i.style.display="none";d.style.display="none";l.style.display="none"},180)})}
+const I=io();I.on("connect",function(){L()}),I.on("disconnect",function(){D()}),I.on("presenceUpdate",function(e){"offline"===e.presenceType?D():"video"===e.presenceType?(e.videoId===w?(L(),A(e),C(e)):P(e)):"browsing"===e.presenceType?(o&&(o.textContent=e.title||o.textContent),a&&(e.thumbnail?(a.src=e.thumbnail,a.style.display="block"):a.style.display=""),L(),C({isLive:false,isPaused:false})):void 0});setTimeout(function(){if(!o||!o.textContent||o.textContent==="Loading…"){const e=localStorage.getItem("currentVideoTitle");if(e&&o)o.textContent=e}},0)});
     </script>
   </body>
 </html>
