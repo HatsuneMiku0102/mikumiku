@@ -7,6 +7,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <link rel="stylesheet" href="/styles.css"/>
+    <style>
+      .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);opacity:0;visibility:hidden;transition:opacity .2s ease;z-index:1000}
+      .backdrop.active{opacity:1;visibility:visible}
+      .modal-description{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.98);max-width:640px;width:90%;background:#111;color:#fff;padding:1rem 1.25rem;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.5);z-index:1001;opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease}
+      .modal-description.active{opacity:1;transform:translate(-50%,-50%) scale(1);pointer-events:auto}
+      body.modal-open{overflow:hidden}
+      .modal-description h4{margin:0 0 .5rem 0}
+    </style>
   </head>
   <body>
     <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
@@ -56,7 +64,6 @@
           </div>
         </div>
       </header>
-
       <nav class="overlay-menu" id="overlayMenu">
         <button class="close-overlay" id="closeOverlay" aria-label="Close Menu">
           <i class="fas fa-times"></i>
@@ -71,7 +78,6 @@
           </div>
         </div>
       </nav>
-
       <section class="now-playing-container">
         <div class="now-playing-card" id="nowPlayingCard">
           <div class="now-playing-grid">
@@ -82,7 +88,6 @@
               <div class="info-item"><i class="fas fa-calendar-day"></i><span id="publishedDate">Loading…</span></div>
               <div class="info-item"><i class="fas fa-tag"></i><span id="videoCategory">Loading…</span></div>
             </div>
-
             <div class="time-info">
               <div class="greeting-container">
                 <p class="greeting"><i class="fas fa-sun"></i> <span id="greeting-text">Good Morning!</span></p>
@@ -96,7 +101,6 @@
                 </div>
               </div>
             </div>
-
             <div class="youtube-section" id="youtubeSection" style="position: relative;">
               <div class="video-thumb">
                 <img id="videoThumbnailImage" src="" alt="Thumbnail" loading="lazy"/>
@@ -106,7 +110,8 @@
                 <p id="videoTitle">Loading…</p>
                 <div class="progress-bar"><div id="progressBar"></div></div>
                 <button id="toggleDescriptionButton">Show Description</button>
-                <div id="descriptionModal" class="modal-description">
+                <div id="backdrop" class="backdrop" aria-hidden="true"></div>
+                <div id="descriptionModal" class="modal-description" role="dialog" aria-modal="true" aria-labelledby="descriptionModalTitle" aria-describedby="descriptionModalDescription">
                   <h4 id="descriptionModalTitle">Description</h4>
                   <p id="descriptionModalDescription">Loading description…</p>
                 </div>
@@ -116,7 +121,6 @@
                 <div id="pauseIndicator" class="status-box paused">Paused</div>
               </div>
             </div>
-
             <aside class="weather-info" style="grid-area: weatherSection;">
               <img id="weather-icon" src="" alt="Weather Icon" loading="lazy"/>
               <p id="weather-description">Loading…</p>
@@ -128,14 +132,12 @@
           <div id="offline-indicator" class="offline-indicator"><i class="fas fa-signal-slash"></i> Offline</div>
         </div>
       </section>
-
       <footer class="footer">
         <div class="container">
           <p>&copy; 2024 MikuMiku. All rights reserved.</p>
           <button id="manageConsentFooter" class="manage-consent-button"><i class="fas fa-cookie-bite"></i> Manage Cookie Preferences</button>
         </div>
       </footer>
-
       <div id="consentModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="consentModalTitle" aria-describedby="consentModalDescription">
         <div class="modal-content">
           <button class="close-button" id="closeConsentModal" aria-label="Close Consent Modal"><i class="fas fa-times"></i></button>
@@ -166,7 +168,7 @@
     </script>
 
     <script>
-      document.addEventListener("DOMContentLoaded",function(){const e=document.getElementById("toggleDescriptionButton"),t=document.getElementById("descriptionModal");if(localStorage.getItem("descriptionModalOpen")==="true"){t.classList.add("active"),e.innerHTML='<i class="fas fa-info-circle"></i> Hide Description'}else{t.classList.remove("active"),e.innerHTML='<i class="fas fa-info-circle"></i> Show Description'}e.addEventListener("click",function(){t.classList.contains("active")?(t.classList.remove("active"),e.innerHTML='<i class="fas fa-info-circle"></i> Show Description',localStorage.setItem("descriptionModalOpen","false")):(t.classList.add("active"),e.innerHTML='<i class="fas fa-info-circle"></i> Hide Description',localStorage.setItem("descriptionModalOpen","true"))})});
+      document.addEventListener("DOMContentLoaded",function(){const e=document.getElementById("toggleDescriptionButton"),t=document.getElementById("descriptionModal"),n=document.getElementById("backdrop");function o(){t.classList.add("active"),n.classList.add("active"),document.body.classList.add("modal-open"),localStorage.setItem("descriptionModalOpen","true")}function a(){t.classList.remove("active"),n.classList.remove("active"),document.body.classList.remove("modal-open"),localStorage.setItem("descriptionModalOpen","false")}if(localStorage.getItem("descriptionModalOpen")==="true"){o()}else{a()}e.addEventListener("click",function(){t.classList.contains("active")?a():o()});n.addEventListener("click",a);document.addEventListener("keydown",function(e){if(e.key==="Escape"&&t.classList.contains("active"))a()})});
     </script>
 
     <script>
