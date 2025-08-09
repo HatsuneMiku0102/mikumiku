@@ -7,45 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <link rel="stylesheet" href="/styles.css"/>
-    <style>
-      .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);opacity:0;visibility:hidden;transition:opacity .2s ease;z-index:1000}
-      .backdrop.active{opacity:1;visibility:visible}
-      .modal-description{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.98);max-width:640px;width:90%;background:#111;color:#fff;padding:1rem 1.25rem;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.5);z-index:1001;opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease}
-      .modal-description.active{opacity:1;transform:translate(-50%,-50%) scale(1);pointer-events:auto}
-      body.modal-open{overflow:hidden}
-      .modal-description h4{margin:0 0 .5rem 0}
-      .transition-layer{position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,198,255,.12),rgba(255,64,129,.12));backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:5}
-      .transition-layer.active{opacity:1;pointer-events:auto}
-      .youtube-section.entering .video-thumb,.youtube-section.entering .video-details{filter:blur(3px);transform:scale(.98);transition:all .25s ease}
-      .video-details .animate-in{opacity:0;transform:translateY(8px);animation:fadeInUp .5s ease forwards}
-      .video-details .animate-in.delay-1{animation-delay:.08s}
-      .video-details .animate-in.delay-2{animation-delay:.16s}
-      .video-details .animate-in.delay-3{animation-delay:.24s}
-      .video-details .animate-in.delay-4{animation-delay:.32s}
-      .video-thumb .thumb-img{opacity:0;transform:scale(.96);animation:popIn .45s ease forwards}
-      @keyframes fadeInUp{to{opacity:1;transform:translateY(0)}}
-      @keyframes popIn{to{opacity:1;transform:scale(1)}}
-      .skeleton{position:relative;overflow:hidden;background:rgba(255,255,255,.08);border-radius:8px}
-      .skeleton::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);animation:shimmer 1.1s infinite}
-      @keyframes shimmer{100%{transform:translateX(100%)}}
-      .skeleton.title{height:20px;width:70%}
-      .skeleton.line{height:12px;width:50%}
-      .progress-bar{position:relative;overflow:hidden}
-      .progress-bar #progressBar{transition:width .25s ease}
-      .history-wrap{margin-top:12px}
-      .history-header{display:flex;align-items:center;justify-content:space-between;gap:.5rem;font-weight:700;opacity:.9}
-      .history-actions{display:flex;align-items:center;gap:.5rem}
-      .history-more{display:inline-flex;align-items:center;gap:.4rem;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);border-radius:10px;padding:.35rem .6rem;font-size:.85rem;cursor:pointer}
-      .history-more:disabled{opacity:.5;cursor:not-allowed}
-      .history-scroller{margin-top:8px;display:grid;grid-auto-flow:column;grid-auto-columns:140px;gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
-      .hist-item{background:rgba(255,255,255,.06);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:transform .15s ease,background .15s ease}
-      .hist-item:hover{transform:translateY(-2px);background:rgba(255,255,255,.1)}
-      .hist-thumb{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px}
-      .hist-title{font-size:.8rem;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-      .hist-meta{font-size:.7rem;opacity:.7}
-      .history-modal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:.5rem;max-height:60vh;overflow:auto}
-      .history-modal-close{position:absolute;top:8px;right:10px;border:none;background:transparent;color:#fff;font-size:1.2rem;cursor:pointer}
-    </style>
   </head>
   <body>
     <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
@@ -95,6 +56,7 @@
           </div>
         </div>
       </header>
+
       <nav class="overlay-menu" id="overlayMenu">
         <button class="close-overlay" id="closeOverlay" aria-label="Close Menu">
           <i class="fas fa-times"></i>
@@ -109,6 +71,7 @@
           </div>
         </div>
       </nav>
+
       <section class="now-playing-container">
         <div class="now-playing-card" id="nowPlayingCard">
           <div class="now-playing-grid">
@@ -119,6 +82,7 @@
               <div class="info-item"><i class="fas fa-calendar-day"></i><span id="publishedDate">Loading…</span></div>
               <div class="info-item"><i class="fas fa-tag"></i><span id="videoCategory">Loading…</span></div>
             </div>
+
             <div class="time-info">
               <div class="greeting-container">
                 <p class="greeting"><i class="fas fa-sun"></i> <span id="greeting-text">Good Morning!</span></p>
@@ -132,7 +96,8 @@
                 </div>
               </div>
             </div>
-            <div class="youtube-section" id="youtubeSection" style="position: relative;">
+
+            <div class="youtube-section" id="youtubeSection">
               <div class="transition-layer" id="ytTransition"></div>
               <div class="video-thumb">
                 <img id="videoThumbnailImage" class="thumb-img" src="" alt="Thumbnail" loading="lazy"/>
@@ -158,13 +123,15 @@
                 <div id="pauseIndicator" class="status-box paused">Paused</div>
               </div>
             </div>
-            <aside class="weather-info" style="grid-area: weatherSection;">
+
+            <aside class="weather-info">
               <img id="weather-icon" src="" alt="Weather Icon" loading="lazy"/>
               <p id="weather-description">Loading…</p>
               <p id="temperature">--°C</p>
               <p id="humidity">Humidity: --%</p>
               <p id="wind-speed">Wind: -- m/s</p>
             </aside>
+
             <div class="history-wrap">
               <div class="history-header">
                 <div><i class="fas fa-clock"></i> Recent</div>
@@ -175,15 +142,18 @@
               <div id="historyScroller" class="history-scroller"></div>
             </div>
           </div>
+
           <div id="offline-indicator" class="offline-indicator"><i class="fas fa-signal-slash"></i> Offline</div>
         </div>
       </section>
+
       <footer class="footer">
         <div class="container">
           <p>&copy; 2024 MikuMiku. All rights reserved.</p>
           <button id="manageConsentFooter" class="manage-consent-button"><i class="fas fa-cookie-bite"></i> Manage Cookie Preferences</button>
         </div>
       </footer>
+
       <div id="consentModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="consentModalTitle" aria-describedby="consentModalDescription">
         <div class="modal-content">
           <button class="close-button" id="closeConsentModal" aria-label="Close Consent Modal"><i class="fas fa-times"></i></button>
