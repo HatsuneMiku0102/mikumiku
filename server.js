@@ -359,19 +359,44 @@ app.get('/api/location/:ip', async (req,res) => {
   catch { res.status(500).json({ error:'Failed to fetch geolocation data' }); }
 });
 
-app.post('/track-visitor', async (req,res) => {
-  const ip = getClientIp(req);
+app.post('/track-visitor', async (req, res) => {
+  const ip = getClientIp(req)
   try {
-    const location = await getGeoLocation(ip);
-    if (location && location.loc) {
-      const [latitude, longitude] = location.loc.split(',');
-      const visitorId = ip;
-      const info = `${location.city || 'Unknown City'}, ${location.country || 'Unknown Country'}`;
-      io.emit('visitorLocation', { id: visitorId, latitude: parseFloat(latitude), longitude: parseFloat(longitude), info });
+    const loc = await getGeoLocation(ip)
+    const city = loc.city || 'Unknown'
+    const region = loc.region || 'Unknown'
+    const country = loc.country || 'Unknown'
+
+    await GeoData.updateOne(
+      { ip },
+      { $set: { city, region, country }, $setOnInsert: { timestamp: new Date() } },
+      { upsert: true }
+    )
+
+    const byCountry = await GeoData.aggregate([
+      { $group: { _id: "$country", count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ])
+
+    io.emit("geoDataUpdate", byCountry)
+
+    if (loc && loc.loc) {
+      const [latitude, longitude] = loc.loc.split(',')
+      io.emit("visitorLocation", {
+        id: ip,
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
+        info: `${city}, ${country}`
+      })
     }
-    res.status(200).json({ success:true });
-  } catch (error) { res.status(500).json({ success:false, error: error.message }); }
-});
+
+    res.status(200).json({ success: true })
+  } catch (err) {
+    logger.error(`track-visitor failed for ${ip}: ${err.message}`)
+    res.status(500).json({ success: false })
+  }
+})
+
 
 const ipBanSchema = new mongoose.Schema({ ip: { type:String, required:true, unique:true }, blockedAt: { type:Date, default: Date.now } });
 const IPbans = mongoose.model('IPbans', ipBanSchema);
