@@ -214,8 +214,28 @@
     </script>
 
     <script>
-      (function(){const e={consentCookieName:"cookieConsent",consentCookieExpiryDays:365,consentCookiePath:"/",consentModalId:"consentModal",acceptButtonId:"acceptConsent",declineButtonId:"declineConsent",manageButtonIds:["manageConsentFooter"],closeButtonId:"closeConsentModal",cookieCategories:{necessary:{enabled:true,description:"Necessary cookies enable core functionalities and security features of the website."}},focusableSelectors:"button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])"};const t=document.getElementById(e.consentModalId),n=document.getElementById(e.acceptButtonId),o=document.getElementById(e.declineButtonId),a=document.getElementById(e.closeButtonId),c=e.manageButtonIds.map(e=>document.getElementById(e));function s(t,n,o,a){let c="";if(n){const e=new Date;e.setTime(e.getTime()+24*n*60*60*1e3),c="; expires="+e.toUTCString()}const s="https:"===location.protocol?"; Secure":"",l="; SameSite=Lax";document.cookie=t+"="+(o||"")+c+"; path="+a+s+l}function l(e){const t=e+"=",n=document.cookie.split(";");for(let e=0;e<n.length;e++){let o=n[e].trim();if(0===o.indexOf(t))return o.substring(t.length)}return null}function r(e){document.cookie=e+"=; Max-Age=-99999999; path=/;"}function d(e){const n=e.querySelectorAll(u),o=n.length?n[0]:null,a=n.length?n[n.length-1]:null;e.addEventListener("keydown",function(e){"Tab"===e.key&&(e.shiftKey?document.activeElement===o&&(e.preventDefault(),a.focus()):document.activeElement===a&&(e.preventDefault(),o.focus())),"Escape"===e.key&&e.preventDefault()})}function m(){t.classList.add("active"),document.body.classList.add("modal-active"),t.setAttribute("aria-hidden","false");const e=t.querySelectorAll(u);e.length&&e[0].focus(),d(t)}function g(){t.classList.remove("active"),document.body.classList.remove("modal-active"),t.setAttribute("aria-hidden","true")}function f(){const t=l(e.consentCookieName);t?v(t):m(),n&&n.addEventListener("click",function(){s(e.consentCookieName,JSON.stringify({necessary:true}),e.consentCookieExpiryDays,e.consentCookiePath),g(),h()}),o&&o.addEventListener("click",function(){s(e.consentCookieName,JSON.stringify({necessary:false}),e.consentCookieExpiryDays,e.consentCookiePath),g(),p()}),c.forEach(e=>{e&&e.addEventListener("click",function(e){e.preventDefault(),m()})}),a&&a.addEventListener("click",function(){alert("Please make a choice regarding cookie usage.")}),window.addEventListener("click",function(e){e.target===t&&alert("Please make a choice regarding cookie usage.")})}function v(t){try{const n=JSON.parse(t);n.necessary?h(n):p()}catch(e){m()}}function h(e){}function p(){}function y(){const t="test_cookie_consent";s(t,"test",1,"/");const n="test"===l(t);return r(t),n}document.addEventListener("DOMContentLoaded",function(){y()?f():console.warn("Cookies are disabled in this browser. Consent modal will not be displayed.")});const u=e.focusableSelectors})();
+    (function(){
+      const cfg={name:"cookieConsent",days:365,path:"/",modalId:"consentModal",acceptId:"acceptConsent",declineId:"declineConsent",manageIds:["manageConsentFooter"],closeId:"closeConsentModal"}
+      const modal=document.getElementById(cfg.modalId)
+      const btnAccept=document.getElementById(cfg.acceptId)
+      const btnDecline=document.getElementById(cfg.declineId)
+      const btnClose=document.getElementById(cfg.closeId)
+      const manageBtns=cfg.manageIds.map(id=>document.getElementById(id)).filter(Boolean)
+      function setCookie(name,value,days,path){let exp="";if(typeof days==="number"&&isFinite(days)){const d=new Date();d.setTime(d.getTime()+days*24*60*60*1000);exp="; expires="+d.toUTCString()}const sec=location.protocol==="https:"?"; Secure":"";document.cookie=name+"="+encodeURIComponent(value)+exp+"; path="+(path||"/")+"; SameSite=Lax"+sec}
+      function getCookie(name){const n=name+"=";const arr=document.cookie.split(";");for(let i=0;i<arr.length;i++){let c=arr[i].trim();if(c.indexOf(n)===0)return decodeURIComponent(c.substring(n.length))}return null}
+      function openModal(){if(!modal)return;modal.classList.add("active");document.body.classList.add("modal-active");modal.setAttribute("aria-hidden","false")}
+      function closeModal(){if(!modal)return;modal.classList.remove("active");document.body.classList.remove("modal-active");modal.setAttribute("aria-hidden","true")}
+      function init(){const existing=getCookie(cfg.name);if(!existing){openModal()}manageBtns.forEach(b=>b.addEventListener("click",e=>{e.preventDefault();openModal()}))
+        if(btnAccept)btnAccept.addEventListener("click",function(){setCookie(cfg.name,JSON.stringify({necessary:true}),cfg.days,cfg.path);closeModal()})
+        if(btnDecline)btnDecline.addEventListener("click",function(){setCookie(cfg.name,JSON.stringify({necessary:false}),cfg.days,cfg.path);closeModal()})
+        if(btnClose)btnClose.addEventListener("click",function(){closeModal()})
+        window.addEventListener("click",function(e){if(e.target===modal)closeModal()})
+        document.addEventListener("keydown",function(e){if(e.key==="Escape"&&modal.classList.contains("active"))closeModal()})
+      }
+      document.addEventListener("DOMContentLoaded",init)
+    })();
     </script>
+
 
     <script>
       document.addEventListener("DOMContentLoaded",function(){const e=localStorage.getItem("currentVideoTitle"),t=localStorage.getItem("currentVideoThumbnail");if(e){const t=document.getElementById("videoTitle");t&&(t.textContent=e)}if(t){const e=document.getElementById("videoThumbnailImage");e&&(e.src=t,e.style.display="block")}const n=localStorage.getItem("currentVideoChannel"),o=localStorage.getItem("currentVideoViews"),a=localStorage.getItem("currentVideoLikes"),i=localStorage.getItem("currentVideoPublished"),d=localStorage.getItem("currentVideoCategory"),l=localStorage.getItem("currentVideoDescription"),c=document.getElementById("channelName"),s=document.getElementById("viewCount"),r=document.getElementById("likeCount"),m=document.getElementById("publishedDate"),g=document.getElementById("videoCategory"),f=document.getElementById("descriptionModalDescription");c&&n&&(c.textContent=n),s&&o&&(s.textContent=o),r&&a&&(r.textContent=a),m&&i&&(m.textContent=i),g&&d&&(g.textContent=d),f&&l&&(f.textContent=l)});
@@ -261,3 +281,4 @@ const z=io();z.on("connect",function(){D()}),z.on("disconnect",function(){M()}),
     </script>
   </body>
 </html>
+
