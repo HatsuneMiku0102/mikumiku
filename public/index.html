@@ -266,7 +266,7 @@
         function getCookie(name){const n=name+"=";const arr=document.cookie.split(";");for(let i=0;i<arr.length;i++){let c=arr[i].trim();if(c.indexOf(n)===0)return decodeURIComponent(c.substring(n.length))}return null}
         function openModal(){if(!modal)return;modal.classList.add("active");document.body.classList.add("modal-active");modal.setAttribute("aria-hidden","false")}
         function closeModal(){if(!modal)return;modal.classList.remove("active");document.body.classList.remove("modal-active");modal.setAttribute("aria-hidden","true")}
-        function init(){const existing=getCookie(cfg.name);if(!existing){openModal()}manageBtns.forEach(b=>b.addEventListener("click",e=>{e.preventDefault();openModal()}))
+        function init(){const existing=getCookie(cfg.name);if(!existing){openModal()}manageBtns.forEach(b=>b.addEventListener("click",e=>b&&e.preventDefault()===undefined?undefined:openModal()))
           if(btnAccept)btnAccept.addEventListener("click",function(){setCookie(cfg.name,JSON.stringify({necessary:true}),cfg.days,cfg.path);closeModal()})
           if(btnDecline)btnDecline.addEventListener("click",function(){setCookie(cfg.name,JSON.stringify({necessary:false}),cfg.days,cfg.path);closeModal()})
           if(btnClose)btnClose.addEventListener("click",function(){closeModal()})
@@ -573,15 +573,18 @@
           if(e.presenceType==="offline"){scheduleOffline();return}
           cancelOffline()
           if(e.presenceType==="video"){
-            const live = e.isLive===undefined ? true : truthy(e.isLive)
+            const live=e.isLive!==undefined?truthy(e.isLive):true
+            statsFromSocket=live
             if(live){
-              statsFromSocket=true
-              if(e.videoId && e.videoId!==countedVideoId){bumpPlay(e);countedVideoId=e.videoId}
-            }else{
-              statsFromSocket=false
+              if(e.videoId&&e.videoId!==countedVideoId){bumpPlay(e);countedVideoId=e.videoId}
             }
-            if(e.videoId===currentVideoId){renderProgress(e);renderState(e)}
-            else{showIncoming(e);scheduleCounts()}
+            if(e.videoId===currentVideoId){
+              renderProgress({...e,isLive:live})
+              renderState({isLive:live,isPaused:e.isPaused})
+            }else{
+              showIncoming({...e,isLive:live})
+              scheduleCounts()
+            }
           }else if(e.presenceType==="browsing"){
             statsFromSocket=false
             if(titleEl)titleEl.textContent=e.title||titleEl.textContent
@@ -599,7 +602,7 @@
         document.addEventListener("keydown",function(e){if(e.key==="Escape"&&histModal.classList.contains("active"))toggleHist(false)})
 
         setInterval(function(){
-          if(statsFromSocket && isLiveNow && !isPaused){
+          if(statsFromSocket&&isLiveNow&&!isPaused){
             const key="stats"
             const st=JSON.parse(localStorage.getItem(key)||'{"totalPlays":0,"totalSeconds":0,"channels":{},"videos":{}}')
             st.totalSeconds+=1
