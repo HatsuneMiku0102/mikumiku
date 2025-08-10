@@ -415,11 +415,10 @@
         const hoverArea=document.getElementById("progressHover")
         const openStats=document.getElementById("openStats")
         const statsModal=document.getElementById("statsModal")
-        const mainBackdrop=document.getElementById("backdrop")
         const idleOverlay=document.getElementById("idleOverlay")
         const idleOrbs=document.getElementById("idleOrbs")
         const konami=document.getElementById("konamiBox")
-
+    
         let currentVideoId=null
         let countedVideoId=null
         let statsTickTimer=null
@@ -429,13 +428,20 @@
         let isLiveNow=false
         let currentDuration=0
         let currentTime=0
-        let statsFromSocket=false
+        let isPlaying=false
         const OFFLINE_DELAY=2000
         const IDLE_AFTER=20000
-
+    
+        function ensureStats(){
+          if(!localStorage.getItem("stats")){
+            localStorage.setItem("stats",'{"totalPlays":0,"totalSeconds":0,"channels":{},"videos":{}}')
+          }
+        }
+        ensureStats()
+    
         function num(v){return v==null?null:Number(v)}
         function truthy(v){return v===true||v==="true"||v===1||v==="1"}
-
+    
         function renderProgress(e){
           if(!bar)return
           const live=truthy(e.isLive)
@@ -448,7 +454,7 @@
             const w=Math.max(0,Math.min(100,pct))
             bar.style.width=w+"%";MPp.style.width=w+"%"}
         }
-
+    
         function renderState(e){
           const live=truthy(e.isLive)
           const paused=truthy(e.isPaused)
@@ -456,15 +462,16 @@
           pauseEl.classList.toggle("active",paused)
           isPaused=paused
           isLiveNow=live
+          isPlaying=!paused
         }
-
+    
         function goOnline(){if(offline)offline.classList.remove("visible");if(card)card.classList.remove("offline");if(section)section.style.display="block"}
         function goOffline(){if(offline)offline.classList.add("visible");if(card)card.classList.add("offline")}
         function scheduleOffline(){clearTimeout(offlineTimer);offlineTimer=setTimeout(goOffline,OFFLINE_DELAY)}
         function cancelOffline(){clearTimeout(offlineTimer);offlineTimer=null;goOnline()}
-
+    
         function numberFmt(e){if(typeof e==="string")e=e.replace(/,/g,"");const n=Number(e);return isNaN(n)?"N/A":n.toLocaleString()}
-
+    
         function fill(e){
           currentVideoId=e.videoId||null
           if(titleEl)titleEl.textContent=e.title||""
@@ -492,12 +499,12 @@
           animateDetails()
           saveHistory(e)
         }
-
+    
         function animateDetails(){
           const els=document.querySelectorAll(".video-details .animate-in")
           els.forEach(x=>{x.classList.remove("active");void x.offsetWidth;x.classList.add("fade-enter","active")})
         }
-
+    
         function showIncoming(e){
           section.classList.add("entering")
           trans.classList.add("active")
@@ -509,7 +516,7 @@
           const p2=new Promise(res=>setTimeout(()=>res(false),800))
           Promise.race([p1,p2]).then(()=>{fill(e);setTimeout(()=>{trans.classList.remove("active");section.classList.remove("entering");skThumb.style.display="none";skTitle.style.display="none";skLine.style.display="none"},180)})
         }
-
+    
         function readHist(){const raw=localStorage.getItem("npHistory");try{return raw?JSON.parse(raw):[]}catch{return[]}}
         function saveHistory(e){
           const arr=readHist().filter(x=>x.videoId!==e.videoId)
@@ -518,7 +525,7 @@
           localStorage.setItem("npHistory",JSON.stringify(out))
           renderHist(out)
         }
-
+    
         function histItem(e){
           const t=document.createElement("div");t.className="hist-item";t.dataset.videoId=e.videoId
           const n=document.createElement("img");n.className="hist-thumb";n.src=e.thumbnail||""
@@ -533,7 +540,7 @@
           })
           return t
         }
-
+    
         function renderHist(arr){
           scroller.innerHTML=""
           const head=arr.slice(0,3);head.forEach(n=>scroller.appendChild(histItem(n)))
@@ -541,13 +548,13 @@
           histGrid.innerHTML=""
           const rest=arr.slice(3);rest.forEach(o=>histGrid.appendChild(histItem(o)))
         }
-
+    
         function initHist(){renderHist(readHist())}
         function toggleHist(open=true){
           if(open){backdrop.classList.add("active");histModal.classList.add("active");document.body.classList.add("modal-open")}
           else{backdrop.classList.remove("active");histModal.classList.remove("active");document.body.classList.remove("modal-open")}
         }
-
+    
         async function refreshLiveCounts(){
           if(!currentVideoId)return
           if(!liveEl.classList.contains("active"))return
@@ -559,60 +566,61 @@
             if(typeof data.likeCount!=="undefined"&&likesEl)likesEl.textContent=numberFmt(data.likeCount)
           }catch{}
         }
-
+    
         function scheduleCounts(){
           if(statsTickTimer){clearInterval(statsTickTimer);statsTickTimer=null}
           if(liveEl.classList.contains("active")){statsTickTimer=setInterval(refreshLiveCounts,10000)}
         }
-
+    
         const socket=io()
         socket.on("connect",function(){cancelOffline()})
-        socket.on("disconnect",function(){scheduleOffline()})
+        socket.on("disconnect",function(){scheduleOffline();isPlaying=false})
         socket.on("presenceUpdate",function(e){
           lastPresenceTs=Date.now()
-          if(e.presenceType==="offline"){scheduleOffline();return}
+          if(e.presenceType==="offline"){scheduleOffline();isPlaying=false;return}
           cancelOffline()
           if(e.presenceType==="video"){
-            const live=e.isLive!==undefined?truthy(e.isLive):true
-            statsFromSocket=live
-            if(live){
-              if(e.videoId&&e.videoId!==countedVideoId){bumpPlay(e);countedVideoId=e.videoId}
-            }
+            const live=e.isLive!==undefined?truthy(e.isLive):false
+            const paused=e.isPaused!==undefined?truthy(e.isPaused):false
+            if(e.videoId&&e.videoId!==countedVideoId){bumpPlay(e);countedVideoId=e.videoId}
             if(e.videoId===currentVideoId){
               renderProgress({...e,isLive:live})
-              renderState({isLive:live,isPaused:e.isPaused})
+              renderState({isLive:live,isPaused:paused})
             }else{
-              showIncoming({...e,isLive:live})
+              showIncoming({...e,isLive:live,isPaused:paused})
               scheduleCounts()
             }
+            isPlaying=!paused
           }else if(e.presenceType==="browsing"){
-            statsFromSocket=false
+            isPlaying=false
             if(titleEl)titleEl.textContent=e.title||titleEl.textContent
             if(thumb){if(e.thumbnail){thumb.src=e.thumbnail;thumb.style.display="block"}else thumb.style.display=""}
             renderState({isLive:false,isPaused:false})
           }
         })
-
+    
         setTimeout(function(){if(!titleEl||!titleEl.textContent||titleEl.textContent==="Loading…"){const t=localStorage.getItem("currentVideoTitle");if(t&&titleEl)titleEl.textContent=t}},0)
-
+    
         initHist()
         moreBtn.addEventListener("click",function(){toggleHist(true)})
         backdrop.addEventListener("click",function(){toggleHist(false)})
         closeHist.addEventListener("click",function(){toggleHist(false)})
         document.addEventListener("keydown",function(e){if(e.key==="Escape"&&histModal.classList.contains("active"))toggleHist(false)})
-
+    
         setInterval(function(){
-          if(statsFromSocket&&isLiveNow&&!isPaused){
+          if(isPlaying){
+            ensureStats()
             const key="stats"
-            const st=JSON.parse(localStorage.getItem(key)||'{"totalPlays":0,"totalSeconds":0,"channels":{},"videos":{}}')
+            const st=JSON.parse(localStorage.getItem(key))
             st.totalSeconds+=1
             localStorage.setItem(key,JSON.stringify(st))
           }
         },1000)
-
+    
         function bumpPlay(e){
+          ensureStats()
           const key="stats"
-          const st=JSON.parse(localStorage.getItem(key)||'{"totalPlays":0,"totalSeconds":0,"channels":{},"videos":{}}')
+          const st=JSON.parse(localStorage.getItem(key))
           st.totalPlays+=1
           const ch=e.channelTitle||"Unknown"
           st.channels[ch]=(st.channels[ch]||0)+1
@@ -621,10 +629,11 @@
           st.videos[vid].count+=1
           localStorage.setItem(key,JSON.stringify(st))
         }
-
+    
         function renderStats(){
+          ensureStats()
           const key="stats"
-          const st=JSON.parse(localStorage.getItem(key)||'{"totalPlays":0,"totalSeconds":0,"channels":{},"videos":{}}')
+          const st=JSON.parse(localStorage.getItem(key))
           document.getElementById("statTotal").textContent=st.totalPlays.toLocaleString()
           const mins=Math.floor(st.totalSeconds/60)
           const hrs=Math.floor(mins/60)
@@ -640,17 +649,17 @@
           tv.innerHTML=""
           topV.forEach(([id,obj])=>{const it=document.createElement("div");it.className="top-item";const l=document.createElement("div");l.textContent=obj.title;const r=document.createElement("div");r.textContent=obj.count;it.appendChild(l);it.appendChild(r);tv.appendChild(it)})
         }
-
+    
         openStats.addEventListener("click",function(){statsModal.classList.add("active");document.getElementById("backdrop").classList.add("active");document.body.classList.add("modal-open");renderStats()})
         document.getElementById("backdrop").addEventListener("click",function(){statsModal.classList.remove("active");document.getElementById("backdrop").classList.remove("active");document.body.classList.remove("modal-open")})
-
+    
         const obs=new IntersectionObserver(entries=>{entries.forEach(ent=>{MP.classList.toggle("active",!ent.isIntersecting)})},{threshold:0})
         obs.observe(section)
         MPclose.addEventListener("click",()=>{MP.classList.remove("active")})
-        MPplay.addEventListener("click",()=>{isPaused=!isPaused;pauseEl.classList.toggle("active",isPaused);MPplay.innerHTML=isPaused?'<i class="fas fa-play"></i>':'<i class="fas fa-pause"></i>'})
-
+        MPplay.addEventListener("click",()=>{isPaused=!isPaused;pauseEl.classList.toggle("active",isPaused);MPplay.innerHTML=isPaused?'<i class="fas fa-play"></i>':'<i class="fas fa-pause"></i>';isPlaying=!isPaused})
+    
         function fmt(sec){sec=Math.max(0,Math.floor(sec));const m=Math.floor(sec/60);const s=sec%60;return m+":"+(s<10?"0":"")+s}
-
+    
         let hoverTip=null
         function ensureHoverTip(){
           if(hoverTip)return hoverTip
@@ -670,7 +679,7 @@
           hoverTip={wrap:tip,img,time}
           return hoverTip
         }
-
+    
         function onSeekMove(ev){
           if(!currentDuration||currentDuration<=0){if(hoverTip)hoverTip.wrap.style.display="none";return}
           const rect=hoverArea.getBoundingClientRect()
@@ -687,17 +696,17 @@
           if(thumb&&thumb.src)tip.img.src=thumb.src
           tip.time.textContent=fmt(t)
         }
-
+    
         function onSeekLeave(){if(hoverTip)hoverTip.wrap.style.display="none"}
-
+    
         hoverArea.addEventListener("mousemove",onSeekMove)
         hoverArea.addEventListener("mouseleave",onSeekLeave)
-
-        let idleInt=setInterval(function(){
+    
+        setInterval(function(){
           const idle=Date.now()-lastPresenceTs>IDLE_AFTER && !liveEl.classList.contains("active") && !thumb.src
           idleOverlay.classList.toggle("active",idle)
         },1000)
-
+    
         function seedOrbs(){
           idleOrbs.innerHTML=""
           for(let i=0;i<24;i++){
@@ -711,7 +720,7 @@
           }
         }
         seedOrbs()
-
+    
         const code=[38,38,40,40,37,39,37,39,66,65];let pos=0
         window.addEventListener("keydown",function(e){
           if(e.keyCode===code[pos]){pos++;if(pos===code.length){konami.classList.add("active");setTimeout(()=>konami.classList.remove("active"),3000);pos=0}}
@@ -719,6 +728,7 @@
         })
       });
     </script>
+
 
     <script>
       document.addEventListener("DOMContentLoaded",function(){
@@ -769,3 +779,4 @@
     </script>
   </body>
 </html>
+
