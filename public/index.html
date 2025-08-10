@@ -431,6 +431,7 @@
         let isPlaying=false
         const OFFLINE_DELAY=2000
         const IDLE_AFTER=20000
+        const PLAY_COOLDOWN_MS=300000
     
         function ensureStats(){
           if(!localStorage.getItem("stats")){
@@ -572,6 +573,17 @@
           if(liveEl.classList.contains("active")){statsTickTimer=setInterval(refreshLiveCounts,10000)}
         }
     
+        function shouldCountPlay(e){
+          const id=e.videoId||e.title||""
+          if(!id)return false
+          const map=JSON.parse(localStorage.getItem("playSeen")||"{}")
+          const last=map[id]||0
+          const now=Date.now()
+          const ok=now-last>PLAY_COOLDOWN_MS
+          if(ok){map[id]=now;localStorage.setItem("playSeen",JSON.stringify(map))}
+          return ok
+        }
+    
         const socket=io()
         socket.on("connect",function(){cancelOffline()})
         socket.on("disconnect",function(){scheduleOffline();isPlaying=false})
@@ -582,7 +594,7 @@
           if(e.presenceType==="video"){
             const live=e.isLive!==undefined?truthy(e.isLive):false
             const paused=e.isPaused!==undefined?truthy(e.isPaused):false
-            if(e.videoId&&e.videoId!==countedVideoId){bumpPlay(e);countedVideoId=e.videoId}
+            if(e.videoId&&e.videoId!==countedVideoId&&shouldCountPlay(e)){bumpPlay(e);countedVideoId=e.videoId}
             if(e.videoId===currentVideoId){
               renderProgress({...e,isLive:live})
               renderState({isLive:live,isPaused:paused})
@@ -730,6 +742,7 @@
     </script>
 
 
+
     <script>
       document.addEventListener("DOMContentLoaded",function(){
         const canvas=document.getElementById("soundWaveCanvas");if(!canvas)return
@@ -779,4 +792,5 @@
     </script>
   </body>
 </html>
+
 
