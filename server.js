@@ -481,17 +481,17 @@ app.use(async (req, res, next) => {
 
 
 const ORIGIN = "http://us-nyc-02.wisp.uno:8282";
-const oauthProxy = createProxyMiddleware({
+app.use("/oauth", createProxyMiddleware({
   target: ORIGIN,
   changeOrigin: true,
   xfwd: true,
   secure: false,
   ws: true,
   proxyTimeout: 30000,
-  timeout: 30000,
-  logLevel: "warn"
-});
-app.use("/oauth", oauthProxy);
+  timeout: 30000
+}));
+app.use(express.static(path.join(__dirname, "public"), { redirect: false }));
+
 
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
