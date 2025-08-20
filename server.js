@@ -440,8 +440,7 @@ app.post('/api/videos', verifyToken, [body('url').isURL().withMessage('Invalid U
   catch { res.status(500).json({ error: 'Error saving video metadata' }); }
 });
 
-const configuration = new Configuration({ apiKey: process.env.OPENAI_API_KEY });
-const openai = new OpenAIApi(configuration);
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const sessions = {};
 const openAICallLimiter = rateLimit({ windowMs: 60 * 1000, max: 60, message: { error: 'Too many requests, please try again later.' }, standardHeaders: true, legacyHeaders: false });
 
