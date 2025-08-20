@@ -480,7 +480,7 @@ app.use(async (req, res, next) => {
 });
 
 
-const ORIGIN = "http://us-nyc-02.wisp.uno:8282";
+const ORIGIN = "http://us-nyc02.pylex.xyz:8282";
 app.use("/oauth", createProxyMiddleware({
   target: ORIGIN,
   changeOrigin: true,
