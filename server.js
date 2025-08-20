@@ -480,7 +480,7 @@ app.use(async (req, res, next) => {
 });
 
 
-const ORIGIN = "http://us-nyc02.pylex.xyz:8282";
+const ORIGIN = "http://us-nyc-02.wisp.uno:8282";
 app.use("/oauth", createProxyMiddleware({
   target: ORIGIN,
   changeOrigin: true,
@@ -488,9 +488,12 @@ app.use("/oauth", createProxyMiddleware({
   secure: false,
   ws: true,
   proxyTimeout: 30000,
-  timeout: 30000
+  timeout: 30000,
+  logLevel: "debug",
+  onProxyReq(_, req) { console.log(`[oauth-proxy] -> ${req.method} ${req.originalUrl}`); },
+  onProxyRes(res, req) { console.log(`[oauth-proxy] <- ${res.statusCode} ${req.originalUrl}`); },
+  onError(err, req, res) { console.error(`[oauth-proxy] error: ${err.code||err.message}`); res.status(502).send("Bad gateway"); }
 }));
-app.use(express.static(path.join(__dirname, "public"), { redirect: false }));
 
 
 
