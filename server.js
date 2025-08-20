@@ -490,9 +490,9 @@ app.use("/oauth", createProxyMiddleware({
   proxyTimeout: 30000,
   timeout: 30000,
   logLevel: "debug",
-  onProxyReq(_, req) { console.log(`[oauth-proxy] -> ${req.method} ${req.originalUrl}`); },
-  onProxyRes(res, req) { console.log(`[oauth-proxy] <- ${res.statusCode} ${req.originalUrl}`); },
-  onError(err, req, res) { console.error(`[oauth-proxy] error: ${err.code||err.message}`); res.status(502).send("Bad gateway"); }
+  onProxyReq(_, req){ console.log(`[oauth-proxy] -> ${req.method} ${req.originalUrl}`) },
+  onProxyRes(res, req){ console.log(`[oauth-proxy] <- ${res.statusCode} ${req.originalUrl}`) },
+  onError(err, req, res){ console.error(`[oauth-proxy] error: ${err.code||err.message}`); res.status(502).send("Bad gateway") }
 }));
 
 
