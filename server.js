@@ -481,18 +481,30 @@ app.use(async (req, res, next) => {
 
 
 const ORIGIN = "http://us-nyc-02.wisp.uno:8282";
+
 app.use("/oauth", createProxyMiddleware({
   target: ORIGIN,
   changeOrigin: true,
   xfwd: true,
-  secure: false,
+  secure: false,      // http target
   ws: true,
-  proxyTimeout: 30000,
-  timeout: 30000,
-  logLevel: "debug",
-  onProxyReq(_, req){ console.log(`[oauth-proxy] -> ${req.method} ${req.originalUrl}`) },
-  onProxyRes(res, req){ console.log(`[oauth-proxy] <- ${res.statusCode} ${req.originalUrl}`) },
-  onError(err, req, res){ console.error(`[oauth-proxy] error: ${err.code||err.message}`); res.status(502).send("Bad gateway") }
+  proxyTimeout: 45000,
+  timeout: 45000,
+  onProxyReq(proxyReq, req, res) {
+    // If body was already parsed by body-parser, re-stream it
+    if (!req.body || !Object.keys(req.body).length) return;
+    const ct = proxyReq.getHeader('Content-Type') || '';
+    let bodyData;
+    if (ct.includes('application/json')) {
+      bodyData = JSON.stringify(req.body);
+    } else if (ct.includes('application/x-www-form-urlencoded')) {
+      bodyData = new URLSearchParams(req.body).toString();
+    }
+    if (bodyData) {
+      proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+      proxyReq.write(bodyData);
+    }
+  }
 }));
 
 
