@@ -1,0 +1,25 @@
+from flask import Flask, request, redirect, abort
+import urllib.parse
+
+APP = Flask(__name__)
+
+BLIZZARD_CLIENT_ID = "5263abec98844e65a65295d8fee46f91"
+REDIRECT_URI = "https://mikumiku.dev/oauth/callback"
+OAUTH_AUTHORIZE = "https://oauth.battle.net/authorize"
+
+@APP.get("/oauth/login")
+def oauth_login():
+    state = request.args.get("state", "")
+    if not state:
+        abort(400)
+    q = {
+        "client_id": BLIZZARD_CLIENT_ID,
+        "scope": "openid wow.profile",
+        "redirect_uri": REDIRECT_URI,
+        "response_type": "code",
+        "state": state
+    }
+    return redirect(f"{OAUTH_AUTHORIZE}?{urllib.parse.urlencode(q)}", code=302)
+
+if __name__ == "__main__":
+    APP.run(host="0.0.0.0", port=8080)
