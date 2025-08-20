@@ -261,33 +261,6 @@ async function getAccurateGeoLocation(ip) {
 const loginLimiter = rateLimit({ windowMs: 15*60*1000, max: 5, message: 'Too many login attempts from this IP, please try again after 15 minutes' });
 
 
-const ORIGIN = "https://us-nyc-02.wisp.uno:8282";
-
-
-
-app.use("/oauth", createProxyMiddleware({
-  target: ORIGIN,
-  changeOrigin: true,
-  xfwd: true,
-  secure: true,
-  ws: true,
-  logLevel: "warn",
-  pathRewrite: (path) => path
-}));
-
-app.get("/health", (_req, res) => res.json({ ok: true }));
-
-// oauth intake route for bot to catch codes
-app.post("/oauth/intake", (req, res) => {
-  console.log("Got code:", req.body.code, "state:", req.body.state);
-  // TODO: forward to your Discord bot logic
-  res.json({ ok: true });
-});
-
-// example callback (if you want to show confirmation in browser)
-app.get("/oauth/callback", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/oauth/callback/index.html"));
-});
 
 
 
@@ -660,6 +633,34 @@ app.use(async (req,res,next) => {
     }
   } catch {}
   next();
+});
+
+
+
+const ORIGIN = "https://us-nyc-02.wisp.uno:8282";
+
+app.use("/oauth", createProxyMiddleware({
+  target: ORIGIN,
+  changeOrigin: true,
+  xfwd: true,
+  secure: true,
+  ws: true,
+  logLevel: "warn",
+  pathRewrite: (path) => path
+}));
+
+app.get("/health", (_req, res) => res.json({ ok: true }));
+
+// oauth intake route for bot to catch codes
+app.post("/oauth/intake", (req, res) => {
+  console.log("Got code:", req.body.code, "state:", req.body.state);
+  // TODO: forward to your Discord bot logic
+  res.json({ ok: true });
+});
+
+// example callback (if you want to show confirmation in browser)
+app.get("/oauth/callback", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/oauth/callback/index.html"));
 });
 
 server.listen(PORT, () => { logger.info(`Server is running on port ${PORT}`); });
