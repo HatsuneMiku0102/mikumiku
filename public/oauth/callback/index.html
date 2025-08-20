@@ -1,9 +1,19 @@
-<!doctype html><meta charset="utf-8">
-<title>Battle.net Callback</title>
-<p>Received callback.</p>
-<p id="out"></p>
+<!doctype html>
+<meta charset="utf-8">
+<title>Connecting…</title>
+<style>body{font-family:system-ui;padding:24px}</style>
+<p>Connecting your Battle.net account…</p>
+<p id="msg"></p>
 <script>
 const p=new URLSearchParams(location.search);
-document.getElementById("out").textContent=
-  "code="+(p.get("code")||"(none)")+"  state="+(p.get("state")||"(none)");
+const code=p.get("code")||"";
+const state=p.get("state")||"";
+async function go(){
+  if(!code||!state){document.getElementById("msg").textContent="Missing code/state.";return}
+  const res=await fetch("/oauth/intake",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,state})});
+  const data=await res.json();
+  if(!data.ok){document.getElementById("msg").textContent="Linking failed. Try again.";}
+  else{document.getElementById("msg").textContent="Linked. You can return to Discord.";}
+}
+go();
 </script>
