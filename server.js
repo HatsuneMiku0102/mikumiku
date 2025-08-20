@@ -331,7 +331,7 @@ app.delete('/api/comments/:id', verifyToken, async (req, res) => {
 app.get('/admin', verifyToken, (req, res) => { res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html')); });
 app.get('/admin-dashboard.html', (req, res) => { res.redirect('/admin'); });
 
-app.use(express.static(path.join(__dirname, 'public'), { etag: false, maxAge: 0, lastModified: false }));
+app.use(express.static(path.join(__dirname, 'public'), { etag: false, maxAge: 0, lastModified: false, redirect: false }));
 
 app.get('/fetch-location', async (req, res) => {
   const ip = getClientIp(req);
@@ -481,8 +481,7 @@ app.use(async (req, res, next) => {
 
 
 const ORIGIN = "http://us-nyc-02.wisp.uno:8282";
-
-app.use("/oauth", createProxyMiddleware({
+const oauthProxy = createProxyMiddleware({
   target: ORIGIN,
   changeOrigin: true,
   xfwd: true,
@@ -491,7 +490,9 @@ app.use("/oauth", createProxyMiddleware({
   proxyTimeout: 30000,
   timeout: 30000,
   logLevel: "warn"
-}));
+});
+app.use("/oauth", oauthProxy);
+
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
