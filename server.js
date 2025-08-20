@@ -479,8 +479,16 @@ app.use(async (req, res, next) => {
   next();
 });
 
-const ORIGIN = "https://us-nyc-02.wisp.uno:8282";
-app.use("/oauth", createProxyMiddleware({ target: ORIGIN, changeOrigin: true, xfwd: true, secure: true, ws: true, logLevel: "warn", pathRewrite: (p) => p }));
+app.use("/oauth", createProxyMiddleware({
+  target: ORIGIN,
+  changeOrigin: true,
+  xfwd: true,
+  secure: false,
+  ws: true,
+  proxyTimeout: 30000,
+  timeout: 30000,
+  logLevel: "warn"
+}));
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
