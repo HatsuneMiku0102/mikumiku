@@ -259,6 +259,21 @@ async function getAccurateGeoLocation(ip) {
 const loginLimiter = rateLimit({ windowMs: 15*60*1000, max: 5, message: 'Too many login attempts from this IP, please try again after 15 minutes' });
 
 
+const ORIGIN = "https://us-nyc-02.wisp.uno:8282";
+
+
+
+app.use("/oauth", createProxyMiddleware({
+  target: ORIGIN,
+  changeOrigin: true,
+  xfwd: true,
+  secure: true,
+  ws: true,
+  logLevel: "warn",
+  pathRewrite: (path) => path
+}));
+
+app.get("/health", (_req, res) => res.json({ ok: true }));
 
 // oauth intake route for bot to catch codes
 app.post("/oauth/intake", (req, res) => {
