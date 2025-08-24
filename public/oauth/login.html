@@ -1,129 +1,72 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Sign in with Battle.net</title>
   <meta name="color-scheme" content="dark light"/>
   <style>
-    :root{
-      --bg:#0b1220;--panel:#0f172a;--muted:#94a3b8;--text:#e5e7eb;--brand:#3b82f6;--brand-2:#2563eb;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--border:#1f2937;
-      --radius:16px;--shadow:0 8px 30px rgba(0,0,0,.35);--gap:16px
-    }
-    @media (prefers-color-scheme: light){
-      :root{--bg:#f3f4f6;--panel:#ffffff;--text:#0f172a;--muted:#475569;--border:#e5e7eb}
-    }
+    :root{--bg:#0b1220;--panel:#0f172a;--muted:#94a3b8;--text:#e5e7eb;--brand:#3b82f6;--brand2:#2563eb;--border:#1f2937;--r:16px}
+    @media(prefers-color-scheme:light){:root{--bg:#f3f4f6;--panel:#fff;--text:#0f172a;--muted:#475569;--border:#e5e7eb}}
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell}
     .wrap{min-height:100%;display:grid;place-items:center;padding:24px}
-    .card{width:100%;max-width:720px;background:linear-gradient(180deg,var(--panel),#0b1324cc);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px}
-    .row{display:flex;gap:var(--gap);flex-wrap:wrap;align-items:center;justify-content:space-between}
+    .card{width:100%;max-width:720px;background:linear-gradient(180deg,var(--panel),#0b1324cc);border:1px solid var(--border);border-radius:var(--r);box-shadow:0 8px 30px rgba(0,0,0,.35);padding:24px}
     h1{margin:0 0 6px;font-size:clamp(18px,2.5vw,22px)}
     p{margin:0;color:var(--muted)}
     .actions{margin-top:18px;display:flex;gap:12px;flex-wrap:wrap}
     .btn{appearance:none;border:1px solid transparent;border-radius:12px;padding:12px 16px;font-weight:600;cursor:pointer;transition:.2s;display:inline-flex;gap:10px;align-items:center;text-decoration:none}
-    .btn-primary{background:linear-gradient(180deg,var(--brand),var(--brand-2));color:#fff;border-color:rgba(255,255,255,.1)}
-    .btn-ghost{background:transparent;border-color:var(--border);color:var(--text)}
+    .btn-primary{background:linear-gradient(180deg,var(--brand),var(--brand2));color:#fff}
+    .btn-ghost{background:transparent;border-color:var(--border);color:inherit}
     .btn[disabled]{opacity:.6;cursor:wait}
-    .meta{margin-top:12px;font-size:14px;color:var(--muted)}
-    .pill{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--border);padding:6px 10px;border-radius:999px;font-size:13px}
-    .spinner{--s:18px; width:var(--s); height:var(--s); border:3px solid #0000; border-top-color:#fff; border-left-color:#fff; border-radius:50%; animation:spin .8s linear infinite}
+    .pill{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--border);padding:6px 10px;border-radius:999px;font-size:13px;margin-left:auto}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .spinner{--s:18px;width:var(--s);height:var(--s);border:3px solid #0000;border-top-color:#fff;border-left-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
     @keyframes spin{to{transform:rotate(1turn)}}
+    .meta{margin-top:12px;font-size:14px;color:var(--muted)}
+    code{background:rgba(148,163,184,.15);padding:.25em .45em;border-radius:8px}
     .toast{position:fixed;right:16px;bottom:16px;background:#111827cc;border:1px solid var(--border);padding:12px 14px;border-radius:12px;color:#fff;backdrop-filter:saturate(140%) blur(6px);opacity:0;transform:translateY(8px);transition:.25s}
     .toast.show{opacity:1;transform:none}
-    code{background:rgba(148,163,184,.15);padding:.25em .45em;border-radius:8px}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <main class="card" role="main" aria-labelledby="title">
+    <main class="card" role="main" aria-labelledby="t">
       <div class="row">
         <div>
-          <h1 id="title">Battle.net sign-in</h1>
-          <p>Authenticate with Blizzard to continue your guild application.</p>
+          <h1 id="t">Battle.net sign-in</h1>
+          <p>Authenticate to continue your guild application.</p>
         </div>
-        <span class="pill" title="Your redirect URL is pre-configured">
-          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2Zm-1 15l-5-5 1.414-1.414L11 13.172l6.586-6.586L19 8z"/></svg>
-          Secure OAuth
-        </span>
+        <span class="pill">Secure OAuth</span>
       </div>
-
       <div class="actions">
         <button id="btn-go" class="btn btn-primary">
           <span class="spinner" id="spin" style="display:none"></span>
-          <svg id="ico" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 3l7 7l-1.414 1.414L15 8.828V20a1 1 0 0 1-2 0V8.828l-4.586 2.586L7 10l7-7z"/></svg>
           Continue with Battle.net
         </button>
-        <button id="btn-copy" class="btn btn-ghost" type="button">
-          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16 1H4a2 2 0 0 0-2 2v12h2V3h12z"/><path fill="currentColor" d="M20 5H8a2 2 0 0 0-2 2v14h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m0 16H8V7h12z"/></svg>
-          Copy auth link
-        </button>
+        <button id="btn-copy" class="btn btn-ghost" type="button">Copy auth link</button>
       </div>
-
-      <p class="meta">
-        If the button doesn’t work, your browser may block popups. You can also paste the link manually.
-        <br/>State: <code id="stateView">—</code>
-      </p>
+      <p class="meta">State: <code id="stateView">—</code></p>
     </main>
   </div>
-
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
   <script>
-    const params = new URLSearchParams(location.search);
-    const state = params.get("state") || "";
-    const clientId = "5263abec98844e65a65295d8fee46f91";
-    const goBtn = document.getElementById("btn-go");
-    const spin = document.getElementById("spin");
-    const ico = document.getElementById("ico");
-    const toast = document.getElementById("toast");
-    const stateView = document.getElementById("stateView");
-
-    stateView.textContent = state ? (state.slice(0, 12) + "…") : "missing";
-
-    function showToast(msg){
-      toast.textContent = msg;
-      toast.classList.add("show");
-      setTimeout(()=>toast.classList.remove("show"), 2500);
-    }
-
-    function buildRedirect(){
-
-      return new URL("callback.html", location.href).toString();
-    }
-
-    function buildAuthUrl(){
-      const q = new URLSearchParams({
-        client_id: clientId,
-        scope: "openid wow.profile",
-        redirect_uri: buildRedirect(),
-        response_type: "code",
-        state
-      });
-      return "https://oauth.battle.net/authorize?" + q.toString();
-    }
-
-    async function go(){
-      if(!state){ showToast("Missing state. Please run the Discord slash command again."); return; }
-      try{
-        goBtn.disabled = true; spin.style.display = ""; ico.style.display = "none";
-        sessionStorage.setItem("miku.oauth.redirect", buildRedirect());
-        location.href = buildAuthUrl();
-      } finally {
-        setTimeout(()=>{ goBtn.disabled = false; spin.style.display = "none"; ico.style.display = ""; }, 3000);
-      }
-    }
-
-    document.getElementById("btn-copy").addEventListener("click", async ()=>{
-      try{ await navigator.clipboard.writeText(buildAuthUrl()); showToast("Auth link copied"); }
-      catch(e){ showToast("Couldn’t copy—long-press the button to select") }
-    });
-
-    goBtn.addEventListener("click", go);
-
-
-    if(state){ setTimeout(go, 250); }
+    const params=new URLSearchParams(location.search)
+    const state=params.get("state")||""
+    const clientId="5263abec98844e65a65295d8fee46f91"
+    const goBtn=document.getElementById("btn-go")
+    const spin=document.getElementById("spin")
+    const toast=document.getElementById("toast")
+    const stateView=document.getElementById("stateView")
+    stateView.textContent=state?state.slice(0,12)+"…":"missing"
+    function showToast(m){toast.textContent=m;toast.classList.add("show");setTimeout(()=>toast.classList.remove("show"),2500)}
+    function buildRedirect(){return new URL("callback.html",location.href).toString()}
+    function buildAuthUrl(){const q=new URLSearchParams({client_id:clientId,scope:"openid wow.profile",redirect_uri:buildRedirect(),response_type:"code",state});return "https://oauth.battle.net/authorize?"+q.toString()}
+    async function go(){if(!state){showToast("Missing state");return}try{goBtn.disabled=true;spin.style.display="";sessionStorage.setItem("miku.oauth.redirect",buildRedirect());location.href=buildAuthUrl()}finally{setTimeout(()=>{goBtn.disabled=false;spin.style.display="none"},3000)}}
+    document.getElementById("btn-copy").addEventListener("click",async()=>{try{await navigator.clipboard.writeText(buildAuthUrl());showToast("Auth link copied")}catch(e){showToast("Copy failed")}})
+    goBtn.addEventListener("click",go)
+    if(state){setTimeout(go,250)}
   </script>
 </body>
 </html>
