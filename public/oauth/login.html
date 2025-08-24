@@ -19,24 +19,36 @@
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 <body><div class="container"><div class="card">
-<div class="header"><h1 class="title"><span class="dot"></span>Battle.net sign-in</h1><p class="sub">Continue to authenticate with Blizzard</p></div>
-<div class="body">
-  <div class="row flex"><div class="spinner" id="autoSpin" style="display:none"></div><div id="msg">Ready to continue</div></div>
-  <div class="row"><button id="go" class="btn">Continue</button> <a class="btn secondary" href="/">Cancel</a></div>
-  <div class="row hint">If nothing happens, use the Continue button.</div>
-</div>
+  <div class="header">
+    <h1 class="title"><span class="dot"></span>Battle.net sign-in</h1>
+    <p class="sub">Continue to authenticate with Blizzard</p>
+  </div>
+  <div class="body">
+    <div class="row flex"><div class="spinner" id="autoSpin" style="display:none"></div><div id="msg">Ready to continue</div></div>
+    <div class="row"><button id="go" class="btn">Continue</button> <a class="btn secondary" href="/">Cancel</a></div>
+    <div class="row hint">If nothing happens, use the Continue button.</div>
+  </div>
 </div></div>
 <script>
-const params=new URLSearchParams(location.search)
-const state=params.get("state")||""
-const clientId="5263abec98844e65a65295d8fee46f91"
+const params=new URLSearchParams(location.search);
+const state=params.get("state")||"";
+const clientId="5263abec98844e65a65295d8fee46f91";
+
 function start(){
-  if(!state){document.getElementById("msg").textContent="Missing state. Start again from Discord.";return}
-  const redirect=new URL("callback.html",location.href).toString()
-  const q=new URLSearchParams({client_id:clientId,scope:"openid wow.profile",redirect_uri:redirect,response_type:"code",state:state})
-  location.href="https://oauth.battle.net/authorize?"+q.toString()
+  if(!state){ document.getElementById("msg").textContent="Missing state. Start again from Discord."; return; }
+  const redirect=new URL("callback.html", location.href).toString();
+  const q=new URLSearchParams({
+    client_id:clientId, scope:"openid wow.profile", redirect_uri:redirect,
+    response_type:"code", state:state
+  });
+  location.href="https://oauth.battle.net/authorize?"+q.toString();
 }
-document.getElementById("go").addEventListener("click",start)
-if(state){document.getElementById("autoSpin").style.display="inline-block";document.getElementById("msg").textContent="Redirecting to Battle.net…";start()}
+
+document.getElementById("go").addEventListener("click", start);
+if(state){
+  document.getElementById("autoSpin").style.display="inline-block";
+  document.getElementById("msg").textContent="Redirecting to Battle.net…";
+  start();
+}
 </script>
 </body></html>
