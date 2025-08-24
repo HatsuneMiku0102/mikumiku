@@ -1,9 +1,75 @@
-<!doctype html><meta charset="utf-8">
-<title>Battle.net Callback</title>
-<p>Received callback.</p>
-<p id="out"></p>
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Finalizing…</title>
+<style>body{margin:0;background:#0b1220;color:#e5e7eb;font:16px system-ui,Segoe UI,Roboto}main{max-width:720px;margin:8vh auto;padding:24px;border:1px solid #1f2937;border-radius:16px;background:linear-gradient(180deg,#111827cc,#0b1324cc)}h1{margin:0 0 8px;font-size:20px}p{color:#9ca3af}select,button,input{margin-top:10px;padding:10px 12px;border-radius:10px;border:1px solid #334155;background:#0b1220;color:#e5e7eb}button{border-color:#2563eb;background:linear-gradient(180deg,#3b82f6,#2563eb);color:#fff;font-weight:600}</style>
+<main>
+  <h1>Finalizing sign-in</h1>
+  <p id="status">Contacting the bot…</p>
+  <div id="pick" style="display:none">
+    <label for="choice">Select character</label>
+    <select id="choice" size="8"></select>
+    <div><button id="submit">Submit</button></div>
+  </div>
+  <div id="done" style="display:none">
+    <p id="result"></p>
+    <a id="back" href="https://discord.com/app">Return to Discord</a>
+  </div>
+</main>
 <script>
-const p=new URLSearchParams(location.search);
-document.getElementById("out").textContent=
-  "code="+(p.get("code")||"(none)")+"  state="+(p.get("state")||"(none)");
+const BOT_INTAKE="{{INTAKE_URL}}";
+function qs(k){return new URLSearchParams(location.search).get(k)||""}
+function post(url,body){return fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})}
+async function run(){
+  const code=qs("code"); const state=qs("state");
+  if(!code||!state){document.getElementById("status").textContent="Missing code or state.";return}
+  let res;
+  try{
+    res=await post(BOT_INTAKE,{code, state}).then(r=>r.json())
+  }catch(e){
+    document.getElementById("status").textContent="Network error. Try again."
+    return
+  }
+  if(!res||!res.ok){document.getElementById("status").textContent="Server error. Try again.";return}
+  const choices=res.choices||[]
+  const uid=res.user_id
+  if(choices.length===0){
+    document.getElementById("status").textContent="No characters found on your account."
+    return
+  }
+  if(choices.length===1){
+    const ch=choices[0]
+    document.getElementById("status").textContent=`Submitted as ${ch.name} — ${ch.realm}.`
+    document.getElementById("done").style.display="block"
+    document.getElementById("result").textContent="Check Discord for updates."
+    return
+  }
+  document.getElementById("status").style.display="none"
+  const sel=document.getElementById("choice")
+  sel.innerHTML=""
+  choices.forEach(o=>{const opt=document.createElement("option");opt.value=o.name+"::"+o.realm;opt.textContent=o.name+" — "+o.realm;sel.appendChild(opt)})
+  document.getElementById("pick").style.display="block"
+  document.getElementById("submit").onclick=async()=>{
+    const val=sel.value||""
+    if(!val)return
+    const u=new URL(BOT_INTAKE)
+    u.pathname="/oauth/submit"
+    try{
+      const r=await fetch(u.toString(),{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams({state,choice:val})})
+      if(r.ok){
+        document.getElementById("pick").style.display="none"
+        document.getElementById("done").style.display="block"
+        document.getElementById("result").textContent="Submitted. Check Discord for updates."
+      }else{
+        document.getElementById("pick").style.display="none"
+        document.getElementById("status").style.display="block"
+        document.getElementById("status").textContent="Submission failed."
+      }
+    }catch(e){
+      document.getElementById("status").style.display="block"
+      document.getElementById("status").textContent="Network error."
+    }
+  }
+}
+document.addEventListener("DOMContentLoaded",run)
 </script>
