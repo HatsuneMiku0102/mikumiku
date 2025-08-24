@@ -6,17 +6,12 @@
   <title>Completing sign-in…</title>
   <meta name="color-scheme" content="dark light"/>
   <style>
-    :root{
-      --bg:#0b1220;--panel:#0f172a;--muted:#94a3b8;--text:#e5e7eb;--brand:#3b82f6;--brand-2:#2563eb;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--border:#1f2937;
-      --radius:16px;--shadow:0 8px 30px rgba(0,0,0,.35)
-    }
-    @media(prefers-color-scheme:light){
-      :root{--bg:#f3f4f6;--panel:#ffffff;--text:#0f172a;--muted:#475569;--border:#e5e7eb}
-    }
+    :root{--bg:#0b1220;--panel:#0f172a;--muted:#94a3b8;--text:#e5e7eb;--brand:#3b82f6;--brand2:#2563eb;--ok:#22c55e;--err:#ef4444;--border:#1f2937;--r:16px}
+    @media(prefers-color-scheme:light){:root{--bg:#f3f4f6;--panel:#fff;--text:#0f172a;--muted:#475569;--border:#e5e7eb}}
     *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu}
     .wrap{min-height:100dvh;display:grid;place-items:center;padding:24px}
-    .card{width:100%;max-width:900px;background:linear-gradient(180deg,var(--panel),#0b1324cc);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:20px}
+    .card{width:100%;max-width:900px;background:linear-gradient(180deg,var(--panel),#0b1324cc);border:1px solid var(--border);border-radius:var(--r);box-shadow:0 8px 30px rgba(0,0,0,.35);padding:20px}
     h1{margin:0 0 4px;font-size:clamp(18px,2.5vw,22px)}
     p{margin:0;color:var(--muted)}
     .steps{display:flex;gap:8px;margin:14px 0 6px;flex-wrap:wrap}
@@ -25,7 +20,7 @@
     .step.done .dot{background:var(--ok)}
     .step.active{border-color:var(--brand)}
     .grid{display:grid;gap:14px;margin-top:14px}
-    @media(min-width:720px){ .grid{grid-template-columns: 1.2fr .8fr} }
+    @media(min-width:720px){.grid{grid-template-columns:1.2fr .8fr}}
     .panel{border:1px solid var(--border);border-radius:14px;padding:14px}
     .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
     .field{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px dashed var(--border);border-radius:10px}
@@ -38,7 +33,7 @@
     .search{display:flex;gap:8px;margin-top:8px}
     .input{flex:1;min-width:120px;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:transparent;color:inherit}
     .btn{appearance:none;border:1px solid transparent;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer;transition:.2s;display:inline-flex;gap:10px;align-items:center}
-    .btn-primary{background:linear-gradient(180deg,var(--brand),var(--brand-2));color:#fff}
+    .btn-primary{background:linear-gradient(180deg,var(--brand),var(--brand2));color:#fff}
     .btn-ghost{background:transparent;border-color:var(--border);color:inherit}
     .btn[disabled]{opacity:.6;cursor:wait}
     .empty{padding:16px;border:1px dashed var(--border);border-radius:12px;color:var(--muted);text-align:center}
@@ -46,7 +41,6 @@
     .toast.show{opacity:1;transform:none}
     details{margin-top:8px}
     details>summary{cursor:pointer;color:var(--muted)}
-    /* skeletons */
     .skel{position:relative;overflow:hidden;background:rgba(148,163,184,.1)}
     .skel:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);transform:translateX(-100%);animation:shimmer 1.2s infinite}
     @keyframes shimmer{to{transform:translateX(100%)}}
@@ -54,44 +48,31 @@
 </head>
 <body>
   <div class="wrap">
-    <main class="card" role="main" aria-labelledby="title">
+    <main class="card" aria-labelledby="title">
       <h1 id="title">Completing sign-in…</h1>
-      <p>We’re exchanging your Battle.net code and fetching your characters.</p>
-
+      <p>Exchanging your code and loading characters.</p>
       <div class="steps" aria-live="polite">
-        <div class="step active" id="s1"><span class="dot"></span> 1) Token exchange</div>
-        <div class="step" id="s2"><span class="dot"></span> 2) Characters</div>
-        <div class="step" id="s3"><span class="dot"></span> 3) Submit</div>
+        <div class="step active" id="s1"><span class="dot"></span>1) Token exchange</div>
+        <div class="step" id="s2"><span class="dot"></span>2) Characters</div>
+        <div class="step" id="s3"><span class="dot"></span>3) Submit</div>
       </div>
-
       <div class="grid">
-        <!-- left -->
         <section class="panel">
           <div class="row">
-            <div class="field" title="Authorization code from Blizzard">
-              <strong>code</strong> <code id="codeView" class="skel" style="min-width:120px;display:inline-block">&nbsp;</code>
-            </div>
-            <div class="field" title="Opaque state to match your Discord session">
-              <strong>state</strong> <code id="stateView" class="skel" style="min-width:120px;display:inline-block">&nbsp;</code>
-            </div>
-            <div class="field" title="Status">
-              <div class="spinner" id="spin"></div> <span id="status">Starting…</span>
-            </div>
+            <div class="field"><strong>code</strong> <code id="codeView" class="skel" style="min-width:120px;display:inline-block">&nbsp;</code></div>
+            <div class="field"><strong>state</strong> <code id="stateView" class="skel" style="min-width:120px;display:inline-block">&nbsp;</code></div>
+            <div class="field"><div class="spinner" id="spin"></div> <span id="status">Starting…</span></div>
           </div>
-
-          <div class="search" aria-label="Filter characters">
+          <div class="search">
             <input id="q" class="input" placeholder="Search character or realm…" autocomplete="off"/>
             <button id="btn-refresh" class="btn btn-ghost" type="button">Retry</button>
           </div>
-
-          <div id="list" class="list" role="listbox" aria-label="Characters">
-            <!-- skeletons -->
+          <div id="list" class="list" role="listbox">
             <div class="card-sm skel"></div>
             <div class="card-sm skel"></div>
             <div class="card-sm skel"></div>
           </div>
-
-          <form id="form" class="row" method="post" action="/oauth/submit" style="margin-top:10px">
+          <form id="form" class="row" method="post" action="https://auth.mikumiku.dev/oauth/submit" style="margin-top:10px">
             <input type="hidden" name="state" id="stateInput"/>
             <input type="hidden" name="choice" id="choiceInput"/>
             <button id="btn-submit" class="btn btn-primary" disabled>
@@ -100,180 +81,69 @@
             </button>
             <button id="btn-cancel" class="btn btn-ghost" type="button">Cancel</button>
           </form>
-
-          <div id="empty" class="empty" style="display:none">
-            No characters found. Make sure your Battle.net account has WoW characters in the <em>EU</em> region or try again.
-          </div>
-
+          <div id="empty" class="empty" style="display:none">No characters found.</div>
           <details id="errBlock" style="display:none">
             <summary>Show technical details</summary>
             <pre id="errText" style="white-space:pre-wrap;margin:8px 0;"></pre>
           </details>
         </section>
-
-        <!-- right -->
-        <aside class="panel" aria-label="Tips">
-          <strong>Tips</strong>
-          <ul style="margin:8px 0 0 18px;color:var(--muted)">
-            <li>Use the search box to filter your characters.</li>
-            <li>If this page is open for a while, click <em>Retry</em>.</li>
-            <li>We only request <code>openid</code> and <code>wow.profile</code> scope.</li>
-          </ul>
-          <hr style="border:none;border-top:1px solid var(--border);margin:12px 0">
-          <div class="meta">Redirect URI (detected):<br><code id="redirView">—</code></div>
+        <aside class="panel">
+          <strong>Info</strong>
+          <div class="meta" style="margin-top:6px">Redirect URI:<br><code id="redirView">—</code></div>
+          <div class="meta" style="margin-top:6px">API Endpoint:<br><code id="apiView">—</code></div>
         </aside>
       </div>
     </main>
   </div>
-
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
   <script>
-    const qs = new URLSearchParams(location.search);
-    const code = qs.get("code") || "";
-    const state = qs.get("state") || "";
-    const codeView = document.getElementById("codeView");
-    const stateView = document.getElementById("stateView");
-    const redirView = document.getElementById("redirView");
-    const list = document.getElementById("list");
-    const statusEl = document.getElementById("status");
-    const s1 = document.getElementById("s1"), s2 = document.getElementById("s2"), s3 = document.getElementById("s3");
-    const spin = document.getElementById("spin");
-    const q = document.getElementById("q");
-    const btnRefresh = document.getElementById("btn-refresh");
-    const form = document.getElementById("form");
-    const stateInput = document.getElementById("stateInput");
-    const choiceInput = document.getElementById("choiceInput");
-    const btnSubmit = document.getElementById("btn-submit");
-    const spinSubmit = document.getElementById("spinSubmit");
-    const btnCancel = document.getElementById("btn-cancel");
-    const toast = document.getElementById("toast");
-    const errBlock = document.getElementById("errBlock");
-    const errText = document.getElementById("errText");
-    const empty = document.getElementById("empty");
-
-    const detectedRedirect = sessionStorage.getItem("miku.oauth.redirect") || new URL(location.href).toString();
-    redirView.textContent = detectedRedirect;
-
-    codeView.textContent = code ? (code.slice(0, 12) + "…") : "missing";
-    stateView.textContent = state ? (state.slice(0, 12) + "…") : "missing";
-    codeView.classList.remove("skel");
-    stateView.classList.remove("skel");
-
-    stateInput.value = state;
-
-    let allChoices = [];
-    let selected = null;
-
-    function setStep(step){
-      [s1, s2, s3].forEach(el=>{el.classList.remove("active","done")});
-      if(step === 1){ s1.classList.add("active"); }
-      if(step === 2){ s1.classList.add("done"); s2.classList.add("active"); }
-      if(step === 3){ s1.classList.add("done"); s2.classList.add("done"); s3.classList.add("active"); }
-    }
-    function showToast(msg){ toast.textContent = msg; toast.classList.add("show"); setTimeout(()=>toast.classList.remove("show"), 2500); }
-    function showError(title, detail){
-      statusEl.textContent = title;
-      errText.textContent = detail ? String(detail) : "";
-      errBlock.style.display = detail ? "" : "none";
-    }
-    function card(choice){
-      const id = `${choice.name}::${choice.realm}`;
-      const el = document.createElement("div");
-      el.className = "card-sm";
-      el.role = "option";
-      el.tabIndex = 0;
-      el.dataset.value = id;
-      el.innerHTML = `
-        <div>
-          <strong>${choice.name}</strong>
-          <div class="meta">${choice.realm}</div>
-        </div>
-        <input type="radio" name="pick" aria-label="Select ${choice.name} on ${choice.realm}" />
-      `;
-      el.addEventListener("click", ()=>select(id, el));
-      el.addEventListener("keydown", (e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); select(id, el); } });
-      return el;
-    }
-    function renderList(items){
-      list.innerHTML = "";
-      if(!items.length){ empty.style.display = ""; return; }
-      empty.style.display = "none";
-      items.forEach(c=> list.appendChild(card(c)));
-    }
-    function filterList(){
-      const t = q.value.trim().toLowerCase();
-      const items = !t ? allChoices : allChoices.filter(c=> (c.name+c.realm).toLowerCase().includes(t));
-      renderList(items);
-    }
-    function select(val, el){
-      selected = val;
-      choiceInput.value = val;
-      btnSubmit.disabled = !selected;
-      [...list.querySelectorAll('.card-sm')].forEach(n=> n.style.outline = "");
-      el.style.outline = "2px solid var(--brand)";
-      const radio = el.querySelector('input[type=radio]');
-      if(radio) radio.checked = true;
-      setStep(3);
-    }
-
-    async function intake(){
-      if(!code || !state){
-        showError("Missing code or state", "The OAuth provider did not return the expected parameters.");
-        return;
-      }
-      setStep(1);
-      statusEl.textContent = "Exchanging token…";
-      spin.style.display = "";
-
-      try{
-        const res = await fetch("/oauth/intake", {
-          method: "POST",
-          headers: {"Content-Type":"application/json"},
-          body: JSON.stringify({ code, state })
-        });
-        const data = await res.json().catch(()=>({}));
-        if(!res.ok || !data.ok){
-          const detail = (data && (data.body || data.error)) || ("HTTP " + res.status);
-          showError("Could not complete token exchange", detail);
-          showToast("Token exchange failed");
-          return;
-        }
-        setStep(2);
-        statusEl.textContent = "Loading characters…";
-        const choices = data.choices || [];
-        allChoices = choices.sort((a,b)=> (a.realm+a.name).localeCompare(b.realm+b.name));
-        filterList();
-        statusEl.textContent = `Pick your main (${allChoices.length} found)`;
-        showToast("Characters loaded");
-      } catch(e){
-        showError("Network error", e);
-      } finally{
-        spin.style.display = "none";
-      }
-    }
-
-    q.addEventListener("input", filterList);
-    btnRefresh.addEventListener("click", ()=>{
-      list.innerHTML = `<div class="card-sm skel"></div><div class="card-sm skel"></div>`;
-      showToast("Retrying…");
-      intake();
-    });
-
-    form.addEventListener("submit", (e)=>{
-      if(!selected){ e.preventDefault(); return; }
-      btnSubmit.disabled = true; spinSubmit.style.display = "";
-
-      setTimeout(()=>{ btnSubmit.disabled = false; spinSubmit.style.display = "none"; }, 6000);
-    });
-
-    btnCancel.addEventListener("click", ()=>{
-      const back = sessionStorage.getItem("miku.oauth.redirect") || "/";
-      location.href = back;
-    });
-
-    // kick off
-    intake();
+    const API_BASE="https://auth.mikumiku.dev"
+    const qs=new URLSearchParams(location.search)
+    const code=qs.get("code")||""
+    const state=qs.get("state")||""
+    const codeView=document.getElementById("codeView")
+    const stateView=document.getElementById("stateView")
+    const redirView=document.getElementById("redirView")
+    const apiView=document.getElementById("apiView")
+    const list=document.getElementById("list")
+    const statusEl=document.getElementById("status")
+    const s1=document.getElementById("s1"),s2=document.getElementById("s2"),s3=document.getElementById("s3")
+    const spin=document.getElementById("spin")
+    const q=document.getElementById("q")
+    const btnRefresh=document.getElementById("btn-refresh")
+    const form=document.getElementById("form")
+    const stateInput=document.getElementById("stateInput")
+    const choiceInput=document.getElementById("choiceInput")
+    const btnSubmit=document.getElementById("btn-submit")
+    const spinSubmit=document.getElementById("spinSubmit")
+    const btnCancel=document.getElementById("btn-cancel")
+    const toast=document.getElementById("toast")
+    const errBlock=document.getElementById("errBlock")
+    const errText=document.getElementById("errText")
+    const empty=document.getElementById("empty")
+    const detectedRedirect=sessionStorage.getItem("miku.oauth.redirect")||new URL(location.href).toString()
+    redirView.textContent=detectedRedirect
+    apiView.textContent=API_BASE+"/oauth/*"
+    codeView.textContent=code?code.slice(0,12)+"…":"missing"
+    stateView.textContent=state?state.slice(0,12)+"…":"missing"
+    codeView.classList.remove("skel")
+    stateView.classList.remove("skel")
+    stateInput.value=state
+    let allChoices=[]
+    let selected=null
+    function setStep(n){[s1,s2,s3].forEach(e=>e.classList.remove("active","done"));if(n===1)s1.classList.add("active");if(n===2){s1.classList.add("done");s2.classList.add("active")}if(n===3){s1.classList.add("done");s2.classList.add("done");s3.classList.add("active")}}
+    function showToast(m){toast.textContent=m;toast.classList.add("show");setTimeout(()=>toast.classList.remove("show"),2500)}
+    function showError(t,d){statusEl.textContent=t;errText.textContent=d?String(d):"";errBlock.style.display=d?"":"none"}
+    function card(c){const id=`${c.name}::${c.realm}`;const el=document.createElement("div");el.className="card-sm";el.role="option";el.tabIndex=0;el.dataset.value=id;el.innerHTML=`<div><strong>${c.name}</strong><div class="meta">${c.realm}</div></div><input type="radio" name="pick"/>`;el.addEventListener("click",()=>select(id,el));el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select(id,el)}});return el}
+    function renderList(items){list.innerHTML="";if(!items.length){empty.style.display="";return}empty.style.display="none";items.forEach(c=>list.appendChild(card(c)))}
+    function filterList(){const t=q.value.trim().toLowerCase();const items=!t?allChoices:allChoices.filter(c=>(c.name+c.realm).toLowerCase().includes(t));renderList(items)}
+    function select(val,el){selected=val;choiceInput.value=val;btnSubmit.disabled=!selected;[...list.querySelectorAll(".card-sm")].forEach(n=>n.style.outline="");el.style.outline="2px solid var(--brand)";const r=el.querySelector('input[type=radio]');if(r)r.checked=true;setStep(3)}
+    async function intake(){if(!code||!state){showError("Missing code or state","Missing query params");return}setStep(1);statusEl.textContent="Exchanging token…";spin.style.display="";try{const res=await fetch(API_BASE+"/oauth/intake",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,state})});const data=await res.json().catch(()=>({}));if(!res.ok||!data.ok){const detail=(data&&(data.body||data.error))||("HTTP "+res.status);showError("Could not complete token exchange",detail);showToast("Token exchange failed");return}setStep(2);statusEl.textContent="Loading characters…";allChoices=(data.choices||[]).sort((a,b)=>(a.realm+a.name).localeCompare(b.realm+b.name));filterList();statusEl.textContent=`Pick your main (${allChoices.length} found)`;showToast("Characters loaded")}catch(e){showError("Network error",e)}finally{spin.style.display="none"}}
+    q.addEventListener("input",filterList)
+    btnRefresh.addEventListener("click",()=>{list.innerHTML=`<div class="card-sm skel"></div><div class="card-sm skel"></div>`;showToast("Retrying…");intake()})
+    form.addEventListener("submit",e=>{if(!selected){e.preventDefault();return}btnSubmit.disabled=true;spinSubmit.style.display="";setTimeout(()=>{btnSubmit.disabled=false;spinSubmit.style.display="none"},6000)})
+    btnCancel.addEventListener("click",()=>{const back=sessionStorage.getItem("miku.oauth.redirect")||"/";location.href=back})
+    intake()
   </script>
 </body>
 </html>
