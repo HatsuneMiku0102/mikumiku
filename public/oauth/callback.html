@@ -1,44 +1,95 @@
-<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Finalizing…</title>
-<style>body{margin:0;background:#0b1220;color:#e5e7eb;font:16px system-ui}main{max-width:720px;margin:8vh auto;padding:24px;border:1px solid #1f2937;border-radius:16px;background:linear-gradient(180deg,#111827cc,#0b1324cc)}h1{margin:0 0 8px;font-size:20px}p{color:#9ca3af}select,button{margin-top:10px;padding:10px 12px;border-radius:10px;border:1px solid #334155;background:#0b1220;color:#e5e7eb}button{border-color:#2563eb;background:linear-gradient(180deg,#3b82f6,#2563eb);color:#fff;font-weight:600}</style>
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Finalizing sign-in</title>
+<style>
+ body{margin:0;background:#0b1220;color:#e5e7eb;font:16px system-ui}
+ main{max-width:720px;margin:8vh auto;padding:24px;border:1px solid #1f2937;border-radius:16px;background:linear-gradient(180deg,#111827cc,#0b1324cc)}
+ .muted{color:#9ca3af}
+ .err{color:#f87171;white-space:pre-wrap;word-break:break-word}
+ .ok{color:#34d399}
+ .btn{display:inline-block;margin-top:14px;padding:10px 14px;border-radius:10px;border:1px solid #2563eb;background:linear-gradient(180deg,#3b82f6,#2563eb);color:#fff;text-decoration:none;font-weight:600}
+</style>
 <main>
   <h1>Finalizing sign-in</h1>
-  <p id="status">Contacting the bot…</p>
-  <div id="pick" style="display:none">
-    <label for="choice">Select character</label>
-    <select id="choice" size="8"></select>
-    <div><button id="submit">Submit</button></div>
-  </div>
-  <div id="done" style="display:none">
-    <p id="result"></p>
-    <a href="https://discord.com/app">Return to Discord</a>
-  </div>
+  <div id="out" class="muted">Talking to the bot…</div>
 </main>
 <script>
-const INTAKE_BASE="https://<your-heroku-app>.herokuapp.com"
-const intake=INTAKE_BASE+"/oauth/intake"
-function qs(k){return new URLSearchParams(location.search).get(k)||""}
-function post(url,body){return fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})}
-async function run(){
-  const code=qs("code"); const state=qs("state")
-  if(!code||!state){document.getElementById("status").textContent="Missing code or state.";return}
-  let res
-  try{res=await post(intake,{code,state}).then(r=>r.json())}catch(e){document.getElementById("status").textContent="Network error.";return}
-  if(!res||!res.ok){document.getElementById("status").textContent="Server error.";return}
-  const choices=res.choices||[]
-  if(choices.length===0){document.getElementById("status").textContent="No characters found.";return}
-  if(choices.length===1){document.getElementById("status").textContent=`Submitted as ${choices[0].name} — ${choices[0].realm}.`;document.getElementById("done").style.display="block";document.getElementById("result").textContent="Check Discord for updates.";return}
-  document.getElementById("status").style.display="none"
-  const sel=document.getElementById("choice")
-  choices.forEach(o=>{const opt=document.createElement("option");opt.value=o.name+"::"+o.realm;opt.textContent=o.name+" — "+o.realm;sel.appendChild(opt)})
-  document.getElementById("pick").style.display="block"
-  document.getElementById("submit").onclick=async()=>{
-    const val=sel.value||""
-    if(!val)return
-    const r=await fetch(INTAKE_BASE+"/oauth/submit",{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams({state,choice:val})})
-    if(r.ok){document.getElementById("pick").style.display="none";document.getElementById("done").style.display="block";document.getElementById("result").textContent="Submitted. Check Discord for updates."}
-    else{document.getElementById("status").style.display="block";document.getElementById("status").textContent="Submission failed."}
-  }
+const API = "https://mikumiku.dev";
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+async function fetchJSON(url, opts){
+  const r = await fetch(url, opts);
+  const text = await r.text();
+  let data; try{ data = JSON.parse(text) }catch{ data = {raw:text} }
+  return { ok:r.ok, status:r.status, data, text };
 }
-document.addEventListener("DOMContentLoaded",run)
+(async()=>{
+  const p = new URLSearchParams(location.search);
+  const code = p.get("code"); const state = p.get("state");
+  const out = document.getElementById("out");
+  if(!code || !state){ out.innerHTML = '<div class="err">Missing code or state in callback URL.</div>'; return; }
+
+  const intake = await fetchJSON(API + "/oauth/intake", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ code, state })
+  });
+
+  if(!intake.ok){
+    out.innerHTML = '<div class="err">/oauth/intake HTTP '+intake.status+'\\n'+esc(intake.text)+'</div>';
+    return;
+  }
+
+  if(!intake.data || intake.data.ok === false){
+    out.innerHTML = '<div class="err">/oauth/intake said error: '+esc(JSON.stringify(intake.data))+'</div>';
+    return;
+  }
+
+  const choices = Array.isArray(intake.data.choices) ? intake.data.choices : [];
+  if(choices.length === 0){
+    out.innerHTML = '<div class="err">No characters found. Full payload:\\n'+esc(JSON.stringify(intake.data,null,2))+'</div>';
+    return;
+  }
+
+  if(choices.length === 1){
+    const choice = choices[0].name + "::" + choices[0].realm;
+    const submit = await fetchJSON(API + "/oauth/submit", {
+      method:"POST",
+      body: new URLSearchParams({ state, choice })
+    });
+    if(!submit.ok){
+      out.innerHTML = '<div class="err">/oauth/submit HTTP '+submit.status+'\\n'+esc(submit.text)+'</div>';
+      return;
+    }
+    if(submit.data && submit.data.ok){
+      out.innerHTML = '<div class="ok">Submitted as <b>'+esc(choice.replace("::"," — "))+'</b>.<br><a class="btn" href="https://discord.com/app">Return to Discord</a></div>';
+    }else{
+      out.innerHTML = '<div class="err">Submit error: '+esc(JSON.stringify(submit.data))+'</div>';
+    }
+    return;
+  }
+
+  const opts = choices.map(c => `<option value="${esc(c.name+'::'+c.realm)}">${esc(c.name+' — '+c.realm)}</option>`).join("");
+  out.innerHTML = `
+    <div>Select your character</div>
+    <p class="muted">Multiple characters were found on your account.</p>
+    <select id="sel" size="8" style="width:100%">${opts}</select>
+    <button id="go" class="btn">Continue</button>
+  `;
+  document.getElementById("go").onclick = async () => {
+    const choice = document.getElementById("sel").value;
+    const submit = await fetchJSON(API + "/oauth/submit", {
+      method:"POST",
+      body: new URLSearchParams({ state, choice })
+    });
+    if(!submit.ok){
+      out.innerHTML = '<div class="err">/oauth/submit HTTP '+submit.status+'\\n'+esc(submit.text)+'</div>';
+    }else if(submit.data && submit.data.ok){
+      out.innerHTML = '<div class="ok">Submitted as <b>'+esc(choice.replace("::"," — "))+'</b>.<br><a class="btn" href="https://discord.com/app">Return to Discord</a></div>';
+    }else{
+      out.innerHTML = '<div class="err">Submit error: '+esc(JSON.stringify(submit.data))+'</div>';
+    }
+  };
+})();
 </script>
