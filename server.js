@@ -481,35 +481,44 @@ app.use(async (req, res, next) => {
 
 const ORIGIN = "http://us-nyc-02.wisp.uno:8282";
 
-app.use("/oauth", createProxyMiddleware({
-  target: ORIGIN,
-  changeOrigin: true,
-  xfwd: true,
-  secure: false,
-  ws: true,
-  proxyTimeout: 45000,
-  timeout: 45000,
-  onProxyReq(proxyReq, req, res) {
-    if (!req.body || !Object.keys(req.body).length) return;
-    const ct = proxyReq.getHeader('Content-Type') || '';
-    let bodyData;
-    if (ct.includes('application/json')) bodyData = JSON.stringify(req.body);
-    else if (ct.includes('application/x-www-form-urlencoded')) bodyData = new URLSearchParams(req.body).toString();
-    if (bodyData) {
-      proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
-      proxyReq.write(bodyData);
-    }
+function forwardBody(proxyReq, req, res) {
+  if (!req.body || !Object.keys(req.body).length) return;
+  const ct = proxyReq.getHeader("Content-Type") || "";
+  let bodyData;
+  if (ct.includes("application/json")) bodyData = JSON.stringify(req.body);
+  else if (ct.includes("application/x-www-form-urlencoded")) bodyData = new URLSearchParams(req.body).toString();
+  if (bodyData) {
+    proxyReq.setHeader("Content-Length", Buffer.byteLength(bodyData));
+    proxyReq.write(bodyData);
   }
-}));
+}
 
-app.use(["/notify-ready", "/notify-status"], createProxyMiddleware({
-  target: ORIGIN,
-  changeOrigin: true,
-  xfwd: true,
-  secure: false,
-  proxyTimeout: 45000,
-  timeout: 45000
-}));
+app.use(
+  "/oauth",
+  createProxyMiddleware({
+    target: ORIGIN,
+    changeOrigin: true,
+    xfwd: true,
+    secure: false,
+    ws: true,
+    proxyTimeout: 45000,
+    timeout: 45000,
+    onProxyReq: forwardBody
+  })
+);
+
+app.use(
+  ["/notify-ready", "/notify-status"],
+  createProxyMiddleware({
+    target: ORIGIN,
+    changeOrigin: true,
+    xfwd: true,
+    secure: false,
+    proxyTimeout: 45000,
+    timeout: 45000,
+    onProxyReq: forwardBody
+  })
+);
 
   onProxyReq(proxyReq, req, res) {
     if (!req.body || !Object.keys(req.body).length) return;
