@@ -36,7 +36,8 @@
 .muted{color:#9ca3af}
 .skel{position:relative;overflow:hidden;background:#0b1220;border:1px solid #1f2937;border-radius:12px}
 .skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);animation:sh 1.2s infinite}
-@keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+@keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}
+}
 .shortcuts{font-size:12px;color:#9ca3af}
 .note{padding:12px 14px;border:1px solid #78350f;background:#111827;border-radius:12px}
 .steps{display:grid;gap:8px}
@@ -52,9 +53,7 @@
     <p class="sub">Pick your character and submit</p>
   </div>
   <div class="body">
-    <div id="step-loading" class="row flex">
-      <div class="spinner"></div><div>Talking to server…</div>
-    </div>
+    <div id="step-loading" class="row flex"><div class="spinner"></div><div>Talking to server…</div></div>
     <div id="step-error" class="row" style="display:none">
       <div class="row err" id="err-text"></div>
       <div class="row"><a class="btn secondary" href="/">Return</a> <button id="retry" class="btn secondary">Retry</button></div>
@@ -81,9 +80,7 @@
                   <span id="pv-faction"></span>
                   <span id="pv-score"></span>
                 </div>
-                <div class="kv">
-                  <span id="pv-raid"></span>
-                </div>
+                <div class="kv"><span id="pv-raid"></span></div>
                 <div><a id="pv-rio" class="btn secondary" target="_blank" rel="noopener">Open Raider.IO</a></div>
                 <div class="note muted" id="pv-note" style="display:none"></div>
               </div>
@@ -118,236 +115,200 @@
 </div></div>
 
 <script>
-const API_BASE = "https://us-nyc-02.wisp.uno:8282";
-const REGION_DEFAULT = "eu";
-const params = new URLSearchParams(location.search);
-let code  = params.get("code")  || "";
-let state = params.get("state") || "";
-if (code || state) { history.replaceState(null, "", location.pathname); }
-const loading  = document.getElementById("step-loading");
-const stepErr  = document.getElementById("step-error");
-const errText  = document.getElementById("err-text");
-const retryBtn = document.getElementById("retry");
-const stepSel  = document.getElementById("step-select");
-const stepDone = document.getElementById("step-done");
-const who      = document.getElementById("who");
-const q        = document.getElementById("q");
-const sel      = document.getElementById("choice");
-const btn      = document.getElementById("submit");
-const count    = document.getElementById("count");
-const pvSkel   = document.getElementById("pv-skel");
-const pvEmpty  = document.getElementById("pv-empty");
-const pvCard   = document.getElementById("pv-card");
-const pvAvatar = document.getElementById("pv-avatar");
-const pvTitle  = document.getElementById("pv-title");
-const pvClass  = document.getElementById("pv-class");
-const pvIlvl   = document.getElementById("pv-ilvl");
-const pvFaction= document.getElementById("pv-faction");
-const pvScore  = document.getElementById("pv-score");
-const pvRaid   = document.getElementById("pv-raid");
-const pvRio    = document.getElementById("pv-rio");
-const pvNote   = document.getElementById("pv-note");
-const doneText = document.getElementById("done-text");
-const otherCta = document.getElementById("other-guild-cta");
-const otherText= document.getElementById("other-guild-text");
-const joinBtn  = document.getElementById("join-btn");
-const notifyBtn   = document.getElementById("notify-ready");
-const notifyPanel = document.getElementById("notify-panel");
-const stQueued = document.getElementById("st-queued");
-const stSeen   = document.getElementById("st-seen");
-const stInvite = document.getElementById("st-invite");
-const stDone   = document.getElementById("st-done");
-const notifyFoot= document.getElementById("notify-foot");
-const RAID_KEYS = ["manaforge-omega","manaforge","mfo","liberation-of-undermine","liberation","nerubar-palace","nerubar","amirdrassil","aberrus","vault"];
-let allChoices = [];
-let lastSelected = "";
-let lastSubmitted = null;
-function show(node){ loading.style.display="none"; stepErr.style.display="none"; stepSel.style.display="none"; stepDone.style.display="none"; node.style.display="block"; }
-function render(list){
-  sel.innerHTML="";
-  list.forEach(o=>{
-    const opt=document.createElement("option");
-    opt.value=JSON.stringify(o);
-    opt.textContent=o.name+" — "+o.realm;
-    sel.appendChild(opt);
-  });
-  count.textContent=list.length+" character(s)";
-  if(lastSelected){
-    const i=[...sel.options].findIndex(o=>o.value===lastSelected);
-    if(i>=0) sel.selectedIndex=i;
-  }
-  btn.disabled = sel.selectedOptions.length===0;
-}
-function skel(on){ pvSkel.style.display=on?"block":"none"; pvEmpty.style.display=on?"none":"block"; pvCard.style.display="none"; }
-function clearPreview(){
-  pvAvatar.src=""; pvTitle.textContent=""; pvClass.textContent="";
-  pvIlvl.textContent=""; pvFaction.textContent=""; pvScore.textContent="";
-  pvRaid.textContent=""; pvRio.href="#"; pvNote.style.display="none"; pvNote.textContent="";
-  pvCard.style.display="none"; pvEmpty.style.display="block"; pvSkel.style.display="none";
-}
-function pickLatestRaidName(prog){
-  const keys=Object.keys(prog||{});
-  for(const want of RAID_KEYS){
-    const hit = keys.find(k=>k.toLowerCase().includes(want));
-    if(hit) return hit;
-  }
-  let maxKey=null,maxScore=-1;
-  for(const k of keys){
-    const p=prog[k]||{};
-    const s=(p.mythic_bosses_killed||0)*3+(p.heroic_bosses_killed||0)*2+(p.normal_bosses_killed||0);
-    if(s>maxScore){maxScore=s;maxKey=k;}
-  }
-  return maxKey;
-}
-function raidSummary(prog){
-  const name=pickLatestRaidName(prog);
-  if(!name) return "";
-  const p=prog[name]||{};
-  const t=p.total_bosses||0, m=p.mythic_bosses_killed||0, h=p.heroic_bosses_killed||0, n=p.normal_bosses_killed||0;
-  if(m>0) return "M "+m+"/"+t+" • Manaforge Omega";
-  if(h>0) return "HC "+h+"/"+t;
-  if(n>0) return "N "+n+"/"+t;
-  return "0/"+t;
-}
-function currentChoice(){
-  if(!sel.value) return null;
-  try{ return JSON.parse(sel.value); }catch{ return null; }
-}
-async function fillPreview(region,realm,name){
-  skel(true);
-  try{
-    const u="https://raider.io/api/v1/characters/profile?"+new URLSearchParams({region, realm, name, fields:"gear,raid_progression,mythic_plus_scores_by_season:current"});
-    const r=await fetch(u);
-    if(!r.ok){ clearPreview(); return; }
-    const d=await r.json();
-    const cls  = d.class || "";
-    const spec = (d.active_spec_name||"") + (d.active_spec_role?(" • "+d.active_spec_role):"");
-    const ilvl = d.gear && d.gear.item_level_equipped ? Math.round(Number(d.gear.item_level_equipped)) : null;
-    let score = 0;
-    if (Array.isArray(d.mythic_plus_scores_by_season) && d.mythic_plus_scores_by_season.length) {
-      const s0 = d.mythic_plus_scores_by_season[0] || {};
-      if (s0.scores && s0.scores.all != null) score = Math.round(Number(s0.scores.all) || 0);
-    }
-    const raid = raidSummary(d.raid_progression||{});
-    pvAvatar.src = d.thumbnail_url || "";
-    pvTitle.textContent = name+" — "+realm;
-    pvClass.textContent = spec ? (spec+" • "+cls) : cls;
-    pvIlvl.textContent  = ilvl ? ("iLvl "+ilvl) : "";
-    pvFaction.textContent = d.faction || "";
-    pvScore.textContent = score ? ("M+ "+score) : "No current M+ score";
-    pvRaid.textContent  = raid || "";
-    pvRio.href = d.profile_url || ("https://raider.io/characters/"+region+"/"+realm.toLowerCase().replace(/\s+/g,"-")+"/"+name);
-    pvEmpty.style.display="none"; pvSkel.style.display="none"; pvCard.style.display="block";
-    pvNote.style.display = (!score) ? "block" : "none";
-    pvNote.textContent   = (!score) ? "This character has no current-season Mythic+ score on Raider.IO." : "";
-  }catch(e){ clearPreview(); }
-}
+const API_BASE="https://mikumikudev-c530e6b3e669.herokuapp.com";
+const REGION_DEFAULT="eu";
+const params=new URLSearchParams(location.search);
+let code=params.get("code")||"";
+let state=params.get("state")||"";
+if(code||state){history.replaceState(null,"",location.pathname)}
+const loading=document.getElementById("step-loading");
+const stepErr=document.getElementById("step-error");
+const errText=document.getElementById("err-text");
+const retryBtn=document.getElementById("retry");
+const stepSel=document.getElementById("step-select");
+const stepDone=document.getElementById("step-done");
+const who=document.getElementById("who");
+const q=document.getElementById("q");
+const sel=document.getElementById("choice");
+const btn=document.getElementById("submit");
+const count=document.getElementById("count");
+const pvSkel=document.getElementById("pv-skel");
+const pvEmpty=document.getElementById("pv-empty");
+const pvCard=document.getElementById("pv-card");
+const pvAvatar=document.getElementById("pv-avatar");
+const pvTitle=document.getElementById("pv-title");
+const pvClass=document.getElementById("pv-class");
+const pvIlvl=document.getElementById("pv-ilvl");
+const pvFaction=document.getElementById("pv-faction");
+const pvScore=document.getElementById("pv-score");
+const pvRaid=document.getElementById("pv-raid");
+const pvRio=document.getElementById("pv-rio");
+const pvNote=document.getElementById("pv-note");
+const doneText=document.getElementById("done-text");
+const otherCta=document.getElementById("other-guild-cta");
+const otherText=document.getElementById("other-guild-text");
+const joinBtn=document.getElementById("join-btn");
+const notifyBtn=document.getElementById("notify-ready");
+const notifyPanel=document.getElementById("notify-panel");
+const stQueued=document.getElementById("st-queued");
+const stSeen=document.getElementById("st-seen");
+const stInvite=document.getElementById("st-invite");
+const stDone=document.getElementById("st-done");
+const notifyFoot=document.getElementById("notify-foot");
+const RAID_KEYS=["manaforge-omega","manaforge","mfo","liberation-of-undermine","liberation","nerubar-palace","nerubar","amirdrassil","aberrus","vault"];
+let allChoices=[];
+let lastSelected="";
+let lastSubmitted=null;
+
+function show(node){loading.style.display="none";stepErr.style.display="none";stepSel.style.display="none";stepDone.style.display="none";node.style.display="block"}
+function render(list){sel.innerHTML="";list.forEach(o=>{const opt=document.createElement("option");opt.value=JSON.stringify(o);opt.textContent=o.name+" — "+o.realm;sel.appendChild(opt)});count.textContent=list.length+" character(s)";if(lastSelected){const i=[...sel.options].findIndex(o=>o.value===lastSelected);if(i>=0)sel.selectedIndex=i}btn.disabled=sel.selectedOptions.length===0}
+function skel(on){pvSkel.style.display=on?"block":"none";pvEmpty.style.display=on?"none":"block";pvCard.style.display="none"}
+function clearPreview(){pvAvatar.src="";pvTitle.textContent="";pvClass.textContent="";pvIlvl.textContent="";pvFaction.textContent="";pvScore.textContent="";pvRaid.textContent="";pvRio.href="#";pvNote.style.display="none";pvNote.textContent="";pvCard.style.display="none";pvEmpty.style.display="block";pvSkel.style.display="none"}
+function pickLatestRaidName(prog){const keys=Object.keys(prog||{});for(const want of RAID_KEYS){const hit=keys.find(k=>k.toLowerCase().includes(want));if(hit)return hit}let maxKey=null,maxScore=-1;for(const k of keys){const p=prog[k]||{};const s=(p.mythic_bosses_killed||0)*3+(p.heroic_bosses_killed||0)*2+(p.normal_bosses_killed||0);if(s>maxScore){maxScore=s;maxKey=k}}return maxKey}
+function raidSummary(prog){const name=pickLatestRaidName(prog);if(!name)return"";const p=prog[name]||{};const t=p.total_bosses||0,m=p.mythic_bosses_killed||0,h=p.heroic_bosses_killed||0,n=p.normal_bosses_killed||0;if(m>0)return"M "+m+"/"+t+" • Manaforge Omega";if(h>0)return"HC "+h+"/"+t;if(n>0)return"N "+n+"/"+t;return"0/"+t}
+function currentChoice(){if(!sel.value)return null;try{return JSON.parse(sel.value)}catch{return null}}
+
+function withTimeout(promise,ms,err){let t;const timeout=new Promise((_,rej)=>{t=setTimeout(()=>rej(new Error(err||"timeout")),ms)});return Promise.race([promise.finally(()=>clearTimeout(t)),timeout])}
+
+async function apiFetch(url,init){return withTimeout(fetch(url,init),12000,"network-timeout")}
+
+async function healthCheck(){const r=await apiFetch(API_BASE+"/health",{method:"GET",cache:"no-store"});if(!r.ok)throw new Error("api-down")}
+
 async function intake(){
-  if(!code||!state){ errText.textContent="Missing code or state."; show(stepErr); return; }
+  if(!code||!state){errText.textContent="Missing code or state.";show(stepErr);return}
   try{
-    const r=await fetch(API_BASE+"/oauth/intake",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({state,code})});
-    if(!r.ok){ errText.textContent="Intake failed: "+(await r.text()); show(stepErr); return; }
+    await healthCheck()
+  }catch(e){
+    errText.textContent="Network error: API unreachable. If you just redeployed, wait a moment and press Retry.";
+    show(stepErr);
+    return
+  }
+  try{
+    const r=await apiFetch(API_BASE+"/oauth/intake",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({state,code})});
+    if(!r.ok){errText.textContent="Intake failed: "+(await r.text());show(stepErr);return}
     const data=await r.json();
-    if(!data.ok){ errText.textContent="Server error: "+(data.error||"unknown"); show(stepErr); return; }
+    if(!data.ok){errText.textContent="Server error: "+(data.error||"unknown");show(stepErr);return}
     allChoices=(data.choices||[]).map(o=>({name:o.name,realm:o.realm,realm_slug:o.realm_slug,name_slug:o.name_slug,region:(o.region||REGION_DEFAULT).toLowerCase()}));
     who.textContent="User ID: "+data.user_id;
     render(allChoices);
     show(stepSel);
-    if(sel.options.length){
-      sel.selectedIndex=0; lastSelected=sel.value;
-      const c=currentChoice(); if(c) fillPreview(c.region.toUpperCase(),c.realm,c.name);
-    }
-  }catch(e){ errText.textContent="Network error."; show(stepErr); }
+    if(sel.options.length){sel.selectedIndex=0;lastSelected=sel.value;const c=currentChoice();if(c)fillPreview(c.region.toUpperCase(),c.realm,c.name)}
+  }catch(e){
+    errText.textContent="Network error during intake.";
+    show(stepErr)
+  }
 }
+
+async function fillPreview(region,realm,name){
+  skel(true);
+  try{
+    const u="https://raider.io/api/v1/characters/profile?"+new URLSearchParams({region,realm,name,fields:"gear,raid_progression,mythic_plus_scores_by_season:current"});
+    const r=await withTimeout(fetch(u,{cache:"no-store"}),8000,"rio-timeout");
+    if(!r.ok){clearPreview();return}
+    const d=await r.json();
+    const cls=d.class||"";
+    const spec=(d.active_spec_name||"")+(d.active_spec_role?(" • "+d.active_spec_role):"");
+    const ilvl=d.gear&&d.gear.item_level_equipped?Math.round(Number(d.gear.item_level_equipped)):null;
+    let score=0;
+    if(Array.isArray(d.mythic_plus_scores_by_season)&&d.mythic_plus_scores_by_season.length){const s0=d.mythic_plus_scores_by_season[0]||{};if(s0.scores&&s0.scores.all!=null)score=Math.round(Number(s0.scores.all)||0)}
+    const raid=raidSummary(d.raid_progression||{});
+    pvAvatar.src=d.thumbnail_url||"";
+    pvTitle.textContent=name+" — "+realm;
+    pvClass.textContent=spec?(spec+" • "+cls):cls;
+    pvIlvl.textContent=ilvl?("iLvl "+ilvl):"";
+    pvFaction.textContent=d.faction||"";
+    pvScore.textContent=score?("M+ "+score):"No current M+ score";
+    pvRaid.textContent=raid||"";
+    pvRio.href=d.profile_url||("https://raider.io/characters/"+region+"/"+realm.toLowerCase().replace(/\s+/g,"-")+"/"+name);
+    pvEmpty.style.display="none";pvSkel.style.display="none";pvCard.style.display="block";
+    pvNote.style.display=(!score)?"block":"none";
+    pvNote.textContent=(!score)?"This character has no current-season Mythic+ score on Raider.IO.":""
+  }catch(e){
+    clearPreview()
+  }
+}
+
 function filterNow(){
   const s=q.value.toLowerCase();
   const f=!s?allChoices:allChoices.filter(o=>o.name.toLowerCase().includes(s)||o.realm.toLowerCase().includes(s));
   render(f);
-  if(sel.options.length){
-    sel.selectedIndex=0; lastSelected=sel.value;
-    const c=currentChoice(); if(c) fillPreview(c.region.toUpperCase(),c.realm,c.name);
-  }else{ clearPreview(); }
+  if(sel.options.length){sel.selectedIndex=0;lastSelected=sel.value;const c=currentChoice();if(c)fillPreview(c.region.toUpperCase(),c.realm,c.name)}else{clearPreview()}
 }
+
 q.addEventListener("input",filterNow);
-sel.addEventListener("change",()=>{ btn.disabled=sel.selectedOptions.length===0; lastSelected=sel.value; const c=currentChoice(); if(c) fillPreview(c.region.toUpperCase(),c.realm,c.name); });
-sel.addEventListener("dblclick",()=>{ if(!btn.disabled) submitApp(); });
-document.addEventListener("keydown",e=>{
-  if(e.key==="Enter" && document.activeElement!==q && !btn.disabled){ submitApp(); }
-  if(e.key==="ArrowDown"){ if(sel.selectedIndex<sel.options.length-1){ sel.selectedIndex++; sel.dispatchEvent(new Event("change")); } e.preventDefault(); }
-  if(e.key==="ArrowUp"){ if(sel.selectedIndex>0){ sel.selectedIndex--; sel.dispatchEvent(new Event("change")); } e.preventDefault(); }
-});
+sel.addEventListener("change",()=>{btn.disabled=sel.selectedOptions.length===0;lastSelected=sel.value;const c=currentChoice();if(c)fillPreview(c.region.toUpperCase(),c.realm,c.name)});
+sel.addEventListener("dblclick",()=>{if(!btn.disabled)submitApp()});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&document.activeElement!==q&&!btn.disabled){submitApp()}if(e.key==="ArrowDown"){if(sel.selectedIndex<sel.options.length-1){sel.selectedIndex++;sel.dispatchEvent(new Event("change"))}e.preventDefault()}if(e.key==="ArrowUp"){if(sel.selectedIndex>0){sel.selectedIndex--;sel.dispatchEvent(new Event("change"))}e.preventDefault()}});
+
 async function submitApp(){
-  if(sel.selectedOptions.length===0) return;
-  btn.disabled=true; const prev=btn.textContent; btn.textContent="Submitting…";
+  if(sel.selectedOptions.length===0)return;
+  btn.disabled=true;const prev=btn.textContent;btn.textContent="Submitting…";
   try{
-    const r=await fetch(API_BASE+"/oauth/submit",{method:"POST",body:new URLSearchParams({state,choice:sel.value})});
-    if(!r.ok){ errText.textContent="Submit failed: "+(await r.text()); show(stepErr); btn.disabled=false; btn.textContent=prev; return; }
+    const r=await apiFetch(API_BASE+"/oauth/submit",{method:"POST",body:new URLSearchParams({state,choice:sel.value})});
+    if(!r.ok){errText.textContent="Submit failed: "+(await r.text());show(stepErr);btn.disabled=false;btn.textContent=prev;return}
     const data=await r.json();
-    if(!data.ok){ errText.textContent="Submit error: "+(data.error||data.status||"unknown"); show(stepErr); btn.disabled=false; btn.textContent=prev; return; }
-    const picked = JSON.parse(sel.value);
-    lastSubmitted = { name:picked.name, realm:picked.realm };
+    if(!data.ok){errText.textContent="Submit error: "+(data.error||data.status||"unknown");show(stepErr);btn.disabled=false;btn.textContent=prev;return}
+    const picked=JSON.parse(sel.value);
+    lastSubmitted={name:picked.name,realm:picked.realm};
     if(data.status==="other_guild"){
       doneText.textContent="This character is currently in "+(data.guild||"another guild")+". Please leave your current guild, then click the button below so officers can invite you.";
       otherText.textContent="When you’ve left your current guild, press the button to notify officers. Keep this page open to watch progress.";
-      if(data.join_url){ joinBtn.href=data.join_url; joinBtn.textContent="Open Timeskip Discord"; }
+      if(data.join_url){joinBtn.href=data.join_url;joinBtn.textContent="Open Timeskip Discord"}
       otherCta.style.display="block";
       show(stepDone);
-      return;
+      return
     }
     const m={auto_accepted:"You’re all set — you were auto-accepted.",queued:"Thanks! Your application is pending officer review.",linked_alt:"Alt linked to your profile."};
     doneText.textContent=m[data.status]||("Status: "+data.status);
     otherCta.style.display="none";
-    show(stepDone);
+    show(stepDone)
   }catch(e){
-    errText.textContent="Network error."; show(stepErr); btn.disabled=false; btn.textContent=prev;
+    errText.textContent="Network error during submit.";
+    show(stepErr);btn.disabled=false;btn.textContent=prev
   }
 }
+
 btn.addEventListener("click",submitApp);
-retryBtn.addEventListener("click",()=>{ show(loading); clearPreview(); intake(); });
-let pollId=null, currentTicket=null;
-function mark(el, ok){ el.classList.toggle("ok", !!ok); el.textContent = ok ? "✓" : "•"; }
-function setStatus(status){
-  mark(stQueued, status==="queued" || status==="seen" || status==="invite_sent" || status==="completed");
-  mark(stSeen,   status==="seen" || status==="invite_sent" || status==="completed");
-  mark(stInvite, status==="invite_sent" || status==="completed");
-  mark(stDone,   status==="completed");
-  const now=new Date().toUTCString();
-  notifyFoot.textContent = "Last update: "+now+" • Status: "+status;
-}
+retryBtn.addEventListener("click",()=>{show(loading);clearPreview();intake()});
+
+let pollId=null,currentTicket=null;
+function mark(el,ok){el.classList.toggle("ok",!!ok);el.textContent=ok?"✓":"•"}
+function setStatus(status){mark(stQueued,status==="queued"||status==="seen"||status==="invite_sent"||status==="completed");mark(stSeen,status==="seen"||status==="invite_sent"||status==="completed");mark(stInvite,status==="invite_sent"||status==="completed");mark(stDone,status==="completed");const now=new Date().toUTCString();notifyFoot.textContent="Last update: "+now+" • Status: "+status}
 async function pollStatus(){
-  if(!currentTicket) return;
+  if(!currentTicket)return;
   try{
     const u=new URL(API_BASE+"/notify-status");
-    u.searchParams.set("ticket_id", currentTicket);
-    const r=await fetch(u);
-    if(!r.ok) return;
+    u.searchParams.set("ticket_id",currentTicket);
+    const r=await apiFetch(u.toString(),{method:"GET",cache:"no-store"});
+    if(!r.ok)return;
     const data=await r.json();
-    if(!data.ok) return;
+    if(!data.ok)return;
     const st=data.status||"queued";
     setStatus(st);
-    if(st==="completed" && pollId){ clearInterval(pollId); pollId=null; }
+    if(st==="completed"&&pollId){clearInterval(pollId);pollId=null}
   }catch{}
 }
-notifyBtn.addEventListener("click", async ()=>{
-  const name  = lastSubmitted?.name  || prompt("Character name");
-  const realm = lastSubmitted?.realm || prompt("Realm");
-  const user_id = who.textContent.replace("User ID:","").trim();
-  notifyBtn.disabled = true; notifyBtn.textContent = "Notifying…";
+notifyBtn.addEventListener("click",async()=>{
+  const name=lastSubmitted?.name||prompt("Character name");
+  const realm=lastSubmitted?.realm||prompt("Realm");
+  const user_id=who.textContent.replace("User ID:","").trim();
+  notifyBtn.disabled=true;notifyBtn.textContent="Notifying…";
   try{
-    const r = await fetch(API_BASE+"/notify-ready", {method:"POST",headers:{ "Content-Type":"application/json" },body: JSON.stringify({ user_id, name, realm, note:"Left previous guild" })});
-    const data = await r.json();
-    if(!r.ok || !data.ok){ notifyBtn.disabled=false; notifyBtn.textContent="I’ve left my guild — notify officers"; alert("Failed to notify: "+(data.error||"server")); return; }
-    currentTicket = data.ticket_id;
+    const r=await apiFetch(API_BASE+"/notify-ready",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id,name,realm,note:"Left previous guild"})});
+    const data=await r.json();
+    if(!r.ok||!data.ok){notifyBtn.disabled=false;notifyBtn.textContent="I’ve left my guild — notify officers";alert("Failed to notify: "+(data.error||"server"));return}
+    currentTicket=data.ticket_id;
     notifyPanel.style.display="block";
     setStatus("queued");
-    if(pollId) clearInterval(pollId);
-    pollId = setInterval(pollStatus, 4000);
-    notifyBtn.textContent = "Notification sent";
+    if(pollId)clearInterval(pollId);
+    pollId=setInterval(pollStatus,4000);
+    notifyBtn.textContent="Notification sent"
   }catch(e){
-    notifyBtn.disabled=false; notifyBtn.textContent="I’ve left my guild — notify officers";
-    alert("Network error while notifying officers.");
+    notifyBtn.disabled=false;notifyBtn.textContent="I’ve left my guild — notify officers";
+    alert("Network error while notifying officers.")
   }
 });
+
 intake();
 </script>
 </body>
