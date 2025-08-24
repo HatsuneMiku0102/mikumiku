@@ -1,29 +1,115 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OAuth Callback</title>
-    <script nonce="<%= nonce %>">
-        document.addEventListener('DOMContentLoaded', function() {
-            const params = new URLSearchParams(window.location.search);
-            const code = params.get('code');
-            const state = params.get('state');
-           
-        });
-    </script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OAuth Callback</title>
+<style>
+  :root{--bg:#0b1220;--card:#0f172a;--muted:#9ca3af;--text:#e5e7eb;--accent:#60a5fa;--accent-weak:#60a5fa22}
+  *{box-sizing:border-box} html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial}
+  .wrap{min-height:100%;display:grid;place-items:center;padding:24px}
+  .card{width:100%;max-width:680px;background:linear-gradient(180deg,#111827cc,#0b1324cc);border:1px solid #1f2937;border-radius:18px;box-shadow:0 10px 40px #0006;overflow:hidden}
+  .hdr{padding:24px 24px 8px;border-bottom:1px solid #1f2937}
+  .title{margin:0;font-size:20px;letter-spacing:.2px;display:flex;gap:10px;align-items:center}
+  .dot{width:10px;height:10px;border-radius:999px;background:var(--accent);box-shadow:0 0 20px var(--accent-weak)}
+  .sub{margin:6px 0 0;color:var(--muted);font-size:14px}
+  .body{padding:24px}
+  .row{margin:14px 0}
+  .input,select,button{width:100%;background:#0b1220;color:var(--text);border:1px solid #334155;border-radius:10px;padding:10px 12px;outline:none;transition:border .15s ease,box-shadow .15s ease;font-size:15px}
+  .btn{appearance:none;border:1px solid var(--accent);background:linear-gradient(180deg,var(--accent),#2563eb);color:white;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer;transition:transform .08s ease,box-shadow .2s ease;box-shadow:0 6px 20px var(--accent-weak);text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+  .btn:hover{transform:translateY(-1px)}
+  .muted{color:var(--muted);font-size:14px}
+  .ok{color:#34d399}
+  .err{color:#f87171}
+  .flex{display:flex;gap:12px;align-items:center}
+  .spinner{width:24px;height:24px;border:3px solid var(--accent-weak);border-top-color:var(--accent);border-radius:999px;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
 </head>
 <body>
-    <h1>Callback</h1>
-    <p>Processing...</p>
-    <script nonce="<%= nonce %>">
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            const params = new URLSearchParams(window.location.search);
-            const code = params.get('code');
-            const state = params.get('state');
-           
-        });
-    </script>
+<div class="wrap">
+  <div class="card">
+    <div class="hdr">
+      <h1 class="title"><span class="dot"></span>Finishing sign-in</h1>
+      <p class="sub">Processing your Battle.net response…</p>
+    </div>
+    <div class="body" id="content">
+      <div class="flex"><div class="spinner"></div><div>Talking to the bot…</div></div>
+    </div>
+  </div>
+</div>
+<script>
+  const API_BASE = "https://mikumiku.dev";
+  async function postJSON(url, payload) {
+    const r = await fetch(url, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload), credentials:"omit"});
+    if (!r.ok) throw new Error("http " + r.status);
+    return r.json();
+  }
+  async function submitForm(url, fields) {
+    const fd = new FormData();
+    Object.entries(fields).forEach(([k,v])=>fd.append(k,v));
+    const r = await fetch(url, {method:"POST", body:fd, credentials:"omit"});
+    if (!r.ok) throw new Error("http " + r.status);
+    return r.json();
+  }
+  function setHTML(html){document.getElementById("content").innerHTML = html}
+  function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+  async function main(){
+    const params = new URLSearchParams(location.search);
+    const code = params.get("code") || "";
+    const state = params.get("state") || "";
+    if (!code || !state){
+      setHTML('<div class="row err">Missing code or state.</div><div class="row"><a class="btn" href="https://discord.com/app">Return to Discord</a></div>');
+      return;
+    }
+    try{
+      const intake = await postJSON(API_BASE + "/oauth/intake", {code, state});
+      if (!intake.ok){
+        setHTML('<div class="row err">Could not read your account. Try again from Discord.</div><div class="row"><a class="btn" href="https://discord.com/app">Return</a></div>');
+        return;
+      }
+      const choices = Array.isArray(intake.choices) ? intake.choices : [];
+      if (choices.length === 0){
+        setHTML('<div class="row err">No characters found on your Battle.net account.</div><div class="row"><a class="btn" href="https://discord.com/app">Return</a></div>');
+        return;
+      }
+      if (choices.length === 1){
+        const choice = choices[0].name + "::" + choices[0].realm;
+        const res = await submitForm(API_BASE + "/oauth/submit", {state, choice});
+        if (res.ok){
+          setHTML('<div class="row ok">Submitted as <strong>' + escapeHtml(choice.replace("::"," — ")) + "</strong>.</div><div class='row'><a class='btn' href='https://discord.com/app'>Return to Discord</a></div>");
+        } else {
+          setHTML('<div class="row err">Submission failed: ' + escapeHtml(res.status || "error") + "</div><div class='row'><a class='btn' href='https://discord.com/app'>Return</a></div>");
+        }
+        return;
+      }
+      const opts = choices.map(c=>'<option value="'+escapeHtml(c.name+'::'+c.realm)+'">'+escapeHtml(c.name+' — '+c.realm)+'</option>').join("");
+      setHTML(
+        '<div class="row">Select your character</div>' +
+        '<div class="row"><select id="sel" size="8">'+opts+'</select></div>' +
+        '<div class="row"><button class="btn" id="go">Continue</button></div>' +
+        '<div class="row muted">If you don’t see a character, check your account region and profile visibility.</div>'
+      );
+      document.getElementById("go").addEventListener("click", async ()=>{
+        const el = document.getElementById("sel");
+        const choice = el.value;
+        setHTML('<div class="flex"><div class="spinner"></div><div>Submitting…</div></div>');
+        try{
+          const res = await submitForm(API_BASE + "/oauth/submit", {state, choice});
+          if (res.ok){
+            setHTML('<div class="row ok">Submitted as <strong>' + escapeHtml(choice.replace("::"," — ")) + "</strong>.</div><div class='row'><a class='btn' href='https://discord.com/app'>Return to Discord</a></div>");
+          } else {
+            setHTML('<div class="row err">Submission failed: ' + escapeHtml(res.status || "error") + "</div><div class='row'><a class='btn' href='https://discord.com/app'>Return</a></div>");
+          }
+        }catch(e){
+          setHTML('<div class="row err">Network error while submitting.</div><div class="row"><a class="btn" href="https://discord.com/app">Return</a></div>');
+        }
+      });
+    }catch(e){
+      setHTML('<div class="row err">Could not complete sign-in.</div><div class="row"><a class="btn" href="https://discord.com/app">Return</a></div>');
+    }
+  }
+  main();
+</script>
 </body>
 </html>
