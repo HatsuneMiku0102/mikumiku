@@ -1,42 +1,21 @@
 <!doctype html>
-<html lang="en">
-<head>
 <meta charset="utf-8">
-<title>Battle.net Login</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0b0f14;color:#e6e6e6}
-.card{background:#141a22;border:1px solid #263241;border-radius:16px;padding:24px;max-width:460px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
-h1{font-size:1.1rem;margin:0 0 12px 0}
-p{opacity:.85;margin:0 0 20px 0}
-a.button{display:inline-block;padding:12px 16px;border-radius:10px;background:#5865F2;color:#fff;text-decoration:none;font-weight:600}
-small{display:block;margin-top:14px;opacity:.75}
-</style>
-</head>
-<body>
-<div class="card">
-<h1>Continue with Battle.net</h1>
-<p>Redirecting you to Battle.net to authenticate…</p>
-<a id="fallback" class="button" href="#">Open Battle.net Login</a>
-<small>If nothing happens, click the button.</small>
-</div>
+<title>Battle.net sign-in</title>
+<style>body{margin:0;background:#0b1220;color:#e5e7eb;font:16px system-ui,Segoe UI,Roboto}main{max-width:680px;margin:8vh auto;padding:24px;border:1px solid #1f2937;border-radius:16px;background:linear-gradient(180deg,#111827cc,#0b1324cc)}h1{margin:0 0 8px;font-size:20px}p{color:#9ca3af}a.button{display:inline-block;margin-top:12px;padding:10px 14px;border-radius:10px;border:1px solid #2563eb;background:linear-gradient(180deg,#3b82f6,#2563eb);color:#fff;text-decoration:none;font-weight:600}</style>
+<main>
+  <h1>Battle.net sign-in</h1>
+  <p>Continue to authenticate with Blizzard.</p>
+  <a id="go" class="button" href="#">Continue</a>
+</main>
 <script>
-const CLIENT_ID="5263abec98844e65a65295d8fee46f91";
-const REDIRECT_URI="https://mikumiku.dev/oauth/callback";
-const AUTHORIZE="https://oauth.battle.net/authorize";
-const state=new URLSearchParams(location.search).get("state")||"";
-if(!state){alert("Missing state parameter.");}else{
-  const q=new URLSearchParams({
-    client_id:CLIENT_ID,
-    scope:"openid wow.profile",
-    redirect_uri:REDIRECT_URI,
-    response_type:"code",
-    state
-  });
-  const url=`${AUTHORIZE}?${q.toString()}`;
-  document.getElementById("fallback").href=url;
-  location.replace(url);
+const params=new URLSearchParams(location.search);
+const state=params.get("state")||"";
+function go(){
+  const redirect=location.origin+location.pathname.replace("login.html","callback.html");
+  const q=new URLSearchParams({client_id:"{{CLIENT_ID}}",scope:"openid wow.profile",redirect_uri:redirect,response_type:"code",state:state});
+  location.href="https://oauth.battle.net/authorize?"+q.toString();
 }
+document.getElementById("go").addEventListener("click",go);
+document.addEventListener("DOMContentLoaded",()=>{if(state)go()});
 </script>
-</body>
-</html>
