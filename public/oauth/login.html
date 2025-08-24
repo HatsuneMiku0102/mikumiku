@@ -61,7 +61,7 @@
     const stateView=document.getElementById("stateView")
     stateView.textContent=state?state.slice(0,12)+"…":"missing"
     function showToast(m){toast.textContent=m;toast.classList.add("show");setTimeout(()=>toast.classList.remove("show"),2500)}
-    function buildRedirect(){return new URL("callback.html",location.href).toString()}
+    function buildRedirect(){return new URL("callback.html", location.href).toString()}
     function buildAuthUrl(){const q=new URLSearchParams({client_id:clientId,scope:"openid wow.profile",redirect_uri:buildRedirect(),response_type:"code",state});return "https://oauth.battle.net/authorize?"+q.toString()}
     async function go(){if(!state){showToast("Missing state");return}try{goBtn.disabled=true;spin.style.display="";sessionStorage.setItem("miku.oauth.redirect",buildRedirect());location.href=buildAuthUrl()}finally{setTimeout(()=>{goBtn.disabled=false;spin.style.display="none"},3000)}}
     document.getElementById("btn-copy").addEventListener("click",async()=>{try{await navigator.clipboard.writeText(buildAuthUrl());showToast("Auth link copied")}catch(e){showToast("Copy failed")}})
