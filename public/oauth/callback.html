@@ -4,118 +4,134 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Finish sign-in</title>
 <style>
-*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:radial-gradient(1200px 600px at 20% 10%,#0b1730,#070b15 65%);color:#e5e7eb;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial}
-.container{max-width:1000px;margin:6vh auto;padding:24px}
-.card{background:linear-gradient(180deg,#111827cc,#0b1324cc);border:1px solid #1f2937;border-radius:18px;overflow:hidden;box-shadow:0 10px 40px #0006}
-.header{padding:22px;border-bottom:1px solid #1f2937}
-.title{margin:0;font-size:20px;display:flex;gap:10px;align-items:center}
-.dot{width:10px;height:10px;border-radius:999px;background:#34d399;box-shadow:0 0 20px #34d39955}
-.sub{margin:6px 0 0;color:#9ca3af;font-size:14px}
+:root{--bg1:#0b1020;--bg2:#0a0f1f;--bg3:#070b15;--panel:#0b1220;--panel2:#0a0f1d;--line:#182235;--muted:#9ca3af;--text:#e6eaf2;--brand:#34d399;--brand2:#10b981;--accent:#60a5fa;--warn:#fca5a5}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial;background:linear-gradient(140deg,var(--bg1),var(--bg2) 40%,var(--bg3) 80%);background-attachment:fixed;position:relative;overflow-x:hidden}
+.hero{position:fixed;inset:-20vh -10vw auto -10vw;height:60vh;pointer-events:none;filter:blur(80px);opacity:.4;background:radial-gradient(600px 400px at 15% 20%,#16a34a33,transparent 60%),radial-gradient(500px 420px at 85% 10%,#2563eb33,transparent 60%),radial-gradient(800px 420px at 50% 100%,#7c3aed22,transparent 60%)}
+.container{max-width:1040px;margin:6vh auto;padding:24px}
+.card{background:linear-gradient(180deg,#0c1326cc,#0a1226cc);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 40px #0006;overflow:hidden;backdrop-filter:blur(8px)}
+.header{padding:22px 22px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.title{display:flex;align-items:center;gap:10px;margin:0;font-weight:800;font-size:20px}
+.dot{width:10px;height:10px;border-radius:999px;background:var(--brand);box-shadow:0 0 20px #34d39966}
+.sub{margin:0;color:var(--muted);font-size:14px}
 .body{padding:22px}
 .row{margin:12px 0}
 .flex{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.spinner{width:32px;height:32px;border:3px solid #34d39933;border-top-color:#34d399;border-radius:999px;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+.grid{display:grid;gap:18px;grid-template-columns:1fr}
+@media(min-width:980px){.grid{grid-template-columns:2fr 3fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+.panel.alt{background:var(--panel2)}
 .input,select,button{font:inherit}
-.input,select{width:100%;background:#0b1220;color:#e5e7eb;border:1px solid #334155;border-radius:12px;padding:12px 14px;outline:none;transition:border .15s ease,box-shadow .15s ease;font-size:15px}
-.input:focus,select:focus{border-color:#34d399;box-shadow:0 0 0 4px #34d39933}
-.btn{appearance:none;border:1px solid #10b981;background:linear-gradient(180deg,#34d399,#10b981);color:#fff;padding:12px 16px;border-radius:12px;font-weight:800;cursor:pointer;transition:transform .08s ease,box-shadow .2s ease;box-shadow:0 8px 24px #10b98144;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.input,select{width:100%;background:#0a1426;color:var(--text);border:1px solid #23314a;border-radius:14px;padding:12px 14px;outline:none;transition:border .15s ease,box-shadow .15s ease}
+.input:focus,select:focus{border-color:var(--brand);box-shadow:0 0 0 4px #34d39933}
+select{height:360px}
+.btn{appearance:none;border:1px solid var(--brand2);background:linear-gradient(180deg,var(--brand),var(--brand2));color:#fff;padding:12px 16px;border-radius:12px;font-weight:800;cursor:pointer;transition:transform .08s ease,box-shadow .2s ease;box-shadow:0 8px 24px #10b98144;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{transform:translateY(-1px)}
 .btn:disabled{opacity:.6;cursor:not-allowed}
-.btn.secondary{background:none;color:#e5e7eb;border-color:#334155;box-shadow:none}
-.grid{display:grid;grid-template-columns:1fr;gap:16px}
-@media(min-width:960px){.grid{grid-template-columns:2fr 3fr}}
-.badge{display:inline-block;padding:4px 8px;border:1px solid #334155;border-radius:999px;font-size:12px;color:#9ca3af}
-.err{color:#fca5a5}
+.btn.secondary{background:none;color:var(--text);border-color:#2a3a58;box-shadow:none}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid #2a3a58;border-radius:999px;font-size:12px;color:#cbd5e1}
+.badge .pill{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:999px;background:#0d1b2e;border:1px solid #2a3a58;font-size:11px}
+.spinner{width:28px;height:28px;border:3px solid #34d3992e;border-top-color:var(--brand);border-radius:999px;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.muted{color:var(--muted)}
+.err{color:var(--warn)}
 .ok{color:#86efac}
-.panel{background:#0a0f1d;border:1px solid #1f2937;border-radius:14px;padding:14px}
 .card-mini{display:flex;gap:14px;align-items:center}
-.avatar{width:72px;height:72px;border-radius:12px;object-fit:cover;background:#0b1220;border:1px solid #1f2937}
-.meta{display:grid;gap:4px}
+.avatar{width:80px;height:80px;border-radius:14px;object-fit:cover;background:#0b1220;border:1px solid var(--line)}
+.meta{display:grid;gap:6px}
 .kv{display:flex;gap:8px;flex-wrap:wrap}
-.kv span{padding:4px 8px;border:1px solid #334155;border-radius:999px;font-size:12px;color:#cbd5e1}
-.muted{color:#9ca3af}
-.skel{position:relative;overflow:hidden;background:#0b1220;border:1px solid #1f2937;border-radius:12px}
+.kv span{padding:4px 8px;border:1px solid #2a3a58;border-radius:999px;font-size:12px;color:#d5deea}
+.skel{position:relative;overflow:hidden;background:#0b1220;border:1px solid var(--line);border-radius:14px}
 .skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);animation:sh 1.2s infinite}
 @keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}
 }
-.shortcuts{font-size:12px;color:#9ca3af}
-.note{padding:12px 14px;border:1px solid #78350f;background:#111827;border-radius:12px}
+.shortcuts{font-size:12px;color:var(--muted)}
+.note{padding:12px 14px;border:1px solid #7c2d1255;background:#111827;border-radius:12px;color:#f1c9b2}
 .steps{display:grid;gap:8px}
 .step{display:flex;align-items:center;gap:8px;font-size:14px}
 .chk{width:18px;height:18px;border-radius:999px;border:2px solid #334155;display:inline-grid;place-items:center;font-size:12px}
-.chk.ok{border-color:#34d399;background:#34d399;color:#052e25}
-.small{font-size:12px;color:#9ca3af}
+.chk.ok{border-color:var(--brand);background:var(--brand);color:#052e25}
+.small{font-size:12px;color:var(--muted)}
+.header-right{display:flex;align-items:center;gap:10px}
+.promo{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border:1px dashed #2a3a58;border-radius:999px;color:#cbd5e1;font-size:12px}
 </style>
 <body>
-<div class="container"><div class="card">
-  <div class="header">
-    <h1 class="title"><span class="dot"></span>Finishing sign-in</h1>
-    <p class="sub">Pick your character and submit</p>
-  </div>
-  <div class="body">
-    <div id="step-loading" class="row flex"><div class="spinner"></div><div>Talking to server…</div></div>
-    <div id="step-error" class="row" style="display:none">
-      <div class="row err" id="err-text"></div>
-      <div class="row"><a class="btn secondary" href="/">Return</a> <button id="retry" class="btn secondary">Retry</button></div>
+<div class="hero"></div>
+<div class="container">
+  <div class="card">
+    <div class="header">
+      <h1 class="title"><span class="dot"></span>Finishing sign-in</h1>
+      <div class="header-right">
+        <span class="promo">Secure OAuth</span>
+      </div>
     </div>
-    <div id="step-select" style="display:none">
-      <div class="row flex"><span class="badge" id="who"></span><span class="shortcuts">Enter to submit • ↑/↓ to move • Double-click to quick submit</span></div>
-      <div class="grid">
-        <div class="panel">
-          <div class="row"><input id="q" class="input" placeholder="Search name or realm"></div>
-          <div class="row"><select id="choice" size="12" style="height:360px"></select></div>
-          <div class="row"><span class="badge" id="count"></span></div>
-        </div>
-        <div class="panel" id="preview">
-          <div id="pv-skel" class="skel" style="height:160px;display:none"></div>
-          <div id="pv-empty" class="muted">Select a character to see details</div>
-          <div id="pv-card" style="display:none">
-            <div class="card-mini">
-              <img id="pv-avatar" class="avatar" src="" alt="">
-              <div class="meta">
-                <div id="pv-title" style="font-weight:800"></div>
-                <div class="kv">
-                  <span id="pv-class"></span>
-                  <span id="pv-ilvl"></span>
-                  <span id="pv-faction"></span>
-                  <span id="pv-score"></span>
+    <div class="body">
+      <div id="step-loading" class="row flex"><div class="spinner"></div><div>Talking to server…</div></div>
+      <div id="step-error" class="row" style="display:none">
+        <div class="row err" id="err-text"></div>
+        <div class="row"><a class="btn secondary" href="/">Return</a> <button id="retry" class="btn secondary">Retry</button></div>
+      </div>
+      <div id="step-select" style="display:none">
+        <div class="row flex"><span class="badge" id="who"><span class="pill">ID</span>Discord</span><span class="shortcuts">Enter to submit • ↑/↓ to move • Double-click to quick submit</span></div>
+        <div class="grid">
+          <div class="panel alt">
+            <div class="row"><input id="q" class="input" placeholder="Search name or realm"></div>
+            <div class="row"><select id="choice" size="12"></select></div>
+            <div class="row"><span class="badge" id="count"><span class="pill">#</span>0 character(s)</span></div>
+          </div>
+          <div class="panel">
+            <div id="pv-skel" class="skel" style="height:176px;display:none"></div>
+            <div id="pv-empty" class="muted">Select a character to see details</div>
+            <div id="pv-card" style="display:none">
+              <div class="card-mini">
+                <img id="pv-avatar" class="avatar" src="" alt="">
+                <div class="meta">
+                  <div id="pv-title" style="font-weight:800"></div>
+                  <div class="kv">
+                    <span id="pv-class"></span>
+                    <span id="pv-ilvl"></span>
+                    <span id="pv-faction"></span>
+                    <span id="pv-score"></span>
+                  </div>
+                  <div class="kv"><span id="pv-raid"></span></div>
+                  <div><a id="pv-rio" class="btn secondary" target="_blank" rel="noopener">Open Raider.IO</a></div>
+                  <div class="note" id="pv-note" style="display:none"></div>
                 </div>
-                <div class="kv"><span id="pv-raid"></span></div>
-                <div><a id="pv-rio" class="btn secondary" target="_blank" rel="noopener">Open Raider.IO</a></div>
-                <div class="note muted" id="pv-note" style="display:none"></div>
               </div>
             </div>
           </div>
         </div>
+        <div class="row"><button id="submit" class="btn" disabled>Submit application</button> <a class="btn secondary" href="/">Cancel</a></div>
       </div>
-      <div class="row"><button id="submit" class="btn" disabled>Submit application</button> <a class="btn secondary" href="/">Cancel</a></div>
-    </div>
-    <div id="step-done" class="row" style="display:none">
-      <div class="row ok" id="done-text"></div>
-      <div class="row" id="other-guild-cta" style="display:none">
-        <div class="row muted" id="other-guild-text"></div>
-        <div class="row">
-          <button id="notify-ready" class="btn">I’ve left my guild — notify officers</button>
-          <a id="join-btn" class="btn secondary" target="_blank" rel="noopener">Open Discord</a>
-        </div>
-        <div id="notify-panel" class="panel" style="display:none">
-          <div class="row small">We’ll ping officers and show live status here.</div>
-          <div class="steps">
-            <div class="step"><span id="st-queued" class="chk">•</span><span>Queued</span></div>
-            <div class="step"><span id="st-seen" class="chk">•</span><span>Seen by officer</span></div>
-            <div class="step"><span id="st-invite" class="chk">•</span><span>Invite sent</span></div>
-            <div class="step"><span id="st-done" class="chk">•</span><span>Completed</span></div>
+      <div id="step-done" class="row" style="display:none">
+        <div class="row ok" id="done-text"></div>
+        <div class="row" id="other-guild-cta" style="display:none">
+          <div class="row muted" id="other-guild-text"></div>
+          <div class="row">
+            <button id="notify-ready" class="btn">I’ve left my guild — notify officers</button>
+            <a id="join-btn" class="btn secondary" target="_blank" rel="noopener">Open Discord</a>
           </div>
-          <div class="row small" id="notify-foot"></div>
+          <div id="notify-panel" class="panel" style="display:none">
+            <div class="row small">We’ll ping officers and show live status here.</div>
+            <div class="steps">
+              <div class="step"><span id="st-queued" class="chk">•</span><span>Queued</span></div>
+              <div class="step"><span id="st-seen" class="chk">•</span><span>Seen by officer</span></div>
+              <div class="step"><span id="st-invite" class="chk">•</span><span>Invite sent</span></div>
+              <div class="step"><span id="st-done" class="chk">•</span><span>Completed</span></div>
+            </div>
+            <div class="row small" id="notify-foot"></div>
+          </div>
         </div>
+        <div class="row"><a class="btn secondary" href="https://discord.com/app">Return to Discord</a></div>
       </div>
-      <div class="row"><a class="btn secondary" href="https://discord.com/app">Return to Discord</a></div>
     </div>
   </div>
-</div></div>
+</div>
 
 <script>
 const API_BASE="https://mikumikudev-c530e6b3e669.herokuapp.com";
+const ROLE_ID="1300649111317643354";
 const REGION_DEFAULT="eu";
 const params=new URLSearchParams(location.search);
 let code=params.get("code")||"";
@@ -124,7 +140,6 @@ if(code||state){history.replaceState(null,"",location.pathname)}
 const loading=document.getElementById("step-loading");
 const stepErr=document.getElementById("step-error");
 const errText=document.getElementById("err-text");
-const retryBtn=document.getElementById("retry");
 const stepSel=document.getElementById("step-select");
 const stepDone=document.getElementById("step-done");
 const who=document.getElementById("who");
@@ -160,41 +175,30 @@ let allChoices=[];
 let lastSelected="";
 let lastSubmitted=null;
 
-function show(node){loading.style.display="none";stepErr.style.display="none";stepSel.style.display="none";stepDone.style.display="none";node.style.display="block"}
-function render(list){sel.innerHTML="";list.forEach(o=>{const opt=document.createElement("option");opt.value=JSON.stringify(o);opt.textContent=o.name+" — "+o.realm;sel.appendChild(opt)});count.textContent=list.length+" character(s)";if(lastSelected){const i=[...sel.options].findIndex(o=>o.value===lastSelected);if(i>=0)sel.selectedIndex=i}btn.disabled=sel.selectedOptions.length===0}
+function show(node){[loading,stepErr,stepSel,stepDone].forEach(n=>n.style.display="none");node.style.display="block"}
+function withTimeout(promise,ms,msg){let t;const k=new Promise((_,rej)=>t=setTimeout(()=>rej(new Error(msg||"timeout")),ms));return Promise.race([promise.finally(()=>clearTimeout(t)),k])}
+async function apiFetch(url,init){return withTimeout(fetch(url,init),12000,"network-timeout")}
+function render(list){sel.innerHTML="";list.forEach(o=>{const opt=document.createElement("option");opt.value=JSON.stringify(o);opt.textContent=o.name+" — "+o.realm;sel.appendChild(opt)});count.innerHTML='<span class="pill">#</span>'+list.length+" character(s)";if(lastSelected){const i=[...sel.options].findIndex(o=>o.value===lastSelected);if(i>=0)sel.selectedIndex=i}btn.disabled=sel.selectedOptions.length===0}
 function skel(on){pvSkel.style.display=on?"block":"none";pvEmpty.style.display=on?"none":"block";pvCard.style.display="none"}
 function clearPreview(){pvAvatar.src="";pvTitle.textContent="";pvClass.textContent="";pvIlvl.textContent="";pvFaction.textContent="";pvScore.textContent="";pvRaid.textContent="";pvRio.href="#";pvNote.style.display="none";pvNote.textContent="";pvCard.style.display="none";pvEmpty.style.display="block";pvSkel.style.display="none"}
-function pickLatestRaidName(prog){const keys=Object.keys(prog||{});for(const want of RAID_KEYS){const hit=keys.find(k=>k.toLowerCase().includes(want));if(hit)return hit}let maxKey=null,maxScore=-1;for(const k of keys){const p=prog[k]||{};const s=(p.mythic_bosses_killed||0)*3+(p.heroic_bosses_killed||0)*2+(p.normal_bosses_killed||0);if(s>maxScore){maxScore=s;maxKey=k}}return maxKey}
-function raidSummary(prog){const name=pickLatestRaidName(prog);if(!name)return"";const p=prog[name]||{};const t=p.total_bosses||0,m=p.mythic_bosses_killed||0,h=p.heroic_bosses_killed||0,n=p.normal_bosses_killed||0;if(m>0)return"M "+m+"/"+t+" • Manaforge Omega";if(h>0)return"HC "+h+"/"+t;if(n>0)return"N "+n+"/"+t;return"0/"+t}
+function pickLatestRaidName(prog){const keys=Object.keys(prog||{});for(const want of RAID_KEYS){const hit=keys.find(k=>k.toLowerCase().includes(want));if(hit)return hit}let mk=null,ms=-1;for(const k of keys){const p=prog[k]||{};const s=(p.mythic_bosses_killed||0)*3+(p.heroic_bosses_killed||0)*2+(p.normal_bosses_killed||0);if(s>ms){ms=s;mk=k}}return mk}
+function raidSummary(p){const name=pickLatestRaidName(p);if(!name)return"";const d=p[name]||{};const t=d.total_bosses||0,m=d.mythic_bosses_killed||0,h=d.heroic_bosses_killed||0,n=d.normal_bosses_killed||0;if(m>0)return"M "+m+"/"+t+" • Manaforge Omega";if(h>0)return"HC "+h+"/"+t;if(n>0)return"N "+n+"/"+t;return"0/"+t}
 function currentChoice(){if(!sel.value)return null;try{return JSON.parse(sel.value)}catch{return null}}
-
-function withTimeout(promise,ms,err){let t;const timeout=new Promise((_,rej)=>{t=setTimeout(()=>rej(new Error(err||"timeout")),ms)});return Promise.race([promise.finally(()=>clearTimeout(t)),timeout])}
-
-async function apiFetch(url,init){return withTimeout(fetch(url,init),12000,"network-timeout")}
-
-async function healthCheck(){const r=await apiFetch(API_BASE+"/health",{method:"GET",cache:"no-store"});if(!r.ok)throw new Error("api-down")}
 
 async function intake(){
   if(!code||!state){errText.textContent="Missing code or state.";show(stepErr);return}
   try{
-    await healthCheck()
-  }catch(e){
-    errText.textContent="Network error: API unreachable. If you just redeployed, wait a moment and press Retry.";
-    show(stepErr);
-    return
-  }
-  try{
     const r=await apiFetch(API_BASE+"/oauth/intake",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({state,code})});
-    if(!r.ok){errText.textContent="Intake failed: "+(await r.text());show(stepErr);return}
+    if(!r.ok){errText.textContent="Intake failed.";show(stepErr);return}
     const data=await r.json();
     if(!data.ok){errText.textContent="Server error: "+(data.error||"unknown");show(stepErr);return}
     allChoices=(data.choices||[]).map(o=>({name:o.name,realm:o.realm,realm_slug:o.realm_slug,name_slug:o.name_slug,region:(o.region||REGION_DEFAULT).toLowerCase()}));
-    who.textContent="User ID: "+data.user_id;
+    who.innerHTML='<span class="pill">ID</span>Discord: '+data.user_id;
     render(allChoices);
     show(stepSel);
     if(sel.options.length){sel.selectedIndex=0;lastSelected=sel.value;const c=currentChoice();if(c)fillPreview(c.region.toUpperCase(),c.realm,c.name)}
   }catch(e){
-    errText.textContent="Network error during intake.";
+    errText.textContent="Network error.";
     show(stepErr)
   }
 }
@@ -235,9 +239,9 @@ function filterNow(){
   if(sel.options.length){sel.selectedIndex=0;lastSelected=sel.value;const c=currentChoice();if(c)fillPreview(c.region.toUpperCase(),c.realm,c.name)}else{clearPreview()}
 }
 
-q.addEventListener("input",filterNow);
 sel.addEventListener("change",()=>{btn.disabled=sel.selectedOptions.length===0;lastSelected=sel.value;const c=currentChoice();if(c)fillPreview(c.region.toUpperCase(),c.realm,c.name)});
 sel.addEventListener("dblclick",()=>{if(!btn.disabled)submitApp()});
+q.addEventListener("input",filterNow);
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&document.activeElement!==q&&!btn.disabled){submitApp()}if(e.key==="ArrowDown"){if(sel.selectedIndex<sel.options.length-1){sel.selectedIndex++;sel.dispatchEvent(new Event("change"))}e.preventDefault()}if(e.key==="ArrowUp"){if(sel.selectedIndex>0){sel.selectedIndex--;sel.dispatchEvent(new Event("change"))}e.preventDefault()}});
 
 async function submitApp(){
@@ -245,7 +249,7 @@ async function submitApp(){
   btn.disabled=true;const prev=btn.textContent;btn.textContent="Submitting…";
   try{
     const r=await apiFetch(API_BASE+"/oauth/submit",{method:"POST",body:new URLSearchParams({state,choice:sel.value})});
-    if(!r.ok){errText.textContent="Submit failed: "+(await r.text());show(stepErr);btn.disabled=false;btn.textContent=prev;return}
+    if(!r.ok){errText.textContent="Submit failed.";show(stepErr);btn.disabled=false;btn.textContent=prev;return}
     const data=await r.json();
     if(!data.ok){errText.textContent="Submit error: "+(data.error||data.status||"unknown");show(stepErr);btn.disabled=false;btn.textContent=prev;return}
     const picked=JSON.parse(sel.value);
@@ -269,7 +273,7 @@ async function submitApp(){
 }
 
 btn.addEventListener("click",submitApp);
-retryBtn.addEventListener("click",()=>{show(loading);clearPreview();intake()});
+document.getElementById("retry").addEventListener("click",()=>{show(loading);clearPreview();intake()});
 
 let pollId=null,currentTicket=null;
 function mark(el,ok){el.classList.toggle("ok",!!ok);el.textContent=ok?"✓":"•"}
@@ -288,15 +292,17 @@ async function pollStatus(){
     if(st==="completed"&&pollId){clearInterval(pollId);pollId=null}
   }catch{}
 }
+
 notifyBtn.addEventListener("click",async()=>{
-  const name=lastSubmitted?.name||prompt("Character name");
-  const realm=lastSubmitted?.realm||prompt("Realm");
-  const user_id=who.textContent.replace("User ID:","").trim();
+  const c=currentChoice();
+  const user_id=who.textContent.replace(/.*Discord:\s*/,"").trim();
+  const name=lastSubmitted?.name||c?.name||"";
+  const realm=lastSubmitted?.realm||c?.realm||"";
   notifyBtn.disabled=true;notifyBtn.textContent="Notifying…";
   try{
-    const r=await apiFetch(API_BASE+"/notify-ready",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id,name,realm,note:"Left previous guild"})});
+    const r=await apiFetch(API_BASE+"/notify-ready",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id,name,realm,note:"Left previous guild • <@&"+ROLE_ID+">"})});
     const data=await r.json();
-    if(!r.ok||!data.ok){notifyBtn.disabled=false;notifyBtn.textContent="I’ve left my guild — notify officers";alert("Failed to notify: "+(data.error||"server"));return}
+    if(!r.ok||!data.ok){notifyBtn.disabled=false;notifyBtn.textContent="I’ve left my guild — notify officers";alert("Failed to notify.");return}
     currentTicket=data.ticket_id;
     notifyPanel.style.display="block";
     setStatus("queued");
@@ -305,7 +311,7 @@ notifyBtn.addEventListener("click",async()=>{
     notifyBtn.textContent="Notification sent"
   }catch(e){
     notifyBtn.disabled=false;notifyBtn.textContent="I’ve left my guild — notify officers";
-    alert("Network error while notifying officers.")
+    alert("Network error while notifying.")
   }
 });
 
