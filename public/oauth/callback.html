@@ -26,14 +26,14 @@
 .ok{color:#86efac}
 .panel{background:#0a0f1d;border:1px solid #1f2937;border-radius:14px;padding:14px}
 .card-mini{display:flex;gap:14px;align-items:center}
-.avatar{width:64px;height:64px;border-radius:12px;object-fit:cover;background:#0b1220;border:1px solid #1f2937}
+.avatar{width:72px;height:72px;border-radius:12px;object-fit:cover;background:#0b1220;border:1px solid #1f2937}
 .meta{display:grid;gap:4px}
 .kv{display:flex;gap:8px;flex-wrap:wrap}
 .kv span{padding:4px 8px;border:1px solid #334155;border-radius:999px;font-size:12px;color:#cbd5e1}
+.muted{color:#9ca3af}
 .skel{position:relative;overflow:hidden;background:#0b1220;border:1px solid #1f2937;border-radius:12px}
 .skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);animation:sh 1.2s infinite}
 @keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
-.help{font-size:12px;color:#9ca3af}
 .shortcuts{font-size:12px;color:#9ca3af}
 </style>
 <body><div class="container"><div class="card">
@@ -45,16 +45,16 @@
     <div class="row"><a class="btn secondary" href="/">Return</a> <button id="retry" class="btn secondary">Retry</button></div>
   </div>
   <div id="step-select" style="display:none">
-    <div class="row flex"><span class="badge" id="who"></span><span class="shortcuts">Enter to submit • ↑/↓ to move • ↵ double-click to quick submit</span></div>
+    <div class="row flex"><span class="badge" id="who"></span><span class="shortcuts">Enter to submit • ↑/↓ to move • Double-click to quick submit</span></div>
     <div class="grid">
       <div class="panel">
         <div class="row"><input id="q" class="input" placeholder="Search name or realm"></div>
         <div class="row"><select id="choice" size="12" style="height:360px"></select></div>
-        <div class="row help"><span class="badge" id="count"></span></div>
+        <div class="row"><span class="badge" id="count"></span></div>
       </div>
       <div class="panel" id="preview">
-        <div id="pv-skel" class="skel" style="height:140px;display:none"></div>
-        <div id="pv-empty" class="help">Select a character to see details</div>
+        <div id="pv-skel" class="skel" style="height:160px;display:none"></div>
+        <div id="pv-empty" class="muted">Select a character to see details</div>
         <div id="pv-card" style="display:none">
           <div class="card-mini">
             <img id="pv-avatar" class="avatar" src="" alt="">
@@ -87,8 +87,9 @@
 const API_BASE="https://mikumikudev-c530e6b3e669.herokuapp.com"
 const REGION="eu"
 const params=new URLSearchParams(location.search)
-const code=params.get("code")||""
-const state=params.get("state")||""
+let code=params.get("code")||""
+let state=params.get("state")||""
+if(code||state){history.replaceState(null,"",location.pathname)}
 const loading=document.getElementById("step-loading")
 const stepErr=document.getElementById("step-error")
 const errText=document.getElementById("err-text")
@@ -111,12 +112,42 @@ const pvFaction=document.getElementById("pv-faction")
 const pvScore=document.getElementById("pv-score")
 const pvRaid=document.getElementById("pv-raid")
 const pvRio=document.getElementById("pv-rio")
+const RAID_KEYS=["manaforge-omega","manaforge","mfo","liberation-of-undermine","liberation","nerubar-palace","nerubar","amirdrassil","aberrus","vault"]
 let allChoices=[]
 let lastSelected=""
 function show(id){loading.style.display="none";stepErr.style.display="none";stepSel.style.display="none";stepDone.style.display="none";id.style.display="block"}
 function render(list){sel.innerHTML="";list.forEach(o=>{const opt=document.createElement("option");opt.value=o.name+"::"+o.realm;opt.textContent=o.name+" — "+o.realm;sel.appendChild(opt)});count.textContent=list.length+" character(s)";if(lastSelected){const i=[...sel.options].findIndex(o=>o.value===lastSelected);if(i>=0)sel.selectedIndex=i}btn.disabled=sel.selectedOptions.length===0}
 function skel(on){pvSkel.style.display=on?"block":"none";pvEmpty.style.display=on?"none":"block";pvCard.style.display="none"}
 function clearPreview(){pvAvatar.src="";pvTitle.textContent="";pvClass.textContent="";pvIlvl.textContent="";pvFaction.textContent="";pvScore.textContent="";pvRaid.textContent="";pvRio.href="#";pvCard.style.display="none";pvEmpty.style.display="block";pvSkel.style.display="none"}
+function pickLatestRaidName(prog){
+  const keys=Object.keys(prog||{})
+  let best=null
+  for(const want of RAID_KEYS){
+    const hit=keys.find(k=>k.toLowerCase().includes(want))
+    if(hit){best=hit;break}
+  }
+  if(best)return best
+  let maxKey=null, maxScore=-1
+  for(const k of keys){
+    const p=prog[k]||{}
+    const score=(p.mythic_bosses_killed||0)*3+(p.heroic_bosses_killed||0)*2+(p.normal_bosses_killed||0)
+    if(score>maxScore){maxScore=score;maxKey=k}
+  }
+  return maxKey
+}
+function raidSummary(prog){
+  const name=pickLatestRaidName(prog)
+  if(!name)return ""
+  const p=prog[name]||{}
+  const t=p.total_bosses||0
+  const m=p.mythic_bosses_killed||0
+  const h=p.heroic_bosses_killed||0
+  const n=p.normal_bosses_killed||0
+  if(m>0)return "M "+m+"/"+t+" • Manaforge Omega"
+  if(h>0)return "HC "+h+"/"+t
+  if(n>0)return "N "+n+"/"+t
+  return "0/"+t
+}
 async function fillPreview(region,realm,name){
   skel(true)
   try{
@@ -129,16 +160,13 @@ async function fillPreview(region,realm,name){
     const ilvl=d.gear&&d.gear.item_level_equipped?Math.round(d.gear.item_level_equipped):null
     const seasons=d.mythic_plus_scores_by_season||[]
     const score=seasons.length&&seasons[0].scores&&seasons[0].scores.all?Math.round(seasons[0].scores.all):0
-    let raid=""
-    const prog=d.raid_progression||{}
-    const latest=Object.entries(prog).sort((a,b)=>((b[1]?.mythic_bosses_killed||0)-(a[1]?.mythic_bosses_killed||0))||((b[1]?.heroic_bosses_killed||0)-(a[1]?.heroic_bosses_killed||0)))[0]
-    if(latest){const p=latest[1];const t=p.total_bosses||0;const m=p.mythic_bosses_killed||0;const h=p.heroic_bosses_killed||0;const n=p.normal_bosses_killed||0;raid=(m?("M "+m+"/"+t):h?("HC "+h+"/"+t):n?("N "+n+"/"+t):"")}
+    const raid=raidSummary(d.raid_progression||{})
     pvAvatar.src=d.thumbnail_url||""
     pvTitle.textContent=name+" — "+realm
     pvClass.textContent=spec?spec+" • "+cls:cls
     pvIlvl.textContent=ilvl?("iLvl "+ilvl):""
     pvFaction.textContent=d.faction||""
-    pvScore.textContent=score?("M+ "+score):""
+    pvScore.textContent=score?("M+ "+score):"No current M+ score"
     pvRaid.textContent=raid||""
     pvRio.href=d.profile_url||("https://raider.io/characters/"+region+"/"+realm.toLowerCase().replace(/\s+/g,"-")+"/"+name)
     pvEmpty.style.display="none"
