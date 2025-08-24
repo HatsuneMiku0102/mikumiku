@@ -1,10 +1,10 @@
 <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Finishing sign-in…</title>
+<title>Finish sign-in</title>
 <style>
 *{box-sizing:border-box}html,body{height:100%}body{margin:0;background:radial-gradient(1200px 600px at 20% 10%,#0b1730,#070b15 65%);color:#e5e7eb;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial}
-.container{max-width:820px;margin:6vh auto;padding:24px}
-.card{background:linear-gradient(180deg,#111827cc,#0b1324cc);border:1px solid #1f2937;border-radius:16px;overflow:hidden;box-shadow:0 10px 40px #0006}
-.header{padding:22px 22px 10px;border-bottom:1px solid #1f2937}
+.container{max-width:1000px;margin:6vh auto;padding:24px}
+.card{background:linear-gradient(180deg,#111827cc,#0b1324cc);border:1px solid #1f2937;border-radius:18px;overflow:hidden;box-shadow:0 10px 40px #0006}
+.header{padding:22px;border-bottom:1px solid #1f2937}
 .title{margin:0;font-size:20px;display:flex;gap:10px;align-items:center}
 .dot{width:10px;height:10px;border-radius:999px;background:#34d399;box-shadow:0 0 20px #34d39955}
 .sub{margin:6px 0 0;color:#9ca3af;font-size:14px}
@@ -14,37 +14,68 @@
 .spinner{width:32px;height:32px;border:3px solid #34d39933;border-top-color:#34d399;border-radius:999px;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .input,select,button{font:inherit}
-.input,select{width:100%;background:#0b1220;color:#e5e7eb;border:1px solid #334155;border-radius:10px;padding:10px 12px;outline:none;transition:border .15s ease,box-shadow .15s ease;font-size:15px}
+.input,select{width:100%;background:#0b1220;color:#e5e7eb;border:1px solid #334155;border-radius:12px;padding:12px 14px;outline:none;transition:border .15s ease,box-shadow .15s ease;font-size:15px}
 .input:focus,select:focus{border-color:#34d399;box-shadow:0 0 0 4px #34d39933}
-.btn{appearance:none;border:1px solid #10b981;background:linear-gradient(180deg,#34d399,#10b981);color:#fff;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer;transition:transform .08s ease,box-shadow .2s ease;box-shadow:0 6px 20px #10b98144;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.btn{appearance:none;border:1px solid #10b981;background:linear-gradient(180deg,#34d399,#10b981);color:#fff;padding:12px 16px;border-radius:12px;font-weight:800;cursor:pointer;transition:transform .08s ease,box-shadow .2s ease;box-shadow:0 8px 24px #10b98144;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
 .btn:disabled{opacity:.6;cursor:not-allowed}
 .btn.secondary{background:none;color:#e5e7eb;border-color:#334155;box-shadow:none}
-.grid{display:grid;grid-template-columns:1fr;gap:12px}
-@media(min-width:720px){.grid{grid-template-columns:2fr 3fr}}
+.grid{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:960px){.grid{grid-template-columns:2fr 3fr}}
 .badge{display:inline-block;padding:4px 8px;border:1px solid #334155;border-radius:999px;font-size:12px;color:#9ca3af}
 .err{color:#fca5a5}
 .ok{color:#86efac}
+.panel{background:#0a0f1d;border:1px solid #1f2937;border-radius:14px;padding:14px}
+.card-mini{display:flex;gap:14px;align-items:center}
+.avatar{width:64px;height:64px;border-radius:12px;object-fit:cover;background:#0b1220;border:1px solid #1f2937}
+.meta{display:grid;gap:4px}
+.kv{display:flex;gap:8px;flex-wrap:wrap}
+.kv span{padding:4px 8px;border:1px solid #334155;border-radius:999px;font-size:12px;color:#cbd5e1}
+.skel{position:relative;overflow:hidden;background:#0b1220;border:1px solid #1f2937;border-radius:12px}
+.skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);animation:sh 1.2s infinite}
+@keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.help{font-size:12px;color:#9ca3af}
+.shortcuts{font-size:12px;color:#9ca3af}
 </style>
 <body><div class="container"><div class="card">
-<div class="header"><h1 class="title"><span class="dot"></span>Finishing sign-in</h1><p class="sub">Retrieving your characters</p></div>
+<div class="header"><h1 class="title"><span class="dot"></span>Finishing sign-in</h1><p class="sub">Pick your character and submit</p></div>
 <div class="body">
   <div id="step-loading" class="row flex"><div class="spinner"></div><div>Talking to server…</div></div>
   <div id="step-error" class="row" style="display:none">
     <div class="row err" id="err-text"></div>
-    <div class="row"><a class="btn secondary" href="/">Return</a></div>
+    <div class="row"><a class="btn secondary" href="/">Return</a> <button id="retry" class="btn secondary">Retry</button></div>
   </div>
-  <div id="step-select" class="row" style="display:none">
-    <div class="row"><span class="badge" id="who"></span></div>
+  <div id="step-select" style="display:none">
+    <div class="row flex"><span class="badge" id="who"></span><span class="shortcuts">Enter to submit • ↑/↓ to move • ↵ double-click to quick submit</span></div>
     <div class="grid">
-      <div>
+      <div class="panel">
         <div class="row"><input id="q" class="input" placeholder="Search name or realm"></div>
-        <div class="row"><select id="choice" size="10"></select></div>
+        <div class="row"><select id="choice" size="12" style="height:360px"></select></div>
+        <div class="row help"><span class="badge" id="count"></span></div>
       </div>
-      <div>
-        <div class="row"><button id="submit" class="btn" disabled>Submit application</button> <a class="btn secondary" href="/">Cancel</a></div>
-        <div class="row"><span class="badge" id="count"></span></div>
+      <div class="panel" id="preview">
+        <div id="pv-skel" class="skel" style="height:140px;display:none"></div>
+        <div id="pv-empty" class="help">Select a character to see details</div>
+        <div id="pv-card" style="display:none">
+          <div class="card-mini">
+            <img id="pv-avatar" class="avatar" src="" alt="">
+            <div class="meta">
+              <div id="pv-title" style="font-weight:800"></div>
+              <div class="kv">
+                <span id="pv-class"></span>
+                <span id="pv-ilvl"></span>
+                <span id="pv-faction"></span>
+                <span id="pv-score"></span>
+              </div>
+              <div class="kv">
+                <span id="pv-raid"></span>
+              </div>
+              <div><a id="pv-rio" class="btn secondary" target="_blank" rel="noopener">Open Raider.IO</a></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
+    <div class="row"><button id="submit" class="btn" disabled>Submit application</button> <a class="btn secondary" href="/">Cancel</a></div>
   </div>
   <div id="step-done" class="row" style="display:none">
     <div class="row ok" id="done-text"></div>
@@ -54,12 +85,14 @@
 </div></div>
 <script>
 const API_BASE="https://mikumikudev-c530e6b3e669.herokuapp.com"
+const REGION="eu"
 const params=new URLSearchParams(location.search)
 const code=params.get("code")||""
 const state=params.get("state")||""
 const loading=document.getElementById("step-loading")
 const stepErr=document.getElementById("step-error")
 const errText=document.getElementById("err-text")
+const retryBtn=document.getElementById("retry")
 const stepSel=document.getElementById("step-select")
 const stepDone=document.getElementById("step-done")
 const who=document.getElementById("who")
@@ -67,9 +100,52 @@ const q=document.getElementById("q")
 const sel=document.getElementById("choice")
 const btn=document.getElementById("submit")
 const count=document.getElementById("count")
+const pvSkel=document.getElementById("pv-skel")
+const pvEmpty=document.getElementById("pv-empty")
+const pvCard=document.getElementById("pv-card")
+const pvAvatar=document.getElementById("pv-avatar")
+const pvTitle=document.getElementById("pv-title")
+const pvClass=document.getElementById("pv-class")
+const pvIlvl=document.getElementById("pv-ilvl")
+const pvFaction=document.getElementById("pv-faction")
+const pvScore=document.getElementById("pv-score")
+const pvRaid=document.getElementById("pv-raid")
+const pvRio=document.getElementById("pv-rio")
 let allChoices=[]
+let lastSelected=""
 function show(id){loading.style.display="none";stepErr.style.display="none";stepSel.style.display="none";stepDone.style.display="none";id.style.display="block"}
-function render(list){sel.innerHTML="";list.forEach(o=>{const opt=document.createElement("option");opt.value=o.name+"::"+o.realm;opt.textContent=o.name+" — "+o.realm;sel.appendChild(opt)}) ;count.textContent=list.length+" character(s)";btn.disabled=sel.selectedOptions.length===0}
+function render(list){sel.innerHTML="";list.forEach(o=>{const opt=document.createElement("option");opt.value=o.name+"::"+o.realm;opt.textContent=o.name+" — "+o.realm;sel.appendChild(opt)});count.textContent=list.length+" character(s)";if(lastSelected){const i=[...sel.options].findIndex(o=>o.value===lastSelected);if(i>=0)sel.selectedIndex=i}btn.disabled=sel.selectedOptions.length===0}
+function skel(on){pvSkel.style.display=on?"block":"none";pvEmpty.style.display=on?"none":"block";pvCard.style.display="none"}
+function clearPreview(){pvAvatar.src="";pvTitle.textContent="";pvClass.textContent="";pvIlvl.textContent="";pvFaction.textContent="";pvScore.textContent="";pvRaid.textContent="";pvRio.href="#";pvCard.style.display="none";pvEmpty.style.display="block";pvSkel.style.display="none"}
+async function fillPreview(region,realm,name){
+  skel(true)
+  try{
+    const u="https://raider.io/api/v1/characters/profile?"+new URLSearchParams({region:region,realm:realm,name:name,fields:"gear,raid_progression,mythic_plus_scores_by_season:current"})
+    const r=await fetch(u,{method:"GET"})
+    if(!r.ok){clearPreview();return}
+    const d=await r.json()
+    const cls=d.class||""
+    const spec=(d.active_spec_name||"")+(d.active_spec_role?(" • "+d.active_spec_role):"")
+    const ilvl=d.gear&&d.gear.item_level_equipped?Math.round(d.gear.item_level_equipped):null
+    const seasons=d.mythic_plus_scores_by_season||[]
+    const score=seasons.length&&seasons[0].scores&&seasons[0].scores.all?Math.round(seasons[0].scores.all):0
+    let raid=""
+    const prog=d.raid_progression||{}
+    const latest=Object.entries(prog).sort((a,b)=>((b[1]?.mythic_bosses_killed||0)-(a[1]?.mythic_bosses_killed||0))||((b[1]?.heroic_bosses_killed||0)-(a[1]?.heroic_bosses_killed||0)))[0]
+    if(latest){const p=latest[1];const t=p.total_bosses||0;const m=p.mythic_bosses_killed||0;const h=p.heroic_bosses_killed||0;const n=p.normal_bosses_killed||0;raid=(m?("M "+m+"/"+t):h?("HC "+h+"/"+t):n?("N "+n+"/"+t):"")}
+    pvAvatar.src=d.thumbnail_url||""
+    pvTitle.textContent=name+" — "+realm
+    pvClass.textContent=spec?spec+" • "+cls:cls
+    pvIlvl.textContent=ilvl?("iLvl "+ilvl):""
+    pvFaction.textContent=d.faction||""
+    pvScore.textContent=score?("M+ "+score):""
+    pvRaid.textContent=raid||""
+    pvRio.href=d.profile_url||("https://raider.io/characters/"+region+"/"+realm.toLowerCase().replace(/\s+/g,"-")+"/"+name)
+    pvEmpty.style.display="none"
+    pvSkel.style.display="none"
+    pvCard.style.display="block"
+  }catch(e){clearPreview()}
+}
 async function intake(){
   if(!code||!state){errText.textContent="Missing code or state.";show(stepErr);return}
   try{
@@ -81,25 +157,32 @@ async function intake(){
     who.textContent="User ID: "+data.user_id
     render(allChoices)
     show(stepSel)
+    if(sel.options.length){sel.selectedIndex=0;lastSelected=sel.value;const [nm,rl]=sel.value.split("::");fillPreview(REGION,rl,nm)}
   }catch(e){errText.textContent="Network error.";show(stepErr)}
 }
-q.addEventListener("input",()=>{const s=q.value.toLowerCase();const f=!s?allChoices:allChoices.filter(o=>o.name.toLowerCase().includes(s)||o.realm.toLowerCase().includes(s));render(f)})
-sel.addEventListener("change",()=>{btn.disabled=sel.selectedOptions.length===0})
-btn.addEventListener("click",async()=>{
+function filterNow(){const s=q.value.toLowerCase();const f=!s?allChoices:allChoices.filter(o=>o.name.toLowerCase().includes(s)||o.realm.toLowerCase().includes(s));render(f);if(sel.options.length){sel.selectedIndex=0;lastSelected=sel.value;const [nm,rl]=sel.value.split("::");fillPreview(REGION,rl,nm)}else{clearPreview()}}
+q.addEventListener("input",filterNow)
+sel.addEventListener("change",()=>{btn.disabled=sel.selectedOptions.length===0;lastSelected=sel.value;const [nm,rl]=sel.value.split("::");fillPreview(REGION,rl,nm)})
+sel.addEventListener("dblclick",()=>{if(!btn.disabled)submitApp()})
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&document.activeElement!==q&&!btn.disabled){submitApp()}if(e.key==="ArrowDown"){if(sel.selectedIndex<sel.options.length-1){sel.selectedIndex++;sel.dispatchEvent(new Event("change"))}e.preventDefault()}if(e.key==="ArrowUp"){if(sel.selectedIndex>0){sel.selectedIndex--;sel.dispatchEvent(new Event("change"))}e.preventDefault()}})
+async function submitApp(){
   if(sel.selectedOptions.length===0)return
   btn.disabled=true
+  const prev=btn.textContent
   btn.textContent="Submitting…"
   try{
     const body=new URLSearchParams({state,choice:sel.value})
     const r=await fetch(API_BASE+"/oauth/submit",{method:"POST",body})
-    if(!r.ok){const t=await r.text();errText.textContent="Submit failed: "+t;show(stepErr);btn.disabled=false;btn.textContent="Submit application";return}
+    if(!r.ok){const t=await r.text();errText.textContent="Submit failed: "+t;show(stepErr);btn.disabled=false;btn.textContent=prev;return}
     const data=await r.json()
-    if(!data.ok){errText.textContent="Submit error: "+(data.error||data.status||"unknown");show(stepErr);btn.disabled=false;btn.textContent="Submit application";return}
+    if(!data.ok){errText.textContent="Submit error: "+(data.error||data.status||"unknown");show(stepErr);btn.disabled=false;btn.textContent=prev;return}
     const m={auto_accepted:"You’re all set. You were auto-accepted.",queued:"Thanks. Your application is pending officer review.",linked_alt:"Alt linked to your profile."}
     document.getElementById("done-text").textContent=m[data.status]||("Status: "+data.status)
     show(stepDone)
-  }catch(e){errText.textContent="Network error.";show(stepErr);btn.disabled=false;btn.textContent="Submit application"}
-})
+  }catch(e){errText.textContent="Network error.";show(stepErr);btn.disabled=false;btn.textContent=prev}
+}
+btn.addEventListener("click",submitApp)
+retryBtn.addEventListener("click",()=>{show(loading);clearPreview();intake()})
 intake()
 </script>
 </body></html>
