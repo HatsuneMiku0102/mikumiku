@@ -52,19 +52,13 @@
     <p class="sub">Pick your character and submit</p>
   </div>
   <div class="body">
-
-    <!-- STEP: loading -->
     <div id="step-loading" class="row flex">
       <div class="spinner"></div><div>Talking to server…</div>
     </div>
-
-    <!-- STEP: error -->
     <div id="step-error" class="row" style="display:none">
       <div class="row err" id="err-text"></div>
       <div class="row"><a class="btn secondary" href="/">Return</a> <button id="retry" class="btn secondary">Retry</button></div>
     </div>
-
-    <!-- STEP: select -->
     <div id="step-select" style="display:none">
       <div class="row flex"><span class="badge" id="who"></span><span class="shortcuts">Enter to submit • ↑/↓ to move • Double-click to quick submit</span></div>
       <div class="grid">
@@ -99,12 +93,8 @@
       </div>
       <div class="row"><button id="submit" class="btn" disabled>Submit application</button> <a class="btn secondary" href="/">Cancel</a></div>
     </div>
-
-    <!-- STEP: done -->
     <div id="step-done" class="row" style="display:none">
       <div class="row ok" id="done-text"></div>
-
-      <!-- other guild CTA + live status -->
       <div class="row" id="other-guild-cta" style="display:none">
         <div class="row muted" id="other-guild-text"></div>
         <div class="row">
@@ -122,22 +112,18 @@
           <div class="row small" id="notify-foot"></div>
         </div>
       </div>
-
       <div class="row"><a class="btn secondary" href="https://discord.com/app">Return to Discord</a></div>
     </div>
-
   </div>
 </div></div>
 
 <script>
-const API_BASE = "https://mikumikudev-c530e6b3e669.herokuapp.com";
+const API_BASE = "https://us-nyc-02.wisp.uno:8282";
 const REGION_DEFAULT = "eu";
 const params = new URLSearchParams(location.search);
 let code  = params.get("code")  || "";
 let state = params.get("state") || "";
 if (code || state) { history.replaceState(null, "", location.pathname); }
-
-// ui refs
 const loading  = document.getElementById("step-loading");
 const stepErr  = document.getElementById("step-error");
 const errText  = document.getElementById("err-text");
@@ -149,7 +135,6 @@ const q        = document.getElementById("q");
 const sel      = document.getElementById("choice");
 const btn      = document.getElementById("submit");
 const count    = document.getElementById("count");
-
 const pvSkel   = document.getElementById("pv-skel");
 const pvEmpty  = document.getElementById("pv-empty");
 const pvCard   = document.getElementById("pv-card");
@@ -162,12 +147,10 @@ const pvScore  = document.getElementById("pv-score");
 const pvRaid   = document.getElementById("pv-raid");
 const pvRio    = document.getElementById("pv-rio");
 const pvNote   = document.getElementById("pv-note");
-
 const doneText = document.getElementById("done-text");
 const otherCta = document.getElementById("other-guild-cta");
 const otherText= document.getElementById("other-guild-text");
 const joinBtn  = document.getElementById("join-btn");
-
 const notifyBtn   = document.getElementById("notify-ready");
 const notifyPanel = document.getElementById("notify-panel");
 const stQueued = document.getElementById("st-queued");
@@ -175,15 +158,11 @@ const stSeen   = document.getElementById("st-seen");
 const stInvite = document.getElementById("st-invite");
 const stDone   = document.getElementById("st-done");
 const notifyFoot= document.getElementById("notify-foot");
-
 const RAID_KEYS = ["manaforge-omega","manaforge","mfo","liberation-of-undermine","liberation","nerubar-palace","nerubar","amirdrassil","aberrus","vault"];
-
 let allChoices = [];
 let lastSelected = "";
-let lastSubmitted = null; // remember for notify-ready defaults
-
+let lastSubmitted = null;
 function show(node){ loading.style.display="none"; stepErr.style.display="none"; stepSel.style.display="none"; stepDone.style.display="none"; node.style.display="block"; }
-
 function render(list){
   sel.innerHTML="";
   list.forEach(o=>{
@@ -199,16 +178,13 @@ function render(list){
   }
   btn.disabled = sel.selectedOptions.length===0;
 }
-
 function skel(on){ pvSkel.style.display=on?"block":"none"; pvEmpty.style.display=on?"none":"block"; pvCard.style.display="none"; }
-
 function clearPreview(){
   pvAvatar.src=""; pvTitle.textContent=""; pvClass.textContent="";
   pvIlvl.textContent=""; pvFaction.textContent=""; pvScore.textContent="";
   pvRaid.textContent=""; pvRio.href="#"; pvNote.style.display="none"; pvNote.textContent="";
   pvCard.style.display="none"; pvEmpty.style.display="block"; pvSkel.style.display="none";
 }
-
 function pickLatestRaidName(prog){
   const keys=Object.keys(prog||{});
   for(const want of RAID_KEYS){
@@ -223,7 +199,6 @@ function pickLatestRaidName(prog){
   }
   return maxKey;
 }
-
 function raidSummary(prog){
   const name=pickLatestRaidName(prog);
   if(!name) return "";
@@ -234,36 +209,26 @@ function raidSummary(prog){
   if(n>0) return "N "+n+"/"+t;
   return "0/"+t;
 }
-
 function currentChoice(){
   if(!sel.value) return null;
   try{ return JSON.parse(sel.value); }catch{ return null; }
 }
-
 async function fillPreview(region,realm,name){
   skel(true);
   try{
-    const u="https://raider.io/api/v1/characters/profile?"+new URLSearchParams({
-      region, realm, name,
-      fields:"gear,raid_progression,mythic_plus_scores_by_season:current"
-    });
+    const u="https://raider.io/api/v1/characters/profile?"+new URLSearchParams({region, realm, name, fields:"gear,raid_progression,mythic_plus_scores_by_season:current"});
     const r=await fetch(u);
     if(!r.ok){ clearPreview(); return; }
     const d=await r.json();
-
     const cls  = d.class || "";
     const spec = (d.active_spec_name||"") + (d.active_spec_role?(" • "+d.active_spec_role):"");
     const ilvl = d.gear && d.gear.item_level_equipped ? Math.round(Number(d.gear.item_level_equipped)) : null;
-
-    // current-season score
     let score = 0;
     if (Array.isArray(d.mythic_plus_scores_by_season) && d.mythic_plus_scores_by_season.length) {
       const s0 = d.mythic_plus_scores_by_season[0] || {};
       if (s0.scores && s0.scores.all != null) score = Math.round(Number(s0.scores.all) || 0);
     }
-
     const raid = raidSummary(d.raid_progression||{});
-
     pvAvatar.src = d.thumbnail_url || "";
     pvTitle.textContent = name+" — "+realm;
     pvClass.textContent = spec ? (spec+" • "+cls) : cls;
@@ -272,13 +237,11 @@ async function fillPreview(region,realm,name){
     pvScore.textContent = score ? ("M+ "+score) : "No current M+ score";
     pvRaid.textContent  = raid || "";
     pvRio.href = d.profile_url || ("https://raider.io/characters/"+region+"/"+realm.toLowerCase().replace(/\s+/g,"-")+"/"+name);
-
     pvEmpty.style.display="none"; pvSkel.style.display="none"; pvCard.style.display="block";
     pvNote.style.display = (!score) ? "block" : "none";
     pvNote.textContent   = (!score) ? "This character has no current-season Mythic+ score on Raider.IO." : "";
   }catch(e){ clearPreview(); }
 }
-
 async function intake(){
   if(!code||!state){ errText.textContent="Missing code or state."; show(stepErr); return; }
   try{
@@ -296,7 +259,6 @@ async function intake(){
     }
   }catch(e){ errText.textContent="Network error."; show(stepErr); }
 }
-
 function filterNow(){
   const s=q.value.toLowerCase();
   const f=!s?allChoices:allChoices.filter(o=>o.name.toLowerCase().includes(s)||o.realm.toLowerCase().includes(s));
@@ -306,17 +268,14 @@ function filterNow(){
     const c=currentChoice(); if(c) fillPreview(c.region.toUpperCase(),c.realm,c.name);
   }else{ clearPreview(); }
 }
-
 q.addEventListener("input",filterNow);
 sel.addEventListener("change",()=>{ btn.disabled=sel.selectedOptions.length===0; lastSelected=sel.value; const c=currentChoice(); if(c) fillPreview(c.region.toUpperCase(),c.realm,c.name); });
 sel.addEventListener("dblclick",()=>{ if(!btn.disabled) submitApp(); });
-
 document.addEventListener("keydown",e=>{
   if(e.key==="Enter" && document.activeElement!==q && !btn.disabled){ submitApp(); }
   if(e.key==="ArrowDown"){ if(sel.selectedIndex<sel.options.length-1){ sel.selectedIndex++; sel.dispatchEvent(new Event("change")); } e.preventDefault(); }
   if(e.key==="ArrowUp"){ if(sel.selectedIndex>0){ sel.selectedIndex--; sel.dispatchEvent(new Event("change")); } e.preventDefault(); }
 });
-
 async function submitApp(){
   if(sel.selectedOptions.length===0) return;
   btn.disabled=true; const prev=btn.textContent; btn.textContent="Submitting…";
@@ -325,10 +284,8 @@ async function submitApp(){
     if(!r.ok){ errText.textContent="Submit failed: "+(await r.text()); show(stepErr); btn.disabled=false; btn.textContent=prev; return; }
     const data=await r.json();
     if(!data.ok){ errText.textContent="Submit error: "+(data.error||data.status||"unknown"); show(stepErr); btn.disabled=false; btn.textContent=prev; return; }
-
-    const picked = JSON.parse(sel.value); // store for notify-ready
+    const picked = JSON.parse(sel.value);
     lastSubmitted = { name:picked.name, realm:picked.realm };
-
     if(data.status==="other_guild"){
       doneText.textContent="This character is currently in "+(data.guild||"another guild")+". Please leave your current guild, then click the button below so officers can invite you.";
       otherText.textContent="When you’ve left your current guild, press the button to notify officers. Keep this page open to watch progress.";
@@ -337,7 +294,6 @@ async function submitApp(){
       show(stepDone);
       return;
     }
-
     const m={auto_accepted:"You’re all set — you were auto-accepted.",queued:"Thanks! Your application is pending officer review.",linked_alt:"Alt linked to your profile."};
     doneText.textContent=m[data.status]||("Status: "+data.status);
     otherCta.style.display="none";
@@ -346,14 +302,10 @@ async function submitApp(){
     errText.textContent="Network error."; show(stepErr); btn.disabled=false; btn.textContent=prev;
   }
 }
-
 btn.addEventListener("click",submitApp);
 retryBtn.addEventListener("click",()=>{ show(loading); clearPreview(); intake(); });
-
-// ----- Notify officers flow -----
 let pollId=null, currentTicket=null;
 function mark(el, ok){ el.classList.toggle("ok", !!ok); el.textContent = ok ? "✓" : "•"; }
-
 function setStatus(status){
   mark(stQueued, status==="queued" || status==="seen" || status==="invite_sent" || status==="completed");
   mark(stSeen,   status==="seen" || status==="invite_sent" || status==="completed");
@@ -362,7 +314,6 @@ function setStatus(status){
   const now=new Date().toUTCString();
   notifyFoot.textContent = "Last update: "+now+" • Status: "+status;
 }
-
 async function pollStatus(){
   if(!currentTicket) return;
   try{
@@ -377,19 +328,13 @@ async function pollStatus(){
     if(st==="completed" && pollId){ clearInterval(pollId); pollId=null; }
   }catch{}
 }
-
 notifyBtn.addEventListener("click", async ()=>{
   const name  = lastSubmitted?.name  || prompt("Character name");
   const realm = lastSubmitted?.realm || prompt("Realm");
   const user_id = who.textContent.replace("User ID:","").trim();
-
   notifyBtn.disabled = true; notifyBtn.textContent = "Notifying…";
   try{
-    const r = await fetch(API_BASE+"/notify-ready", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ user_id, name, realm, note:"Left previous guild" })
-    });
+    const r = await fetch(API_BASE+"/notify-ready", {method:"POST",headers:{ "Content-Type":"application/json" },body: JSON.stringify({ user_id, name, realm, note:"Left previous guild" })});
     const data = await r.json();
     if(!r.ok || !data.ok){ notifyBtn.disabled=false; notifyBtn.textContent="I’ve left my guild — notify officers"; alert("Failed to notify: "+(data.error||"server")); return; }
     currentTicket = data.ticket_id;
@@ -403,7 +348,6 @@ notifyBtn.addEventListener("click", async ()=>{
     alert("Network error while notifying officers.");
   }
 });
-
 intake();
 </script>
 </body>
