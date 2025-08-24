@@ -1,8 +1,11 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Finish sign-in</title>
 <style>
 *{box-sizing:border-box}html,body{height:100%}body{margin:0;background:radial-gradient(1200px 600px at 20% 10%,#0b1730,#070b15 65%);color:#e5e7eb;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial}
-.container{max-width:1040px;margin:6vh auto;padding:24px}
+.container{max-width:1000px;margin:6vh auto;padding:24px}
 .card{background:linear-gradient(180deg,#111827cc,#0b1324cc);border:1px solid #1f2937;border-radius:18px;overflow:hidden;box-shadow:0 10px 40px #0006}
 .header{padding:22px;border-bottom:1px solid #1f2937}
 .title{margin:0;font-size:20px;display:flex;gap:10px;align-items:center}
@@ -36,31 +39,33 @@
 @keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 .shortcuts{font-size:12px;color:#9ca3af}
 .note{padding:12px 14px;border:1px solid #78350f;background:#111827;border-radius:12px}
-.hidden{display:none}
-.stepper{display:grid;gap:10px;margin-top:10px}
-.step{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:#0b1324;border:1px solid #1f2937}
-.ico{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px}
-.ico.idle{border:2px solid #475569;color:#94a3b8}
-.ico.run{border:2px solid #38bdf8}
-.ico.ok{background:#16a34a;color:#fff}
-.spin{width:14px;height:14px;border-radius:50%;border:2px solid transparent;border-top-color:#38bdf8;animation:spin .9s linear infinite}
-.toast{position:fixed;right:12px;bottom:12px;background:#0b1220;border:1px solid #334155;color:#e5e7eb;padding:10px 14px;border-radius:10px}
-.small{font-size:.9em}
+.steps{display:grid;gap:8px}
+.step{display:flex;align-items:center;gap:8px;font-size:14px}
+.chk{width:18px;height:18px;border-radius:999px;border:2px solid #334155;display:inline-grid;place-items:center;font-size:12px}
+.chk.ok{border-color:#34d399;background:#34d399;color:#052e25}
+.small{font-size:12px;color:#9ca3af}
 </style>
-<body><div class="container"><div class="card">
+<body>
+<div class="container"><div class="card">
   <div class="header">
     <h1 class="title"><span class="dot"></span>Finishing sign-in</h1>
     <p class="sub">Pick your character and submit</p>
   </div>
   <div class="body">
-    <div id="step-loading" class="row flex"><div class="spinner"></div><div>Talking to server…</div></div>
 
-    <div id="step-error" class="row hidden">
+    <!-- STEP: loading -->
+    <div id="step-loading" class="row flex">
+      <div class="spinner"></div><div>Talking to server…</div>
+    </div>
+
+    <!-- STEP: error -->
+    <div id="step-error" class="row" style="display:none">
       <div class="row err" id="err-text"></div>
       <div class="row"><a class="btn secondary" href="/">Return</a> <button id="retry" class="btn secondary">Retry</button></div>
     </div>
 
-    <div id="step-select" class="hidden">
+    <!-- STEP: select -->
+    <div id="step-select" style="display:none">
       <div class="row flex"><span class="badge" id="who"></span><span class="shortcuts">Enter to submit • ↑/↓ to move • Double-click to quick submit</span></div>
       <div class="grid">
         <div class="panel">
@@ -71,7 +76,7 @@
         <div class="panel" id="preview">
           <div id="pv-skel" class="skel" style="height:160px;display:none"></div>
           <div id="pv-empty" class="muted">Select a character to see details</div>
-          <div id="pv-card" class="hidden">
+          <div id="pv-card" style="display:none">
             <div class="card-mini">
               <img id="pv-avatar" class="avatar" src="" alt="">
               <div class="meta">
@@ -86,7 +91,7 @@
                   <span id="pv-raid"></span>
                 </div>
                 <div><a id="pv-rio" class="btn secondary" target="_blank" rel="noopener">Open Raider.IO</a></div>
-                <div class="note muted hidden" id="pv-note"></div>
+                <div class="note muted" id="pv-note" style="display:none"></div>
               </div>
             </div>
           </div>
@@ -95,37 +100,34 @@
       <div class="row"><button id="submit" class="btn" disabled>Submit application</button> <a class="btn secondary" href="/">Cancel</a></div>
     </div>
 
-    <div id="step-done" class="row hidden">
+    <!-- STEP: done -->
+    <div id="step-done" class="row" style="display:none">
       <div class="row ok" id="done-text"></div>
 
-      <!-- Other guild flow w/ live officer notifications -->
-      <div id="other-guild-panel" class="panel hidden">
-        <h3 style="margin:6px 0 2px">You’re currently in <span id="curGuildName"></span></h3>
-        <p class="muted">To join <b>Timeskip</b> in-game, please:</p>
-        <ol class="muted" style="margin-top:0">
-          <li>Log in and <b>/gquit</b> your current guild.</li>
-          <li>Open <b>Guilds &amp; Communities → Find a Guild</b>, search <b>Timeskip</b>, and click <b>Apply</b>.</li>
-        </ol>
-        <div class="row flex">
-          <button id="copyNoteBtn" class="btn">Copy application note</button>
-          <button id="notifyBtn" class="btn">I’ve left my guild — notify officers</button>
+      <!-- other guild CTA + live status -->
+      <div class="row" id="other-guild-cta" style="display:none">
+        <div class="row muted" id="other-guild-text"></div>
+        <div class="row">
+          <button id="notify-ready" class="btn">I’ve left my guild — notify officers</button>
+          <a id="join-btn" class="btn secondary" target="_blank" rel="noopener">Open Discord</a>
         </div>
-        <div class="stepper">
-          <div class="step"><div class="ico ok" id="s1Ico">✓</div><div><b>Confirmed you left your guild</b><div class="muted small">Clicking the button confirms this step.</div></div></div>
-          <div class="step"><div class="ico idle" id="s2Ico"></div><div><b>Officers notified</b><div class="muted small" id="s2Sub">We’ll ping officers in the review channel.</div></div></div>
-          <div class="step"><div class="ico idle" id="s3Ico"></div><div><b>Officer acknowledged</b><div class="muted small" id="s3Sub">Waiting for an officer to pick it up.</div></div></div>
-          <div class="step"><div class="ico idle" id="s4Ico"></div><div><b>Invite sent in-game</b><div class="muted small" id="s4Sub">You’ll see the guild invite pop up.</div></div></div>
-          <div class="step"><div class="ico idle" id="s5Ico"></div><div><b>Completed</b><div class="muted small" id="s5Sub">Welcome to Timeskip 🎉</div></div></div>
+        <div id="notify-panel" class="panel" style="display:none">
+          <div class="row small">We’ll ping officers and show live status here.</div>
+          <div class="steps">
+            <div class="step"><span id="st-queued" class="chk">•</span><span>Queued</span></div>
+            <div class="step"><span id="st-seen" class="chk">•</span><span>Seen by officer</span></div>
+            <div class="step"><span id="st-invite" class="chk">•</span><span>Invite sent</span></div>
+            <div class="step"><span id="st-done" class="chk">•</span><span>Completed</span></div>
+          </div>
+          <div class="row small" id="notify-foot"></div>
         </div>
-        <p class="small muted" style="margin-top:10px">Officer quick command: <code id="ginviteCmd"></code></p>
       </div>
 
       <div class="row"><a class="btn secondary" href="https://discord.com/app">Return to Discord</a></div>
     </div>
+
   </div>
 </div></div>
-
-<div id="toast" class="toast hidden"></div>
 
 <script>
 const API_BASE = "https://mikumikudev-c530e6b3e669.herokuapp.com";
@@ -133,160 +135,182 @@ const REGION_DEFAULT = "eu";
 const params = new URLSearchParams(location.search);
 let code  = params.get("code")  || "";
 let state = params.get("state") || "";
-// Hide code/state from URL
 if (code || state) { history.replaceState(null, "", location.pathname); }
 
-const el = (id)=>document.getElementById(id);
-const showOnly = (id)=>["step-loading","step-error","step-select","step-done"].forEach(x=>el(x).classList.toggle("hidden", x!==id));
+// ui refs
+const loading  = document.getElementById("step-loading");
+const stepErr  = document.getElementById("step-error");
+const errText  = document.getElementById("err-text");
+const retryBtn = document.getElementById("retry");
+const stepSel  = document.getElementById("step-select");
+const stepDone = document.getElementById("step-done");
+const who      = document.getElementById("who");
+const q        = document.getElementById("q");
+const sel      = document.getElementById("choice");
+const btn      = document.getElementById("submit");
+const count    = document.getElementById("count");
 
-const q=el("q"), sel=el("choice"), btn=el("submit"), count=el("count");
-const pvSkel=el("pv-skel"), pvEmpty=el("pv-empty"), pvCard=el("pv-card");
-const pvAvatar=el("pv-avatar"), pvTitle=el("pv-title"), pvClass=el("pv-class");
-const pvIlvl=el("pv-ilvl"), pvFaction=el("pv-faction"), pvScore=el("pv-score"), pvRaid=el("pv-raid"), pvRio=el("pv-rio"), pvNote=el("pv-note");
+const pvSkel   = document.getElementById("pv-skel");
+const pvEmpty  = document.getElementById("pv-empty");
+const pvCard   = document.getElementById("pv-card");
+const pvAvatar = document.getElementById("pv-avatar");
+const pvTitle  = document.getElementById("pv-title");
+const pvClass  = document.getElementById("pv-class");
+const pvIlvl   = document.getElementById("pv-ilvl");
+const pvFaction= document.getElementById("pv-faction");
+const pvScore  = document.getElementById("pv-score");
+const pvRaid   = document.getElementById("pv-raid");
+const pvRio    = document.getElementById("pv-rio");
+const pvNote   = document.getElementById("pv-note");
 
-const doneText=el("done-text");
-const otherPanel=el("other-guild-panel"), curGuildName=el("curGuildName"), copyNoteBtn=el("copyNoteBtn"), notifyBtn=el("notifyBtn");
-const s2Ico=el("s2Ico"), s3Ico=el("s3Ico"), s4Ico=el("s4Ico"), s5Ico=el("s5Ico");
-const s2Sub=el("s2Sub"), s3Sub=el("s3Sub"), s4Sub=el("s4Sub"), ginviteCmd=el("ginviteCmd");
-const toastEl=el("toast");
+const doneText = document.getElementById("done-text");
+const otherCta = document.getElementById("other-guild-cta");
+const otherText= document.getElementById("other-guild-text");
+const joinBtn  = document.getElementById("join-btn");
 
-const RAID_KEYS=["manaforge-omega","manaforge","mfo","liberation-of-undermine","liberation","nerubar-palace","nerubar","amirdrassil","aberrus","vault"];
+const notifyBtn   = document.getElementById("notify-ready");
+const notifyPanel = document.getElementById("notify-panel");
+const stQueued = document.getElementById("st-queued");
+const stSeen   = document.getElementById("st-seen");
+const stInvite = document.getElementById("st-invite");
+const stDone   = document.getElementById("st-done");
+const notifyFoot= document.getElementById("notify-foot");
 
-let allChoices=[], lastSelected="", intakeUserId=0, pollTimer=null;
+const RAID_KEYS = ["manaforge-omega","manaforge","mfo","liberation-of-undermine","liberation","nerubar-palace","nerubar","amirdrassil","aberrus","vault"];
 
-function toast(msg){ toastEl.textContent = msg; toastEl.classList.remove("hidden"); setTimeout(()=>toastEl.classList.add("hidden"), 2000); }
+let allChoices = [];
+let lastSelected = "";
+let lastSubmitted = null; // remember for notify-ready defaults
 
-function icoRun(x){ x.className="ico run"; x.innerHTML='<div class="spin"></div>'; }
-function icoOk(x){ x.className="ico ok"; x.textContent="✓"; }
-function icoIdle(x){ x.className="ico idle"; x.textContent=""; }
+function show(node){ loading.style.display="none"; stepErr.style.display="none"; stepSel.style.display="none"; stepDone.style.display="none"; node.style.display="block"; }
 
 function render(list){
   sel.innerHTML="";
   list.forEach(o=>{
     const opt=document.createElement("option");
     opt.value=JSON.stringify(o);
-    opt.textContent=`${o.name} — ${o.realm}`;
+    opt.textContent=o.name+" — "+o.realm;
     sel.appendChild(opt);
   });
-  count.textContent = `${list.length} character(s)`;
-  if (lastSelected){
+  count.textContent=list.length+" character(s)";
+  if(lastSelected){
     const i=[...sel.options].findIndex(o=>o.value===lastSelected);
-    if (i>=0) sel.selectedIndex=i;
+    if(i>=0) sel.selectedIndex=i;
   }
   btn.disabled = sel.selectedOptions.length===0;
 }
 
-function skel(on){ pvSkel.style.display=on?"block":"none"; pvEmpty.classList.toggle("hidden", on); pvCard.classList.add("hidden"); }
+function skel(on){ pvSkel.style.display=on?"block":"none"; pvEmpty.style.display=on?"none":"block"; pvCard.style.display="none"; }
+
 function clearPreview(){
   pvAvatar.src=""; pvTitle.textContent=""; pvClass.textContent="";
   pvIlvl.textContent=""; pvFaction.textContent=""; pvScore.textContent="";
-  pvRaid.textContent=""; pvRio.href="#"; pvNote.classList.add("hidden"); pvNote.textContent="";
-  pvCard.classList.add("hidden"); pvEmpty.classList.remove("hidden"); pvSkel.style.display="none";
+  pvRaid.textContent=""; pvRio.href="#"; pvNote.style.display="none"; pvNote.textContent="";
+  pvCard.style.display="none"; pvEmpty.style.display="block"; pvSkel.style.display="none";
 }
 
 function pickLatestRaidName(prog){
   const keys=Object.keys(prog||{});
-  for (const want of RAID_KEYS){
-    const hit=keys.find(k=>k.toLowerCase().includes(want));
-    if (hit) return hit;
+  for(const want of RAID_KEYS){
+    const hit = keys.find(k=>k.toLowerCase().includes(want));
+    if(hit) return hit;
   }
-  // fallback = most progressed
-  let maxKey=null, maxScore=-1;
-  for (const k of keys){
+  let maxKey=null,maxScore=-1;
+  for(const k of keys){
     const p=prog[k]||{};
     const s=(p.mythic_bosses_killed||0)*3+(p.heroic_bosses_killed||0)*2+(p.normal_bosses_killed||0);
-    if (s>maxScore){maxScore=s;maxKey=k;}
+    if(s>maxScore){maxScore=s;maxKey=k;}
   }
   return maxKey;
 }
+
 function raidSummary(prog){
   const name=pickLatestRaidName(prog);
   if(!name) return "";
   const p=prog[name]||{};
   const t=p.total_bosses||0, m=p.mythic_bosses_killed||0, h=p.heroic_bosses_killed||0, n=p.normal_bosses_killed||0;
-  if(m>0) return `M ${m}/${t} • Manaforge Omega`;
-  if(h>0) return `HC ${h}/${t}`;
-  if(n>0) return `N ${n}/${t}`;
-  return `0/${t}`;
+  if(m>0) return "M "+m+"/"+t+" • Manaforge Omega";
+  if(h>0) return "HC "+h+"/"+t;
+  if(n>0) return "N "+n+"/"+t;
+  return "0/"+t;
 }
 
-function currentChoice(){ if(!sel.value) return null; try{ return JSON.parse(sel.value);}catch{return null;} }
+function currentChoice(){
+  if(!sel.value) return null;
+  try{ return JSON.parse(sel.value); }catch{ return null; }
+}
 
-async function fillPreview(region, realm, name){
+async function fillPreview(region,realm,name){
   skel(true);
   try{
     const u="https://raider.io/api/v1/characters/profile?"+new URLSearchParams({
-      region, realm, name, fields:"gear,raid_progression,mythic_plus_scores_by_season:current"
+      region, realm, name,
+      fields:"gear,raid_progression,mythic_plus_scores_by_season:current"
     });
     const r=await fetch(u);
     if(!r.ok){ clearPreview(); return; }
     const d=await r.json();
-    const cls=d.class||"";
-    const spec=(d.active_spec_name||"")+(d.active_spec_role?(" • "+d.active_spec_role):"");
-    const ilvl=d.gear?.item_level_equipped ? Math.round(d.gear.item_level_equipped) : null;
-    const seasons=d.mythic_plus_scores_by_season||[];
-    const score=seasons.length && seasons[0].scores?.all ? Math.round(seasons[0].scores.all) : 0;
-    const raid=raidSummary(d.raid_progression||{});
 
-    pvAvatar.src=d.thumbnail_url||"";
-    pvTitle.textContent=`${name} — ${realm}`;
-    pvClass.textContent=spec ? `${spec} • ${cls}` : cls;
-    pvIlvl.textContent=ilvl?(`iLvl ${ilvl}`):"";
-    pvFaction.textContent=d.faction||"";
-    pvScore.textContent = score ? `M+ ${score}` : "No current M+ score";
-    pvRaid.textContent=raid||"";
-    pvRio.href=d.profile_url || `https://raider.io/characters/${region}/${realm.toLowerCase().replace(/\s+/g,"-")}/${name}`;
+    const cls  = d.class || "";
+    const spec = (d.active_spec_name||"") + (d.active_spec_role?(" • "+d.active_spec_role):"");
+    const ilvl = d.gear && d.gear.item_level_equipped ? Math.round(Number(d.gear.item_level_equipped)) : null;
 
-    pvEmpty.classList.add("hidden");
-    pvSkel.style.display="none";
-    pvCard.classList.remove("hidden");
-
-    if(!score){
-      pvNote.classList.remove("hidden");
-      pvNote.textContent="This character has no current Mythic+ score. Officers may ask for additional info.";
+    // current-season score
+    let score = 0;
+    if (Array.isArray(d.mythic_plus_scores_by_season) && d.mythic_plus_scores_by_season.length) {
+      const s0 = d.mythic_plus_scores_by_season[0] || {};
+      if (s0.scores && s0.scores.all != null) score = Math.round(Number(s0.scores.all) || 0);
     }
-  }catch{ clearPreview(); }
+
+    const raid = raidSummary(d.raid_progression||{});
+
+    pvAvatar.src = d.thumbnail_url || "";
+    pvTitle.textContent = name+" — "+realm;
+    pvClass.textContent = spec ? (spec+" • "+cls) : cls;
+    pvIlvl.textContent  = ilvl ? ("iLvl "+ilvl) : "";
+    pvFaction.textContent = d.faction || "";
+    pvScore.textContent = score ? ("M+ "+score) : "No current M+ score";
+    pvRaid.textContent  = raid || "";
+    pvRio.href = d.profile_url || ("https://raider.io/characters/"+region+"/"+realm.toLowerCase().replace(/\s+/g,"-")+"/"+name);
+
+    pvEmpty.style.display="none"; pvSkel.style.display="none"; pvCard.style.display="block";
+    pvNote.style.display = (!score) ? "block" : "none";
+    pvNote.textContent   = (!score) ? "This character has no current-season Mythic+ score on Raider.IO." : "";
+  }catch(e){ clearPreview(); }
 }
 
 async function intake(){
-  if(!code||!state){ el("err-text").textContent="Missing code or state."; showOnly("step-error"); return; }
+  if(!code||!state){ errText.textContent="Missing code or state."; show(stepErr); return; }
   try{
-    const r=await fetch(`${API_BASE}/oauth/intake`, {
-      method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ state, code })
-    });
-    if(!r.ok){ el("err-text").textContent = "Intake failed."; showOnly("step-error"); return; }
+    const r=await fetch(API_BASE+"/oauth/intake",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({state,code})});
+    if(!r.ok){ errText.textContent="Intake failed: "+(await r.text()); show(stepErr); return; }
     const data=await r.json();
-    if(!data.ok){ el("err-text").textContent = "Server error: "+(data.error||"unknown"); showOnly("step-error"); return; }
-
-    intakeUserId = data.user_id;
-    el("who").textContent = "User ID: "+intakeUserId;
-
-    allChoices=(data.choices||[]).map(o=>({
-      name:o.name, realm:o.realm, realm_slug:o.realm_slug, name_slug:o.name_slug,
-      region:(o.region||REGION_DEFAULT).toLowerCase()
-    }));
+    if(!data.ok){ errText.textContent="Server error: "+(data.error||"unknown"); show(stepErr); return; }
+    allChoices=(data.choices||[]).map(o=>({name:o.name,realm:o.realm,realm_slug:o.realm_slug,name_slug:o.name_slug,region:(o.region||REGION_DEFAULT).toLowerCase()}));
+    who.textContent="User ID: "+data.user_id;
     render(allChoices);
-    showOnly("step-select");
+    show(stepSel);
     if(sel.options.length){
       sel.selectedIndex=0; lastSelected=sel.value;
-      const c=currentChoice(); if(c) fillPreview(c.region.toUpperCase(), c.realm, c.name);
+      const c=currentChoice(); if(c) fillPreview(c.region.toUpperCase(),c.realm,c.name);
     }
-  }catch{ el("err-text").textContent = "Network error."; showOnly("step-error"); }
+  }catch(e){ errText.textContent="Network error."; show(stepErr); }
 }
 
 function filterNow(){
   const s=q.value.toLowerCase();
-  const f=!s ? allChoices : allChoices.filter(o => o.name.toLowerCase().includes(s) || o.realm.toLowerCase().includes(s));
+  const f=!s?allChoices:allChoices.filter(o=>o.name.toLowerCase().includes(s)||o.realm.toLowerCase().includes(s));
   render(f);
   if(sel.options.length){
     sel.selectedIndex=0; lastSelected=sel.value;
-    const c=currentChoice(); if(c) fillPreview(c.region.toUpperCase(), c.realm, c.name);
+    const c=currentChoice(); if(c) fillPreview(c.region.toUpperCase(),c.realm,c.name);
   }else{ clearPreview(); }
 }
 
 q.addEventListener("input",filterNow);
-sel.addEventListener("change",()=>{ btn.disabled=sel.selectedOptions.length===0; lastSelected=sel.value; const c=currentChoice(); if(c) fillPreview(c.region.toUpperCase(), c.realm, c.name); });
+sel.addEventListener("change",()=>{ btn.disabled=sel.selectedOptions.length===0; lastSelected=sel.value; const c=currentChoice(); if(c) fillPreview(c.region.toUpperCase(),c.realm,c.name); });
 sel.addEventListener("dblclick",()=>{ if(!btn.disabled) submitApp(); });
+
 document.addEventListener("keydown",e=>{
   if(e.key==="Enter" && document.activeElement!==q && !btn.disabled){ submitApp(); }
   if(e.key==="ArrowDown"){ if(sel.selectedIndex<sel.options.length-1){ sel.selectedIndex++; sel.dispatchEvent(new Event("change")); } e.preventDefault(); }
@@ -297,82 +321,90 @@ async function submitApp(){
   if(sel.selectedOptions.length===0) return;
   btn.disabled=true; const prev=btn.textContent; btn.textContent="Submitting…";
   try{
-    const r=await fetch(`${API_BASE}/oauth/submit`, { method:"POST", body:new URLSearchParams({ state, choice: sel.value }) });
-    if(!r.ok){ el("err-text").textContent="Submit failed."; showOnly("step-error"); btn.disabled=false; btn.textContent=prev; return; }
+    const r=await fetch(API_BASE+"/oauth/submit",{method:"POST",body:new URLSearchParams({state,choice:sel.value})});
+    if(!r.ok){ errText.textContent="Submit failed: "+(await r.text()); show(stepErr); btn.disabled=false; btn.textContent=prev; return; }
     const data=await r.json();
-    if(!data.ok){ el("err-text").textContent="Submit error: "+(data.error||data.status||"unknown"); showOnly("step-error"); btn.disabled=false; btn.textContent=prev; return; }
+    if(!data.ok){ errText.textContent="Submit error: "+(data.error||data.status||"unknown"); show(stepErr); btn.disabled=false; btn.textContent=prev; return; }
+
+    const picked = JSON.parse(sel.value); // store for notify-ready
+    lastSubmitted = { name:picked.name, realm:picked.realm };
 
     if(data.status==="other_guild"){
-      // Show the interactive notify flow
-      doneText.textContent="This character is currently in "+(data.guild||"another guild")+". Please leave your current guild, then let us know and we’ll send an invite.";
-      otherPanel.classList.remove("hidden");
-      curGuildName.textContent = data.guild || "another guild";
-      const c=currentChoice(); if(c){ ginviteCmd.textContent=`/ginvite ${c.name}-${c.realm}`; }
-      showOnly("step-done");
-
-      // Wire up actions
-      const note = [
-        `Discord: ${window.DISCORD_HANDLE || ""}`,
-        c ? `Character: ${c.name}-${c.realm}` : "",
-      ].filter(Boolean).join(" • ");
-      copyNoteBtn.onclick = async () => {
-        await navigator.clipboard.writeText(note || "Application: Timeskip");
-        toast("Application note copied");
-      };
-      notifyBtn.onclick = async ()=>{
-        notifyBtn.disabled=true; icoRun(s2Ico);
-        try{
-          const rr = await fetch(`${API_BASE}/notify-ready`, {
-            method:"POST", headers:{"Content-Type":"application/json"},
-            body: JSON.stringify({ user_id:intakeUserId, name:c.name, realm:c.realm, note })
-          });
-          const dj = await rr.json();
-          if(dj.ok){
-            icoOk(s2Ico); toast("Officers notified");
-            startPolling(dj.ticket_id);
-          }else{
-            icoIdle(s2Ico); toast("Couldn’t notify officers. Try again.");
-            notifyBtn.disabled=false;
-          }
-        }catch{
-          icoIdle(s2Ico); toast("Network error. Try again.");
-          notifyBtn.disabled=false;
-        }
-      };
+      doneText.textContent="This character is currently in "+(data.guild||"another guild")+". Please leave your current guild, then click the button below so officers can invite you.";
+      otherText.textContent="When you’ve left your current guild, press the button to notify officers. Keep this page open to watch progress.";
+      if(data.join_url){ joinBtn.href=data.join_url; joinBtn.textContent="Open Timeskip Discord"; }
+      otherCta.style.display="block";
+      show(stepDone);
       return;
     }
 
-    const m={ auto_accepted:"You’re all set. You were auto-accepted.", queued:"Thanks. Your application is pending officer review.", linked_alt:"Alt linked to your profile." };
-    doneText.textContent = m[data.status] || ("Status: "+data.status);
-    otherPanel.classList.add("hidden");
-    showOnly("step-done");
-  }catch{
-    el("err-text").textContent="Network error."; showOnly("step-error"); btn.disabled=false; btn.textContent=prev;
+    const m={auto_accepted:"You’re all set — you were auto-accepted.",queued:"Thanks! Your application is pending officer review.",linked_alt:"Alt linked to your profile."};
+    doneText.textContent=m[data.status]||("Status: "+data.status);
+    otherCta.style.display="none";
+    show(stepDone);
+  }catch(e){
+    errText.textContent="Network error."; show(stepErr); btn.disabled=false; btn.textContent=prev;
   }
 }
 
-async function startPolling(ticketId){
-  if (pollTimer) clearInterval(pollTimer);
-  icoRun(s2Ico);
-  const poll = async ()=>{
-    try{
-      const r = await fetch(`${API_BASE}/notify-status?ticket_id=${encodeURIComponent(ticketId)}`);
-      const d = await r.json();
-      if(!d.ok) return;
-      if(d.status==="queued"){ icoOk(s2Ico); icoRun(s3Ico); s2Sub.textContent="Your request has been posted to officers."; }
-      if(d.status==="seen"){  icoOk(s2Ico); icoOk(s3Ico); icoRun(s4Ico); s3Sub.textContent="An officer is on it."; }
-      if(d.status==="invite_sent"){ icoOk(s2Ico); icoOk(s3Ico); icoOk(s4Ico); icoRun(s5Ico); s4Sub.textContent="Check for the guild invite in-game."; }
-      if(d.status==="completed"){ icoOk(s2Ico); icoOk(s3Ico); icoOk(s4Ico); icoOk(s5Ico); clearInterval(pollTimer); toast("All done — welcome!"); }
-    }catch{}
-  };
-  await poll();
-  pollTimer = setInterval(poll, 5000);
+btn.addEventListener("click",submitApp);
+retryBtn.addEventListener("click",()=>{ show(loading); clearPreview(); intake(); });
+
+// ----- Notify officers flow -----
+let pollId=null, currentTicket=null;
+function mark(el, ok){ el.classList.toggle("ok", !!ok); el.textContent = ok ? "✓" : "•"; }
+
+function setStatus(status){
+  mark(stQueued, status==="queued" || status==="seen" || status==="invite_sent" || status==="completed");
+  mark(stSeen,   status==="seen" || status==="invite_sent" || status==="completed");
+  mark(stInvite, status==="invite_sent" || status==="completed");
+  mark(stDone,   status==="completed");
+  const now=new Date().toUTCString();
+  notifyFoot.textContent = "Last update: "+now+" • Status: "+status;
 }
 
-el("retry").addEventListener("click", ()=>{ showOnly("step-loading"); clearPreview(); intake(); });
+async function pollStatus(){
+  if(!currentTicket) return;
+  try{
+    const u=new URL(API_BASE+"/notify-status");
+    u.searchParams.set("ticket_id", currentTicket);
+    const r=await fetch(u);
+    if(!r.ok) return;
+    const data=await r.json();
+    if(!data.ok) return;
+    const st=data.status||"queued";
+    setStatus(st);
+    if(st==="completed" && pollId){ clearInterval(pollId); pollId=null; }
+  }catch{}
+}
 
-// Go!
-showOnly("step-loading");
+notifyBtn.addEventListener("click", async ()=>{
+  const name  = lastSubmitted?.name  || prompt("Character name");
+  const realm = lastSubmitted?.realm || prompt("Realm");
+  const user_id = who.textContent.replace("User ID:","").trim();
+
+  notifyBtn.disabled = true; notifyBtn.textContent = "Notifying…";
+  try{
+    const r = await fetch(API_BASE+"/notify-ready", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ user_id, name, realm, note:"Left previous guild" })
+    });
+    const data = await r.json();
+    if(!r.ok || !data.ok){ notifyBtn.disabled=false; notifyBtn.textContent="I’ve left my guild — notify officers"; alert("Failed to notify: "+(data.error||"server")); return; }
+    currentTicket = data.ticket_id;
+    notifyPanel.style.display="block";
+    setStatus("queued");
+    if(pollId) clearInterval(pollId);
+    pollId = setInterval(pollStatus, 4000);
+    notifyBtn.textContent = "Notification sent";
+  }catch(e){
+    notifyBtn.disabled=false; notifyBtn.textContent="I’ve left my guild — notify officers";
+    alert("Network error while notifying officers.");
+  }
+});
+
 intake();
 </script>
-</body></html>
+</body>
+</html>
