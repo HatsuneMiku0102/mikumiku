@@ -54,9 +54,9 @@ app.use(helmet.contentSecurityPolicy({
     defaultSrc: ["'self'"],
     scriptSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com", "https://www.youtube.com", "https://unpkg.com", "https://cdn.jsdelivr.net", "https://cdn.skypack.dev", "https://cdn.socket.io", "https://api.mapbox.com"],
     styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com", "https://api.mapbox.com"],
-    imgSrc: ["'self'", "blob:", "data:", "https://i.ytimg.com", "https://img.youtube.com", "https://openweathermap.org", "https://i.postimg.cc", "https://threejs.org", "https://www.youtube.com", "https://raw.githubusercontent.com", "https://api.tiles.mapbox.com", "https://*.tiles.mapbox.com"],
+    imgSrc: ["'self'", "blob:", "data:", "https://i.ytimg.com", "https://img.youtube.com", "https://openweathermap.org", "https://i.postimg.cc", "https://threejs.org", "https://www.youtube.com", "https://raw.githubusercontent.com", "https://api.tiles.mapbox.com", "https://*.tiles.mapbox.com", "https://raider.io", "https://render.worldofwarcraft.com"],
     fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
-    connectSrc: ["'self'", "blob:", "https://www.googleapis.com", "https://*.youtube.com", "https://api.openweathermap.org", "https://cdn.socket.io", "https://mikumiku.dev", "https://api.mapbox.com", "https://events.mapbox.com"],
+    connectSrc: ["'self'", "blob:", "https://www.googleapis.com", "https://*.youtube.com", "https://api.openweathermap.org", "https://cdn.socket.io", "https://mikumiku.dev", "https://api.mapbox.com", "https://events.mapbox.com", "https://mikumikudev-c530e6b3e669.herokuapp.com", "https://raider.io", "https://oauth.battle.net", "https://*.api.blizzard.com"],
     frameSrc: ["'self'", "https://discord.com", "https://www.youtube.com"],
     mediaSrc: ["'self'", "https://www.youtube.com"],
     frameAncestors: ["'self'", "https://discord.com"],
@@ -483,66 +483,35 @@ const ORIGIN = "http://us-nyc-02.wisp.uno:8282";
 
 function forwardBody(proxyReq, req, res) {
   if (!req.body || !Object.keys(req.body).length) return;
-  const ct = proxyReq.getHeader("Content-Type") || "";
+  const ct = proxyReq.getHeader('Content-Type') || '';
   let bodyData;
-  if (ct.includes("application/json")) bodyData = JSON.stringify(req.body);
-  else if (ct.includes("application/x-www-form-urlencoded")) bodyData = new URLSearchParams(req.body).toString();
+  if (ct.includes('application/json')) bodyData = JSON.stringify(req.body);
+  else if (ct.includes('application/x-www-form-urlencoded')) bodyData = new URLSearchParams(req.body).toString();
   if (bodyData) {
-    proxyReq.setHeader("Content-Length", Buffer.byteLength(bodyData));
+    proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
     proxyReq.write(bodyData);
   }
 }
 
-app.use(
-  "/oauth",
-  createProxyMiddleware({
-    target: ORIGIN,
-    changeOrigin: true,
-    xfwd: true,
-    secure: false,
-    ws: true,
-    proxyTimeout: 45000,
-    timeout: 45000,
-    onProxyReq: forwardBody
-  })
-);
-
-app.use(
-  ["/notify-ready", "/notify-status"],
-  createProxyMiddleware({
-    target: ORIGIN,
-    changeOrigin: true,
-    xfwd: true,
-    secure: false,
-    proxyTimeout: 45000,
-    timeout: 45000,
-    onProxyReq: forwardBody
-  })
-);
-
-  onProxyReq(proxyReq, req, res) {
-    if (!req.body || !Object.keys(req.body).length) return;
-    const ct = proxyReq.getHeader('Content-Type') || '';
-    let bodyData;
-    if (ct.includes('application/json')) {
-      bodyData = JSON.stringify(req.body);
-    } else if (ct.includes('application/x-www-form-urlencoded')) {
-      bodyData = new URLSearchParams(req.body).toString();
-    }
-    if (bodyData) {
-      proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
-      proxyReq.write(bodyData);
-    }
-  }
+app.use("/oauth", createProxyMiddleware({
+  target: ORIGIN,
+  changeOrigin: true,
+  xfwd: true,
+  secure: false,
+  ws: true,
+  proxyTimeout: 45000,
+  timeout: 45000,
+  onProxyReq: forwardBody
 }));
 
-app.use("/notify-status", createProxyMiddleware({
+app.use(["/notify-ready", "/notify-status"], createProxyMiddleware({
   target: ORIGIN,
   changeOrigin: true,
   xfwd: true,
   secure: false,
   proxyTimeout: 45000,
-  timeout: 45000
+  timeout: 45000,
+  onProxyReq: forwardBody
 }));
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
