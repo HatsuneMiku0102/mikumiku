@@ -35,6 +35,7 @@
 .skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);animation:sh 1.2s infinite}
 @keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 .shortcuts{font-size:12px;color:#9ca3af}
+.note{padding:12px 14px;border:1px solid #78350f;background:#111827;border-radius:12px}
 </style>
 <body><div class="container"><div class="card">
 <div class="header"><h1 class="title"><span class="dot"></span>Finishing sign-in</h1><p class="sub">Pick your character and submit</p></div>
@@ -70,6 +71,7 @@
                 <span id="pv-raid"></span>
               </div>
               <div><a id="pv-rio" class="btn secondary" target="_blank" rel="noopener">Open Raider.IO</a></div>
+              <div class="note muted" id="pv-note" style="display:none"></div>
             </div>
           </div>
         </div>
@@ -79,13 +81,17 @@
   </div>
   <div id="step-done" class="row" style="display:none">
     <div class="row ok" id="done-text"></div>
-    <div class="row"><a class="btn" href="https://discord.com/app">Return to Discord</a></div>
+    <div class="row" id="other-guild-cta" style="display:none">
+      <div class="row" id="other-guild-text" class="muted"></div>
+      <div class="row"><a id="join-btn" class="btn" target="_blank" rel="noopener">Join Timeskip</a></div>
+    </div>
+    <div class="row"><a class="btn secondary" href="https://discord.com/app">Return to Discord</a></div>
   </div>
 </div>
 </div></div>
 <script>
 const API_BASE="https://mikumikudev-c530e6b3e669.herokuapp.com"
-const REGION="eu"
+const REGION_DEFAULT="eu"
 const params=new URLSearchParams(location.search)
 let code=params.get("code")||""
 let state=params.get("state")||""
@@ -112,27 +118,23 @@ const pvFaction=document.getElementById("pv-faction")
 const pvScore=document.getElementById("pv-score")
 const pvRaid=document.getElementById("pv-raid")
 const pvRio=document.getElementById("pv-rio")
+const pvNote=document.getElementById("pv-note")
+const doneText=document.getElementById("done-text")
+const otherCta=document.getElementById("other-guild-cta")
+const otherText=document.getElementById("other-guild-text")
+const joinBtn=document.getElementById("join-btn")
 const RAID_KEYS=["manaforge-omega","manaforge","mfo","liberation-of-undermine","liberation","nerubar-palace","nerubar","amirdrassil","aberrus","vault"]
 let allChoices=[]
 let lastSelected=""
 function show(id){loading.style.display="none";stepErr.style.display="none";stepSel.style.display="none";stepDone.style.display="none";id.style.display="block"}
-function render(list){sel.innerHTML="";list.forEach(o=>{const opt=document.createElement("option");opt.value=o.name+"::"+o.realm;opt.textContent=o.name+" — "+o.realm;sel.appendChild(opt)});count.textContent=list.length+" character(s)";if(lastSelected){const i=[...sel.options].findIndex(o=>o.value===lastSelected);if(i>=0)sel.selectedIndex=i}btn.disabled=sel.selectedOptions.length===0}
+function render(list){sel.innerHTML="";list.forEach(o=>{const opt=document.createElement("option");opt.value=JSON.stringify(o);opt.textContent=o.name+" — "+o.realm;sel.appendChild(opt)});count.textContent=list.length+" character(s)";if(lastSelected){const i=[...sel.options].findIndex(o=>o.value===lastSelected);if(i>=0)sel.selectedIndex=i}btn.disabled=sel.selectedOptions.length===0}
 function skel(on){pvSkel.style.display=on?"block":"none";pvEmpty.style.display=on?"none":"block";pvCard.style.display="none"}
-function clearPreview(){pvAvatar.src="";pvTitle.textContent="";pvClass.textContent="";pvIlvl.textContent="";pvFaction.textContent="";pvScore.textContent="";pvRaid.textContent="";pvRio.href="#";pvCard.style.display="none";pvEmpty.style.display="block";pvSkel.style.display="none"}
+function clearPreview(){pvAvatar.src="";pvTitle.textContent="";pvClass.textContent="";pvIlvl.textContent="";pvFaction.textContent="";pvScore.textContent="";pvRaid.textContent="";pvRio.href="#";pvNote.style.display="none";pvNote.textContent="";pvCard.style.display="none";pvEmpty.style.display="block";pvSkel.style.display="none"}
 function pickLatestRaidName(prog){
   const keys=Object.keys(prog||{})
-  let best=null
-  for(const want of RAID_KEYS){
-    const hit=keys.find(k=>k.toLowerCase().includes(want))
-    if(hit){best=hit;break}
-  }
-  if(best)return best
+  for(const want of RAID_KEYS){const hit=keys.find(k=>k.toLowerCase().includes(want));if(hit)return hit}
   let maxKey=null, maxScore=-1
-  for(const k of keys){
-    const p=prog[k]||{}
-    const score=(p.mythic_bosses_killed||0)*3+(p.heroic_bosses_killed||0)*2+(p.normal_bosses_killed||0)
-    if(score>maxScore){maxScore=score;maxKey=k}
-  }
+  for(const k of keys){const p=prog[k]||{};const s=(p.mythic_bosses_killed||0)*3+(p.heroic_bosses_killed||0)*2+(p.normal_bosses_killed||0);if(s>maxScore){maxScore=s;maxKey=k}}
   return maxKey
 }
 function raidSummary(prog){
@@ -148,6 +150,7 @@ function raidSummary(prog){
   if(n>0)return "N "+n+"/"+t
   return "0/"+t
 }
+function currentChoice(){if(!sel.value)return null;try{return JSON.parse(sel.value)}catch{return null}}
 async function fillPreview(region,realm,name){
   skel(true)
   try{
@@ -172,6 +175,7 @@ async function fillPreview(region,realm,name){
     pvEmpty.style.display="none"
     pvSkel.style.display="none"
     pvCard.style.display="block"
+    if(!score){pvNote.style.display="block";pvNote.textContent="This character has no current Mythic+ score. Officers may ask for additional info."}
   }catch(e){clearPreview()}
 }
 async function intake(){
@@ -181,16 +185,16 @@ async function intake(){
     if(!r.ok){const t=await r.text();errText.textContent="Intake failed: "+t;show(stepErr);return}
     const data=await r.json()
     if(!data.ok){errText.textContent="Server error: "+(data.error||"unknown");show(stepErr);return}
-    allChoices=data.choices||[]
+    allChoices=(data.choices||[]).map(o=>({name:o.name,realm:o.realm,realm_slug:o.realm_slug,name_slug:o.name_slug,region:(o.region||REGION_DEFAULT).toLowerCase()}))
     who.textContent="User ID: "+data.user_id
     render(allChoices)
     show(stepSel)
-    if(sel.options.length){sel.selectedIndex=0;lastSelected=sel.value;const [nm,rl]=sel.value.split("::");fillPreview(REGION,rl,nm)}
+    if(sel.options.length){sel.selectedIndex=0;lastSelected=sel.value;const c=currentChoice();if(c) fillPreview(c.region.toUpperCase(),c.realm,c.name)}
   }catch(e){errText.textContent="Network error.";show(stepErr)}
 }
-function filterNow(){const s=q.value.toLowerCase();const f=!s?allChoices:allChoices.filter(o=>o.name.toLowerCase().includes(s)||o.realm.toLowerCase().includes(s));render(f);if(sel.options.length){sel.selectedIndex=0;lastSelected=sel.value;const [nm,rl]=sel.value.split("::");fillPreview(REGION,rl,nm)}else{clearPreview()}}
+function filterNow(){const s=q.value.toLowerCase();const f=!s?allChoices:allChoices.filter(o=>o.name.toLowerCase().includes(s)||o.realm.toLowerCase().includes(s));render(f);if(sel.options.length){sel.selectedIndex=0;lastSelected=sel.value;const c=currentChoice();if(c) fillPreview(c.region.toUpperCase(),c.realm,c.name)}else{clearPreview()}}
 q.addEventListener("input",filterNow)
-sel.addEventListener("change",()=>{btn.disabled=sel.selectedOptions.length===0;lastSelected=sel.value;const [nm,rl]=sel.value.split("::");fillPreview(REGION,rl,nm)})
+sel.addEventListener("change",()=>{btn.disabled=sel.selectedOptions.length===0;lastSelected=sel.value;const c=currentChoice();if(c) fillPreview(c.region.toUpperCase(),c.realm,c.name)})
 sel.addEventListener("dblclick",()=>{if(!btn.disabled)submitApp()})
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&document.activeElement!==q&&!btn.disabled){submitApp()}if(e.key==="ArrowDown"){if(sel.selectedIndex<sel.options.length-1){sel.selectedIndex++;sel.dispatchEvent(new Event("change"))}e.preventDefault()}if(e.key==="ArrowUp"){if(sel.selectedIndex>0){sel.selectedIndex--;sel.dispatchEvent(new Event("change"))}e.preventDefault()}})
 async function submitApp(){
@@ -199,13 +203,20 @@ async function submitApp(){
   const prev=btn.textContent
   btn.textContent="Submitting…"
   try{
-    const body=new URLSearchParams({state,choice:sel.value})
-    const r=await fetch(API_BASE+"/oauth/submit",{method:"POST",body})
+    const r=await fetch(API_BASE+"/oauth/submit",{method:"POST",body:new URLSearchParams({state,choice:sel.value})})
     if(!r.ok){const t=await r.text();errText.textContent="Submit failed: "+t;show(stepErr);btn.disabled=false;btn.textContent=prev;return}
     const data=await r.json()
     if(!data.ok){errText.textContent="Submit error: "+(data.error||data.status||"unknown");show(stepErr);btn.disabled=false;btn.textContent=prev;return}
+    if(data.status==="other_guild"){
+      doneText.textContent="This character is currently in "+(data.guild||"another guild")+". Please leave your current guild and then join Timeskip."
+      if(data.join_url){joinBtn.href=data.join_url}
+      otherCta.style.display="block"
+      show(stepDone)
+      return
+    }
     const m={auto_accepted:"You’re all set. You were auto-accepted.",queued:"Thanks. Your application is pending officer review.",linked_alt:"Alt linked to your profile."}
-    document.getElementById("done-text").textContent=m[data.status]||("Status: "+data.status)
+    doneText.textContent=m[data.status]||("Status: "+data.status)
+    otherCta.style.display="none"
     show(stepDone)
   }catch(e){errText.textContent="Network error.";show(stepErr);btn.disabled=false;btn.textContent=prev}
 }
