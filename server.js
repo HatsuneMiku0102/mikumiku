@@ -481,19 +481,21 @@ app.use(async (req, res, next) => {
 
 const ORIGIN = "http://us-nyc-02.wisp.uno:8282";
 
-function forwardBody(proxyReq, req, res) {
+function forwardBody(proxyReq, req) {
   if (!req.body || !Object.keys(req.body).length) return;
-  const ct = proxyReq.getHeader('Content-Type') || '';
+  const ct = String(proxyReq.getHeader("Content-Type") || "");
   let bodyData;
-  if (ct.includes('application/json')) bodyData = JSON.stringify(req.body);
-  else if (ct.includes('application/x-www-form-urlencoded')) bodyData = new URLSearchParams(req.body).toString();
+  if (ct.includes("application/json")) bodyData = JSON.stringify(req.body);
+  else if (ct.includes("application/x-www-form-urlencoded")) bodyData = new URLSearchParams(req.body).toString();
   if (bodyData) {
-    proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+    proxyReq.setHeader("Content-Length", Buffer.byteLength(bodyData));
     proxyReq.write(bodyData);
   }
 }
 
-app.use("/oauth", createProxyMiddleware({
+app.options(["/oauth", "/oauth/intake", "/oauth/submit", "/notify-ready", "/notify-status"], (_req, res) => res.sendStatus(204));
+
+app.use(["/oauth", "/notify-ready", "/notify-status"], createProxyMiddleware({
   target: ORIGIN,
   changeOrigin: true,
   xfwd: true,
@@ -501,20 +503,9 @@ app.use("/oauth", createProxyMiddleware({
   ws: true,
   proxyTimeout: 45000,
   timeout: 45000,
-  onProxyReq: forwardBody
+  onProxyReq: forwardBody,
+  logLevel: "silent"
 }));
-
-app.use(["/notify-ready", "/notify-status"], createProxyMiddleware({
-  target: ORIGIN,
-  changeOrigin: true,
-  xfwd: true,
-  secure: false,
-  proxyTimeout: 45000,
-  timeout: 45000,
-  onProxyReq: forwardBody
-}));
-
-app.get("/health", (_req, res) => res.json({ ok: true }));
 
 io.on('connection', socket => {
   const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
