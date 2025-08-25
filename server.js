@@ -493,9 +493,9 @@ function forwardBody(proxyReq, req) {
   }
 }
 
-app.options(["/oauth", "/oauth/intake", "/oauth/submit", "/notify-ready", "/notify-status"], (_req, res) => res.sendStatus(204));
+app.options(["/oauth/intake","/oauth/submit","/notify-ready","/notify-status"], (_req, res) => res.sendStatus(204));
 
-app.use(["/oauth", "/notify-ready", "/notify-status"], createProxyMiddleware({
+const proxy = createProxyMiddleware({
   target: ORIGIN,
   changeOrigin: true,
   xfwd: true,
@@ -503,9 +503,16 @@ app.use(["/oauth", "/notify-ready", "/notify-status"], createProxyMiddleware({
   ws: true,
   proxyTimeout: 45000,
   timeout: 45000,
-  onProxyReq: forwardBody,
-  logLevel: "silent"
-}));
+  onProxyReq: forwardBody
+});
+
+app.post("/oauth/intake", proxy);
+app.post("/oauth/submit", proxy);
+app.post("/notify-ready", proxy);
+app.get("/notify-status", proxy);
+
+app.get("/health", (_req, res) => res.json({ ok: true }));
+
 
 io.on('connection', socket => {
   const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || socket.handshake.address;
