@@ -36,8 +36,7 @@
 .muted{color:#9ca3af}
 .skel{position:relative;overflow:hidden;background:#0b1220;border:1px solid #1f2937;border-radius:12px}
 .skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);animation:sh 1.2s infinite}
-@keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}
-}
+@keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 .shortcuts{font-size:12px;color:#9ca3af}
 .note{padding:12px 14px;border:1px solid #78350f;background:#111827;border-radius:12px}
 .steps{display:grid;gap:8px}
@@ -119,7 +118,7 @@
 </div></div>
 
 <script>
-const API_BASE = "";
+const API_BASE = window.location.origin;
 const REGION_DEFAULT = "eu";
 const params = new URLSearchParams(location.search);
 let code = params.get("code") || "";
@@ -247,7 +246,7 @@ async function fillPreview(region,realm,name){
 async function intake(){
   if(!code||!state){ errText.textContent="Missing code or state."; show(stepErr); return; }
   try{
-    const r=await fetch("/oauth/intake",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({state,code})});
+    const r=await fetch(API_BASE+"/oauth/intake",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({state,code})});
     if(!r.ok){ errText.textContent="Intake failed: "+(await r.text()); show(stepErr); return; }
     const data=await r.json();
     if(!data.ok){ errText.textContent="Server error: "+(data.error||"unknown"); show(stepErr); return; }
@@ -283,7 +282,7 @@ async function submitApp(){
   if(sel.selectedOptions.length===0) return;
   btn.disabled=true; const prev=btn.textContent; btn.textContent="Submitting…";
   try{
-    const r=await fetch("/oauth/submit",{method:"POST",body:new URLSearchParams({state,choice:sel.value})});
+    const r=await fetch(API_BASE+"/oauth/submit",{method:"POST",body:new URLSearchParams({state,choice:sel.value})});
     if(!r.ok){ errText.textContent="Submit failed: "+(await r.text()); show(stepErr); btn.disabled=false; btn.textContent=prev; return; }
     const data=await r.json();
     if(!data.ok){ errText.textContent="Submit error: "+(data.error||data.status||"unknown"); show(stepErr); btn.disabled=false; btn.textContent=prev; return; }
@@ -320,7 +319,7 @@ function setStatus(status){
 async function pollStatus(){
   if(!currentTicket) return;
   try{
-    const u=new URL("/notify-status", location.origin);
+    const u=new URL(API_BASE+"/notify-status");
     u.searchParams.set("ticket_id", currentTicket);
     const r=await fetch(u);
     if(!r.ok) return;
@@ -337,7 +336,7 @@ notifyBtn.addEventListener("click", async ()=>{
   const user_id=USER_ID;
   notifyBtn.disabled=true; notifyBtn.textContent="Notifying…";
   try{
-    const r=await fetch("/notify-ready",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id,name,realm,note:"Left previous guild"})});
+    const r=await fetch(API_BASE+"/notify-ready",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id,name,realm,note:"Left previous guild"})});
     const data=await r.json();
     if(!r.ok || !data.ok){ notifyBtn.disabled=false; notifyBtn.textContent="I’ve left my guild — notify officers"; alert("Failed to notify: "+(data.error||"server")); return; }
     currentTicket=data.ticket_id;
