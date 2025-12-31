@@ -144,74 +144,52 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", function() {
-      const pageContainer = document.getElementById("pageContainer");
-      pageContainer.classList.add("loaded");
-
-      const titleBar = document.getElementById("titleBar");
-      window.addEventListener("scroll", () => titleBar.classList.toggle("scrolled", window.scrollY > 50));
-
-      const overlayMenu = document.getElementById("overlayMenu");
-      const menuButton = document.getElementById("menuButton");
-      const closeOverlay = document.getElementById("closeOverlay");
-
-      menuButton.addEventListener("click", e => {
-        e.stopPropagation();
-        overlayMenu.classList.add("active");
-        document.body.classList.add("overlay-active");
-      });
-      closeOverlay.addEventListener("click", e => {
-        e.stopPropagation();
-        overlayMenu.classList.remove("active");
-        document.body.classList.remove("overlay-active");
-      });
-      window.addEventListener("click", e => {
-        if(e.target === overlayMenu) {
-          overlayMenu.classList.remove("active");
-          document.body.classList.remove("overlay-active");
-        }
-      });
-
-      const personalityButtons = document.querySelectorAll(".personality-button");
-      const siteTitle = document.querySelector(".site-title");
-      personalityButtons.forEach(btn => {
-        btn.addEventListener("click", () => {
-          const val = btn.textContent.trim();
-          siteTitle.style.color = val === "Melody" ? "#ff4081" : val === "Harmony" ? "#00c6ff" : "#ffffff";
-          personalityButtons.forEach(b => b.classList.remove("active"));
-          btn.classList.add("active");
-        });
-      });
-
-      function updateClock() {
-        const d = new Date();
-        document.getElementById("local-time").textContent = d.toLocaleTimeString();
-        document.getElementById("current-date").textContent = d.toLocaleDateString(undefined, { day:"2-digit", month:"long", year:"numeric" });
-        document.getElementById("day-of-week").textContent = d.toLocaleDateString(undefined, { weekday:"long" });
-      }
-      setInterval(updateClock, 1000);
-      updateClock();
-
-      function updateWeatherUI(data) {
-        document.getElementById('weather-icon').src = `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
-        document.getElementById('weather-description').textContent = `Condition: ${data.weather[0].description}`;
-        document.getElementById('temperature').textContent = `Temperature: ${Math.round(data.main.temp)}°C`;
-        document.getElementById('humidity').textContent = `Humidity: ${data.main.humidity}%`;
-        document.getElementById('wind-speed').textContent = `Wind: ${data.wind.speed} m/s`;
-      }
-
       async function fetchWeather(city='Leeds') {
         try {
           const res = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
           if(!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
+          
+          if(!data || !data.weather || !data.weather[0] || !data.main || !data.wind) {
+            throw new Error("Incomplete weather data");
+          }
+          
           updateWeatherUI(data);
         } catch(err) {
-          console.error(err);
+          console.error('Weather fetch failed:', err);
+          document.getElementById('weather-icon').style.display = 'none';
           document.getElementById('weather-description').textContent = 'Unable to fetch weather data.';
+          document.getElementById('temperature').textContent = '--°C';
+          document.getElementById('humidity').textContent = 'Humidity: --%';
+          document.getElementById('wind-speed').textContent = 'Wind: -- m/s';
         }
       }
+    
+      function updateWeatherUI(data){
+        const icon = data.weather[0]?.icon;
+        const description = data.weather[0]?.description || 'No description';
+        const temp = data.main?.temp ?? '--';
+        const humidity = data.main?.humidity ?? '--';
+        const wind = data.wind?.speed ?? '--';
+    
+        if(icon){
+          document.getElementById('weather-icon').src = `https://openweathermap.org/img/wn/${icon}@2x.png`;
+          document.getElementById('weather-icon').style.display = 'block';
+        } else {
+          document.getElementById('weather-icon').style.display = 'none';
+        }
+    
+        document.getElementById('weather-description').textContent = `Condition: ${description}`;
+        document.getElementById('temperature').textContent = `Temperature: ${Math.round(temp)}°C`;
+        document.getElementById('humidity').textContent = `Humidity: ${humidity}%`;
+        document.getElementById('wind-speed').textContent = `Wind: ${wind} m/s`;
+      }
+    
       fetchWeather();
       setInterval(fetchWeather, 3600000);
+    });
+
+
 
       const toggleDescriptionBtn = document.getElementById("toggleDescriptionButton");
       const descModal = document.getElementById("descriptionModal");
@@ -274,5 +252,6 @@
   </script>
 </body>
 </html>
+
 
 
