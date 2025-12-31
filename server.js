@@ -100,20 +100,15 @@ app.post('/interactions', async (req, res) => {
     if (payload.type === 2 && payload.data.name === 'weather') {
       const cityOption = payload.data.options.find(o => o.name === 'city');
       if (!cityOption || !cityOption.value) {
-        return res.json({ type: 4, data: { content: '❌ You must provide a city name.' } });
+        return res.json({ type: 4, data: { content: '❌ Please provide a city name.' } });
       }
+      const city = cityOption.value.trim();
+      console.log('Fetching weather for city:', city);
     
-      const city = cityOption.value;
-    
-      if (!OPENWEATHER_API_KEY) {
-        return res.json({ type: 4, data: { content: '❌ Weather service not configured. Missing API key.' } });
-      }
+      if (!OPENWEATHER_API_KEY) return res.json({ type: 4, data: { content: '❌ Weather service not configured.' } });
     
       try {
-        const resp = await axios.get(
-          `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&appid=${OPENWEATHER_API_KEY}`
-        );
-    
+        const resp = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&appid=${OPENWEATHER_API_KEY}`);
         const { weather, main, wind, sys, name, coord } = resp.data;
     
         const weatherEmbed = {
@@ -132,25 +127,12 @@ app.post('/interactions', async (req, res) => {
         };
     
         return res.json({ type: 4, data: { embeds: [weatherEmbed] } });
-    
       } catch (err) {
-        let errorMessage = `❌ Could not fetch weather for \`${city}\`.`;
-    
-        if (err.response) {
-          const { status, data } = err.response;
-          if (status === 401) errorMessage = '❌ Invalid OpenWeather API key.';
-          else if (status === 404) errorMessage = `❌ City \`${city}\` not found.`;
-          else errorMessage = `❌ Weather API returned status ${status}: ${data?.message || 'Unknown error'}`;
-        } else if (err.request) {
-          errorMessage = '❌ No response from OpenWeather API. Check your network or API server.';
-        } else {
-          errorMessage = `❌ Error fetching weather: ${err.message}`;
-        }
-    
-        console.error('Weather API error:', err.response?.data || err.message);
-        return res.json({ type: 4, data: { content: errorMessage } });
+        console.error('Weather fetch error:', err.response?.data || err.message);
+        return res.json({ type: 4, data: { content: `❌ Could not fetch weather for \`${city}\`.` } });
       }
     }
+
 
     if (payload.type === 2 && payload.data.name === 'cat') {
       const gifUrl = `https://cataas.com/cat/gif?${Date.now()}`;
