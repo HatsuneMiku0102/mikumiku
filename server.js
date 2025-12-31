@@ -560,4 +560,31 @@ io.on('connection', socket => {
   socket.on('disconnect', () => { const user = activeUsers.get(ip); if (user) { user.connectionTypes.delete(type); if (user.connectionTypes.size === 0) activeUsers.delete(ip); } socket.broadcast.emit('activeUsersUpdate', { users: Array.from(activeUsers.entries()).map(([k, v]) => ({ ip: k, connectionTypes: Array.from(v.connectionTypes) })) }); });
 });
 
+
+app.get('/api/weather', async (req, res) => {
+  const city = req.query.city;
+  if (!city) return res.status(400).json({ error: 'City is required' });
+
+  if (!OPENWEATHER_API_KEY) return res.status(500).json({ error: 'Weather service not configured.' });
+
+  try {
+    const resp = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&appid=${OPENWEATHER_API_KEY}`);
+    const { weather, main, wind, sys, name, coord } = resp.data;
+    res.json({
+      city: name,
+      country: sys.country,
+      temperature: main.temp,
+      feels_like: main.feels_like,
+      humidity: main.humidity,
+      wind_speed: wind.speed,
+      condition: weather[0].description,
+      coordinates: coord
+    });
+  } catch (err) {
+    console.error('Weather fetch error:', err.response?.data || err.message);
+    res.status(500).json({ error: `Could not fetch weather for "${city}".` });
+  }
+});
+
+
 server.listen(PORT, () => { logger.info(`Server is running on port ${PORT}`); });
