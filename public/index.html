@@ -1,52 +1,60 @@
       <!DOCTYPE html>
       <html lang="en">
       <head>
-        <meta charset="UTF-8"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-        <title>Miku.dev | Home</title>
+      <meta charset="UTF-8"/>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+      <title>Miku.dev | Home</title>
       
-        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"/>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
-        <link rel="stylesheet" href="/styles.css"/>
+      <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"/>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+      <link rel="stylesheet" href="/styles.css"/>
       
-        <style>
-          .status-box{position:relative}
-          .status-box.live.active::before{left:50%}
-          .weather-ambient{display:none}
+      <style>
+        .status-box{position:relative}
+        .status-box.live.active::before{left:50%}
+        .weather-ambient{display:none}
       
-          #loadingScreen{
-            position:fixed;
-            inset:0;
-            z-index:99999;
-            display:grid;
-            place-items:center;
-            background:linear-gradient(to right top,#000,#0a0a0a);
-            isolation:isolate;
-            contain:layout paint;
-          }
+
+        #loadingScreen {
+          position: fixed;
+          inset: 0;
+          z-index: 99999;
+          display: grid;
+          place-items: center;
+          background: linear-gradient(to right top, #000, #0a0a0a);
+        }
       
-          #loadingScreen .loader{
-            --block-size:120px;
-            --dot-size:6px;
-            color:#00e5ff;
-          }
+        #loadingScreen .loader{
+          --block-size: 120px;
+          --dot-size: 6px;
+          color: #00e5ff;
+        }
       
-          #loadingScreen.fade-out{
-            animation:loaderFadeOut .6s ease forwards;
-          }
+        #loadingScreen.fade-out {
+          opacity: 0;
+          transition: opacity 0.6s ease;
+          pointer-events: none;
+        }
       
-          @keyframes loaderFadeOut{
-            to{opacity:0}
-          }
-        </style>
+
+        #siteContent {
+          opacity: 0;
+          transition: opacity 0.6s ease;
+        }
+      
+        #siteContent.visible {
+          opacity: 1;
+        }
+      </style>
       </head>
       
       <body>
       
-        <div id="loadingScreen" aria-hidden="true">
-          <i class="loader loader--8"></i>
-        </div>
+      <div id="loadingScreen" aria-hidden="true">
+        <i class="loader loader--8"></i>
+      </div>
       
+      <div id="siteContent">
         <canvas id="soundWaveCanvas" aria-hidden="true"></canvas>
       
         <div class="weather-ambient" aria-hidden="true">
@@ -62,7 +70,6 @@
         <div class="page-container" id="pageContainer">
           <header class="title-bar" id="titleBar">
             <div class="container">
-      
               <div class="left-section"></div>
       
               <div class="title-wrapper">
@@ -107,21 +114,28 @@
                   <i class="fas fa-music"></i>
                 </button>
               </div>
-      
             </div>
           </header>
         </div>
+      </div>
       
-        <script>
-          setTimeout(()=>{
-            const l=document.getElementById("loadingScreen")
-            l.classList.add("fade-out")
-            setTimeout(()=>l.remove(),600)
-          },3000)
-        </script>
+      <script>
+
+        window.addEventListener('load', () => {
+          const loader = document.getElementById('loadingScreen');
+          const content = document.getElementById('siteContent');
+      
+          setTimeout(() => {
+            loader.classList.add('fade-out');
+            content.classList.add('visible');
+            loader.addEventListener('transitionend', () => loader.remove());
+          }, 3000);
+        });
+      </script>
       
       </body>
       </html>
+
 
 
 
@@ -829,6 +843,7 @@
     </script>
   </body>
 </html>
+
 
 
 
