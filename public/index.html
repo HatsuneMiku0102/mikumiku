@@ -340,49 +340,38 @@
 
     <script>
       document.addEventListener("DOMContentLoaded", function() {
-        async function load() {
+        async function loadWeather() {
           try {
             const res = await fetch("/api/weather?city=" + encodeURIComponent("Leeds"));
             const data = await res.json();
             if (data.error) throw new Error(data.error);
-            render(data);
-          } catch (e) {
-            const ic = document.getElementById("weather-icon"); if (ic) ic.style.display = "none";
-            const desc = document.getElementById("weather-description"); if (desc) desc.innerText = "Unable to fetch weather data.";
-            document.getElementById("temperature").innerText = "--°C";
-            document.getElementById("humidity").innerText = "Humidity: --%";
-            document.getElementById("wind-speed").innerText = "Wind: -- m/s";
+            renderWeather(data);
+          } catch (err) {
+            const iconEl = document.getElementById("weather-icon");
+            if (iconEl) iconEl.style.display = "none";
+            const descEl = document.getElementById("weather-description");
+            if (descEl) descEl.innerText = "Unable to fetch weather data.";
           }
         }
-    
-        function render(d) {
-          const weather = d.weather && d.weather[0];
-          const main = d.main;
-          const wind = d.wind;
-    
-          const n = weather?.description || "N/A";
-          const temp = main?.temp != null ? Math.round(main.temp) : "--";
-          const hum = main?.humidity != null ? main.humidity : "--";
-          const w = wind?.speed != null ? wind.speed : "--";
-          const icon = weather?.icon;
-          const url = icon ? "https://openweathermap.org/img/wn/" + icon + "@2x.png" : "";
-    
-          document.getElementById("weather-description").innerText = "Condition: " + n;
-          document.getElementById("temperature").innerText = "Temperature: " + temp + "°C";
-          document.getElementById("humidity").innerText = "Humidity: " + hum + "%";
-          document.getElementById("wind-speed").innerText = "Wind: " + w + " m/s";
-    
-          const ic = document.getElementById("weather-icon");
-          if (ic) {
-            if (icon) { ic.src = url; ic.style.display = "block"; }
-            else { ic.style.display = "none"; }
+      
+        function renderWeather(d) {
+          document.getElementById("weather-description").innerText = "Condition: " + d.condition;
+          document.getElementById("temperature").innerText = "Temperature: " + Math.round(d.temperature) + "°C";
+          document.getElementById("humidity").innerText = "Humidity: " + d.humidity + "%";
+          document.getElementById("wind-speed").innerText = "Wind: " + d.wind_speed + " m/s";
+          const iconEl = document.getElementById("weather-icon");
+          if (iconEl) {
+            const iconUrl = "https://openweathermap.org/img/wn/" + (d.conditionIcon || "01d") + "@2x.png";
+            iconEl.src = iconUrl;
+            iconEl.style.display = "block";
           }
         }
-    
-        setInterval(load, 3600000);
-        load();
+      
+        setInterval(loadWeather, 3600000);
+        loadWeather();
       });
     </script>
+
 
 
     <script>
@@ -784,4 +773,5 @@
     </script>
   </body>
 </html>
+
 
