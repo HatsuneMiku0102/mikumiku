@@ -234,19 +234,30 @@
     window.addEventListener("load", () => {
       const loader = document.getElementById("loadingScreen");
       const content = document.getElementById("siteContent");
-
-      const done = () => {
-        if (!loader) return;
-        loader.classList.add("fade-out");
+      if (!loader) return;
+  
+      const MIN_MS = 2500;
+      const MAX_MS = 8000;
+      const startedAt = performance.now();
+  
+      const finish = () => {
+        if (finish.done) return;
+        finish.done = true;
+  
         if (content) content.classList.add("visible");
+        loader.classList.add("fade-out");
+  
         loader.addEventListener("transitionend", () => loader.remove(), { once: true });
-        setTimeout(() => { if (loader && loader.parentNode) loader.remove(); }, 1500);
+        setTimeout(() => { if (loader && loader.parentNode) loader.remove(); }, 2000);
       };
-
-      setTimeout(done, 300);
-      setTimeout(done, 6000);
+  
+      const remaining = Math.max(0, MIN_MS - (performance.now() - startedAt));
+      setTimeout(finish, remaining);
+  
+      setTimeout(finish, MAX_MS);
     });
   </script>
+
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="haru.js"></script>
@@ -799,3 +810,4 @@
   </script>
 </body>
 </html>
+
