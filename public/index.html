@@ -419,6 +419,212 @@
 
   <script>
     document.addEventListener("DOMContentLoaded",function(){
+      const canvas=document.getElementById("illusionViz")
+      if(!canvas)return
+      const ctx=canvas.getContext("2d",{alpha:true})
+      const liveEl=document.getElementById("liveIndicator")
+      const pauseEl=document.getElementById("pauseIndicator")
+      const progEl=document.getElementById("progressBar")
+  
+      let w=0,h=0,dpr=1
+      function fit(){
+        const r=canvas.getBoundingClientRect()
+        dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1))
+        w=Math.max(1,Math.floor(r.width))
+        h=Math.max(1,Math.floor(r.height))
+        canvas.width=Math.floor(w*dpr)
+        canvas.height=Math.floor(h*dpr)
+        ctx.setTransform(dpr,0,0,dpr,0,0)
+      }
+      fit()
+      window.addEventListener("resize",fit)
+  
+      const clamp=(n,a,b)=>Math.max(a,Math.min(b,n))
+      const lerp=(a,b,t)=>a+(b-a)*t
+      const ease=(x)=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2
+  
+      function isLive(){return !!(liveEl&&liveEl.classList.contains("active"))}
+      function isPaused(){return !!(pauseEl&&pauseEl.classList.contains("active"))}
+  
+      function readProgress(){
+        if(!progEl)return 0
+        const s=(progEl.style.width||"0%").trim()
+        const n=parseFloat(s.replace("%",""))
+        return isNaN(n)?0:clamp(n/100,0,1)
+      }
+  
+      const bars=72
+      const particles=64
+      const pts=[]
+      for(let i=0;i<particles;i++){
+        pts.push({
+          x:Math.random(),
+          y:Math.random(),
+          vx:(Math.random()-.5)*.08,
+          vy:(Math.random()-.5)*.08,
+          r:Math.random()*1.8+0.6,
+          p:Math.random()
+        })
+      }
+  
+      let t0=performance.now()
+      let energy=0
+      let liveBoost=0
+      let shimmer=0
+      let beat=0
+      let beatV=0
+  
+      function draw(ts){
+        const dt=Math.min(0.05,(ts-t0)/1000)
+        t0=ts
+  
+        const paused=isPaused()
+        const live=isLive()
+        const playing=!paused
+  
+        const target=live?1:playing?.78:.18
+        energy=lerp(energy,target,1-Math.pow(.0001,dt*60))
+  
+        const lb=live?1:0
+        liveBoost=lerp(liveBoost,lb,1-Math.pow(.0001,dt*60))
+  
+        shimmer+=dt*(0.9+energy*2.2)
+        const prog=readProgress()
+        const phase=prog*6.28318
+  
+        const beatTarget=playing?(0.35+0.65*Math.abs(Math.sin(shimmer*1.6+phase))):0.12
+        beatV=lerp(beatV,beatTarget,1-Math.pow(.0001,dt*60))
+        beat=lerp(beat,beatV,1-Math.pow(.0001,dt*60))
+  
+        ctx.clearRect(0,0,w,h)
+  
+        const cx=w*0.5
+        const cy=h*0.55
+        const base=Math.min(w,h)
+  
+        ctx.globalCompositeOperation="source-over"
+        ctx.fillStyle="rgba(0,0,0,0.18)"
+        ctx.fillRect(0,0,w,h)
+  
+        const glow=0.08+energy*0.18
+        ctx.globalCompositeOperation="lighter"
+        ctx.fillStyle=`rgba(0,198,255,${glow})`
+        ctx.beginPath()
+        ctx.ellipse(cx-w*0.18,cy-h*0.12,w*0.55,h*0.45,0,0,Math.PI*2)
+        ctx.fill()
+        ctx.fillStyle=`rgba(255,64,129,${glow*0.9})`
+        ctx.beginPath()
+        ctx.ellipse(cx+w*0.2,cy-h*0.08,w*0.55,h*0.45,0,0,Math.PI*2)
+        ctx.fill()
+  
+        const pad=18
+        const bw=(w-pad*2)/bars
+        const floorY=h-pad-22
+        const maxH=h*0.58
+  
+        const a1=0.35+energy*0.55
+        const a2=0.22+energy*0.45
+        const a3=0.16+energy*0.35
+  
+        for(let i=0;i<bars;i++){
+          const u=i/(bars-1)
+          const k=Math.sin(shimmer*2.4+u*8.0+phase)*0.5+0.5
+          const m=Math.sin(shimmer*1.2+u*18.0-phase)*0.5+0.5
+          const n=Math.sin(shimmer*3.4+u*4.0+phase*0.7)*0.5+0.5
+          const v=clamp((k*0.55+m*0.35+n*0.25)*(0.55+beat*0.75),0,1)
+          const h0=lerp(maxH*0.06,maxH,v)
+          const x=pad+i*bw
+          const r=10
+          const ww=bw*0.68
+  
+          const top=floorY-h0
+          const fade=ease(v)
+  
+          ctx.globalCompositeOperation="lighter"
+          ctx.fillStyle=`rgba(0,198,255,${a1*fade})`
+          roundRect(ctx,x,top,ww,h0,r,true)
+  
+          ctx.fillStyle=`rgba(255,64,129,${a2*fade})`
+          roundRect(ctx,x+ww*0.06,top+h0*0.14,ww*0.88,h0*0.86,r,true)
+  
+          ctx.fillStyle=`rgba(255,255,255,${a3*fade})`
+          roundRect(ctx,x+ww*0.18,top+h0*0.28,ww*0.64,h0*0.72,r,true)
+        }
+  
+        ctx.globalCompositeOperation="lighter"
+        for(let i=0;i<pts.length;i++){
+          const p=pts[i]
+          const sp=0.35+energy*1.55
+          const drift=(Math.sin(shimmer*0.9+p.p*6.28)+1)*0.5
+          p.x+=p.vx*dt*sp*(0.6+drift)
+          p.y+=p.vy*dt*sp*(0.6+1-drift)
+          if(p.x<-0.1)p.x=1.1
+          if(p.x>1.1)p.x=-0.1
+          if(p.y<-0.1)p.y=1.1
+          if(p.y>1.1)p.y=-0.1
+  
+          const px=p.x*w
+          const py=p.y*h
+          const pr=p.r*(0.9+beat*0.8)
+  
+          ctx.beginPath()
+          ctx.fillStyle=`rgba(0,198,255,${0.06+energy*0.12})`
+          ctx.arc(px,py,pr,0,Math.PI*2)
+          ctx.fill()
+  
+          ctx.beginPath()
+          ctx.fillStyle=`rgba(255,64,129,${0.04+energy*0.1})`
+          ctx.arc(px+pr*0.9,py-pr*0.6,pr*0.8,0,Math.PI*2)
+          ctx.fill()
+        }
+  
+        if(liveBoost>0.01){
+          const sweep=(shimmer*0.18)%1
+          const sx=lerp(-w*0.4,w*1.4,sweep)
+          const sw=w*0.22
+          ctx.globalCompositeOperation="screen"
+          const g=ctx.createLinearGradient(sx,0,sx+sw,0)
+          g.addColorStop(0,"rgba(255,255,255,0)")
+          g.addColorStop(0.45,`rgba(255,255,255,${0.06+liveBoost*0.08})`)
+          g.addColorStop(0.55,`rgba(0,198,255,${0.08+liveBoost*0.12})`)
+          g.addColorStop(1,"rgba(255,255,255,0)")
+          ctx.fillStyle=g
+          ctx.fillRect(0,0,w,h)
+        }
+  
+        if(paused){
+          ctx.globalCompositeOperation="source-over"
+          const pulse=0.5+0.5*Math.sin(shimmer*0.9)
+          ctx.fillStyle=`rgba(0,0,0,${0.12+0.12*pulse})`
+          ctx.fillRect(0,0,w,h)
+        }
+  
+        requestAnimationFrame(draw)
+      }
+  
+      function roundRect(c,x,y,w,h,r,fill){
+        r=Math.max(0,Math.min(r,Math.min(w,h)*0.5))
+        c.beginPath()
+        c.moveTo(x+r,y)
+        c.lineTo(x+w-r,y)
+        c.quadraticCurveTo(x+w,y,x+w,y+r)
+        c.lineTo(x+w,y+h-r)
+        c.quadraticCurveTo(x+w,y+h,x+w-r,y+h)
+        c.lineTo(x+r,y+h)
+        c.quadraticCurveTo(x,y+h,x,y+h-r)
+        c.lineTo(x,y+r)
+        c.quadraticCurveTo(x,y,x+r,y)
+        if(fill)c.fill()
+      }
+  
+      requestAnimationFrame(draw)
+    })
+  </script>
+
+
+
+  <script>
+    document.addEventListener("DOMContentLoaded",function(){
       const card=document.getElementById("nowPlayingCard")
       const section=document.getElementById("youtubeSection")
       const offline=document.getElementById("offline-indicator")
@@ -816,5 +1022,6 @@
   </script>
 </body>
 </html>
+
 
 
