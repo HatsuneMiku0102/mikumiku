@@ -98,17 +98,60 @@ app.post('/interactions', async (req, res) => {
       return res.json({ type: 4, data: { embeds: [statusEmbed] } });
     }
     if (payload.type === 2 && payload.data.name === 'weather') {
-      const city = payload.data.options.find(o => o.name === 'city').value;
-      if (!OPENWEATHER_API_KEY) return res.json({ type: 4, data: { content: '❌ Weather service not configured.' } });
+      const cityOption = payload.data.options.find(o => o.name === 'city');
+      if (!cityOption || !cityOption.value) {
+        return res.json({ type: 4, data: { content: '❌ You must provide a city name.' } });
+      }
+    
+      const city = cityOption.value;
+    
+      if (!OPENWEATHER_API_KEY) {
+        return res.json({ type: 4, data: { content: '❌ Weather service not configured. Missing API key.' } });
+      }
+    
       try {
-        const resp = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&appid=${OPENWEATHER_API_KEY}`);
+        const resp = await axios.get(
+          `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&appid=${OPENWEATHER_API_KEY}`
+        );
+    
         const { weather, main, wind, sys, name, coord } = resp.data;
-        const weatherEmbed = { author: { name: `🌤️ Weather in ${name}, ${sys.country}`, icon_url: `http://openweathermap.org/img/wn/${weather[0].icon}@2x.png` }, color: 0x39C5BB, fields: [{ name: '🌡️ Temp', value: `${main.temp}°C`, inline: true }, { name: '📈 Feels Like', value: `${main.feels_like}°C`, inline: true }, { name: '💧 Humidity', value: `${main.humidity}%`, inline: true }, { name: '🌬️ Wind', value: `${wind.speed} m/s`, inline: true }, { name: '⛅ Condition', value: weather[0].description, inline: true }, { name: '📍 Coordinates', value: `[${coord.lat}, ${coord.lon}]`, inline: true }], thumbnail: { url: 'https://mikumiku.dev/logo.webp' }, footer: { text: 'Powered by OpenWeatherMap', icon_url: 'https://openweathermap.org/themes/openweathermap/assets/vendor/owm/img/widgets/logo_60x60.png' } };
+    
+        const weatherEmbed = {
+          author: { name: `🌤️ Weather in ${name}, ${sys.country}`, icon_url: `http://openweathermap.org/img/wn/${weather[0].icon}@2x.png` },
+          color: 0x39C5BB,
+          fields: [
+            { name: '🌡️ Temp', value: `${main.temp}°C`, inline: true },
+            { name: '📈 Feels Like', value: `${main.feels_like}°C`, inline: true },
+            { name: '💧 Humidity', value: `${main.humidity}%`, inline: true },
+            { name: '🌬️ Wind', value: `${wind.speed} m/s`, inline: true },
+            { name: '⛅ Condition', value: weather[0].description, inline: true },
+            { name: '📍 Coordinates', value: `[${coord.lat}, ${coord.lon}]`, inline: true }
+          ],
+          thumbnail: { url: 'https://mikumiku.dev/logo.webp' },
+          footer: { text: 'Powered by OpenWeatherMap', icon_url: 'https://openweathermap.org/themes/openweathermap/assets/vendor/owm/img/widgets/logo_60x60.png' }
+        };
+    
         return res.json({ type: 4, data: { embeds: [weatherEmbed] } });
-      } catch {
-        return res.json({ type: 4, data: { content: `❌ Could not fetch weather for \`${city}\`.` } });
+    
+      } catch (err) {
+        let errorMessage = `❌ Could not fetch weather for \`${city}\`.`;
+    
+        if (err.response) {
+          const { status, data } = err.response;
+          if (status === 401) errorMessage = '❌ Invalid OpenWeather API key.';
+          else if (status === 404) errorMessage = `❌ City \`${city}\` not found.`;
+          else errorMessage = `❌ Weather API returned status ${status}: ${data?.message || 'Unknown error'}`;
+        } else if (err.request) {
+          errorMessage = '❌ No response from OpenWeather API. Check your network or API server.';
+        } else {
+          errorMessage = `❌ Error fetching weather: ${err.message}`;
+        }
+    
+        console.error('Weather API error:', err.response?.data || err.message);
+        return res.json({ type: 4, data: { content: errorMessage } });
       }
     }
+
     if (payload.type === 2 && payload.data.name === 'cat') {
       const gifUrl = `https://cataas.com/cat/gif?${Date.now()}`;
       const userOption = payload.data.options?.find(o => o.name === 'user');
