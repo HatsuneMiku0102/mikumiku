@@ -58,6 +58,7 @@ app.use(helmet.contentSecurityPolicy({
       "https://fonts.googleapis.com",
       "https://cdnjs.cloudflare.com",
       "https://www.youtube.com",
+      "https://www.youtube-nocookie.com",
       "https://unpkg.com",
       "https://cdn.jsdelivr.net",
       "https://cdn.skypack.dev",
@@ -77,10 +78,12 @@ app.use(helmet.contentSecurityPolicy({
       "data:",
       "https://i.ytimg.com",
       "https://img.youtube.com",
+      "https://ytimg.com",
       "https://openweathermap.org",
       "https://i.postimg.cc",
       "https://threejs.org",
       "https://www.youtube.com",
+      "https://www.youtube-nocookie.com",
       "https://raw.githubusercontent.com",
       "https://api.tiles.mapbox.com",
       "https://*.tiles.mapbox.com",
@@ -97,6 +100,8 @@ app.use(helmet.contentSecurityPolicy({
       "blob:",
       "https://www.googleapis.com",
       "https://*.youtube.com",
+      "https://www.youtube-nocookie.com",
+      "https://*.ytimg.com",
       "https://api.openweathermap.org",
       "https://cdn.socket.io",
       "https://cdnjs.cloudflare.com",
@@ -111,11 +116,13 @@ app.use(helmet.contentSecurityPolicy({
     frameSrc: [
       "'self'",
       "https://discord.com",
-      "https://www.youtube.com"
+      "https://www.youtube.com",
+      "https://www.youtube-nocookie.com"
     ],
     mediaSrc: [
       "'self'",
-      "https://www.youtube.com"
+      "https://www.youtube.com",
+      "https://www.youtube-nocookie.com"
     ],
     frameAncestors: [
       "'self'",
@@ -128,6 +135,7 @@ app.use(helmet.contentSecurityPolicy({
     upgradeInsecureRequests: []
   }
 }));
+
 
 
 app.set('trust proxy', true);
