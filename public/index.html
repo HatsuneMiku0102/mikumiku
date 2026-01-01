@@ -666,354 +666,481 @@
 
 
   <script>
-    document.addEventListener("DOMContentLoaded",function(){
-      const card=document.getElementById("nowPlayingCard")
-      const section=document.getElementById("youtubeSection")
-      const offline=document.getElementById("offline-indicator")
-      const titleEl=document.getElementById("videoTitle")
-      const thumb=document.getElementById("videoThumbnailImage")
-      const skThumb=document.getElementById("thumbSkeleton")
-      const skTitle=document.getElementById("titleSkeleton")
-      const skLine=document.getElementById("lineSkeleton")
-      const channelEl=document.getElementById("channelName")
-      const viewsEl=document.getElementById("viewCount")
-      const likesEl=document.getElementById("likeCount")
-      const pubEl=document.getElementById("publishedDate")
-      const catEl=document.getElementById("videoCategory")
-      const bar=document.getElementById("progressBar")
-      const liveEl=document.getElementById("liveIndicator")
-      const pauseEl=document.getElementById("pauseIndicator")
-      const descEl=document.getElementById("descriptionModalDescription")
-      const btnDesc=document.getElementById("toggleDescriptionButton")
-      const trans=document.getElementById("ytTransition")
-      const scroller=document.getElementById("historyScroller")
-      const moreBtn=document.getElementById("historyMoreBtn")
-      const backdrop=document.getElementById("historyBackdrop")
-      const histModal=document.getElementById("historyModal")
-      const histGrid=document.getElementById("historyModalGrid")
-      const closeHist=document.getElementById("closeHistoryModal")
-      const MP=document.getElementById("miniPlayer")
-      const MPt=document.getElementById("miniTitle")
-      const MPth=document.getElementById("miniThumb")
-      const MPp=document.getElementById("miniProg")
-      const MPplay=document.getElementById("mpPlay")
-      const MPclose=document.getElementById("mpClose")
-      const hoverArea=document.getElementById("progressHover")
-      const openStats=document.getElementById("openStats")
-      const statsModal=document.getElementById("statsModal")
-      const idleOverlay=document.getElementById("idleOverlay")
-      const idleOrbs=document.getElementById("idleOrbs")
-      const konami=document.getElementById("konamiBox")
-
-      let currentVideoId=null
-      let countedVideoId=null
-      let statsTickTimer=null
-      let offlineTimer=null
-      let lastPresenceTs=Date.now()
-      let isPaused=false
-      let isLiveNow=false
-      let currentDuration=0
-      let currentTime=0
-      let isPlaying=false
-      const OFFLINE_DELAY=2000
-      const IDLE_AFTER=20000
-      const PLAY_COOLDOWN_MS=300000
-
-      function ensureStats(){if(!localStorage.getItem("stats")){localStorage.setItem("stats",'{"totalPlays":0,"totalSeconds":0,"channels":{},"videos":{}}')}}
-      function num(v){return v==null?null:Number(v)}
-      function truthy(v){return v===true||v==="true"||v===1||v==="1"}
-
-      function renderProgress(e){
-        if(!bar)return
-        const live=truthy(e.isLive)
-        if(live){bar.style.width="100%";MPp.style.width="100%";currentDuration=0;currentTime=0;return}
-        const d=num(e.duration), ct=num(e.currentTime), pct=num(e.percent)
-        if(typeof d==="number"&&d>0&&typeof ct==="number"&&ct>=0){
-          const w=Math.max(0,Math.min(100,(ct/d)*100))
-          bar.style.width=w+"%";MPp.style.width=w+"%";currentDuration=d;currentTime=ct
-        }else if(typeof pct==="number"&&!isNaN(pct)){
-          const w=Math.max(0,Math.min(100,pct))
-          bar.style.width=w+"%";MPp.style.width=w+"%"}
+  document.addEventListener("DOMContentLoaded",function(){
+    const card=document.getElementById("nowPlayingCard")
+    const section=document.getElementById("youtubeSection")
+    const offline=document.getElementById("offline-indicator")
+    const titleEl=document.getElementById("videoTitle")
+    const thumb=document.getElementById("videoThumbnailImage")
+    const skThumb=document.getElementById("thumbSkeleton")
+    const skTitle=document.getElementById("titleSkeleton")
+    const skLine=document.getElementById("lineSkeleton")
+    const channelEl=document.getElementById("channelName")
+    const viewsEl=document.getElementById("viewCount")
+    const likesEl=document.getElementById("likeCount")
+    const pubEl=document.getElementById("publishedDate")
+    const catEl=document.getElementById("videoCategory")
+    const bar=document.getElementById("progressBar")
+    const liveEl=document.getElementById("liveIndicator")
+    const pauseEl=document.getElementById("pauseIndicator")
+    const descEl=document.getElementById("descriptionModalDescription")
+    const btnDesc=document.getElementById("toggleDescriptionButton")
+    const trans=document.getElementById("ytTransition")
+    const scroller=document.getElementById("historyScroller")
+    const moreBtn=document.getElementById("historyMoreBtn")
+    const backdrop=document.getElementById("historyBackdrop")
+    const histModal=document.getElementById("historyModal")
+    const histGrid=document.getElementById("historyModalGrid")
+    const closeHist=document.getElementById("closeHistoryModal")
+    const MP=document.getElementById("miniPlayer")
+    const MPt=document.getElementById("miniTitle")
+    const MPth=document.getElementById("miniThumb")
+    const MPp=document.getElementById("miniProg")
+    const MPclose=document.getElementById("mpClose")
+    const MPstatus=document.getElementById("mpStatus")
+    const MPsub=document.getElementById("miniSub")
+    const hoverArea=document.getElementById("progressHover")
+    const openStats=document.getElementById("openStats")
+    const statsModal=document.getElementById("statsModal")
+    const idleOverlay=document.getElementById("idleOverlay")
+    const idleOrbs=document.getElementById("idleOrbs")
+    const konami=document.getElementById("konamiBox")
+  
+    let currentVideoId=null
+    let countedVideoId=null
+    let statsTickTimer=null
+    let offlineTimer=null
+    let lastPresenceTs=Date.now()
+    let isPaused=false
+    let isLiveNow=false
+    let currentDuration=0
+    let currentTime=0
+    let isPlaying=false
+    const OFFLINE_DELAY=2000
+    const IDLE_AFTER=20000
+    const PLAY_COOLDOWN_MS=300000
+  
+    function ensureStats(){if(!localStorage.getItem("stats")){localStorage.setItem("stats",'{"totalPlays":0,"totalSeconds":0,"channels":{},"videos":{}}')}}
+    function num(v){return v==null?null:Number(v)}
+    function truthy(v){return v===true||v==="true"||v===1||v==="1"}
+  
+    function setOfflineState(){
+      currentVideoId=null
+      countedVideoId=null
+      currentDuration=0
+      currentTime=0
+      isPaused=false
+      isLiveNow=false
+      isPlaying=false
+  
+      if(titleEl) titleEl.textContent="Offline"
+      if(channelEl) channelEl.textContent="—"
+      if(viewsEl) viewsEl.textContent="—"
+      if(likesEl) likesEl.textContent="—"
+      if(pubEl) pubEl.textContent="—"
+      if(catEl) catEl.textContent="—"
+      if(descEl) descEl.textContent="Waiting for playback…"
+  
+      if(thumb){
+        thumb.removeAttribute("src")
+        thumb.style.display="none"
       }
-
-      function renderState(e){
-        const live=truthy(e.isLive)
-        const paused=truthy(e.isPaused)
-        liveEl.classList.toggle("active",live)
-        pauseEl.classList.toggle("active",paused)
-        isPaused=paused
-        isLiveNow=live
-        isPlaying=!paused
+  
+      if(bar) bar.style.width="0%"
+      if(MPp) MPp.style.width="0%"
+  
+      if(MPt) MPt.textContent="Offline"
+      if(MPsub) MPsub.textContent="Waiting for playback"
+      if(MPstatus) MPstatus.textContent="Offline"
+      if(MP) MP.setAttribute("data-state","offline")
+  
+      if(liveEl) liveEl.classList.remove("active")
+      if(pauseEl) pauseEl.classList.remove("active")
+  
+      localStorage.setItem("playerState","offline")
+      localStorage.removeItem("currentVideoTitle")
+      localStorage.removeItem("currentVideoThumbnail")
+      localStorage.removeItem("currentVideoChannel")
+      localStorage.removeItem("currentVideoViews")
+      localStorage.removeItem("currentVideoLikes")
+      localStorage.removeItem("currentVideoPublished")
+      localStorage.removeItem("currentVideoCategory")
+      localStorage.removeItem("currentVideoDescription")
+    }
+  
+    function renderProgress(e){
+      if(!bar)return
+      const live=truthy(e.isLive)
+      if(live){bar.style.width="100%";if(MPp)MPp.style.width="100%";currentDuration=0;currentTime=0;return}
+      const d=num(e.duration), ct=num(e.currentTime), pct=num(e.percent)
+      if(typeof d==="number"&&d>0&&typeof ct==="number"&&ct>=0){
+        const w=Math.max(0,Math.min(100,(ct/d)*100))
+        bar.style.width=w+"%"
+        if(MPp)MPp.style.width=w+"%"
+        currentDuration=d
+        currentTime=ct
+      }else if(typeof pct==="number"&&!isNaN(pct)){
+        const w=Math.max(0,Math.min(100,pct))
+        bar.style.width=w+"%"
+        if(MPp)MPp.style.width=w+"%"
       }
-
-      function goOnline(){if(offline)offline.classList.remove("visible");if(card)card.classList.remove("offline");if(section)section.style.display="block"}
-      function goOffline(){if(offline)offline.classList.add("visible");if(card)card.classList.add("offline")}
-      function scheduleOffline(){clearTimeout(offlineTimer);offlineTimer=setTimeout(goOffline,OFFLINE_DELAY)}
-      function cancelOffline(){clearTimeout(offlineTimer);offlineTimer=null;goOnline()}
-
-      function numberFmt(e){if(typeof e==="string")e=e.replace(/,/g,"");const n=Number(e);return isNaN(n)?"N/A":n.toLocaleString()}
-
-      function fill(e){
-        currentVideoId=e.videoId||null
-        if(titleEl)titleEl.textContent=e.title||""
-        if(channelEl)channelEl.textContent=e.channelTitle||""
-        if(viewsEl)viewsEl.textContent=numberFmt(e.viewCount)
-        if(likesEl)likesEl.textContent=numberFmt(e.likeCount)
-        if(pubEl)pubEl.textContent=e.publishedAt?new Date(e.publishedAt).toLocaleDateString():pubEl.textContent
-        if(catEl)catEl.textContent=e.category||""
-        if(descEl)descEl.textContent=e.description||""
-        if(thumb){if(e.thumbnail){thumb.removeAttribute("loading");thumb.src=e.thumbnail;thumb.style.display="block"}else thumb.style.display=""}
-        MPt.textContent=e.title||""
-        if(e.thumbnail)MPth.src=e.thumbnail
-        goOnline()
-        renderProgress(e)
-        renderState(e)
-        if(btnDesc)btnDesc.style.display="block"
-        localStorage.setItem("currentVideoTitle",titleEl?titleEl.textContent:"")
-        localStorage.setItem("currentVideoThumbnail",thumb&&thumb.src?thumb.src:"")
-        localStorage.setItem("currentVideoChannel",channelEl?channelEl.textContent:"")
-        localStorage.setItem("currentVideoViews",viewsEl?viewsEl.textContent:"")
-        localStorage.setItem("currentVideoLikes",likesEl?likesEl.textContent:"")
-        localStorage.setItem("currentVideoPublished",pubEl?pubEl.textContent:"")
-        localStorage.setItem("currentVideoCategory",catEl?catEl.textContent:"")
-        localStorage.setItem("currentVideoDescription",descEl?descEl.textContent:"")
-        animateDetails()
-        saveHistory(e)
-      }
-
-      function animateDetails(){const els=document.querySelectorAll(".video-details .animate-in");els.forEach(x=>{x.classList.remove("active");void x.offsetWidth;x.classList.add("fade-enter","active")})}
-
-      function showIncoming(e){
-        section.classList.add("entering")
-        trans.classList.add("active")
-        skThumb.style.display="block"
-        skTitle.style.display="block"
-        skLine.style.display="block"
-        const img=new Image
-        const p1=new Promise(res=>{img.onload=()=>res(true);img.onerror=()=>res(false);if(e.thumbnail)img.src=e.thumbnail})
-        const p2=new Promise(res=>setTimeout(()=>res(false),800))
-        Promise.race([p1,p2]).then(()=>{fill(e);setTimeout(()=>{trans.classList.remove("active");section.classList.remove("entering");skThumb.style.display="none";skTitle.style.display="none";skLine.style.display="none"},180)})
-      }
-
-      function readHist(){const raw=localStorage.getItem("npHistory");try{return raw?JSON.parse(raw):[]}catch{return[]}}
-      function saveHistory(e){
-        const arr=readHist().filter(x=>x.videoId!==e.videoId)
-        arr.unshift({videoId:e.videoId||"",title:e.title||"",thumbnail:e.thumbnail||"",channelTitle:e.channelTitle||"",publishedAt:e.publishedAt||"",category:e.category||""})
-        const out=arr.slice(0,20)
-        localStorage.setItem("npHistory",JSON.stringify(out))
-        renderHist(out)
-      }
-
-      function histItem(e){
-        const t=document.createElement("div");t.className="hist-item";t.dataset.videoId=e.videoId
-        const n=document.createElement("img");n.className="hist-thumb";n.src=e.thumbnail||""
-        const o=document.createElement("div");o.className="hist-title";o.textContent=e.title||""
-        const a=document.createElement("div");a.className="hist-meta";a.textContent=e.channelTitle||""
-        t.appendChild(n);t.appendChild(o);t.appendChild(a)
-        t.addEventListener("click",function(){
-          if(n)n.scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"})
-          const d={videoId:e.videoId,title:e.title,thumbnail:e.thumbnail,channelTitle:e.channelTitle,viewCount:viewsEl?viewsEl.textContent:"",likeCount:likesEl?likesEl.textContent:"",publishedAt:e.publishedAt,category:e.category,description:descEl?descEl.textContent:"",duration:0,currentTime:0,isLive:false,isPaused:true}
-          fill(d)
-          toggleHist(false)
-        })
-        return t
-      }
-
-      function renderHist(arr){
-        scroller.innerHTML=""
-        const head=arr.slice(0,3);head.forEach(n=>scroller.appendChild(histItem(n)))
-        moreBtn.disabled=arr.length<=3
-        histGrid.innerHTML=""
-        const rest=arr.slice(3);rest.forEach(o=>histGrid.appendChild(histItem(o)))
-      }
-
-      function initHist(){renderHist(readHist())}
-      function toggleHist(open=true){
-        if(open){backdrop.classList.add("active");histModal.classList.add("active");document.body.classList.add("modal-open")}
-        else{backdrop.classList.remove("active");histModal.classList.remove("active");document.body.classList.remove("modal-open")}
-      }
-
-      async function refreshLiveCounts(){
-        if(!currentVideoId)return
-        if(!liveEl.classList.contains("active"))return
-        try{
-          const res=await fetch("/api/youtube/stats?videoId="+encodeURIComponent(currentVideoId))
-          if(!res.ok)return
-          const data=await res.json()
-          if(typeof data.viewCount!=="undefined"&&viewsEl)viewsEl.textContent=numberFmt(data.viewCount)
-          if(typeof data.likeCount!=="undefined"&&likesEl)likesEl.textContent=numberFmt(data.likeCount)
-        }catch{}
-      }
-
-      function scheduleCounts(){if(statsTickTimer){clearInterval(statsTickTimer);statsTickTimer=null}if(liveEl.classList.contains("active")){statsTickTimer=setInterval(refreshLiveCounts,10000)}}
-
-      function shouldCountPlay(e){
-        const id=e.videoId||e.title||""
-        if(!id)return false
-        const map=JSON.parse(localStorage.getItem("playSeen")||"{}")
-        const last=map[id]||0
-        const now=Date.now()
-        const ok=now-last>PLAY_COOLDOWN_MS
-        if(ok){map[id]=now;localStorage.setItem("playSeen",JSON.stringify(map))}
-        return ok
-      }
-
-      const socket=io()
-      socket.on("connect",function(){cancelOffline()})
-      socket.on("disconnect",function(){scheduleOffline();isPlaying=false})
-      socket.on("presenceUpdate",function(e){
-        lastPresenceTs=Date.now()
-        if(e.presenceType==="offline"){scheduleOffline();isPlaying=false;return}
-        cancelOffline()
-        if(e.presenceType==="video"){
-          const live=e.isLive!==undefined?truthy(e.isLive):false
-          const paused=e.isPaused!==undefined?truthy(e.isPaused):false
-          if(e.videoId&&e.videoId!==countedVideoId&&shouldCountPlay(e)){bumpPlay(e);countedVideoId=e.videoId}
-          if(e.videoId===currentVideoId){
-            renderProgress({...e,isLive:live})
-            renderState({isLive:live,isPaused:paused})
-          }else{
-            showIncoming({...e,isLive:live,isPaused:paused})
-            scheduleCounts()
-          }
-          isPlaying=!paused
-        }else if(e.presenceType==="browsing"){
-          isPlaying=false
-          if(titleEl)titleEl.textContent=e.title||titleEl.textContent
-          if(thumb){if(e.thumbnail){thumb.src=e.thumbnail;thumb.style.display="block"}else thumb.style.display=""}
-          renderState({isLive:false,isPaused:false})
+    }
+  
+    function renderState(e){
+      const live=truthy(e.isLive)
+      const paused=truthy(e.isPaused)
+      if(liveEl) liveEl.classList.toggle("active",live)
+      if(pauseEl) pauseEl.classList.toggle("active",paused)
+      isPaused=paused
+      isLiveNow=live
+      isPlaying=!paused
+    }
+  
+    function goOnline(){if(offline)offline.classList.remove("visible");if(card)card.classList.remove("offline");if(section)section.style.display="block"}
+    function goOffline(){if(offline)offline.classList.add("visible");if(card)card.classList.add("offline")}
+    function scheduleOffline(){clearTimeout(offlineTimer);offlineTimer=setTimeout(goOffline,OFFLINE_DELAY)}
+    function cancelOffline(){clearTimeout(offlineTimer);offlineTimer=null;goOnline()}
+  
+    function numberFmt(e){if(typeof e==="string")e=e.replace(/,/g,"");const n=Number(e);return isNaN(n)?"N/A":n.toLocaleString()}
+  
+    function fill(e){
+      currentVideoId=e.videoId||null
+      if(titleEl)titleEl.textContent=e.title||""
+      if(channelEl)channelEl.textContent=e.channelTitle||""
+      if(viewsEl)viewsEl.textContent=numberFmt(e.viewCount)
+      if(likesEl)likesEl.textContent=numberFmt(e.likeCount)
+      if(pubEl)pubEl.textContent=e.publishedAt?new Date(e.publishedAt).toLocaleDateString():pubEl.textContent
+      if(catEl)catEl.textContent=e.category||""
+      if(descEl)descEl.textContent=e.description||""
+      if(thumb){
+        if(e.thumbnail){
+          thumb.removeAttribute("loading")
+          thumb.src=e.thumbnail
+          thumb.style.display="block"
+        }else{
+          thumb.style.display="none"
         }
+      }
+  
+      if(MPt) MPt.textContent=e.title||""
+      if(MPsub) MPsub.textContent="Drag to move"
+      if(MPstatus) MPstatus.textContent=truthy(e.isLive)?"Live":(truthy(e.isPaused)?"Paused":"Now Playing")
+      if(MP) MP.setAttribute("data-state","playing")
+  
+      if(MPth){
+        if(e.thumbnail){
+          MPth.src=e.thumbnail
+          MPth.style.display="block"
+        }else{
+          MPth.removeAttribute("src")
+          MPth.style.display="none"
+        }
+      }
+  
+      goOnline()
+      renderProgress(e)
+      renderState(e)
+      if(btnDesc)btnDesc.style.display="block"
+  
+      localStorage.setItem("playerState","playing")
+      localStorage.setItem("currentVideoTitle",titleEl?titleEl.textContent:"")
+      localStorage.setItem("currentVideoThumbnail",thumb&&thumb.src?thumb.src:"")
+      localStorage.setItem("currentVideoChannel",channelEl?channelEl.textContent:"")
+      localStorage.setItem("currentVideoViews",viewsEl?viewsEl.textContent:"")
+      localStorage.setItem("currentVideoLikes",likesEl?likesEl.textContent:"")
+      localStorage.setItem("currentVideoPublished",pubEl?pubEl.textContent:"")
+      localStorage.setItem("currentVideoCategory",catEl?catEl.textContent:"")
+      localStorage.setItem("currentVideoDescription",descEl?descEl.textContent:"")
+  
+      animateDetails()
+      saveHistory(e)
+    }
+  
+    function animateDetails(){
+      const els=document.querySelectorAll(".video-details .animate-in")
+      els.forEach(x=>{x.classList.remove("active");void x.offsetWidth;x.classList.add("fade-enter","active")})
+    }
+  
+    function showIncoming(e){
+      section.classList.add("entering")
+      trans.classList.add("active")
+      if(skThumb)skThumb.style.display="block"
+      if(skTitle)skTitle.style.display="block"
+      if(skLine)skLine.style.display="block"
+      const img=new Image
+      const p1=new Promise(res=>{img.onload=()=>res(true);img.onerror=()=>res(false);if(e.thumbnail)img.src=e.thumbnail})
+      const p2=new Promise(res=>setTimeout(()=>res(false),800))
+      Promise.race([p1,p2]).then(()=>{fill(e);setTimeout(()=>{trans.classList.remove("active");section.classList.remove("entering");if(skThumb)skThumb.style.display="none";if(skTitle)skTitle.style.display="none";if(skLine)skLine.style.display="none"},180)})
+    }
+  
+    function readHist(){const raw=localStorage.getItem("npHistory");try{return raw?JSON.parse(raw):[]}catch{return[]}}
+    function saveHistory(e){
+      const arr=readHist().filter(x=>x.videoId!==e.videoId)
+      arr.unshift({videoId:e.videoId||"",title:e.title||"",thumbnail:e.thumbnail||"",channelTitle:e.channelTitle||"",publishedAt:e.publishedAt||"",category:e.category||""})
+      const out=arr.slice(0,20)
+      localStorage.setItem("npHistory",JSON.stringify(out))
+      renderHist(out)
+    }
+  
+    function histItem(e){
+      const t=document.createElement("div");t.className="hist-item";t.dataset.videoId=e.videoId
+      const n=document.createElement("img");n.className="hist-thumb";n.src=e.thumbnail||""
+      const o=document.createElement("div");o.className="hist-title";o.textContent=e.title||""
+      const a=document.createElement("div");a.className="hist-meta";a.textContent=e.channelTitle||""
+      t.appendChild(n);t.appendChild(o);t.appendChild(a)
+      t.addEventListener("click",function(){
+        if(n)n.scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"})
+        const d={videoId:e.videoId,title:e.title,thumbnail:e.thumbnail,channelTitle:e.channelTitle,viewCount:viewsEl?viewsEl.textContent:"",likeCount:likesEl?likesEl.textContent:"",publishedAt:e.publishedAt,category:e.category,description:descEl?descEl.textContent:"",duration:0,currentTime:0,isLive:false,isPaused:true}
+        fill(d)
+        toggleHist(false)
       })
-
-      setTimeout(function(){if(!titleEl||!titleEl.textContent||titleEl.textContent==="Loading…"){const t=localStorage.getItem("currentVideoTitle");if(t&&titleEl)titleEl.textContent=t}},0)
-
-      initHist()
-      moreBtn.addEventListener("click",function(){toggleHist(true)})
-      backdrop.addEventListener("click",function(){toggleHist(false)})
-      closeHist.addEventListener("click",function(){toggleHist(false)})
-      document.addEventListener("keydown",function(e){if(e.key==="Escape"&&histModal.classList.contains("active"))toggleHist(false)})
-
-      setInterval(function(){
-        if(isPlaying){
-          ensureStats()
-          const key="stats"
-          const st=JSON.parse(localStorage.getItem(key))
-          st.totalSeconds+=1
-          localStorage.setItem(key,JSON.stringify(st))
+      return t
+    }
+  
+    function renderHist(arr){
+      if(scroller) scroller.innerHTML=""
+      const head=arr.slice(0,3);head.forEach(n=>scroller&&scroller.appendChild(histItem(n)))
+      if(moreBtn) moreBtn.disabled=arr.length<=3
+      if(histGrid) histGrid.innerHTML=""
+      const rest=arr.slice(3);rest.forEach(o=>histGrid&&histGrid.appendChild(histItem(o)))
+    }
+  
+    function initHist(){renderHist(readHist())}
+    function toggleHist(open=true){
+      if(open){if(backdrop)backdrop.classList.add("active");if(histModal)histModal.classList.add("active");document.body.classList.add("modal-open")}
+      else{if(backdrop)backdrop.classList.remove("active");if(histModal)histModal.classList.remove("active");document.body.classList.remove("modal-open")}
+    }
+  
+    async function refreshLiveCounts(){
+      if(!currentVideoId)return
+      if(!liveEl||!liveEl.classList.contains("active"))return
+      try{
+        const res=await fetch("/api/youtube/stats?videoId="+encodeURIComponent(currentVideoId))
+        if(!res.ok)return
+        const data=await res.json()
+        if(typeof data.viewCount!=="undefined"&&viewsEl)viewsEl.textContent=numberFmt(data.viewCount)
+        if(typeof data.likeCount!=="undefined"&&likesEl)likesEl.textContent=numberFmt(data.likeCount)
+      }catch{}
+    }
+  
+    function scheduleCounts(){
+      if(statsTickTimer){clearInterval(statsTickTimer);statsTickTimer=null}
+      if(liveEl&&liveEl.classList.contains("active")) statsTickTimer=setInterval(refreshLiveCounts,10000)
+    }
+  
+    function shouldCountPlay(e){
+      const id=e.videoId||e.title||""
+      if(!id)return false
+      const map=JSON.parse(localStorage.getItem("playSeen")||"{}")
+      const last=map[id]||0
+      const now=Date.now()
+      const ok=now-last>PLAY_COOLDOWN_MS
+      if(ok){map[id]=now;localStorage.setItem("playSeen",JSON.stringify(map))}
+      return ok
+    }
+  
+    const socket=io()
+    socket.on("connect",function(){cancelOffline()})
+    socket.on("disconnect",function(){
+      scheduleOffline()
+      isPlaying=false
+      setOfflineState()
+    })
+  
+    socket.on("presenceUpdate",function(e){
+      lastPresenceTs=Date.now()
+  
+      if(!e || e.presenceType==="offline"){
+        scheduleOffline()
+        isPlaying=false
+        setOfflineState()
+        return
+      }
+  
+      cancelOffline()
+  
+      if(e.presenceType==="video"){
+        const live=e.isLive!==undefined?truthy(e.isLive):false
+        const paused=e.isPaused!==undefined?truthy(e.isPaused):false
+  
+        if(e.videoId&&e.videoId!==countedVideoId&&shouldCountPlay(e)){bumpPlay(e);countedVideoId=e.videoId}
+  
+        if(e.videoId===currentVideoId){
+          renderProgress(Object.assign({},e,{isLive:live}))
+          renderState({isLive:live,isPaused:paused})
+          if(MPstatus) MPstatus.textContent=live?"Live":(paused?"Paused":"Now Playing")
+        }else{
+          showIncoming(Object.assign({},e,{isLive:live,isPaused:paused}))
+          scheduleCounts()
         }
-      },1000)
-
-      function bumpPlay(e){
+  
+        isPlaying=!paused
+        localStorage.setItem("playerState","playing")
+        if(MP) MP.setAttribute("data-state","playing")
+        return
+      }
+  
+      if(e.presenceType==="browsing"){
+        isPlaying=false
+        setOfflineState()
+        return
+      }
+    })
+  
+    initHist()
+    if(moreBtn) moreBtn.addEventListener("click",function(){toggleHist(true)})
+    if(backdrop) backdrop.addEventListener("click",function(){toggleHist(false)})
+    if(closeHist) closeHist.addEventListener("click",function(){toggleHist(false)})
+    document.addEventListener("keydown",function(e){if(e.key==="Escape"&&histModal&&histModal.classList.contains("active"))toggleHist(false)})
+  
+    setInterval(function(){
+      if(isPlaying){
         ensureStats()
         const key="stats"
         const st=JSON.parse(localStorage.getItem(key))
-        st.totalPlays+=1
-        const ch=e.channelTitle||"Unknown"
-        st.channels[ch]=(st.channels[ch]||0)+1
-        const vid=e.videoId||e.title||Math.random().toString(36).slice(2)
-        st.videos[vid]=(st.videos[vid]||{title:e.title||"Untitled",count:0})
-        st.videos[vid].count+=1
+        st.totalSeconds+=1
         localStorage.setItem(key,JSON.stringify(st))
       }
-
-      function renderStats(){
-        ensureStats()
-        const key="stats"
-        const st=JSON.parse(localStorage.getItem(key))
-        document.getElementById("statTotal").textContent=st.totalPlays.toLocaleString()
-        const mins=Math.floor(st.totalSeconds/60)
-        const hrs=Math.floor(mins/60)
-        const rem=mins%60
-        document.getElementById("statTime").textContent=(hrs>0?hrs+"h ":"")+rem+"m"
-        document.getElementById("statChannels").textContent=Object.keys(st.channels).length.toString()
-        const topC=Object.entries(st.channels).sort((a,b)=>b[1]-a[1]).slice(0,5)
-        const tc=document.getElementById("topChannels")
-        tc.innerHTML=""
-        topC.forEach(([name,count])=>{const it=document.createElement("div");it.className="top-item";const l=document.createElement("div");l.textContent=name;const r=document.createElement("div");r.textContent=count;it.appendChild(l);it.appendChild(r);tc.appendChild(it)})
-        const topV=Object.entries(st.videos).sort((a,b)=>b[1].count-a[1].count).slice(0,5)
-        const tv=document.getElementById("topVideos")
-        tv.innerHTML=""
-        topV.forEach(([id,obj])=>{const it=document.createElement("div");it.className="top-item";const l=document.createElement("div");l.textContent=obj.title;const r=document.createElement("div");r.textContent=obj.count;it.appendChild(l);it.appendChild(r);tv.appendChild(it)})
-      }
-
-      openStats.addEventListener("click",function(){statsModal.classList.add("active");document.getElementById("backdrop").classList.add("active");document.body.classList.add("modal-open");renderStats()})
-      document.getElementById("backdrop").addEventListener("click",function(){statsModal.classList.remove("active");document.getElementById("backdrop").classList.remove("active");document.body.classList.remove("modal-open")})
-
+    },1000)
+  
+    function bumpPlay(e){
+      ensureStats()
+      const key="stats"
+      const st=JSON.parse(localStorage.getItem(key))
+      st.totalPlays+=1
+      const ch=e.channelTitle||"Unknown"
+      st.channels[ch]=(st.channels[ch]||0)+1
+      const vid=e.videoId||e.title||Math.random().toString(36).slice(2)
+      st.videos[vid]=(st.videos[vid]||{title:e.title||"Untitled",count:0})
+      st.videos[vid].count+=1
+      localStorage.setItem(key,JSON.stringify(st))
+    }
+  
+    function renderStats(){
+      ensureStats()
+      const key="stats"
+      const st=JSON.parse(localStorage.getItem(key))
+      const t=document.getElementById("statTotal")
+      const tm=document.getElementById("statTime")
+      const ch=document.getElementById("statChannels")
+      if(t) t.textContent=st.totalPlays.toLocaleString()
+      const mins=Math.floor(st.totalSeconds/60)
+      const hrs=Math.floor(mins/60)
+      const rem=mins%60
+      if(tm) tm.textContent=(hrs>0?hrs+"h ":"")+rem+"m"
+      if(ch) ch.textContent=Object.keys(st.channels).length.toString()
+  
+      const topC=Object.entries(st.channels).sort((a,b)=>b[1]-a[1]).slice(0,5)
+      const tc=document.getElementById("topChannels")
+      if(tc){tc.innerHTML="";topC.forEach(([name,count])=>{const it=document.createElement("div");it.className="top-item";const l=document.createElement("div");l.textContent=name;const r=document.createElement("div");r.textContent=count;it.appendChild(l);it.appendChild(r);tc.appendChild(it)})}
+  
+      const topV=Object.entries(st.videos).sort((a,b)=>b[1].count-a[1].count).slice(0,5)
+      const tv=document.getElementById("topVideos")
+      if(tv){tv.innerHTML="";topV.forEach(([id,obj])=>{const it=document.createElement("div");it.className="top-item";const l=document.createElement("div");l.textContent=obj.title;const r=document.createElement("div");r.textContent=obj.count;it.appendChild(l);it.appendChild(r);tv.appendChild(it)})}
+    }
+  
+    if(openStats) openStats.addEventListener("click",function(){
+      if(statsModal) statsModal.classList.add("active")
+      const bd=document.getElementById("backdrop")
+      if(bd) bd.classList.add("active")
+      document.body.classList.add("modal-open")
+      renderStats()
+    })
+  
+    const bd=document.getElementById("backdrop")
+    if(bd) bd.addEventListener("click",function(){
+      if(statsModal) statsModal.classList.remove("active")
+      bd.classList.remove("active")
+      document.body.classList.remove("modal-open")
+    })
+  
+    if(section && MP){
       const obs=new IntersectionObserver(entries=>{entries.forEach(ent=>{MP.classList.toggle("active",!ent.isIntersecting)})},{threshold:0})
       obs.observe(section)
-      MPclose.addEventListener("click",()=>{MP.classList.remove("active")})
-      MPplay.addEventListener("click",()=>{isPaused=!isPaused;pauseEl.classList.toggle("active",isPaused);MPplay.innerHTML=isPaused?'<i class="fas fa-play"></i>':'<i class="fas fa-pause"></i>';isPlaying=!isPaused})
-
-      function fmt(sec){sec=Math.max(0,Math.floor(sec));const m=Math.floor(sec/60);const s=sec%60;return m+":"+(s<10?"0":"")+s}
-
-      let hoverTip=null
-      function ensureHoverTip(){
-        if(hoverTip)return hoverTip
-        const tip=document.createElement("div")
-        tip.style.position="fixed"
-        tip.style.display="none"
-        tip.style.zIndex="6000"
-        tip.style.pointerEvents="none"
-        tip.style.background="#000"
-        tip.style.border="1px solid rgba(255,255,255,.15)"
-        tip.style.borderRadius="10px"
-        tip.style.boxShadow="0 10px 24px rgba(0,0,0,.45)"
-        const img=document.createElement("img");img.style.display="block";img.style.width="200px";img.style.height="112px";img.style.objectFit="cover"
-        const time=document.createElement("div");time.style.fontSize=".75rem";time.style.padding=".25rem .5rem";time.style.textAlign="center";time.style.color="#fff"
-        tip.appendChild(img);tip.appendChild(time)
-        document.body.appendChild(tip)
-        hoverTip={wrap:tip,img,time}
-        return hoverTip
-      }
-
-      function onSeekMove(ev){
-        if(!currentDuration||currentDuration<=0){if(hoverTip)hoverTip.wrap.style.display="none";return}
-        const rect=hoverArea.getBoundingClientRect()
-        const x=Math.min(Math.max(0,ev.clientX-rect.left),rect.width)
-        const ratio=x/rect.width
-        const t=ratio*currentDuration
-        const tip=ensureHoverTip()
-        const pageX=ev.clientX
-        const pageY=rect.top-130
-        tip.wrap.style.left=pageX+"px"
-        tip.wrap.style.top=(pageY>10?pageY:10)+"px"
-        tip.wrap.style.transform="translateX(-50%)"
-        tip.wrap.style.display="block"
-        if(thumb&&thumb.src)tip.img.src=thumb.src
-        tip.time.textContent=fmt(t)
-      }
-
-      function onSeekLeave(){if(hoverTip)hoverTip.wrap.style.display="none"}
-
+    }
+  
+    if(MPclose) MPclose.addEventListener("click",()=>{MP&&MP.classList.remove("active")})
+  
+    function fmt(sec){sec=Math.max(0,Math.floor(sec));const m=Math.floor(sec/60);const s=sec%60;return m+":"+(s<10?"0":"")+s}
+  
+    let hoverTip=null
+    function ensureHoverTip(){
+      if(hoverTip)return hoverTip
+      const tip=document.createElement("div")
+      tip.style.position="fixed"
+      tip.style.display="none"
+      tip.style.zIndex="6000"
+      tip.style.pointerEvents="none"
+      tip.style.background="#000"
+      tip.style.border="1px solid rgba(255,255,255,.15)"
+      tip.style.borderRadius="10px"
+      tip.style.boxShadow="0 10px 24px rgba(0,0,0,.45)"
+      const img=document.createElement("img");img.style.display="block";img.style.width="200px";img.style.height="112px";img.style.objectFit="cover"
+      const time=document.createElement("div");time.style.fontSize=".75rem";time.style.padding=".25rem .5rem";time.style.textAlign="center";time.style.color="#fff"
+      tip.appendChild(img);tip.appendChild(time)
+      document.body.appendChild(tip)
+      hoverTip={wrap:tip,img,time}
+      return hoverTip
+    }
+  
+    function onSeekMove(ev){
+      if(!hoverArea)return
+      if(!currentDuration||currentDuration<=0){if(hoverTip)hoverTip.wrap.style.display="none";return}
+      const rect=hoverArea.getBoundingClientRect()
+      const x=Math.min(Math.max(0,ev.clientX-rect.left),rect.width)
+      const ratio=x/rect.width
+      const t=ratio*currentDuration
+      const tip=ensureHoverTip()
+      const pageX=ev.clientX
+      const pageY=rect.top-130
+      tip.wrap.style.left=pageX+"px"
+      tip.wrap.style.top=(pageY>10?pageY:10)+"px"
+      tip.wrap.style.transform="translateX(-50%)"
+      tip.wrap.style.display="block"
+      if(thumb&&thumb.src)tip.img.src=thumb.src
+      tip.time.textContent=fmt(t)
+    }
+  
+    function onSeekLeave(){if(hoverTip)hoverTip.wrap.style.display="none"}
+  
+    if(hoverArea){
       hoverArea.addEventListener("mousemove",onSeekMove)
       hoverArea.addEventListener("mouseleave",onSeekLeave)
-
-      setInterval(function(){
-        const idle=Date.now()-lastPresenceTs>IDLE_AFTER && !liveEl.classList.contains("active") && !thumb.src
-        idleOverlay.classList.toggle("active",idle)
-      },1000)
-
-      function seedOrbs(){
-        idleOrbs.innerHTML=""
-        for(let i=0;i<24;i++){
-          const s=document.createElement("span")
-          const x=Math.random()*100
-          const y=Math.random()*100
-          const delay=(Math.random()*8).toFixed(2)
-          const dur=(10+Math.random()*10).toFixed(2)
-          s.style.left=x+"%";s.style.top=y+"%";s.style.animationDuration=dur+"s";s.style.animationDelay="-"+delay+"s"
-          idleOrbs.appendChild(s)
-        }
+    }
+  
+    setInterval(function(){
+      const idle=Date.now()-lastPresenceTs>IDLE_AFTER && !(liveEl&&liveEl.classList.contains("active")) && !(thumb&&thumb.src)
+      if(idleOverlay) idleOverlay.classList.toggle("active",idle)
+    },1000)
+  
+    function seedOrbs(){
+      if(!idleOrbs)return
+      idleOrbs.innerHTML=""
+      for(let i=0;i<24;i++){
+        const s=document.createElement("span")
+        const x=Math.random()*100
+        const y=Math.random()*100
+        const delay=(Math.random()*8).toFixed(2)
+        const dur=(10+Math.random()*10).toFixed(2)
+        s.style.left=x+"%"
+        s.style.top=y+"%"
+        s.style.animationDuration=dur+"s"
+        s.style.animationDelay="-"+delay+"s"
+        idleOrbs.appendChild(s)
       }
-      seedOrbs()
-
-      const code=[38,38,40,40,37,39,37,39,66,65];let pos=0
-      window.addEventListener("keydown",function(e){
-        if(e.keyCode===code[pos]){pos++;if(pos===code.length){konami.classList.add("active");setTimeout(()=>konami.classList.remove("active"),3000);pos=0}}
-        else{pos=0}
-      })
-    });
+    }
+    seedOrbs()
+  
+    const code=[38,38,40,40,37,39,37,39,66,65];let pos=0
+    window.addEventListener("keydown",function(e){
+      if(e.keyCode===code[pos]){pos++;if(pos===code.length){if(konami)konami.classList.add("active");setTimeout(()=>{if(konami)konami.classList.remove("active")},3000);pos=0}}
+      else{pos=0}
+    })
+  
+    if(localStorage.getItem("playerState")==="offline") setOfflineState()
+  })
   </script>
+
 
   <script>
     document.addEventListener("DOMContentLoaded",function(){
@@ -1193,6 +1320,7 @@
   </script>
 </body>
 </html>
+
 
 
 
