@@ -1162,6 +1162,52 @@
 
 
   <script>
+  document.addEventListener("DOMContentLoaded",function(){
+    const openBtn=document.getElementById("openPlayer")
+    const modal=document.getElementById("playerModal")
+    const backdrop=document.getElementById("playerBackdrop")
+    const closeBtn=document.getElementById("closePlayerModal")
+    const iframe=document.getElementById("ytIframe")
+  
+    if(!openBtn||!modal||!backdrop||!closeBtn||!iframe)return
+  
+    function openPlayer(videoId){
+      if(!videoId)return
+      const src="https://www.youtube-nocookie.com/embed/"+encodeURIComponent(videoId)+"?autoplay=1&rel=0&modestbranding=1&playsinline=1"
+      iframe.src=src
+      modal.classList.add("active")
+      backdrop.classList.add("active")
+      document.body.classList.add("modal-open")
+      backdrop.setAttribute("aria-hidden","false")
+    }
+  
+    function closePlayer(){
+      modal.classList.remove("active")
+      backdrop.classList.remove("active")
+      document.body.classList.remove("modal-open")
+      backdrop.setAttribute("aria-hidden","true")
+      iframe.src=""
+    }
+  
+    openBtn.addEventListener("click",function(){
+      const id=window.__currentVideoId || localStorage.getItem("currentVideoId")
+      openPlayer(id)
+    })
+  
+    closeBtn.addEventListener("click",closePlayer)
+    backdrop.addEventListener("click",closePlayer)
+    document.addEventListener("keydown",function(e){
+      if(e.key==="Escape"&&modal.classList.contains("active"))closePlayer()
+    })
+  
+    window.__openPlayerModal=openPlayer
+    window.__closePlayerModal=closePlayer
+  })
+</script>
+
+
+
+  <script>
     document.addEventListener("DOMContentLoaded",function(){
       const el=document.getElementById("quoteText")
       if(!el)return
@@ -1339,6 +1385,7 @@
   </script>
 </body>
 </html>
+
 
 
 
