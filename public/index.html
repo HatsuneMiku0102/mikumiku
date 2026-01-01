@@ -1075,6 +1075,116 @@
   </script>
 
   <script>
+  document.addEventListener("DOMContentLoaded",function(){
+    const mp=document.getElementById("miniPlayer")
+    const bar=document.getElementById("mpDragBar")
+    if(!mp||!bar)return
+  
+    const key="miniPlayerPosV1"
+    mp.style.left=""
+    mp.style.top=""
+    mp.style.right="20px"
+    mp.style.bottom="20px"
+  
+    function clamp(v,min,max){return Math.min(max,Math.max(min,v))}
+    function viewport(){return {w:document.documentElement.clientWidth,h:document.documentElement.clientHeight}}
+    function rect(){return mp.getBoundingClientRect()}
+  
+    function applyPos(x,y){
+      const vp=viewport()
+      const r=rect()
+      const maxX=vp.w-r.width
+      const maxY=vp.h-r.height
+      const nx=clamp(x,0,maxX)
+      const ny=clamp(y,0,maxY)
+      mp.style.right="auto"
+      mp.style.bottom="auto"
+      mp.style.left=nx+"px"
+      mp.style.top=ny+"px"
+      localStorage.setItem(key,JSON.stringify({x:nx,y:ny}))
+    }
+  
+    function loadPos(){
+      try{
+        const raw=localStorage.getItem(key)
+        if(!raw)return
+        const p=JSON.parse(raw)
+        if(typeof p.x==="number"&&typeof p.y==="number")applyPos(p.x,p.y)
+      }catch{}
+    }
+  
+    loadPos()
+  
+    let dragging=false
+    let startX=0,startY=0
+    let originX=0,originY=0
+  
+    function getPoint(ev){
+      if(ev.touches&&ev.touches[0])return {x:ev.touches[0].clientX,y:ev.touches[0].clientY}
+      if(ev.changedTouches&&ev.changedTouches[0])return {x:ev.changedTouches[0].clientX,y:ev.changedTouches[0].clientY}
+      return {x:ev.clientX,y:ev.clientY}
+    }
+  
+    function onDown(ev){
+      if(ev.button!==undefined&&ev.button!==0)return
+      const p=getPoint(ev)
+      const r=rect()
+      dragging=true
+      startX=p.x
+      startY=p.y
+      originX=r.left
+      originY=r.top
+      mp.style.transition="none"
+      document.body.style.userSelect="none"
+      document.body.style.cursor="grabbing"
+      bar.setPointerCapture?.(ev.pointerId)
+      ev.preventDefault()
+    }
+  
+    function onMove(ev){
+      if(!dragging)return
+      const p=getPoint(ev)
+      const dx=p.x-startX
+      const dy=p.y-startY
+      applyPos(originX+dx,originY+dy)
+      ev.preventDefault()
+    }
+  
+    function onUp(){
+      if(!dragging)return
+      dragging=false
+      mp.style.transition=""
+      document.body.style.userSelect=""
+      document.body.style.cursor=""
+    }
+  
+    bar.style.cursor="grab"
+    bar.style.touchAction="none"
+  
+    if(window.PointerEvent){
+      bar.addEventListener("pointerdown",onDown,{passive:false})
+      window.addEventListener("pointermove",onMove,{passive:false})
+      window.addEventListener("pointerup",onUp)
+      window.addEventListener("pointercancel",onUp)
+    }else{
+      bar.addEventListener("mousedown",onDown)
+      window.addEventListener("mousemove",onMove)
+      window.addEventListener("mouseup",onUp)
+      bar.addEventListener("touchstart",onDown,{passive:false})
+      window.addEventListener("touchmove",onMove,{passive:false})
+      window.addEventListener("touchend",onUp)
+      window.addEventListener("touchcancel",onUp)
+    }
+  
+    window.addEventListener("resize",function(){
+      const r=rect()
+      applyPos(r.left,r.top)
+    })
+  })
+</script>
+
+
+  <script>
     document.addEventListener("DOMContentLoaded",function(){
       function send(){fetch("/track-visitor",{method:"POST",keepalive:true}).catch(()=>{})}
       send()
@@ -1083,6 +1193,7 @@
   </script>
 </body>
 </html>
+
 
 
 
