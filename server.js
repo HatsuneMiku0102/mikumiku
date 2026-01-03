@@ -451,6 +451,22 @@ app.get('/image-host/', (req, res) => {
 });
 
 
+const IMAGE_API_ORIGIN = process.env.IMAGE_API_ORIGIN;
+
+if (IMAGE_API_ORIGIN) {
+  app.use('/image-api', createProxyMiddleware({
+    target: IMAGE_API_ORIGIN,
+    changeOrigin: true,
+    xfwd: true,
+    secure: true,
+    ws: false,
+    proxyTimeout: 45000,
+    timeout: 45000,
+    pathRewrite: { '^/image-api': '' }
+  }));
+}
+
+
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, maxAge: 0, lastModified: false, redirect: false }));
 
 app.get('/fetch-location', async (req, res) => {
