@@ -456,17 +456,30 @@ app.get('/image-host/', (req, res) => {
 const IMAGE_API_ORIGIN = process.env.IMAGE_API_ORIGIN;
 
 if (IMAGE_API_ORIGIN) {
-  app.use('/image-api', createProxyMiddleware({
-    target: IMAGE_API_ORIGIN,
-    changeOrigin: true,
-    xfwd: true,
-    secure: true,
-    ws: false,
-    proxyTimeout: 45000,
-    timeout: 45000,
-    pathRewrite: { '^/image-api': '' }
-  }));
+  app.use(
+    '/image-api',
+    createProxyMiddleware({
+      target: IMAGE_API_ORIGIN,
+      changeOrigin: true,
+      xfwd: true,
+      secure: true,
+      ws: false,
+      proxyTimeout: 45000,
+      timeout: 45000,
+      pathRewrite: {
+        '^/image-api': ''
+      },
+      onProxyReq: (proxyReq, req) => {
+        if (req.method === 'GET') return;
+      },
+      onError: (err, req, res) => {
+        console.error('Image API proxy error:', err);
+        res.status(502).send('Image API unavailable');
+      }
+    })
+  );
 }
+
 
 
 
