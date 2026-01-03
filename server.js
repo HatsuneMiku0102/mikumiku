@@ -451,6 +451,7 @@ app.get('/image-host/', (req, res) => {
 });
 
 
+
 const IMAGE_API_ORIGIN = process.env.IMAGE_API_ORIGIN;
 
 if (IMAGE_API_ORIGIN) {
