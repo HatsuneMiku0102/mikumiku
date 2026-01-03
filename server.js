@@ -52,6 +52,7 @@ app.use(cors());
 app.use(helmet.contentSecurityPolicy({
   directives: {
     defaultSrc: ["'self'"],
+
     scriptSrc: [
       "'self'",
       "'unsafe-inline'",
@@ -65,6 +66,7 @@ app.use(helmet.contentSecurityPolicy({
       "https://cdn.socket.io",
       "https://api.mapbox.com"
     ],
+
     styleSrc: [
       "'self'",
       "'unsafe-inline'",
@@ -72,6 +74,7 @@ app.use(helmet.contentSecurityPolicy({
       "https://cdnjs.cloudflare.com",
       "https://api.mapbox.com"
     ],
+
     imgSrc: [
       "'self'",
       "blob:",
@@ -88,13 +91,16 @@ app.use(helmet.contentSecurityPolicy({
       "https://api.tiles.mapbox.com",
       "https://*.tiles.mapbox.com",
       "https://raider.io",
-      "https://render.worldofwarcraft.com"
+      "https://render.worldofwarcraft.com",
+      "https://images.mikumiku.dev"
     ],
+
     fontSrc: [
       "'self'",
       "https://fonts.gstatic.com",
       "https://cdnjs.cloudflare.com"
     ],
+
     connectSrc: [
       "'self'",
       "blob:",
@@ -111,30 +117,37 @@ app.use(helmet.contentSecurityPolicy({
       "https://mikumikudev-c530e6b3e669.herokuapp.com",
       "https://raider.io",
       "https://oauth.battle.net",
-      "https://*.api.blizzard.com"
+      "https://*.api.blizzard.com",
+      "https://images.mikumiku.dev"
     ],
+
     frameSrc: [
       "'self'",
       "https://discord.com",
       "https://www.youtube.com",
       "https://www.youtube-nocookie.com"
     ],
+
     mediaSrc: [
       "'self'",
       "https://www.youtube.com",
       "https://www.youtube-nocookie.com"
     ],
+
     frameAncestors: [
       "'self'",
       "https://discord.com"
     ],
+
     workerSrc: [
       "'self'",
       "blob:"
     ],
+
     upgradeInsecureRequests: []
   }
 }));
+
 
 
 
