@@ -1,4 +1,4 @@
-const API_URL = "/image-api";
+const API_URL = "https://mikumiku.dev/image-api";
 
 const uploadForm = document.getElementById("uploadForm");
 const uploadFile = document.getElementById("uploadFile");
@@ -136,4 +136,3 @@ fetchForm.addEventListener("submit", async (e) => {
 });
 
 setStatus("idle", "Idle");
-
