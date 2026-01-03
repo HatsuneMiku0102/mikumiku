@@ -429,6 +429,15 @@ app.delete('/api/comments/:id', verifyToken, async (req, res) => {
 app.get('/admin', verifyToken, (req, res) => { res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html')); });
 app.get('/admin-dashboard.html', (req, res) => { res.redirect('/admin'); });
 
+app.get('/image-host', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'image-host', 'index.html'));
+});
+
+app.get('/image-host/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'image-host', 'index.html'));
+});
+
+
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, maxAge: 0, lastModified: false, redirect: false }));
 
 app.get('/fetch-location', async (req, res) => {
