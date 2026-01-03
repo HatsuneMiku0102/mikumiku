@@ -467,6 +467,7 @@ if (IMAGE_API_ORIGIN) {
 }
 
 
+
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, maxAge: 0, lastModified: false, redirect: false }));
 
 app.get('/fetch-location', async (req, res) => {
