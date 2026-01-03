@@ -443,12 +443,15 @@ app.get('/admin', verifyToken, (req, res) => { res.sendFile(path.join(__dirname,
 app.get('/admin-dashboard.html', (req, res) => { res.redirect('/admin'); });
 
 app.get('/image-host', (req, res) => {
-  res.redirect(301, '/image-host/');
+  return res.redirect(301, '/image-host/');
 });
 
 app.get('/image-host/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'image-host', 'index.html'));
+  return res.sendFile(
+    path.join(__dirname, 'public', 'image-host', 'index.html')
+  );
 });
+
 
 
 
