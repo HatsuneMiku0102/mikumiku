@@ -59,15 +59,24 @@ app.use(
   createProxyMiddleware({
     target: IMAGE_API_TARGET,
     changeOrigin: true,
-    xfwd: true,
     secure: true,
-    proxyTimeout: 45000,
-    timeout: 45000,
-    pathRewrite: { "^/image-api": "" },
-    onProxyReq: (proxyReq, req) => {
-      const k = process.env.IMAGE_API_KEY || "";
-      if (k) proxyReq.setHeader("Authorization", `Bearer ${k}`);
+    xfwd: true,
+    proxyTimeout: 60000,
+    timeout: 60000,
+
+    pathRewrite: {
+      "^/image-api": ""
     },
+
+    onProxyReq: (proxyReq) => {
+      const key = process.env.IMAGE_API_KEY;
+      if (key) {
+        proxyReq.setHeader("Authorization", `Bearer ${key}`);
+      }
+    },
+
+
+    selfHandleResponse: false
   })
 );
 
