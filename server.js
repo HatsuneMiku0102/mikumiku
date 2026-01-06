@@ -772,25 +772,7 @@ app.use(
 
 
 
-app.post("/image-api/upload", async (req, res) => {
-  try {
-    const apiKey = process.env.IMAGE_API_KEY;
-    const resp = await axios.post(
-      "https://mikumiku.dev/image-api/upload",
-      req,
-      {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": req.headers["content-type"]
-        },
-        maxBodyLength: Infinity
-      }
-    );
-    res.status(resp.status).send(resp.data);
-  } catch (e) {
-    res.status(e.response?.status || 500).send(e.response?.data || "proxy error");
-  }
-});
+
 
 
 
