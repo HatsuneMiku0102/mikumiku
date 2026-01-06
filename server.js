@@ -224,6 +224,7 @@ function verifyTokenPage(req, res, next) {
 }
 
 function verifyTokenApi(req, res, next) {
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
   const token = req.cookies.token;
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
@@ -232,6 +233,7 @@ function verifyTokenApi(req, res, next) {
     next();
   });
 }
+
 
 const verifyToken = verifyTokenPage;
 
@@ -254,7 +256,8 @@ const imageApiProxy = createProxyMiddleware({
   }
 });
 
-app.use('/image-api', imageApiProxy);
+app.use('/image-api', verifyTokenApi, imageApiProxy);
+
 
 const IPINFO_API_KEY = process.env.IPINFO_API_KEY;
 if (!IPINFO_API_KEY) {
