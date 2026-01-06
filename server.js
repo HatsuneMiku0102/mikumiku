@@ -287,8 +287,6 @@ async function getGeoLocation(ip) {
 }
 
 
-const IMAGE_HOST_ADMIN_TARGET = process.env.IMAGE_HOST_ADMIN_TARGET || IMAGE_API_TARGET;
-const IMAGE_HOST_ADMIN_SECRET = process.env.IMAGE_HOST_ADMIN_SECRET || '';
 
 const IMAGE_HOST_ADMIN_TARGET = (process.env.IMAGE_HOST_ADMIN_TARGET || '').trim();
 const IMAGE_HOST_ADMIN_SECRET = (process.env.IMAGE_HOST_ADMIN_SECRET || '').trim();
