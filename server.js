@@ -40,8 +40,6 @@ const ORIGIN = process.env.PROXY_ORIGIN || 'http://us-nyc-02.wisp.uno:8282';
 const app = express();
 app.set('trust proxy', true);
 
-app.options("/image-api/*", (_req, res) => res.sendStatus(204));
-
 const server = http.createServer(app);
 const io = socketIo(server, { cors: { origin: '*', methods: ['GET', 'POST'], allowedHeaders: ['*'], credentials: true } });
 
@@ -54,36 +52,26 @@ const logger = winston.createLogger({
   transports: [new winston.transports.Console(), new winston.transports.File({ filename: 'server.log' })]
 });
 
-
-
-app.use(
-  "/image-api",
-  createProxyMiddleware({
-    target: IMAGE_API_TARGET,
-    changeOrigin: true,
-    secure: true,
-    xfwd: true,
-    proxyTimeout: 60000,
-    timeout: 60000,
-
-    pathRewrite: {
-      "^/image-api": ""
-    },
-
-    onProxyReq: (proxyReq) => {
-      const key = process.env.IMAGE_API_KEY;
-      if (key) {
-        proxyReq.setHeader("Authorization", `Bearer ${key}`);
-      }
-    },
-
-
-    selfHandleResponse: false
-  })
-);
-
-
 app.options('/image-api/*', (_req, res) => res.sendStatus(204));
+
+const imageApiProxy = createProxyMiddleware({
+  target: IMAGE_API_TARGET,
+  changeOrigin: true,
+  secure: true,
+  xfwd: true,
+  proxyTimeout: 60000,
+  timeout: 60000,
+  pathRewrite: { '^/image-api': '' },
+  onProxyReq: (proxyReq) => {
+    if (IMAGE_API_KEY) proxyReq.setHeader('Authorization', `Bearer ${IMAGE_API_KEY}`);
+  },
+  onError: (_err, _req, res) => {
+    res.status(502).json({ detail: 'Image API proxy error' });
+  }
+});
+
+app.post('/image-api/upload', imageApiProxy);
+app.post('/image-api/fetch', imageApiProxy);
 
 app.use(bodyParser.json({
   verify: (req, res, buf) => {
@@ -100,84 +88,84 @@ app.use(helmet.contentSecurityPolicy({
     scriptSrc: [
       "'self'",
       "'unsafe-inline'",
-      "https://fonts.googleapis.com",
-      "https://cdnjs.cloudflare.com",
-      "https://www.youtube.com",
-      "https://www.youtube-nocookie.com",
-      "https://unpkg.com",
-      "https://cdn.jsdelivr.net",
-      "https://cdn.skypack.dev",
-      "https://cdn.socket.io",
-      "https://api.mapbox.com"
+      'https://fonts.googleapis.com',
+      'https://cdnjs.cloudflare.com',
+      'https://www.youtube.com',
+      'https://www.youtube-nocookie.com',
+      'https://unpkg.com',
+      'https://cdn.jsdelivr.net',
+      'https://cdn.skypack.dev',
+      'https://cdn.socket.io',
+      'https://api.mapbox.com'
     ],
     styleSrc: [
       "'self'",
       "'unsafe-inline'",
-      "https://fonts.googleapis.com",
-      "https://cdnjs.cloudflare.com",
-      "https://api.mapbox.com"
+      'https://fonts.googleapis.com',
+      'https://cdnjs.cloudflare.com',
+      'https://api.mapbox.com'
     ],
     imgSrc: [
       "'self'",
-      "blob:",
-      "data:",
-      "https://i.ytimg.com",
-      "https://img.youtube.com",
-      "https://ytimg.com",
-      "https://openweathermap.org",
-      "https://i.postimg.cc",
-      "https://threejs.org",
-      "https://www.youtube.com",
-      "https://www.youtube-nocookie.com",
-      "https://raw.githubusercontent.com",
-      "https://api.tiles.mapbox.com",
-      "https://*.tiles.mapbox.com",
-      "https://raider.io",
-      "https://render.worldofwarcraft.com",
-      "https://images.mikumiku.dev"
+      'blob:',
+      'data:',
+      'https://i.ytimg.com',
+      'https://img.youtube.com',
+      'https://ytimg.com',
+      'https://openweathermap.org',
+      'https://i.postimg.cc',
+      'https://threejs.org',
+      'https://www.youtube.com',
+      'https://www.youtube-nocookie.com',
+      'https://raw.githubusercontent.com',
+      'https://api.tiles.mapbox.com',
+      'https://*.tiles.mapbox.com',
+      'https://raider.io',
+      'https://render.worldofwarcraft.com',
+      'https://images.mikumiku.dev'
     ],
     fontSrc: [
       "'self'",
-      "https://fonts.gstatic.com",
-      "https://cdnjs.cloudflare.com"
+      'https://fonts.gstatic.com',
+      'https://cdnjs.cloudflare.com'
     ],
     connectSrc: [
       "'self'",
-      "blob:",
-      "https://www.googleapis.com",
-      "https://*.youtube.com",
-      "https://www.youtube-nocookie.com",
-      "https://*.ytimg.com",
-      "https://api.openweathermap.org",
-      "https://cdn.socket.io",
-      "https://cdnjs.cloudflare.com",
-      "https://mikumiku.dev",
-      "https://api.mapbox.com",
-      "https://events.mapbox.com",
-      "https://mikumikudev-c530e6b3e669.herokuapp.com",
-      "https://raider.io",
-      "https://oauth.battle.net",
-      "https://*.api.blizzard.com",
-      "https://images.mikumiku.dev"
+      'blob:',
+      'https://www.googleapis.com',
+      'https://*.youtube.com',
+      'https://www.youtube-nocookie.com',
+      'https://*.ytimg.com',
+      'https://api.openweathermap.org',
+      'https://cdn.socket.io',
+      'https://cdnjs.cloudflare.com',
+      'https://mikumiku.dev',
+      'https://api.mapbox.com',
+      'https://events.mapbox.com',
+      'https://mikumikudev-c530e6b3e669.herokuapp.com',
+      'https://raider.io',
+      'https://oauth.battle.net',
+      'https://*.api.blizzard.com',
+      'https://images.mikumiku.dev'
     ],
     frameSrc: [
       "'self'",
-      "https://discord.com",
-      "https://www.youtube.com",
-      "https://www.youtube-nocookie.com"
+      'https://discord.com',
+      'https://www.youtube.com',
+      'https://www.youtube-nocookie.com'
     ],
     mediaSrc: [
       "'self'",
-      "https://www.youtube.com",
-      "https://www.youtube-nocookie.com"
+      'https://www.youtube.com',
+      'https://www.youtube-nocookie.com'
     ],
     frameAncestors: [
       "'self'",
-      "https://discord.com"
+      'https://discord.com'
     ],
     workerSrc: [
       "'self'",
-      "blob:"
+      'blob:'
     ],
     upgradeInsecureRequests: []
   }
