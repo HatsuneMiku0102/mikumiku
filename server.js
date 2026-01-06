@@ -501,7 +501,6 @@ if (IMAGE_API_ORIGIN) {
 }
 
 
-const IMAGE_API_TARGET = "https://image-host-bde701503cb6.herokuapp.com";
 
 const imageApiProxy = createProxyMiddleware({
   target: IMAGE_API_TARGET,
