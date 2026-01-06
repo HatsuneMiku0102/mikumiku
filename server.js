@@ -217,7 +217,7 @@ app.use(session({
   cookie: { secure: process.env.NODE_ENV === 'production', httpOnly: true, sameSite: 'strict', maxAge: 60 * 60 * 1000 }
 }));
 
-function verifyToken(req, res, next) {
+function verifyTokenPage(req, res, next) {
   const token = req.cookies.token;
   if (!token) return res.redirect('/auth');
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
@@ -226,6 +226,17 @@ function verifyToken(req, res, next) {
     next();
   });
 }
+
+function verifyTokenApi(req, res, next) {
+  const token = req.cookies.token;
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) return res.status(401).json({ error: 'Unauthorized' });
+    req.userId = decoded.id;
+    next();
+  });
+}
+
 
 const imageApiProxy = createProxyMiddleware({
   target: IMAGE_API_TARGET,
