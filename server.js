@@ -40,6 +40,8 @@ const ORIGIN = process.env.PROXY_ORIGIN || 'http://us-nyc-02.wisp.uno:8282';
 const app = express();
 app.set('trust proxy', true);
 
+app.options("/image-api/*", (_req, res) => res.sendStatus(204));
+
 const server = http.createServer(app);
 const io = socketIo(server, { cors: { origin: '*', methods: ['GET', 'POST'], allowedHeaders: ['*'], credentials: true } });
 
