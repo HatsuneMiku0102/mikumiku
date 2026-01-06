@@ -481,6 +481,25 @@ if (IMAGE_API_ORIGIN) {
 }
 
 
+const IMAGE_API_TARGET = "https://image-host-bde701503cb6.herokuapp.com";
+
+const imageApiProxy = createProxyMiddleware({
+  target: IMAGE_API_TARGET,
+  changeOrigin: true,
+  xfwd: true,
+  secure: true,
+  proxyTimeout: 45000,
+  timeout: 45000,
+  onProxyReq: (proxyReq, req) => {
+    const apiKey = process.env.IMAGE_API_KEY;
+    if (apiKey) proxyReq.setHeader("Authorization", `Bearer ${apiKey}`);
+    forwardBody(proxyReq, req);
+  }
+});
+
+app.options("/image-api/*", (_req, res) => res.sendStatus(204));
+app.post("/image-api/upload", imageApiProxy);
+app.post("/image-api/fetch", imageApiProxy);
 
 
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, maxAge: 0, lastModified: false, redirect: false }));
