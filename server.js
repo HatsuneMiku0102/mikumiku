@@ -34,6 +34,9 @@ const PORT = process.env.PORT || 3000;
 const IMAGE_API_TARGET = process.env.IMAGE_API_TARGET || 'https://image-host-bde701503cb6.herokuapp.com';
 const IMAGE_API_KEY = process.env.IMAGE_API_KEY || '';
 
+const IMAGE_HOST_ADMIN_TARGET = (process.env.IMAGE_HOST_ADMIN_TARGET || '').trim();
+const IMAGE_HOST_ADMIN_SECRET = (process.env.IMAGE_HOST_ADMIN_SECRET || '').trim();
+
 const ORIGIN = process.env.PROXY_ORIGIN || 'http://us-nyc-02.wisp.uno:8282';
 
 const app = express();
@@ -53,8 +56,8 @@ const logger = winston.createLogger({
 
 app.use(cors({
   origin: '*',
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  methods: ['GET', 'POST', 'OPTIONS', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Admin-Secret'],
   credentials: false
 }));
 
@@ -123,6 +126,7 @@ app.use(helmet.contentSecurityPolicy({
       'https://api.openweathermap.org',
       'https://cdn.socket.io',
       'https://cdnjs.cloudflare.com',
+      'https://cdn.jsdelivr.net',
       'https://mikumiku.dev',
       'https://api.mapbox.com',
       'https://events.mapbox.com',
@@ -161,7 +165,7 @@ if (!mongoUrl) {
   process.exit(1);
 }
 
-mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(mongoUrl)
   .then(() => { logger.info('Connected to MongoDB'); })
   .catch((err) => { logger.error(`Error connecting to MongoDB: ${err}`); process.exit(1); });
 
@@ -182,15 +186,7 @@ const sessionSchema = new mongoose.Schema({
   ip_address: { type: String },
   user_agent: { type: String }
 });
-const SessionDoc = mongoose.model('Session', sessionSchema, 'sessions');
-
-const commentSchema = new mongoose.Schema({
-  username: { type: String, required: true },
-  comment: { type: String, required: true },
-  timestamp: { type: Date, default: Date.now },
-  approved: { type: Boolean, default: true }
-});
-const Comment = mongoose.model('Comment', commentSchema);
+mongoose.model('Session', sessionSchema, 'sessions');
 
 const sessionStore = MongoStore.create({
   mongoUrl: mongoUrl,
@@ -237,6 +233,9 @@ function verifyTokenApi(req, res, next) {
   });
 }
 
+const verifyToken = verifyTokenPage;
+
+app.options('/image-api/*', (_req, res) => res.sendStatus(204));
 
 const imageApiProxy = createProxyMiddleware({
   target: IMAGE_API_TARGET,
@@ -256,7 +255,6 @@ const imageApiProxy = createProxyMiddleware({
 });
 
 app.use('/image-api', imageApiProxy);
-
 
 const IPINFO_API_KEY = process.env.IPINFO_API_KEY;
 if (!IPINFO_API_KEY) {
@@ -285,11 +283,6 @@ async function getGeoLocation(ip) {
     return { city: 'Unknown', region: 'Unknown', country: 'Unknown', ip, loc: null };
   }
 }
-
-
-
-const IMAGE_HOST_ADMIN_TARGET = (process.env.IMAGE_HOST_ADMIN_TARGET || '').trim();
-const IMAGE_HOST_ADMIN_SECRET = (process.env.IMAGE_HOST_ADMIN_SECRET || '').trim();
 
 app.post('/api/image-host/keys/create', verifyTokenApi, async (req, res) => {
   try {
@@ -321,9 +314,6 @@ app.post('/api/image-host/keys/create', verifyTokenApi, async (req, res) => {
     res.status(status).json({ error: detail });
   }
 });
-
-
-
 
 app.post('/interactions', async (req, res) => {
   try {
@@ -475,7 +465,7 @@ app.post('/interactions', async (req, res) => {
 
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: 'Too many login attempts from this IP, please try again after 15 minutes' });
 
-app.get('/auth', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-login.html')));
+app.get('/auth', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-login.html')));
 
 app.post('/login', loginLimiter, async (req, res) => {
   try {
@@ -504,41 +494,11 @@ app.post('/logout', (req, res) => {
   });
 });
 
-app.get('/admin', verifyTokenPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html')));
-app.get('/admin-dashboard.html', (req, res) => res.redirect('/admin'));
+app.get('/admin', verifyTokenPage, (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html')));
+app.get('/admin-dashboard.html', (_req, res) => res.redirect('/admin'));
 
-app.post('/api/comments', async (req, res) => {
-  try {
-    const { username, comment } = req.body;
-    const newComment = new Comment({ username, comment });
-    await newComment.save();
-    res.status(201).send(newComment);
-  } catch {
-    res.status(500).send({ error: 'Error saving comment' });
-  }
-});
-
-app.get('/api/comments', async (req, res) => {
-  try {
-    const comments = await Comment.find({ approved: true });
-    res.json(comments);
-  } catch {
-    res.status(500).send({ error: 'Error fetching comments' });
-  }
-});
-
-app.delete('/api/comments/:id', verifyToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    await Comment.findByIdAndDelete(id);
-    res.status(200).send({ message: 'Comment deleted' });
-  } catch {
-    res.status(500).send({ error: 'Error deleting comment' });
-  }
-});
-
-app.get(/^\/image-host$/, (req, res) => res.redirect(301, '/image-host/'));
-app.get('/image-host/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'image-host', 'index.html')));
+app.get(/^\/image-host$/, (_req, res) => res.redirect(301, '/image-host/'));
+app.get('/image-host/', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'image-host', 'index.html')));
 
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, maxAge: 0, lastModified: false, redirect: false }));
 
@@ -554,6 +514,25 @@ app.get('/api/geo-data', verifyTokenApi, async (_req, res) => {
   }
 });
 
+const blockedIps = new Set();
+
+app.post('/api/block-user', verifyTokenApi, (req, res) => {
+  const ip = String(req.body?.ip || '').trim();
+  if (!ip) return res.status(400).json({ status: 'error', message: 'Missing ip' });
+  blockedIps.add(ip);
+  for (const [id, s] of io.of('/').sockets) {
+    const sip = s.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || s.handshake.address;
+    if (sip === ip) s.disconnect(true);
+  }
+  res.json({ status: 'success' });
+});
+
+app.post('/api/unblock-user', verifyTokenApi, (req, res) => {
+  const ip = String(req.body?.ip || '').trim();
+  if (!ip) return res.status(400).json({ status: 'error', message: 'Missing ip' });
+  blockedIps.delete(ip);
+  res.json({ status: 'success' });
+});
 
 app.get('/fetch-location', async (req, res) => {
   const ip = getClientIp(req);
@@ -608,7 +587,7 @@ app.post('/track-visitor', async (req, res) => {
 });
 
 const dbName = process.env.MONGO_DB_NAME || 'myfirstdatabase';
-const client = new MongoClient(process.env.MONGO_URL, { useUnifiedTopology: true });
+const client = new MongoClient(process.env.MONGO_URL, {});
 let timelineCollection;
 let configCollection;
 
@@ -623,13 +602,11 @@ async function connectToMongo() {
       toggleDoc = { _id: 'toggle', commands_enabled: true };
       await configCollection.insertOne(toggleDoc);
     }
-  } catch (err) {
-    console.error('Error connecting to MongoDB:', err);
-  }
+  } catch {}
 }
 connectToMongo();
 
-app.get('/api/timeline', async (req, res) => {
+app.get('/api/timeline', async (_req, res) => {
   try {
     const entries = await timelineCollection.find().sort({ rawTimestamp: 1 }).toArray();
     res.json(entries);
@@ -663,7 +640,7 @@ app.post('/api/timeline', async (req, res) => {
   }
 });
 
-app.get('/api/toggle', async (req, res) => {
+app.get('/api/toggle', async (_req, res) => {
   try {
     const toggleDoc = await configCollection.findOne({ _id: 'toggle' });
     res.json(toggleDoc);
@@ -716,9 +693,9 @@ app.post('/api/openai-chat', openAICallLimiter, async (req, res) => {
   }
 });
 
-app.get('/aria-status', (req, res) => res.sendFile(path.join(__dirname, 'public', 'aria-status.html')));
+app.get('/aria-status', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'aria-status.html')));
 
-app.get('/status-proxy', async (req, res) => {
+app.get('/status-proxy', async (_req, res) => {
   try {
     const response = await fetch(`${ORIGIN}/status`);
     const data = await response.json();
@@ -761,7 +738,6 @@ app.get('/notify-status', proxy);
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
 const HEARTBEAT_TIMEOUT = 60000;
-const blockedIps = new Set();
 let currentVideo = null;
 let currentBrowsing = null;
 const videoHeartbeat = {};
@@ -860,6 +836,23 @@ io.on('connection', socket => {
 
   emitCurrentPresence(socket);
 
+  socket.on('getToggleState', async () => {
+    try {
+      const doc = await configCollection.findOne({ _id: 'toggle' });
+      socket.emit('toggleState', doc || { commands_enabled: true });
+    } catch {
+      socket.emit('toggleState', { commands_enabled: true });
+    }
+  });
+
+  socket.on('toggleCommands', async (data) => {
+    try {
+      const nextVal = !!data?.commands_enabled;
+      await configCollection.updateOne({ _id: 'toggle' }, { $set: { commands_enabled: nextVal } }, { upsert: true });
+      io.emit('toggleUpdated', { commands_enabled: nextVal });
+    } catch {}
+  });
+
   socket.on('presenceUpdate', data => {
     switch (data.presenceType) {
       case 'video': handleVideoPresence(data); break;
@@ -880,7 +873,7 @@ io.on('connection', socket => {
   });
 
   socket.on('heartbeat', (data, ack) => {
-    const { videoId } = data;
+    const { videoId } = data || {};
     if (currentVideo?.videoId === videoId) {
       videoHeartbeat[videoId] = Date.now();
       if (ack) ack({ status: 'ok' });
@@ -890,16 +883,18 @@ io.on('connection', socket => {
   });
 
   socket.on('botHeartbeat', (data) => {
-    const status = (data.status || '').toLowerCase().trim();
+    const status = (data?.status || '').toLowerCase().trim();
     lastBotStatusUpdate = Date.now();
+
+    io.emit('botStatusUpdate', data || {});
 
     if (status === 'online') {
       smsSent = false;
-      const latency = parseInt(data.latency);
-      if (latency > HIGH_LATENCY_THRESHOLD && !highLatencyAlertSent) {
+      const latency = parseInt(data?.latency);
+      if (Number.isFinite(latency) && latency > HIGH_LATENCY_THRESHOLD && !highLatencyAlertSent) {
         sendSMSAlert('Alert: The bot is experiencing high latency!');
         highLatencyAlertSent = true;
-      } else if (latency <= HIGH_LATENCY_THRESHOLD) {
+      } else if (Number.isFinite(latency) && latency <= HIGH_LATENCY_THRESHOLD) {
         highLatencyAlertSent = false;
       }
     }
