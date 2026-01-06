@@ -290,42 +290,40 @@ async function getGeoLocation(ip) {
 const IMAGE_HOST_ADMIN_TARGET = process.env.IMAGE_HOST_ADMIN_TARGET || IMAGE_API_TARGET;
 const IMAGE_HOST_ADMIN_SECRET = process.env.IMAGE_HOST_ADMIN_SECRET || '';
 
-app.post('/api/image-host/keys/create', verifyToken, async (req, res) => {
-  try {
-    if (!IMAGE_HOST_ADMIN_SECRET) return res.status(500).json({ error: 'Image host admin secret not configured' });
+const IMAGE_HOST_ADMIN_TARGET = (process.env.IMAGE_HOST_ADMIN_TARGET || '').trim();
+const IMAGE_HOST_ADMIN_SECRET = (process.env.IMAGE_HOST_ADMIN_SECRET || '').trim();
 
+app.post('/api/image-host/keys/create', verifyTokenApi, async (req, res) => {
+  try {
+    if (!IMAGE_HOST_ADMIN_TARGET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_TARGET not set' });
+    if (!IMAGE_HOST_ADMIN_SECRET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_SECRET not set' });
+
+    const target = IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, '');
     const name = String(req.body?.name || 'user').slice(0, 64);
     const scopes = String(req.body?.scopes || 'upload,fetch');
-    const rate = Number.isFinite(Number(req.body?.rate_per_minute)) ? String(parseInt(req.body.rate_per_minute, 10)) : '30';
-    const neverExpires = req.body?.never_expires ? '1' : '1';
+    const rpm = Number.isFinite(Number(req.body?.rate_per_minute)) ? String(parseInt(req.body.rate_per_minute, 10)) : '30';
+    const never = req.body?.never_expires ? '1' : '1';
 
     const body = new URLSearchParams();
     body.set('name', name);
     body.set('scopes', scopes);
-    body.set('rate_per_minute', rate);
-    body.set('never_expires', neverExpires);
+    body.set('rate_per_minute', rpm);
+    body.set('never_expires', never);
 
     const resp = await axios.post(
-      `${IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, '')}/admin/keys/create`,
+      `${target}/admin/keys/create`,
       body.toString(),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-admin-secret': IMAGE_HOST_ADMIN_SECRET } }
     );
 
-    res.json({
-      api_key: resp.data.api_key,
-      key_id: resp.data.key_id,
-      name: resp.data.name,
-      scopes: resp.data.scopes,
-      rate_per_minute: resp.data.rate_per_minute,
-      expires_at: resp.data.expires_at || null,
-      image_host: IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, '')
-    });
+    res.json({ ...resp.data, image_host: target });
   } catch (err) {
     const status = err?.response?.status || 500;
-    const detail = err?.response?.data || err?.message || 'Failed to create key';
+    const detail = err?.response?.data || err?.message || 'Failed';
     res.status(status).json({ error: detail });
   }
 });
+
 
 
 
@@ -508,7 +506,7 @@ app.post('/logout', (req, res) => {
   });
 });
 
-app.get('/admin', verifyToken, (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html')));
+app.get('/admin', verifyTokenPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html')));
 app.get('/admin-dashboard.html', (req, res) => res.redirect('/admin'));
 
 app.post('/api/comments', async (req, res) => {
@@ -545,6 +543,19 @@ app.get(/^\/image-host$/, (req, res) => res.redirect(301, '/image-host/'));
 app.get('/image-host/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'image-host', 'index.html')));
 
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, maxAge: 0, lastModified: false, redirect: false }));
+
+app.get('/api/geo-data', verifyTokenApi, async (_req, res) => {
+  try {
+    const byCountry = await GeoData.aggregate([
+      { $group: { _id: '$country', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+    res.json(byCountry);
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch geo data' });
+  }
+});
+
 
 app.get('/fetch-location', async (req, res) => {
   const ip = getClientIp(req);
