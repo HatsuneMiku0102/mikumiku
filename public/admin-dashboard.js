@@ -237,9 +237,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const res = await fetch('/api/image-host/keys/create', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, rate_per_minute: rate, scopes, never_expires: never })
       })
+
       const data = await res.json()
       if (!res.ok) throw new Error(typeof data?.error === 'string' ? data.error : JSON.stringify(data?.error || data))
 
