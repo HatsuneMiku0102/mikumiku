@@ -52,24 +52,22 @@ const logger = winston.createLogger({
   transports: [new winston.transports.Console(), new winston.transports.File({ filename: 'server.log' })]
 });
 
-app.use('/image-api', createProxyMiddleware({
-  target: IMAGE_API_TARGET,
-  changeOrigin: true,
-  xfwd: true,
-  secure: true,
-  ws: false,
-  proxyTimeout: 45000,
-  timeout: 45000,
-  pathRewrite: { '^/image-api': '' },
-  onProxyReq: (proxyReq, req) => {
-    if (IMAGE_API_KEY) proxyReq.setHeader('Authorization', `Bearer ${IMAGE_API_KEY}`);
-    if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return;
-  },
-  onError: (err, req, res) => {
-    console.error('Image API proxy error:', err);
-    res.status(502).send('Image API unavailable');
-  }
-}));
+app.use(
+  "/image-api",
+  createProxyMiddleware({
+    target: IMAGE_API_TARGET,
+    changeOrigin: true,
+    xfwd: true,
+    secure: true,
+    proxyTimeout: 45000,
+    timeout: 45000,
+    pathRewrite: { "^/image-api": "" },
+    onProxyReq: (proxyReq, req) => {
+      const k = process.env.IMAGE_API_KEY || "";
+      if (k) proxyReq.setHeader("Authorization", `Bearer ${k}`);
+    },
+  })
+);
 
 app.options('/image-api/*', (_req, res) => res.sendStatus(204));
 
