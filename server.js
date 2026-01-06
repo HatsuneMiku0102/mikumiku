@@ -275,6 +275,49 @@ async function getGeoLocation(ip) {
   }
 }
 
+
+const IMAGE_HOST_ADMIN_TARGET = process.env.IMAGE_HOST_ADMIN_TARGET || IMAGE_API_TARGET;
+const IMAGE_HOST_ADMIN_SECRET = process.env.IMAGE_HOST_ADMIN_SECRET || '';
+
+app.post('/api/image-host/keys/create', verifyToken, async (req, res) => {
+  try {
+    if (!IMAGE_HOST_ADMIN_SECRET) return res.status(500).json({ error: 'Image host admin secret not configured' });
+
+    const name = String(req.body?.name || 'user').slice(0, 64);
+    const scopes = String(req.body?.scopes || 'upload,fetch');
+    const rate = Number.isFinite(Number(req.body?.rate_per_minute)) ? String(parseInt(req.body.rate_per_minute, 10)) : '30';
+    const neverExpires = req.body?.never_expires ? '1' : '1';
+
+    const body = new URLSearchParams();
+    body.set('name', name);
+    body.set('scopes', scopes);
+    body.set('rate_per_minute', rate);
+    body.set('never_expires', neverExpires);
+
+    const resp = await axios.post(
+      `${IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, '')}/admin/keys/create`,
+      body.toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-admin-secret': IMAGE_HOST_ADMIN_SECRET } }
+    );
+
+    res.json({
+      api_key: resp.data.api_key,
+      key_id: resp.data.key_id,
+      name: resp.data.name,
+      scopes: resp.data.scopes,
+      rate_per_minute: resp.data.rate_per_minute,
+      expires_at: resp.data.expires_at || null,
+      image_host: IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, '')
+    });
+  } catch (err) {
+    const status = err?.response?.status || 500;
+    const detail = err?.response?.data || err?.message || 'Failed to create key';
+    res.status(status).json({ error: detail });
+  }
+});
+
+
+
 app.post('/interactions', async (req, res) => {
   try {
     const signature = req.get('X-Signature-Ed25519') || '';
