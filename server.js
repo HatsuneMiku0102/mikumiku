@@ -236,7 +236,8 @@ const imageApiProxy = createProxyMiddleware({
   timeout: 60000,
   pathRewrite: { '^/image-api': '' },
   onProxyReq: (proxyReq) => {
-    if (IMAGE_API_KEY) proxyReq.setHeader('Authorization', `Bearer ${IMAGE_API_KEY}`);
+    if (!IMAGE_API_KEY) throw new Error('IMAGE_API_KEY is not set on Node server');
+    proxyReq.setHeader('Authorization', `Bearer ${String(IMAGE_API_KEY).trim()}`);
   },
   onError: (_err, _req, res) => {
     res.status(502).json({ detail: 'Image API proxy error' });
@@ -244,6 +245,7 @@ const imageApiProxy = createProxyMiddleware({
 });
 
 app.use('/image-api', imageApiProxy);
+
 
 const IPINFO_API_KEY = process.env.IPINFO_API_KEY;
 if (!IPINFO_API_KEY) {
