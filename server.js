@@ -716,7 +716,7 @@ app.get('/api/weather', async (req, res) => {
 
 
 
-const { createProxyMiddleware } = require("http-proxy-middleware");
+
 
 app.use(
   "/image-api",
