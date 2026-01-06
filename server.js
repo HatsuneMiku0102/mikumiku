@@ -60,8 +60,9 @@ app.use("/image-api", createProxyMiddleware({
 }));
 
 
-bodyParserapp.use(bodyParser.json(...))
-app.use(bodyParser.urlencoded(...))
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
 
 app.use(bodyParser.json({ verify: (req, res, buf) => { if (req.path === '/interactions') req.rawBody = buf.toString(); } }));
 app.use(bodyParser.urlencoded({ extended: true }));
