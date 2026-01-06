@@ -44,6 +44,25 @@ const logger = winston.createLogger({
   transports: [new winston.transports.Console(), new winston.transports.File({ filename: 'server.log' })]
 });
 
+const IMAGE_API_TARGET = "https://image-host-bde701503cb6.herokuapp.com";
+
+app.use("/image-api", createProxyMiddleware({
+  target: IMAGE_API_TARGET,
+  changeOrigin: true,
+  xfwd: true,
+  secure: true,
+  proxyTimeout: 45000,
+  timeout: 45000,
+  onProxyReq: (proxyReq, req) => {
+    const k = process.env.IMAGE_API_KEY || "";
+    if (k) proxyReq.setHeader("Authorization", `Bearer ${k}`);
+  }
+}));
+
+
+bodyParserapp.use(bodyParser.json(...))
+app.use(bodyParser.urlencoded(...))
+
 app.use(bodyParser.json({ verify: (req, res, buf) => { if (req.path === '/interactions') req.rawBody = buf.toString(); } }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
