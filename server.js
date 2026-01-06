@@ -54,8 +54,6 @@ const logger = winston.createLogger({
 
 
 
-const IMAGE_API_TARGET = process.env.IMAGE_API_TARGET || "https://image-host-bde701503cb6.herokuapp.com";
-
 app.use(
   "/image-api",
   createProxyMiddleware({
