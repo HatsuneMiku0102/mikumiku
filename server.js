@@ -463,6 +463,23 @@ app.post('/interactions', async (req, res) => {
   }
 });
 
+app.get('/api/image-host/debug-headers', verifyTokenApi, async (_req, res) => {
+  try {
+    if (!IMAGE_HOST_ADMIN_TARGET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_TARGET not set' });
+    if (!IMAGE_HOST_ADMIN_SECRET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_SECRET not set' });
+
+    const target = IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, '');
+    const resp = await axios.get(`${target}/debug/headers`, {
+      headers: { 'x-admin-secret': String(IMAGE_HOST_ADMIN_SECRET).trim() }
+    });
+
+    res.json({ target, upstream: resp.data });
+  } catch (err) {
+    res.status(err?.response?.status || 500).json({ error: err?.response?.data || err?.message || 'Failed' });
+  }
+});
+
+
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: 'Too many login attempts from this IP, please try again after 15 minutes' });
 
 app.get('/auth', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-login.html')));
