@@ -3,7 +3,6 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const path = require('path');
@@ -52,35 +51,20 @@ const logger = winston.createLogger({
   transports: [new winston.transports.Console(), new winston.transports.File({ filename: 'server.log' })]
 });
 
-app.options('/image-api/*', (_req, res) => res.sendStatus(204));
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: false
+}));
 
-const imageApiProxy = createProxyMiddleware({
-  target: IMAGE_API_TARGET,
-  changeOrigin: true,
-  secure: true,
-  xfwd: true,
-  proxyTimeout: 60000,
-  timeout: 60000,
-  pathRewrite: { '^/image-api': '' },
-  onProxyReq: (proxyReq) => {
-    if (IMAGE_API_KEY) proxyReq.setHeader('Authorization', `Bearer ${IMAGE_API_KEY}`);
-  },
-  onError: (_err, _req, res) => {
-    res.status(502).json({ detail: 'Image API proxy error' });
-  }
-});
-
-app.post('/image-api/upload', imageApiProxy);
-app.post('/image-api/fetch', imageApiProxy);
-
-app.use(bodyParser.json({
-  verify: (req, res, buf) => {
+app.use(express.json({
+  verify: (req, _res, buf) => {
     if (req.path === '/interactions') req.rawBody = buf.toString();
   }
 }));
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(cors());
 
 app.use(helmet.contentSecurityPolicy({
   directives: {
@@ -243,6 +227,24 @@ function verifyToken(req, res, next) {
   });
 }
 
+const imageApiProxy = createProxyMiddleware({
+  target: IMAGE_API_TARGET,
+  changeOrigin: true,
+  secure: true,
+  xfwd: true,
+  proxyTimeout: 60000,
+  timeout: 60000,
+  pathRewrite: { '^/image-api': '' },
+  onProxyReq: (proxyReq) => {
+    if (IMAGE_API_KEY) proxyReq.setHeader('Authorization', `Bearer ${IMAGE_API_KEY}`);
+  },
+  onError: (_err, _req, res) => {
+    res.status(502).json({ detail: 'Image API proxy error' });
+  }
+});
+
+app.use('/image-api', imageApiProxy);
+
 const IPINFO_API_KEY = process.env.IPINFO_API_KEY;
 if (!IPINFO_API_KEY) {
   logger.error('IPINFO_API_KEY environment variable is not set.');
@@ -358,7 +360,7 @@ app.post('/interactions', async (req, res) => {
           footer: { text: 'Powered by OpenWeatherMap', icon_url: 'https://openweathermap.org/themes/openweathermap/assets/vendor/owm/img/widgets/logo_60x60.png' }
         };
         return res.json({ type: 4, data: { embeds: [weatherEmbed] } });
-      } catch (err) {
+      } catch {
         return res.json({ type: 4, data: { content: `❌ Could not fetch weather for \`${city}\`.` } });
       }
     }
@@ -612,7 +614,7 @@ app.post('/api/toggle', async (req, res) => {
     await configCollection.updateOne({ _id: 'toggle' }, { $set: { commands_enabled: data.commands_enabled } });
     const toggleDoc = await configCollection.findOne({ _id: 'toggle' });
     res.json({ status: 'success', commands_enabled: toggleDoc.commands_enabled });
-  } catch (err) {
+  } catch {
     res.status(500).json({ status: 'error', message: 'Could not update configuration.' });
   }
 });
@@ -868,12 +870,12 @@ app.get('/api/weather', async (req, res) => {
       condition: weather[0].description,
       coordinates: coord
     });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: `Could not fetch weather for "${city}".` });
   }
 });
 
-app.get('/api/videos/public', async (req, res) => {
+app.get('/api/videos/public', async (_req, res) => {
   try {
     res.json([]);
   } catch {
