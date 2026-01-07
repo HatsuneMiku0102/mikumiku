@@ -227,7 +227,9 @@ app.use(session({
 }));
 
 function signAuthToken(payload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  const secret = String(process.env.JWT_SECRET || '').trim()
+  if (!secret) throw new Error('JWT_SECRET is not set')
+  return jwt.sign(payload, secret, { expiresIn: '7d' })
 }
 
 function readJwt(req) {
@@ -278,42 +280,46 @@ app.get('/user/auth', (_req, res) => res.sendFile(path.join(__dirname, 'public',
 
 app.post('/user/register', async (req, res) => {
   try {
-    const username = String(req.body?.username || '').trim();
-    const password = String(req.body?.password || '');
-    if (username.length < 3 || username.length > 32) return res.status(400).json({ error: 'Invalid username' });
-    if (password.length < 8) return res.status(400).json({ error: 'Password too short' });
+    const username = String(req.body?.username || '').trim()
+    const password = String(req.body?.password || '')
 
-    const exists = await User.findOne({ username });
-    if (exists) return res.status(409).json({ error: 'Username already taken' });
+    if (username.length < 3 || username.length > 32) return res.status(400).json({ error: 'Invalid username' })
+    if (password.length < 8) return res.status(400).json({ error: 'Password too short' })
 
-    const passwordHash = await bcrypt.hash(password, 12);
-    const u = await User.create({ username, passwordHash });
+    const exists = await User.findOne({ username })
+    if (exists) return res.status(409).json({ error: 'Username already taken' })
 
-    const token = signAuthToken({ role: 'user', userId: String(u._id), username: u.username });
-    res.cookie('token', token, { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', maxAge: 7 * 86400 * 1000 });
-    res.json({ ok: true, redirect: '/image-host/' });
-  } catch {
-    res.status(500).json({ error: 'Internal Server Error' });
+    const passwordHash = await bcrypt.hash(password, 12)
+    const u = await User.create({ username, passwordHash })
+
+    const token = signAuthToken({ role: 'user', userId: String(u._id), username: u.username })
+    res.cookie('token', token, { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', maxAge: 7 * 86400 * 1000 })
+    res.json({ ok: true, redirect: '/image-host/' })
+  } catch (err) {
+    logger.error(`user/register failed: ${err?.message || err}`)
+    res.status(500).json({ error: 'Internal Server Error' })
   }
-});
+})
 
 app.post('/user/login', async (req, res) => {
   try {
-    const username = String(req.body?.username || '').trim();
-    const password = String(req.body?.password || '');
-    const u = await User.findOne({ username });
-    if (!u) return res.status(401).json({ error: 'Invalid credentials' });
+    const username = String(req.body?.username || '').trim()
+    const password = String(req.body?.password || '')
 
-    const ok = await bcrypt.compare(password, u.passwordHash);
-    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+    const u = await User.findOne({ username })
+    if (!u) return res.status(401).json({ error: 'Invalid credentials' })
 
-    const token = signAuthToken({ role: 'user', userId: String(u._id), username: u.username });
-    res.cookie('token', token, { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', maxAge: 7 * 86400 * 1000 });
-    res.json({ ok: true, redirect: '/image-host/' });
-  } catch {
-    res.status(500).json({ error: 'Internal Server Error' });
+    const ok = await bcrypt.compare(password, u.passwordHash)
+    if (!ok) return res.status(401).json({ error: 'Invalid credentials' })
+
+    const token = signAuthToken({ role: 'user', userId: String(u._id), username: u.username })
+    res.cookie('token', token, { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', maxAge: 7 * 86400 * 1000 })
+    res.json({ ok: true, redirect: '/image-host/' })
+  } catch (err) {
+    logger.error(`user/login failed: ${err?.message || err}`)
+    res.status(500).json({ error: 'Internal Server Error' })
   }
-});
+})
 
 app.post('/user/logout', (_req, res) => {
   res.cookie('token', '', { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', expires: new Date(0) });
