@@ -22,7 +22,7 @@ const { MongoClient } = require('mongodb')
 const nacl = require('tweetnacl')
 const os = require('os')
 const crypto = require('crypto')
-const { createProxyMiddleware } = require('http-proxy-middleware')
+const { createProxyMiddleware, responseInterceptor } = require('http-proxy-middleware')
 
 dotenv.config()
 
@@ -421,6 +421,56 @@ const publicImageProxy = createProxyMiddleware({
 
 app.use('/img', publicImageProxy)
 
+function makePublicImgBase(req) {
+  const proto = String(req.headers['x-forwarded-proto'] || req.protocol || 'https')
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '')
+  return `${proto}://${host}`.replace(/\/$/, '') + '/img'
+}
+
+function rewriteImageLinksInJson(req, bodyBuffer) {
+  try {
+    const txt = bodyBuffer.toString('utf8')
+    const data = JSON.parse(txt)
+
+    if (!data || typeof data !== 'object') return bodyBuffer
+
+    if (data.direct_url || data.page_url) {
+      const base = makePublicImgBase(req)
+
+      if (typeof data.direct_url === 'string') {
+        data.direct_url = data.direct_url
+          .replace(/^https?:\/\/[^/]+\/image-api\b/i, base)
+          .replace(/^https?:\/\/[^/]+\/user-image-api\b/i, base)
+          .replace(/^https?:\/\/[^/]+\/img\b/i, base)
+          .replace(/^https?:\/\/[^/]+$/i, base.replace(/\/img$/, ''))
+          .replace(/\/i\//i, '/i/')
+          .replace(/\/v\//i, '/v/')
+
+        if (/\/image-api\/i\//i.test(data.direct_url)) data.direct_url = data.direct_url.replace(/\/image-api\b/i, '')
+        if (/\/user-image-api\/i\//i.test(data.direct_url)) data.direct_url = data.direct_url.replace(/\/user-image-api\b/i, '')
+      }
+
+      if (typeof data.page_url === 'string') {
+        data.page_url = data.page_url
+          .replace(/^https?:\/\/[^/]+\/image-api\b/i, base)
+          .replace(/^https?:\/\/[^/]+\/user-image-api\b/i, base)
+          .replace(/^https?:\/\/[^/]+\/img\b/i, base)
+          .replace(/^https?:\/\/[^/]+$/i, base.replace(/\/img$/, ''))
+          .replace(/\/i\//i, '/i/')
+          .replace(/\/v\//i, '/v/')
+
+        if (/\/image-api\/v\//i.test(data.page_url)) data.page_url = data.page_url.replace(/\/image-api\b/i, '')
+        if (/\/user-image-api\/v\//i.test(data.page_url)) data.page_url = data.page_url.replace(/\/user-image-api\b/i, '')
+      }
+
+      return Buffer.from(JSON.stringify(data))
+    }
+
+    return bodyBuffer
+  } catch {
+    return bodyBuffer
+  }
+}
 
 const imageApiProxy = createProxyMiddleware({
   target: IMAGE_API_TARGET,
@@ -429,11 +479,19 @@ const imageApiProxy = createProxyMiddleware({
   xfwd: true,
   proxyTimeout: 60000,
   timeout: 60000,
+  selfHandleResponse: true,
   pathRewrite: { '^/image-api': '' },
   onProxyReq: (proxyReq) => {
     if (!IMAGE_API_KEY) throw new Error('IMAGE_API_KEY is not set on Node server')
     proxyReq.setHeader('Authorization', `Bearer ${String(IMAGE_API_KEY).trim()}`)
   },
+  onProxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
+    const ct = String(proxyRes.headers['content-type'] || '')
+    if (ct.includes('application/json')) {
+      return rewriteImageLinksInJson(req, responseBuffer)
+    }
+    return responseBuffer
+  }),
   onError: (_err, _req, res) => {
     res.status(502).json({ error: 'Image API proxy error' })
   }
@@ -448,6 +506,7 @@ const userImageApiProxy = createProxyMiddleware({
   xfwd: true,
   proxyTimeout: 60000,
   timeout: 60000,
+  selfHandleResponse: true,
   pathRewrite: { '^/user-image-api': '' },
   onProxyReq: (proxyReq, req) => {
     const auth = req._userImageApiAuth
@@ -455,11 +514,17 @@ const userImageApiProxy = createProxyMiddleware({
     const key = String(auth).replace(/^Bearer\s+/i, '').trim()
     proxyReq.setHeader('Authorization', `Bearer ${key}`)
   },
-  onProxyRes: (proxyRes, req) => {
+  onProxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, _res) => {
     const p = req.originalUrl || req.url || ''
     const s = proxyRes.statusCode
     logger.info(`user-image-api upstream status=${s} path=${p}`)
-  },
+
+    const ct = String(proxyRes.headers['content-type'] || '')
+    if (ct.includes('application/json')) {
+      return rewriteImageLinksInJson(req, responseBuffer)
+    }
+    return responseBuffer
+  }),
   onError: (_err, req, res) => {
     const p = req.originalUrl || req.url || ''
     logger.error(`user-image-api proxy error path=${p}`)
@@ -468,8 +533,6 @@ const userImageApiProxy = createProxyMiddleware({
 })
 
 app.use('/user-image-api', verifyTokenApi, requireUserApi, attachUserImageApiKey, userImageApiProxy)
-
-
 
 app.get('/api/user/me', verifyTokenApi, requireUserApi, (req, res) => {
   res.json({ userId: req.auth.userId, username: req.auth.username, role: req.auth.role })
@@ -623,10 +686,17 @@ const openAICallLimiter = rateLimit({ windowMs: 60 * 1000, max: 60, message: { e
 
 async function makeOpenAIRequest(messages, retries = 3, backoff = 1000) {
   try {
-    const response = await openai.createChatCompletion({ model: 'gpt-3.5-turbo', messages, temperature: 0.7, max_tokens: 150 })
-    return response.data.choices[0].message.content.trim()
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages,
+      temperature: 0.7,
+      max_tokens: 150
+    })
+    const out = response?.choices?.[0]?.message?.content
+    return String(out || '').trim()
   } catch (error) {
-    if (error.response && error.response.status === 429 && retries > 0) {
+    const status = error?.status || error?.response?.status
+    if (status === 429 && retries > 0) {
       await new Promise(r => setTimeout(r, backoff))
       return makeOpenAIRequest(messages, retries - 1, backoff * 2)
     }
@@ -644,7 +714,8 @@ app.post('/api/openai-chat', openAICallLimiter, async (req, res) => {
     sessions[sessionId].push({ role: 'assistant', content: botResponse })
     res.json({ response: botResponse })
   } catch (error) {
-    if (error.response && error.response.status === 429) res.status(429).json({ error: 'Too many requests. Please try again later.' })
+    const status = error?.status || error?.response?.status
+    if (status === 429) res.status(429).json({ error: 'Too many requests. Please try again later.' })
     else res.status(500).json({ error: 'An error occurred while processing your request.' })
   }
 })
