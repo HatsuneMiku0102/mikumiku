@@ -7,12 +7,93 @@
   <link rel="stylesheet" href="/image-host/styles.css" />
 </head>
 <body>
-  <header class="wrap">
-    <h1>Image Host</h1>
-    <p class="sub">Upload an image or fetch one from a direct image URL.</p>
+  <header class="wrap topbar">
+    <div class="topbarLeft">
+      <h1 class="title">Image Host</h1>
+      <p class="sub">Upload an image or fetch one from a direct image URL.</p>
+    </div>
+    <div class="topbarRight">
+      <a class="btn ghost" href="/auth">Admin</a>
+      <button class="btn danger" id="logoutBtn" type="button">Logout</button>
+    </div>
   </header>
 
   <main class="wrap grid">
+    <section class="card full">
+      <div class="row">
+        <h2>API Key</h2>
+        <div class="pill" id="keyStatePill">Not active</div>
+      </div>
+
+      <div class="split">
+        <div class="pane">
+          <div class="hint">Generate a key for ShareX, curl, scripts, or third-party tools. Website uploads will use your active key automatically.</div>
+
+          <div class="formGrid">
+            <div class="field">
+              <div class="label">Key name</div>
+              <input id="keyName" class="input" type="text" placeholder="my-sharex" value="my-key" />
+            </div>
+
+            <div class="field">
+              <div class="label">Rate per minute</div>
+              <input id="keyRate" class="input" type="number" min="1" max="600" value="60" />
+            </div>
+
+            <div class="field">
+              <div class="label">Scopes</div>
+              <input id="keyScopes" class="input" type="text" value="upload,fetch" />
+              <div class="hint">Comma separated. Example: upload,fetch</div>
+            </div>
+
+            <div class="field">
+              <div class="label">Never expires</div>
+              <select id="keyNeverExpires" class="input">
+                <option value="1" selected>Yes</option>
+                <option value="0">No</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn" id="generateKeyBtn" type="button">Generate</button>
+            <button class="btn ghost" id="activateKeyBtn" type="button" disabled>Activate for website</button>
+            <div class="smallStatus" id="keyStatus"></div>
+          </div>
+        </div>
+
+        <div class="pane">
+          <div class="field">
+            <div class="label">Generated key</div>
+            <div class="control">
+              <input id="generatedKey" class="input mono" readonly />
+              <button class="btn ghost" type="button" data-copy="generatedKey">Copy</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="label">curl upload</div>
+            <div class="control">
+              <textarea id="curlUpload" class="input mono" rows="3" readonly></textarea>
+              <button class="btn ghost" type="button" data-copy="curlUpload">Copy</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="label">curl fetch</div>
+            <div class="control">
+              <textarea id="curlFetch" class="input mono" rows="3" readonly></textarea>
+              <button class="btn ghost" type="button" data-copy="curlFetch">Copy</button>
+            </div>
+          </div>
+
+          <div class="hint">
+            Tip: your website uploads do not need curl — they use your active key automatically while you are logged in.
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="card">
       <h2>Upload</h2>
       <form id="uploadForm">
@@ -22,7 +103,7 @@
         </label>
         <button class="btn" type="submit">Upload</button>
       </form>
-      <p class="hint">Max size depends on server config.</p>
+      <p class="hint">You must be logged in + have an active key.</p>
     </section>
 
     <section class="card">
