@@ -409,6 +409,19 @@ app.post('/user/logout', (_req, res) => {
 app.options('/image-api/*', (_req, res) => res.sendStatus(204))
 app.options('/user-image-api/*', (_req, res) => res.sendStatus(204))
 
+const publicImageProxy = createProxyMiddleware({
+  target: IMAGE_API_TARGET,
+  changeOrigin: true,
+  secure: true,
+  xfwd: true,
+  proxyTimeout: 60000,
+  timeout: 60000,
+  pathRewrite: { '^/img': '' }
+})
+
+app.use('/img', publicImageProxy)
+
+
 const imageApiProxy = createProxyMiddleware({
   target: IMAGE_API_TARGET,
   changeOrigin: true,
