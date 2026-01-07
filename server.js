@@ -182,7 +182,7 @@ mongoose.connect(mongoUrl)
   .then(() => { logger.info('Connected to MongoDB') })
   .catch((err) => { logger.error(`Error connecting to MongoDB: ${err}`); process.exit(1) })
 
-function sha256hex(s) {
+function sha256Hex(s) {
   return crypto.createHash('sha256').update(String(s)).digest('hex')
 }
 
@@ -211,26 +211,28 @@ function decryptString(enc) {
   return Buffer.concat([p1, p2]).toString('utf8')
 }
 
+
 const userApiKeySchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
   keyId: { type: String, required: true, index: true },
-  apiKey: { type: String, default: "" },
-  name: { type: String, default: "user" },
-  scopes: { type: [String], default: ["upload", "fetch"] },
+  apiKey: { type: String, required: true },
+  keyHash: { type: String, required: true, index: true },
+  name: { type: String, default: 'user' },
+  scopes: { type: [String], default: ['upload', 'fetch'] },
   ratePerMinute: { type: Number, default: 30 },
   createdAt: { type: Date, default: Date.now }
-});
+})
 
-userApiKeySchema.index({ userId: 1, keyId: 1 }, { unique: true });
+userApiKeySchema.index({ userId: 1, keyId: 1 }, { unique: true })
 
-const UserApiKey = mongoose.model("UserApiKey", userApiKeySchema, "user_api_keys");
-
+const UserApiKey = mongoose.model('UserApiKey', userApiKeySchema, 'user_api_keys')
 
 const userSettingsSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, required: true, unique: true },
   activeKeyId: { type: String, default: '' },
   updatedAt: { type: Date, default: Date.now }
 })
+
 const UserSettings = mongoose.model('UserSettings', userSettingsSchema, 'user_settings')
 
 const userSchema = new mongoose.Schema({
@@ -468,18 +470,18 @@ app.get('/api/user/me', verifyTokenApi, requireUserApi, (req, res) => {
   res.json({ userId: req.auth.userId, username: req.auth.username, role: req.auth.role })
 })
 
-app.get("/api/user/keys", verifyTokenApi, requireUserApi, async (req, res) => {
+app.get('/api/user/keys', verifyTokenApi, requireUserApi, async (req, res) => {
   try {
-    const userId = new mongoose.Types.ObjectId(String(req.auth.userId));
-    const keys = await UserApiKey.find({ userId }).sort({ createdAt: -1 }).limit(25).lean();
-    const settings = await UserSettings.findOne({ userId }).lean();
-
-    const activeKeyId = String(settings?.activeKeyId || "");
-    const active = keys.find(k => String(k.keyId || "") === activeKeyId) || null;
+    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
+    const keys = await UserApiKey.find({ userId }).sort({ createdAt: -1 }).limit(25).lean()
+    const settings = await UserSettings.findOne({ userId }).lean()
+    const activeKeyId = settings?.activeKeyId || ''
+    const active = activeKeyId ? keys.find(k => k.keyId === activeKeyId) : null
 
     res.json({
+      imageHost: IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, ''),
       activeKeyId,
-      activeApiKey: String(active?.apiKey || ""),
+      activeApiKey: active?.apiKey || '',
       keys: keys.map(k => ({
         keyId: k.keyId,
         name: k.name,
@@ -487,12 +489,11 @@ app.get("/api/user/keys", verifyTokenApi, requireUserApi, async (req, res) => {
         ratePerMinute: k.ratePerMinute,
         createdAt: k.createdAt
       }))
-    });
+    })
   } catch (err) {
-    res.status(500).json({ error: String(err?.message || err) });
+    res.status(500).json({ error: String(err?.message || err) })
   }
-});
-
+})
 
 app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, res) => {
   try {
@@ -501,20 +502,17 @@ app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, re
 
     const target = IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, '')
     const name = String(req.body?.name || req.auth.username || 'user').slice(0, 64)
-    const scopesRaw = String(req.body?.scopes || 'upload,fetch')
-    const scopes = scopesRaw.split(',').map(s => s.trim()).filter(Boolean)
-    const rpm = Number.isFinite(Number(req.body?.rate_per_minute)) ? parseInt(req.body.rate_per_minute, 10) : 30
 
-    const bodyParams = new URLSearchParams()
-    bodyParams.set('name', name)
-    bodyParams.set('scopes', scopes.join(','))
-    bodyParams.set('rate_per_minute', String(rpm))
-    bodyParams.set('never_expires', '1')
-    bodyParams.set('user_id', String(req.auth.userId))
+    const body = new URLSearchParams()
+    body.set('name', name)
+    body.set('scopes', 'upload,fetch')
+    body.set('rate_per_minute', '30')
+    body.set('never_expires', '1')
+    body.set('user_id', String(req.auth.userId))
 
     const resp = await axios.post(
       `${target}/admin/keys/create`,
-      bodyParams.toString(),
+      body.toString(),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-admin-secret': String(IMAGE_HOST_ADMIN_SECRET).trim() } }
     )
 
@@ -523,13 +521,11 @@ app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, re
     if (!keyId || !apiKey) return res.status(500).json({ error: 'Upstream did not return key_id/api_key' })
 
     const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
-    const apiKeyEnc = encryptString(apiKey)
-    const keyHash = sha256hex(apiKey)
-    const apiKeyLast4 = apiKey.slice(-4)
+    const keyHash = sha256Hex(apiKey)
 
     await UserApiKey.updateOne(
       { userId, keyId },
-      { $setOnInsert: { userId, keyId }, $set: { keyHash, apiKeyEnc, apiKeyLast4, name, scopes, ratePerMinute: rpm } },
+      { $set: { apiKey, keyHash, name, scopes: ['upload', 'fetch'], ratePerMinute: 30 } },
       { upsert: true }
     )
 
@@ -539,7 +535,7 @@ app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, re
       { upsert: true }
     )
 
-    res.json({ ok: true, keyId, apiKey, apiKeyLast4, active: true, imageHost: target })
+    res.json({ ok: true, imageHost: target, keyId, apiKey })
   } catch (err) {
     res.status(err?.response?.status || 500).json({ error: err?.response?.data || String(err?.message || err) })
   }
