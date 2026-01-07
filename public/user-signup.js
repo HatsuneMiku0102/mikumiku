@@ -4,30 +4,29 @@ document.addEventListener('DOMContentLoaded', () => {
   const okEl = document.getElementById('ok')
   const btn = document.getElementById('signup-btn')
 
-  const setErr = (msg) => {
-    okEl.style.display = 'none'
-    okEl.textContent = ''
-    errorEl.textContent = msg || ''
-    errorEl.style.display = msg ? 'block' : 'none'
-  }
-
-  const setOk = (msg) => {
-    errorEl.style.display = 'none'
-    errorEl.textContent = ''
-    okEl.textContent = msg || ''
-    okEl.style.display = msg ? 'block' : 'none'
+  const show = (el, msg) => {
+    if (!el) return
+    el.textContent = msg || ''
+    el.style.display = msg ? 'block' : 'none'
   }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault()
-    setErr('')
-    setOk('')
+    show(errorEl, '')
+    show(okEl, '')
 
-    const username = String(document.getElementById('username').value || '').trim()
-    const password = String(document.getElementById('password').value || '')
+    const username = document.getElementById('username')?.value.trim() || ''
+    const password = document.getElementById('password')?.value || ''
 
-    if (username.length < 3 || username.length > 32) return setErr('Username must be 3–32 characters.')
-    if (password.length < 8) return setErr('Password must be at least 8 characters.')
+    if (username.length < 3 || username.length > 32) {
+      show(errorEl, 'Username must be 3–32 characters')
+      return
+    }
+
+    if (password.length < 8) {
+      show(errorEl, 'Password must be at least 8 characters')
+      return
+    }
 
     btn.disabled = true
 
@@ -39,15 +38,18 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ username, password })
       })
 
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) return setErr(String(data.error || 'Signup failed.'))
+      const data = await res.json()
+      if (!res.ok) {
+        show(errorEl, data.error || 'Signup failed')
+        return
+      }
 
-      setOk('Account created. Redirecting...')
+      show(okEl, 'Account created. Redirecting…')
       setTimeout(() => {
         window.location.href = data.redirect || '/image-host/'
-      }, 700)
-    } catch (err) {
-      setErr(err?.message || 'Signup failed.')
+      }, 800)
+    } catch {
+      show(errorEl, 'Network error')
     } finally {
       btn.disabled = false
     }
