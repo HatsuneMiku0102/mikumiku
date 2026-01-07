@@ -730,8 +730,6 @@ io.on('connection', (socket) => {
 })
 
 
-fetch("/user-image-api/debug/headers", { credentials: "include" })
-  .then(r => r.json())
-  .then(console.log)
+
 
 server.listen(PORT, () => { logger.info(`Server is running on port ${PORT}`) })
