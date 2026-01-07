@@ -26,24 +26,36 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 
 dotenv.config();
 
-const DISCORD_PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY;
-const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
+const DISCORD_PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY || '';
+const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY || '';
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const PORT = process.env.PORT || 3000;
 
-const IMAGE_API_TARGET = process.env.IMAGE_API_TARGET || 'https://image-host-bde701503cb6.herokuapp.com';
-const IMAGE_API_KEY = process.env.IMAGE_API_KEY || '';
+const IMAGE_API_TARGET = (process.env.IMAGE_API_TARGET || 'https://image-host-bde701503cb6.herokuapp.com').trim();
+const IMAGE_API_KEY = (process.env.IMAGE_API_KEY || '').trim();
 
 const IMAGE_HOST_ADMIN_TARGET = (process.env.IMAGE_HOST_ADMIN_TARGET || '').trim();
 const IMAGE_HOST_ADMIN_SECRET = (process.env.IMAGE_HOST_ADMIN_SECRET || '').trim();
 
 const ORIGIN = process.env.PROXY_ORIGIN || 'http://us-nyc-02.wisp.uno:8282';
 
+const JWT_SECRET = (process.env.JWT_SECRET || '').trim();
+if (!JWT_SECRET) {
+  console.error('JWT_SECRET is not set.');
+  process.exit(1);
+}
+
+const mongoUrl = process.env.MONGO_URL;
+if (!mongoUrl) {
+  console.error('MONGO_URL is not set.');
+  process.exit(1);
+}
+
 const app = express();
 app.set('trust proxy', true);
 
 const server = http.createServer(app);
-const io = socketIo(server, { cors: { origin: '*', methods: ['GET', 'POST'], allowedHeaders: ['*'], credentials: true } });
+const io = socketIo(server, { cors: { origin: true, methods: ['GET', 'POST'], allowedHeaders: ['*'], credentials: true } });
 
 const logger = winston.createLogger({
   level: 'info',
@@ -55,10 +67,10 @@ const logger = winston.createLogger({
 });
 
 app.use(cors({
-  origin: '*',
+  origin: true,
   methods: ['GET', 'POST', 'OPTIONS', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Admin-Secret'],
-  credentials: false
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-admin-secret', 'X-Admin-Secret'],
+  credentials: true
 }));
 
 app.use(express.json({
@@ -159,12 +171,6 @@ app.use(helmet.contentSecurityPolicy({
   }
 }));
 
-const mongoUrl = process.env.MONGO_URL;
-if (!mongoUrl) {
-  logger.error('MONGO_URL is not set.');
-  process.exit(1);
-}
-
 mongoose.connect(mongoUrl)
   .then(() => { logger.info('Connected to MongoDB'); })
   .catch((err) => { logger.error(`Error connecting to MongoDB: ${err}`); process.exit(1); });
@@ -175,7 +181,6 @@ const userSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 const User = mongoose.model('User', userSchema, 'users');
-
 
 const GeoDataSchema = new mongoose.Schema({
   ip: { type: String, required: true, unique: true },
@@ -197,7 +202,7 @@ const sessionSchema = new mongoose.Schema({
 mongoose.model('Session', sessionSchema, 'sessions');
 
 const sessionStore = MongoStore.create({
-  mongoUrl: mongoUrl,
+  mongoUrl,
   collectionName: 'sessions',
   ttl: 14 * 24 * 60 * 60,
   autoRemove: 'native'
@@ -207,7 +212,7 @@ sessionStore.on('connected', () => { logger.info('Session store connected to Mon
 sessionStore.on('error', (error) => { logger.error(`Session store error: ${error}`); });
 
 const adminSessionStore = MongoStore.create({
-  mongoUrl: mongoUrl,
+  mongoUrl,
   collectionName: 'admin_sessions',
   ttl: 14 * 24 * 60 * 60
 });
@@ -221,39 +226,127 @@ app.use(session({
   cookie: { secure: process.env.NODE_ENV === 'production', httpOnly: true, sameSite: 'strict', maxAge: 60 * 60 * 1000 }
 }));
 
-function verifyTokenPage(req, res, next) {
+function signAuthToken(payload) {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+}
+
+function readJwt(req) {
   const token = req.cookies.token;
-  if (!token) return res.redirect('/auth');
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) return res.redirect('/auth');
-    req.userId = decoded.id;
-    next();
-  });
+  if (!token) return null;
+  try { return jwt.verify(token, JWT_SECRET); } catch { return null; }
 }
 
 function verifyTokenApi(req, res, next) {
   if (req.method === 'OPTIONS') return res.sendStatus(204);
-  const token = req.cookies.token;
-  if (!token) return res.status(401).json({ error: 'Unauthorized' });
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err || !decoded) return res.status(401).json({ error: 'Unauthorized' });
-    req.auth = decoded;
-    next();
-  });
+  const decoded = readJwt(req);
+  if (!decoded) return res.status(401).json({ error: 'Unauthorized' });
+  req.auth = decoded;
+  next();
 }
 
-function requireAdmin(req, res, next) {
+function verifyTokenPage(redirectTo) {
+  return (req, res, next) => {
+    const decoded = readJwt(req);
+    if (!decoded) return res.redirect(redirectTo);
+    req.auth = decoded;
+    next();
+  };
+}
+
+function requireAdminApi(req, res, next) {
   if (!req.auth || req.auth.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
   next();
 }
 
-function requireUser(req, res, next) {
+function requireAdminPage(req, res, next) {
+  if (!req.auth || req.auth.role !== 'admin') return res.redirect('/auth');
+  next();
+}
+
+function requireUserApi(req, res, next) {
   if (!req.auth || (req.auth.role !== 'user' && req.auth.role !== 'admin')) return res.status(403).json({ error: 'Forbidden' });
   next();
 }
 
+function requireUserPage(req, res, next) {
+  if (!req.auth || (req.auth.role !== 'user' && req.auth.role !== 'admin')) return res.redirect('/user/auth');
+  next();
+}
 
-const verifyToken = verifyTokenPage;
+app.get('/user/signup', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'user-signup.html')));
+app.get('/user/auth', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'user-login.html')));
+
+app.post('/user/register', async (req, res) => {
+  try {
+    const username = String(req.body?.username || '').trim();
+    const password = String(req.body?.password || '');
+    if (username.length < 3 || username.length > 32) return res.status(400).json({ error: 'Invalid username' });
+    if (password.length < 8) return res.status(400).json({ error: 'Password too short' });
+
+    const exists = await User.findOne({ username });
+    if (exists) return res.status(409).json({ error: 'Username already taken' });
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    const u = await User.create({ username, passwordHash });
+
+    const token = signAuthToken({ role: 'user', userId: String(u._id), username: u.username });
+    res.cookie('token', token, { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', maxAge: 7 * 86400 * 1000 });
+    res.json({ ok: true, redirect: '/image-host/' });
+  } catch {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/user/login', async (req, res) => {
+  try {
+    const username = String(req.body?.username || '').trim();
+    const password = String(req.body?.password || '');
+    const u = await User.findOne({ username });
+    if (!u) return res.status(401).json({ error: 'Invalid credentials' });
+
+    const ok = await bcrypt.compare(password, u.passwordHash);
+    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+
+    const token = signAuthToken({ role: 'user', userId: String(u._id), username: u.username });
+    res.cookie('token', token, { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', maxAge: 7 * 86400 * 1000 });
+    res.json({ ok: true, redirect: '/image-host/' });
+  } catch {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/user/logout', (_req, res) => {
+  res.cookie('token', '', { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', expires: new Date(0) });
+  res.json({ ok: true });
+});
+
+const IPINFO_API_KEY = process.env.IPINFO_API_KEY;
+if (!IPINFO_API_KEY) {
+  logger.error('IPINFO_API_KEY environment variable is not set.');
+  process.exit(1);
+}
+
+const getClientIp = (req) => {
+  const forwardedFor = req.headers['x-forwarded-for'];
+  if (forwardedFor) return String(forwardedFor).split(',')[0].trim();
+  return req.connection.remoteAddress;
+};
+
+async function getGeoLocation(ip) {
+  try {
+    const ipInfoResponse = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
+    const ipInfoData = ipInfoResponse.data;
+    return {
+      city: ipInfoData.city || 'Unknown',
+      region: ipInfoData.region || 'Unknown',
+      country: ipInfoData.country || 'Unknown',
+      ip,
+      loc: ipInfoData.loc || null
+    };
+  } catch {
+    return { city: 'Unknown', region: 'Unknown', country: 'Unknown', ip, loc: null };
+  }
+}
 
 app.options('/image-api/*', (_req, res) => res.sendStatus(204));
 
@@ -274,39 +367,9 @@ const imageApiProxy = createProxyMiddleware({
   }
 });
 
-app.use('/image-api', verifyTokenApi, imageApiProxy);
+app.use('/image-api', verifyTokenApi, requireUserApi, imageApiProxy);
 
-
-const IPINFO_API_KEY = process.env.IPINFO_API_KEY;
-if (!IPINFO_API_KEY) {
-  logger.error('IPINFO_API_KEY environment variable is not set.');
-  process.exit(1);
-}
-
-const getClientIp = (req) => {
-  const forwardedFor = req.headers['x-forwarded-for'];
-  if (forwardedFor) return forwardedFor.split(',')[0].trim();
-  return req.connection.remoteAddress;
-};
-
-async function getGeoLocation(ip) {
-  try {
-    const ipInfoResponse = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`);
-    const ipInfoData = ipInfoResponse.data;
-    return {
-      city: ipInfoData.city || 'Unknown',
-      region: ipInfoData.region || 'Unknown',
-      country: ipInfoData.country || 'Unknown',
-      ip,
-      loc: ipInfoData.loc || null
-    };
-  } catch {
-    return { city: 'Unknown', region: 'Unknown', country: 'Unknown', ip, loc: null };
-  }
-}
-
-
-app.post('/api/user/keys/create', verifyTokenApi, requireUser, async (req, res) => {
+app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, res) => {
   try {
     if (!IMAGE_HOST_ADMIN_TARGET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_TARGET not set' });
     if (!IMAGE_HOST_ADMIN_SECRET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_SECRET not set' });
@@ -318,16 +381,16 @@ app.post('/api/user/keys/create', verifyTokenApi, requireUser, async (req, res) 
     const never = req.body?.never_expires ? '1' : '1';
     const userId = String(req.auth.userId || req.auth.adminId || '');
 
-    const body = new URLSearchParams();
-    body.set('name', name);
-    body.set('scopes', scopes);
-    body.set('rate_per_minute', rpm);
-    body.set('never_expires', never);
-    body.set('user_id', userId);
+    const bodyParams = new URLSearchParams();
+    bodyParams.set('name', name);
+    bodyParams.set('scopes', scopes);
+    bodyParams.set('rate_per_minute', rpm);
+    bodyParams.set('never_expires', never);
+    bodyParams.set('user_id', userId);
 
     const resp = await axios.post(
       `${target}/admin/keys/create`,
-      body.toString(),
+      bodyParams.toString(),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-admin-secret': String(IMAGE_HOST_ADMIN_SECRET).trim() } }
     );
 
@@ -337,8 +400,7 @@ app.post('/api/user/keys/create', verifyTokenApi, requireUser, async (req, res) 
   }
 });
 
-
-app.post('/api/image-host/keys/create', verifyTokenApi, async (req, res) => {
+app.post('/api/image-host/keys/create', verifyTokenApi, requireAdminApi, async (req, res) => {
   try {
     if (!IMAGE_HOST_ADMIN_TARGET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_TARGET not set' });
     if (!IMAGE_HOST_ADMIN_SECRET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_SECRET not set' });
@@ -349,23 +411,37 @@ app.post('/api/image-host/keys/create', verifyTokenApi, async (req, res) => {
     const rpm = Number.isFinite(Number(req.body?.rate_per_minute)) ? String(parseInt(req.body.rate_per_minute, 10)) : '30';
     const never = req.body?.never_expires ? '1' : '1';
 
-    const body = new URLSearchParams();
-    body.set('name', name);
-    body.set('scopes', scopes);
-    body.set('rate_per_minute', rpm);
-    body.set('never_expires', never);
+    const bodyParams = new URLSearchParams();
+    bodyParams.set('name', name);
+    bodyParams.set('scopes', scopes);
+    bodyParams.set('rate_per_minute', rpm);
+    bodyParams.set('never_expires', never);
 
     const resp = await axios.post(
       `${target}/admin/keys/create`,
-      body.toString(),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-admin-secret': IMAGE_HOST_ADMIN_SECRET } }
+      bodyParams.toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-admin-secret': String(IMAGE_HOST_ADMIN_SECRET).trim() } }
     );
 
     res.json({ ...resp.data, image_host: target });
   } catch (err) {
-    const status = err?.response?.status || 500;
-    const detail = err?.response?.data || err?.message || 'Failed';
-    res.status(status).json({ error: detail });
+    res.status(err?.response?.status || 500).json({ error: err?.response?.data || err?.message || 'Failed' });
+  }
+});
+
+app.get('/api/image-host/debug-headers', verifyTokenApi, requireAdminApi, async (_req, res) => {
+  try {
+    if (!IMAGE_HOST_ADMIN_TARGET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_TARGET not set' });
+    if (!IMAGE_HOST_ADMIN_SECRET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_SECRET not set' });
+
+    const target = IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, '');
+    const resp = await axios.get(`${target}/debug/headers`, {
+      headers: { 'x-admin-secret': String(IMAGE_HOST_ADMIN_SECRET).trim() }
+    });
+
+    res.json({ target, upstream: resp.data });
+  } catch (err) {
+    res.status(err?.response?.status || 500).json({ error: err?.response?.data || err?.message || 'Failed' });
   }
 });
 
@@ -380,6 +456,7 @@ app.post('/interactions', async (req, res) => {
       Buffer.from(DISCORD_PUBLIC_KEY, 'hex')
     );
     if (!valid) return res.sendStatus(401);
+
     let payload;
     try { payload = JSON.parse(raw); } catch { return res.sendStatus(400); }
 
@@ -479,7 +556,7 @@ app.post('/interactions', async (req, res) => {
       const msg = payload.data.options.find(o => o.name === 'message').value;
       const userId = payload.member.user.id;
       const m = timeStr.match(/in (\d+) minutes?/i);
-      if (!m) return res.json({ type: 4, data: { content: '❌ Invalid time format. Use something like `/remind time:"in 10 minutes" message:"Do the thing"`.' } });
+      if (!m) return res.json({ type: 4, data: { content: '❌ Invalid time format.' } });
       const delayMs = parseInt(m[1], 10) * 60000;
 
       res.json({ type: 4, data: { content: `✅ Okay, I'll remind you in ${m[1]} minutes.` } });
@@ -506,7 +583,7 @@ app.post('/interactions', async (req, res) => {
       const loc = payload.data.options.find(o => o.name === 'location')?.value || 'UTC';
       let dt;
       try { dt = DateTime.now().setZone(loc); } catch { dt = null; }
-      if (!dt || !dt.isValid) return res.json({ type: 4, data: { content: '❌ Invalid timezone. Please provide an IANA zone like `Europe/London`.' } });
+      if (!dt || !dt.isValid) return res.json({ type: 4, data: { content: '❌ Invalid timezone.' } });
       const formatted = dt.toFormat('DDD, t');
       return res.json({ type: 4, data: { content: `⏰ Current time in **${loc}**: \`${formatted}\`` } });
     }
@@ -517,23 +594,6 @@ app.post('/interactions', async (req, res) => {
   }
 });
 
-app.get('/api/image-host/debug-headers', verifyTokenApi, async (_req, res) => {
-  try {
-    if (!IMAGE_HOST_ADMIN_TARGET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_TARGET not set' });
-    if (!IMAGE_HOST_ADMIN_SECRET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_SECRET not set' });
-
-    const target = IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, '');
-    const resp = await axios.get(`${target}/debug/headers`, {
-      headers: { 'x-admin-secret': String(IMAGE_HOST_ADMIN_SECRET).trim() }
-    });
-
-    res.json({ target, upstream: resp.data });
-  } catch (err) {
-    res.status(err?.response?.status || 500).json({ error: err?.response?.data || err?.message || 'Failed' });
-  }
-});
-
-
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: 'Too many login attempts from this IP, please try again after 15 minutes' });
 
 app.get('/auth', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-login.html')));
@@ -541,13 +601,17 @@ app.get('/auth', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'adm
 app.post('/login', loginLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
-    const adminUsername = process.env.ADMIN_USERNAME;
-    const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
-    if (username !== adminUsername) return res.status(401).json({ auth: false, message: 'Invalid username or password' });
-    const isPasswordValid = await bcrypt.compare(password, adminPasswordHash);
+    const adminUsername = process.env.ADMIN_USERNAME || '';
+    const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH || '';
+    if (!adminUsername || !adminPasswordHash) return res.status(500).json({ auth: false, message: 'Admin not configured' });
+
+    if (String(username || '') !== adminUsername) return res.status(401).json({ auth: false, message: 'Invalid username or password' });
+    const isPasswordValid = await bcrypt.compare(String(password || ''), adminPasswordHash);
     if (!isPasswordValid) return res.status(401).json({ auth: false, message: 'Invalid username or password' });
-    const token = jwt.sign({ id: adminUsername }, process.env.JWT_SECRET || 'your-jwt-secret-key', { expiresIn: 86400 });
-    res.cookie('token', token, { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', maxAge: 86400 * 1000 });
+
+    const token = signAuthToken({ role: 'admin', adminId: adminUsername, username: adminUsername });
+    res.cookie('token', token, { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', maxAge: 7 * 86400 * 1000 });
+
     req.session.save((err) => {
       if (err) return res.status(500).json({ auth: false, message: 'Error saving session' });
       res.status(200).json({ auth: true, redirect: '/admin' });
@@ -558,22 +622,23 @@ app.post('/login', loginLimiter, async (req, res) => {
 });
 
 app.post('/logout', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) return res.status(500).json({ message: 'Error logging out' });
+  req.session.destroy(() => {
     res.clearCookie('admin_session_cookie', { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' });
+    res.cookie('token', '', { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', expires: new Date(0) });
     res.redirect('/auth');
   });
 });
 
-app.get('/admin', verifyTokenPage, (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html')));
+app.get('/admin', verifyTokenPage('/auth'), requireAdminPage, (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html')));
 app.get('/admin-dashboard.html', (_req, res) => res.redirect('/admin'));
 
 app.get(/^\/image-host$/, (_req, res) => res.redirect(301, '/image-host/'));
+app.use('/image-host', verifyTokenPage('/user/auth'), requireUserPage);
 app.get('/image-host/', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'image-host', 'index.html')));
 
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, maxAge: 0, lastModified: false, redirect: false }));
 
-app.get('/api/geo-data', verifyTokenApi, async (_req, res) => {
+app.get('/api/geo-data', verifyTokenApi, requireAdminApi, async (_req, res) => {
   try {
     const byCountry = await GeoData.aggregate([
       { $group: { _id: '$country', count: { $sum: 1 } } },
@@ -587,18 +652,18 @@ app.get('/api/geo-data', verifyTokenApi, async (_req, res) => {
 
 const blockedIps = new Set();
 
-app.post('/api/block-user', verifyTokenApi, (req, res) => {
+app.post('/api/block-user', verifyTokenApi, requireAdminApi, (req, res) => {
   const ip = String(req.body?.ip || '').trim();
   if (!ip) return res.status(400).json({ status: 'error', message: 'Missing ip' });
   blockedIps.add(ip);
-  for (const [id, s] of io.of('/').sockets) {
+  for (const [, s] of io.of('/').sockets) {
     const sip = s.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || s.handshake.address;
     if (sip === ip) s.disconnect(true);
   }
   res.json({ status: 'success' });
 });
 
-app.post('/api/unblock-user', verifyTokenApi, (req, res) => {
+app.post('/api/unblock-user', verifyTokenApi, requireAdminApi, (req, res) => {
   const ip = String(req.body?.ip || '').trim();
   if (!ip) return res.status(400).json({ status: 'error', message: 'Missing ip' });
   blockedIps.delete(ip);
@@ -652,7 +717,7 @@ app.post('/track-visitor', async (req, res) => {
 
     res.status(200).json({ success: true });
   } catch (err) {
-    logger.error(`track-visitor failed for ${ip}: ${err.message}`);
+    logger.error(`track-visitor failed for ${ip}: ${err?.message || 'error'}`);
     res.status(500).json({ success: false });
   }
 });
@@ -669,15 +734,12 @@ async function connectToMongo() {
     configCollection = db2.collection('config');
     timelineCollection = db2.collection('timeline');
     let toggleDoc = await configCollection.findOne({ _id: 'toggle' });
-    if (!toggleDoc) {
-      toggleDoc = { _id: 'toggle', commands_enabled: true };
-      await configCollection.insertOne(toggleDoc);
-    }
+    if (!toggleDoc) await configCollection.insertOne({ _id: 'toggle', commands_enabled: true });
   } catch {}
 }
 connectToMongo();
 
-app.get('/api/timeline', async (_req, res) => {
+app.get('/api/timeline', verifyTokenApi, requireAdminApi, async (_req, res) => {
   try {
     const entries = await timelineCollection.find().sort({ rawTimestamp: 1 }).toArray();
     res.json(entries);
@@ -686,14 +748,14 @@ app.get('/api/timeline', async (_req, res) => {
   }
 });
 
-app.post('/api/timeline', async (req, res) => {
+app.post('/api/timeline', verifyTokenApi, requireAdminApi, async (req, res) => {
   try {
-    const update = req.body;
+    const update = req.body || {};
     const lastEntryArray = await timelineCollection.find().sort({ rawTimestamp: -1 }).limit(1).toArray();
     if (lastEntryArray.length > 0) {
       const lastEntry = lastEntryArray[0];
-      const lastMinute = Math.floor(lastEntry.rawTimestamp / 60000);
-      const newMinute = Math.floor(update.rawTimestamp / 60000);
+      const lastMinute = Math.floor(Number(lastEntry.rawTimestamp || 0) / 60000);
+      const newMinute = Math.floor(Number(update.rawTimestamp || 0) / 60000);
       if (lastMinute === newMinute) return res.json({ status: 'duplicate' });
     }
     await timelineCollection.insertOne(update);
@@ -711,7 +773,7 @@ app.post('/api/timeline', async (req, res) => {
   }
 });
 
-app.get('/api/toggle', async (_req, res) => {
+app.get('/api/toggle', verifyTokenApi, requireAdminApi, async (_req, res) => {
   try {
     const toggleDoc = await configCollection.findOne({ _id: 'toggle' });
     res.json(toggleDoc);
@@ -720,13 +782,13 @@ app.get('/api/toggle', async (_req, res) => {
   }
 });
 
-app.post('/api/toggle', async (req, res) => {
+app.post('/api/toggle', verifyTokenApi, requireAdminApi, async (req, res) => {
   try {
-    const data = req.body;
+    const data = req.body || {};
     if (typeof data.commands_enabled === 'undefined') return res.status(400).json({ status: 'error', message: "Missing 'commands_enabled' property." });
-    await configCollection.updateOne({ _id: 'toggle' }, { $set: { commands_enabled: data.commands_enabled } });
+    await configCollection.updateOne({ _id: 'toggle' }, { $set: { commands_enabled: !!data.commands_enabled } }, { upsert: true });
     const toggleDoc = await configCollection.findOne({ _id: 'toggle' });
-    res.json({ status: 'success', commands_enabled: toggleDoc.commands_enabled });
+    res.json({ status: 'success', commands_enabled: !!toggleDoc?.commands_enabled });
   } catch {
     res.status(500).json({ status: 'error', message: 'Could not update configuration.' });
   }
@@ -750,10 +812,10 @@ async function makeOpenAIRequest(messages, retries = 3, backoff = 1000) {
 }
 
 app.post('/api/openai-chat', openAICallLimiter, async (req, res) => {
-  const { message, sessionId } = req.body;
+  const { message, sessionId } = req.body || {};
   if (!message || !sessionId) return res.status(400).json({ error: 'Message and sessionId are required.' });
   if (!sessions[sessionId]) sessions[sessionId] = [{ role: 'system', content: 'You are Haru AI, a helpful assistant.' }];
-  sessions[sessionId].push({ role: 'user', content: message });
+  sessions[sessionId].push({ role: 'user', content: String(message) });
   try {
     const botResponse = await makeOpenAIRequest(sessions[sessionId]);
     sessions[sessionId].push({ role: 'assistant', content: botResponse });
@@ -1014,7 +1076,7 @@ app.get('/api/videos/public', async (_req, res) => {
   }
 });
 
-app.post('/api/videos', verifyToken, [
+app.post('/api/videos', verifyTokenApi, requireAdminApi, [
   body('url').isURL().withMessage('Invalid URL format'),
   body('title').isString().notEmpty().withMessage('Title is required'),
   body('description').isString().optional(),
@@ -1022,7 +1084,8 @@ app.post('/api/videos', verifyToken, [
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-  const sanitizedUrl = req.body.url.replace('youtu.be', 'youtube.com/embed');
+
+  const sanitizedUrl = String(req.body.url || '').replace('youtu.be', 'youtube.com/embed');
   const videoMetadata = {
     url: sanitizedUrl,
     title: req.body.title,
@@ -1030,6 +1093,7 @@ app.post('/api/videos', verifyToken, [
     category: req.body.category,
     uploadedAt: new Date()
   };
+
   try {
     logger.info(`New video added: ${JSON.stringify(videoMetadata)}`);
     res.status(201).json({ message: 'Video added successfully', video: videoMetadata });
@@ -1037,51 +1101,5 @@ app.post('/api/videos', verifyToken, [
     res.status(500).json({ error: 'Error saving video metadata' });
   }
 });
-
-
-function signAuthToken(payload) {
-  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
-}
-
-
-app.post('/user/register', async (req, res) => {
-  try {
-    const username = String(req.body?.username || '').trim();
-    const password = String(req.body?.password || '');
-    if (username.length < 3 || username.length > 32) return res.status(400).json({ error: 'Invalid username' });
-    if (password.length < 8) return res.status(400).json({ error: 'Password too short' });
-
-    const exists = await User.findOne({ username });
-    if (exists) return res.status(409).json({ error: 'Username already taken' });
-
-    const passwordHash = await bcrypt.hash(password, 12);
-    const u = await User.create({ username, passwordHash });
-
-    const token = signAuthToken({ role: 'user', userId: String(u._id), username: u.username });
-    res.cookie('token', token, { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', maxAge: 7 * 86400 * 1000 });
-    res.json({ ok: true, redirect: '/image-host/' });
-  } catch {
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-app.post('/user/login', async (req, res) => {
-  try {
-    const username = String(req.body?.username || '').trim();
-    const password = String(req.body?.password || '');
-    const u = await User.findOne({ username });
-    if (!u) return res.status(401).json({ error: 'Invalid credentials' });
-
-    const ok = await bcrypt.compare(password, u.passwordHash);
-    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
-
-    const token = signAuthToken({ role: 'user', userId: String(u._id), username: u.username });
-    res.cookie('token', token, { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', maxAge: 7 * 86400 * 1000 });
-    res.json({ ok: true, redirect: '/image-host/' });
-  } catch {
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
 
 server.listen(PORT, () => { logger.info(`Server is running on port ${PORT}`); });
