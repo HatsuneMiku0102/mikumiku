@@ -253,13 +253,6 @@ const sessionSchema = new mongoose.Schema({
 })
 mongoose.model('Session', sessionSchema, 'sessions')
 
-const sessionStore = MongoStore.create({
-  mongoUrl,
-  collectionName: 'sessions',
-  ttl: 14 * 24 * 60 * 60,
-  autoRemove: 'native'
-})
-
 const adminSessionStore = MongoStore.create({
   mongoUrl,
   collectionName: 'admin_sessions',
@@ -324,7 +317,8 @@ function requireUserPage(req, res, next) {
   next()
 }
 
-async function getActiveUserKey(userId) {
+async function getActiveUserKeyDoc(decoded) {
+  const userId = new mongoose.Types.ObjectId(String(decoded.userId))
   const settings = await UserSettings.findOne({ userId }).lean()
   if (!settings?.activeKeyId) return null
   return UserApiKey.findOne({ userId, keyId: settings.activeKeyId }).lean()
@@ -333,17 +327,31 @@ async function getActiveUserKey(userId) {
 async function attachUserImageApiKey(req, res, next) {
   try {
     const decoded = readJwt(req)
-    if (!decoded || (decoded.role !== 'user' && decoded.role !== 'admin')) return res.status(403).json({ error: 'Forbidden' })
+    if (!decoded) {
+      logger.info(`user-image-api blocked: missing jwt cookie`)
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+    if (decoded.role !== 'user' && decoded.role !== 'admin') return res.status(403).json({ error: 'Forbidden' })
 
-    const userId = new mongoose.Types.ObjectId(String(decoded.userId))
-    const activeKey = await getActiveUserKey(userId)
-    if (!activeKey?.apiKeyEnc) return res.status(403).json({ error: 'No active API key' })
+    const activeKey = await getActiveUserKeyDoc(decoded)
+    if (!activeKey?.apiKeyEnc) {
+      logger.info(`user-image-api blocked: no active key for userId=${decoded.userId}`)
+      return res.status(403).json({ error: 'No active API key' })
+    }
 
-    const apiKey = decryptString(activeKey.apiKeyEnc)
+    let apiKey
+    try {
+      apiKey = decryptString(activeKey.apiKeyEnc)
+    } catch (e) {
+      logger.error(`user-image-api decrypt failed userId=${decoded.userId}: ${e?.message || e}`)
+      return res.status(500).json({ error: 'API key decrypt failed' })
+    }
+
     req._userImageApiAuth = `Bearer ${String(apiKey).trim()}`
     next()
   } catch (err) {
-    res.status(500).json({ error: String(err?.message || err) })
+    logger.error(`attachUserImageApiKey failed: ${err?.message || err}`)
+    res.status(500).json({ error: 'Internal Server Error' })
   }
 }
 
@@ -431,6 +439,11 @@ const userImageApiProxy = createProxyMiddleware({
   onProxyReq: (proxyReq, req) => {
     const auth = req._userImageApiAuth
     if (auth) proxyReq.setHeader('Authorization', auth)
+  },
+  onProxyRes: (proxyRes, req) => {
+    if (proxyRes.statusCode === 401 || proxyRes.statusCode === 403) {
+      logger.info(`upstream auth failed ${proxyRes.statusCode} path=${req.originalUrl}`)
+    }
   },
   onError: (_err, _req, res) => {
     res.status(502).json({ error: 'User image proxy error' })
@@ -614,63 +627,6 @@ app.post('/api/openai-chat', openAICallLimiter, async (req, res) => {
   } catch (error) {
     if (error.response && error.response.status === 429) res.status(429).json({ error: 'Too many requests. Please try again later.' })
     else res.status(500).json({ error: 'An error occurred while processing your request.' })
-  }
-})
-
-app.get('/api/weather', async (req, res) => {
-  const city = req.query.city
-  if (!city) return res.status(400).json({ error: 'City is required' })
-  if (!OPENWEATHER_API_KEY) return res.status(500).json({ error: 'Weather service not configured.' })
-
-  try {
-    const resp = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&appid=${OPENWEATHER_API_KEY}`)
-    const { weather, main, wind, sys, name, coord } = resp.data
-    res.json({
-      city: name,
-      country: sys.country,
-      temperature: main.temp,
-      feels_like: main.feels_like,
-      humidity: main.humidity,
-      wind_speed: wind.speed,
-      condition: weather[0].description,
-      coordinates: coord
-    })
-  } catch {
-    res.status(500).json({ error: `Could not fetch weather for "${city}".` })
-  }
-})
-
-app.get('/api/videos/public', async (_req, res) => {
-  try {
-    res.json([])
-  } catch {
-    res.status(500).send({ error: 'Error retrieving video metadata' })
-  }
-})
-
-app.post('/api/videos', verifyTokenApi, requireAdminApi, [
-  body('url').isURL().withMessage('Invalid URL format'),
-  body('title').isString().notEmpty().withMessage('Title is required'),
-  body('description').isString().optional(),
-  body('category').isString().notEmpty().withMessage('Category is required')
-], async (req, res) => {
-  const errors = validationResult(req)
-  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
-
-  const sanitizedUrl = String(req.body.url || '').replace('youtu.be', 'youtube.com/embed')
-  const videoMetadata = {
-    url: sanitizedUrl,
-    title: req.body.title,
-    description: req.body.description ? req.body.description : '',
-    category: req.body.category,
-    uploadedAt: new Date()
-  }
-
-  try {
-    logger.info(`New video added: ${JSON.stringify(videoMetadata)}`)
-    res.status(201).json({ message: 'Video added successfully', video: videoMetadata })
-  } catch {
-    res.status(500).json({ error: 'Error saving video metadata' })
   }
 })
 
