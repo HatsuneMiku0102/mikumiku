@@ -80,36 +80,42 @@ function formatBytes(n) {
   return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${units[i]}`
 }
 
-function buildCurlUpload(imageHost, apiKey) {
-  return `curl -i -X POST "${imageHost}/upload" -H "Authorization: Bearer ${apiKey}" -F "file=@C:\\path\\to\\image.png"`
+function buildCurlUpload(imageHost, key) {
+  return `curl -i -X POST "${imageHost}/upload" -H "Authorization: Bearer ${key}" -F "file=@C:\\path\\to\\image.png"`
 }
 
-function buildCurlFetch(imageHost, apiKey) {
-  return `curl -i -X POST "${imageHost}/fetch" -H "Authorization: Bearer ${apiKey}" -H "Content-Type: application/x-www-form-urlencoded" --data "url=https://example.com/image.png"`
+function buildCurlFetch(imageHost, key) {
+  return `curl -i -X POST "${imageHost}/fetch" -H "Authorization: Bearer ${key}" -H "Content-Type: application/x-www-form-urlencoded" --data "url=https://example.com/image.png"`
+}
+
+function setKeyUi(imageHost, key) {
+  const host = String(imageHost || "").trim()
+  const k = String(key || "").trim()
+
+  activeKeyEl.value = k
+  curlUpload.value = host && k ? buildCurlUpload(host, k) : ""
+  curlFetch.value = host && k ? buildCurlFetch(host, k) : ""
 }
 
 async function loadUserKeys() {
   setKeyStatus("busy", "Loading…")
-  activeKeyEl.value = ""
-  curlUpload.value = ""
-  curlFetch.value = ""
+  setKeyUi("", "")
 
   const res = await fetch("/api/user/keys", { credentials: "include" })
   const text = await res.text()
   if (!res.ok) throw new Error(text || `HTTP ${res.status}`)
 
   const data = JSON.parse(text)
-  const imageHost = String(data.imageHost || "").trim()
-  const apiKey = String(data.activeApiKey || "").trim()
 
-  if (!apiKey) {
+  const imageHost = data.imageHost || data.image_host || ""
+  const activeKey = data.activeApiKey || data.active_api_key || ""
+
+  if (!activeKey) {
     setKeyStatus("idle", "No active key")
     return
   }
 
-  activeKeyEl.value = apiKey
-  curlUpload.value = buildCurlUpload(imageHost, apiKey)
-  curlFetch.value = buildCurlFetch(imageHost, apiKey)
+  setKeyUi(imageHost, activeKey)
   setKeyStatus("ok", "Active key ready")
 }
 
@@ -151,8 +157,8 @@ if (generateBtn) {
   generateBtn.addEventListener("click", async () => {
     try {
       setKeyStatus("busy", "Generating…")
-      const name = String(keyNameEl.value || "").trim() || "user"
 
+      const name = String(keyNameEl?.value || "").trim() || "user"
       const res = await fetch("/api/user/keys/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -164,14 +170,13 @@ if (generateBtn) {
       if (!res.ok) throw new Error(text || `HTTP ${res.status}`)
 
       const data = JSON.parse(text)
-      const imageHost = String(data.imageHost || "").trim()
-      const apiKey = String(data.apiKey || "").trim()
 
-      if (!apiKey) throw new Error("No apiKey returned")
+      const imageHost = data.imageHost || data.image_host || ""
+      const newKey = data.apiKey || data.api_key || ""
 
-      activeKeyEl.value = apiKey
-      curlUpload.value = buildCurlUpload(imageHost, apiKey)
-      curlFetch.value = buildCurlFetch(imageHost, apiKey)
+      if (!newKey) throw new Error("No api key returned from server")
+
+      setKeyUi(imageHost, newKey)
       setKeyStatus("ok", "New key generated")
     } catch (err) {
       setKeyStatus("err", `Failed: ${err?.message || String(err)}`)
