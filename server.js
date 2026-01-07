@@ -211,20 +211,17 @@ function decryptString(enc) {
   return Buffer.concat([p1, p2]).toString('utf8')
 }
 
-
 const userApiKeySchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
   keyId: { type: String, required: true, index: true },
-  apiKey: { type: String, required: true },
+  apiKeyEnc: { type: String, required: true },
   keyHash: { type: String, required: true, index: true },
   name: { type: String, default: 'user' },
   scopes: { type: [String], default: ['upload', 'fetch'] },
   ratePerMinute: { type: Number, default: 30 },
   createdAt: { type: Date, default: Date.now }
 })
-
 userApiKeySchema.index({ userId: 1, keyId: 1 }, { unique: true })
-
 const UserApiKey = mongoose.model('UserApiKey', userApiKeySchema, 'user_api_keys')
 
 const userSettingsSchema = new mongoose.Schema({
@@ -232,7 +229,6 @@ const userSettingsSchema = new mongoose.Schema({
   activeKeyId: { type: String, default: '' },
   updatedAt: { type: Date, default: Date.now }
 })
-
 const UserSettings = mongoose.model('UserSettings', userSettingsSchema, 'user_settings')
 
 const userSchema = new mongoose.Schema({
@@ -436,35 +432,45 @@ const imageApiProxy = createProxyMiddleware({
     proxyReq.setHeader('Authorization', `Bearer ${String(IMAGE_API_KEY).trim()}`)
   },
   onError: (_err, _req, res) => {
-    res.status(502).json({ detail: 'Image API proxy error' })
+    if (!res.headersSent) res.status(502).json({ detail: 'Image API proxy error' })
   }
 })
 app.use('/image-api', verifyTokenApi, requireAdminApi, imageApiProxy)
 
-const userImageApiProxy = createProxyMiddleware({
-  target: IMAGE_API_TARGET,
-  changeOrigin: true,
-  secure: true,
-  xfwd: true,
-  proxyTimeout: 60000,
-  timeout: 60000,
-  pathRewrite: { '^/user-image-api': '' },
-  onProxyReq: async (proxyReq, req) => {
-    const decoded = readJwt(req)
-    if (!decoded || (decoded.role !== 'user' && decoded.role !== 'admin')) throw new Error('Forbidden')
-
-    const userId = new mongoose.Types.ObjectId(String(decoded.userId))
+async function attachActiveUserApiKey(req, res, next) {
+  try {
+    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
     const activeKey = await getActiveUserKey(userId)
-    if (!activeKey?.apiKeyEnc) throw new Error('No active API key')
-
-    const apiKey = decryptString(activeKey.apiKeyEnc)
-    proxyReq.setHeader('Authorization', `Bearer ${String(apiKey).trim()}`)
-  },
-  onError: (_err, _req, res) => {
-    res.status(502).json({ error: 'User image proxy error' })
+    const enc = String(activeKey?.apiKeyEnc || '').trim()
+    if (!enc) return res.status(403).json({ error: 'No active API key' })
+    const apiKey = decryptString(enc)
+    req.headers['authorization'] = `Bearer ${String(apiKey).trim()}`
+    next()
+  } catch (err) {
+    res.status(500).json({ error: String(err?.message || err) })
   }
-})
-app.use('/user-image-api', verifyTokenApi, requireUserApi, userImageApiProxy)
+}
+
+function makeUserImageProxy() {
+  return createProxyMiddleware({
+    target: IMAGE_API_TARGET,
+    changeOrigin: true,
+    secure: true,
+    xfwd: true,
+    proxyTimeout: 60000,
+    timeout: 60000,
+    pathRewrite: { '^/user-image-api': '' },
+    onProxyReq: (proxyReq, req) => {
+      const h = req.headers['authorization']
+      if (h) proxyReq.setHeader('Authorization', h)
+    },
+    onError: (_err, _req, res) => {
+      if (!res.headersSent) res.status(502).json({ error: 'User image proxy error' })
+    }
+  })
+}
+
+app.use('/user-image-api', verifyTokenApi, requireUserApi, attachActiveUserApiKey, makeUserImageProxy())
 
 app.get('/api/user/me', verifyTokenApi, requireUserApi, (req, res) => {
   res.json({ userId: req.auth.userId, username: req.auth.username, role: req.auth.role })
@@ -477,11 +483,12 @@ app.get('/api/user/keys', verifyTokenApi, requireUserApi, async (req, res) => {
     const settings = await UserSettings.findOne({ userId }).lean()
     const activeKeyId = settings?.activeKeyId || ''
     const active = activeKeyId ? keys.find(k => k.keyId === activeKeyId) : null
+    const activeApiKey = active?.apiKeyEnc ? decryptString(active.apiKeyEnc) : ''
 
     res.json({
       imageHost: IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, ''),
       activeKeyId,
-      activeApiKey: active?.apiKey || '',
+      activeApiKey,
       keys: keys.map(k => ({
         keyId: k.keyId,
         name: k.name,
@@ -522,10 +529,11 @@ app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, re
 
     const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
     const keyHash = sha256Hex(apiKey)
+    const apiKeyEnc = encryptString(apiKey)
 
     await UserApiKey.updateOne(
       { userId, keyId },
-      { $set: { apiKey, keyHash, name, scopes: ['upload', 'fetch'], ratePerMinute: 30 } },
+      { $set: { apiKeyEnc, keyHash, name, scopes: ['upload', 'fetch'], ratePerMinute: 30 } },
       { upsert: true }
     )
 
@@ -547,7 +555,7 @@ app.post('/api/user/keys/activate', verifyTokenApi, requireUserApi, async (req, 
     if (!keyId) return res.status(400).json({ error: 'Missing keyId' })
 
     const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
-    const exists = await UserApiKey.findOne({ userId, keyId })
+    const exists = await UserApiKey.findOne({ userId, keyId }).lean()
     if (!exists) return res.status(404).json({ error: 'Key not found' })
 
     await UserSettings.updateOne(
@@ -852,6 +860,99 @@ app.post('/api/videos', verifyTokenApi, requireAdminApi, [
   } catch {
     res.status(500).json({ error: 'Error saving video metadata' })
   }
+})
+
+const HEARTBEAT_TIMEOUT = 60000
+const videoHeartbeat = {}
+let currentVideo = null
+let currentBrowsing = null
+
+function emitCurrentPresence(socket) {
+  if (currentVideo) socket.emit('presenceUpdate', { presenceType: 'video', ...currentVideo })
+  else if (currentBrowsing) socket.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing })
+  else socket.emit('presenceUpdate', { presenceType: 'offline' })
+}
+
+function handleBrowsingPresence(data) {
+  currentVideo = null
+  currentBrowsing = {
+    title: data.title || 'YouTube',
+    description: data.description || 'Browsing videos',
+    thumbnail: data.thumbnail || 'https://www.youtube.com/img/desktop/yt_1200.png',
+    timeElapsed: Number(data.timeElapsed || 0)
+  }
+}
+
+function handleVideoPresence(data) {
+  const presence = {
+    videoId: data.videoId,
+    title: data.title,
+    description: data.description,
+    channelTitle: data.channelTitle,
+    viewCount: data.viewCount,
+    likeCount: data.likeCount,
+    publishedAt: data.publishedAt,
+    category: data.category,
+    thumbnail: data.thumbnail,
+    currentTime: data.currentTime,
+    duration: data.duration,
+    isPaused: data.isPaused,
+    isLive: data.isLive
+  }
+  if (currentVideo?.videoId === data.videoId) Object.assign(currentVideo, presence)
+  else {
+    currentVideo = presence
+    currentBrowsing = null
+  }
+}
+
+function handleOfflinePresence() {
+  currentVideo = null
+  currentBrowsing = null
+}
+
+setInterval(() => {
+  const now = Date.now()
+  for (const [videoId, ts] of Object.entries(videoHeartbeat)) {
+    if (now - ts > HEARTBEAT_TIMEOUT) {
+      delete videoHeartbeat[videoId]
+      handleOfflinePresence()
+      io.emit('presenceUpdate', { presenceType: 'offline' })
+      break
+    }
+  }
+}, Math.floor(HEARTBEAT_TIMEOUT / 2))
+
+io.on('connection', (socket) => {
+  emitCurrentPresence(socket)
+
+  socket.on('presenceUpdate', (data) => {
+    const p = String(data?.presenceType || '')
+    if (p === 'video') handleVideoPresence(data)
+    else if (p === 'browsing') handleBrowsingPresence(data)
+    else handleOfflinePresence()
+    socket.broadcast.emit('presenceUpdate', data)
+  })
+
+  socket.on('updateBrowsingPresence', (data) => {
+    handleBrowsingPresence(data || {})
+    socket.broadcast.emit('presenceUpdate', { presenceType: 'browsing', ...currentBrowsing })
+  })
+
+  socket.on('updateVideoProgress', (data) => {
+    handleVideoPresence(data || {})
+    socket.broadcast.emit('presenceUpdate', { presenceType: 'video', ...currentVideo })
+  })
+
+  socket.on('heartbeat', (data, ack) => {
+    const videoId = String(data?.videoId || '')
+    if (currentVideo?.videoId && videoId && currentVideo.videoId === videoId) {
+      videoHeartbeat[videoId] = Date.now()
+      if (ack) ack({ status: 'ok' })
+    } else {
+      if (ack) ack({ status: 'error', message: 'Unknown video ID' })
+    }
+  })
 })
 
 server.listen(PORT, () => { logger.info(`Server is running on port ${PORT}`) })
