@@ -437,15 +437,19 @@ const userImageApiProxy = createProxyMiddleware({
   timeout: 60000,
   pathRewrite: { '^/user-image-api': '' },
   onProxyReq: (proxyReq, req) => {
-  const auth = req._userImageApiAuth
-  if (!auth) return
-  const key = String(auth).replace(/^Bearer\s+/i, '').trim()
-  proxyReq.setHeader('Authorization', `Bearer ${key}`)
-  proxyReq.setHeader('X-API-Key', key)
-},
-
+    const auth = req._userImageApiAuth
+    if (!auth) return
+    const key = String(auth).replace(/^Bearer\s+/i, '').trim()
+    proxyReq.setHeader('Authorization', `Bearer ${key}`)
+    proxyReq.setHeader('X-API-Key', key)
+  },
+  onError: (_err, _req, res) => {
+    res.status(502).json({ error: 'User image proxy error' })
+  }
+})
 
 app.use('/user-image-api', verifyTokenApi, requireUserApi, attachUserImageApiKey, userImageApiProxy)
+
 
 app.get('/api/user/me', verifyTokenApi, requireUserApi, (req, res) => {
   res.json({ userId: req.auth.userId, username: req.auth.username, role: req.auth.role })
