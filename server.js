@@ -221,8 +221,11 @@ const userApiKeySchema = new mongoose.Schema({
   ratePerMinute: { type: Number, default: 30 },
   createdAt: { type: Date, default: Date.now }
 })
+
 userApiKeySchema.index({ userId: 1, keyId: 1 }, { unique: true })
+
 const UserApiKey = mongoose.model('UserApiKey', userApiKeySchema, 'user_api_keys')
+
 
 const userSettingsSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, required: true, unique: true },
@@ -419,23 +422,34 @@ async function getGeoLocation(ip) {
 app.options('/image-api/*', (_req, res) => res.sendStatus(204))
 app.options('/user-image-api/*', (_req, res) => res.sendStatus(204))
 
-const imageApiProxy = createProxyMiddleware({
+const userImageApiProxy = createProxyMiddleware({
   target: IMAGE_API_TARGET,
   changeOrigin: true,
   secure: true,
   xfwd: true,
   proxyTimeout: 60000,
   timeout: 60000,
-  pathRewrite: { '^/image-api': '' },
-  onProxyReq: (proxyReq) => {
-    if (!IMAGE_API_KEY) throw new Error('IMAGE_API_KEY is not set on Node server')
-    proxyReq.setHeader('Authorization', `Bearer ${String(IMAGE_API_KEY).trim()}`)
+  pathRewrite: { '^/user-image-api': '' },
+  onProxyReq: async (proxyReq, req) => {
+    const decoded = readJwt(req)
+    if (!decoded || (decoded.role !== 'user' && decoded.role !== 'admin')) throw new Error('Forbidden')
+
+    const userId = new mongoose.Types.ObjectId(String(decoded.userId))
+    const settings = await UserSettings.findOne({ userId }).lean()
+    if (!settings?.activeKeyId) throw new Error('No active API key')
+
+    const activeKey = await UserApiKey.findOne({ userId, keyId: settings.activeKeyId }).lean()
+    if (!activeKey?.apiKeyEnc) throw new Error('No active API key')
+
+    const apiKey = decryptString(activeKey.apiKeyEnc)
+    proxyReq.setHeader('Authorization', `Bearer ${String(apiKey).trim()}`)
   },
   onError: (_err, _req, res) => {
-    if (!res.headersSent) res.status(502).json({ detail: 'Image API proxy error' })
+    res.status(502).json({ error: 'User image proxy error' })
   }
 })
-app.use('/image-api', verifyTokenApi, requireAdminApi, imageApiProxy)
+
+app.use('/user-image-api', verifyTokenApi, requireUserApi, userImageApiProxy)
 
 async function attachActiveUserApiKey(req, res, next) {
   try {
@@ -483,12 +497,11 @@ app.get('/api/user/keys', verifyTokenApi, requireUserApi, async (req, res) => {
     const settings = await UserSettings.findOne({ userId }).lean()
     const activeKeyId = settings?.activeKeyId || ''
     const active = activeKeyId ? keys.find(k => k.keyId === activeKeyId) : null
-    const activeApiKey = active?.apiKeyEnc ? decryptString(active.apiKeyEnc) : ''
 
     res.json({
       imageHost: IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, ''),
       activeKeyId,
-      activeApiKey,
+      activeKeyPreview: active ? `${active.keyId}` : '',
       keys: keys.map(k => ({
         keyId: k.keyId,
         name: k.name,
@@ -501,6 +514,7 @@ app.get('/api/user/keys', verifyTokenApi, requireUserApi, async (req, res) => {
     res.status(500).json({ error: String(err?.message || err) })
   }
 })
+
 
 app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, res) => {
   try {
@@ -528,8 +542,8 @@ app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, re
     if (!keyId || !apiKey) return res.status(500).json({ error: 'Upstream did not return key_id/api_key' })
 
     const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
-    const keyHash = sha256Hex(apiKey)
     const apiKeyEnc = encryptString(apiKey)
+    const keyHash = sha256Hex(apiKey)
 
     await UserApiKey.updateOne(
       { userId, keyId },
@@ -543,11 +557,12 @@ app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, re
       { upsert: true }
     )
 
-    res.json({ ok: true, imageHost: target, keyId, apiKey })
+    res.json({ ok: true, keyId })
   } catch (err) {
     res.status(err?.response?.status || 500).json({ error: err?.response?.data || String(err?.message || err) })
   }
 })
+
 
 app.post('/api/user/keys/activate', verifyTokenApi, requireUserApi, async (req, res) => {
   try {
