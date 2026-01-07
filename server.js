@@ -441,14 +441,21 @@ const userImageApiProxy = createProxyMiddleware({
     if (!auth) return
     const key = String(auth).replace(/^Bearer\s+/i, '').trim()
     proxyReq.setHeader('Authorization', `Bearer ${key}`)
-    proxyReq.setHeader('X-API-Key', key)
   },
-  onError: (_err, _req, res) => {
+  onProxyRes: (proxyRes, req) => {
+    const p = req.originalUrl || req.url || ''
+    const s = proxyRes.statusCode
+    logger.info(`user-image-api upstream status=${s} path=${p}`)
+  },
+  onError: (_err, req, res) => {
+    const p = req.originalUrl || req.url || ''
+    logger.error(`user-image-api proxy error path=${p}`)
     res.status(502).json({ error: 'User image proxy error' })
   }
 })
 
 app.use('/user-image-api', verifyTokenApi, requireUserApi, attachUserImageApiKey, userImageApiProxy)
+
 
 
 app.get('/api/user/me', verifyTokenApi, requireUserApi, (req, res) => {
