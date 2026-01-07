@@ -115,7 +115,9 @@ async function refreshKeys() {
     const keys = Array.isArray(parsed.data?.keys) ? parsed.data.keys : [];
     const active = keys.find(k => String(k.keyId || "") === activeKeyId) || null;
 
-    const apiKey = String(active?.apiKey || "");
+    const apiKeyNow = String(parsed.data?.apiKey || parsed.data?.api_key || "");
+    if (apiKeyNow && activeKeyEl) activeKeyEl.value = apiKeyNow;
+
 
     if (activeKeyEl) activeKeyEl.value = apiKey;
     if (curlUpload) curlUpload.value = apiKey ? buildCurlUpload(location.origin, apiKey) : "";
@@ -246,3 +248,4 @@ if (logoutBtn) {
 
 setStatus("idle", "Idle");
 refreshKeys();
+
