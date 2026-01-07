@@ -182,14 +182,15 @@ const userSchema = new mongoose.Schema({
 
 const userApiKeySchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
-  keyId: { type: String, required: true },
-  apiKey: { type: String, required: true },
+  keyId: { type: String, required: true, unique: true },
+  keyHash: { type: String, required: true, unique: true },
   name: { type: String, default: 'user' },
-  scopes: { type: String, default: 'upload,fetch' },
+  scopes: { type: [String], default: ['upload', 'fetch'] },
   ratePerMinute: { type: Number, default: 30 },
+  active: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 })
-userApiKeySchema.index({ userId: 1, keyId: 1 }, { unique: true })
+
 const UserApiKey = mongoose.model('UserApiKey', userApiKeySchema, 'user_api_keys')
 
 const userSettingsSchema = new mongoose.Schema({
