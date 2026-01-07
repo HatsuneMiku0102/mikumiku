@@ -227,6 +227,7 @@ userApiKeySchema.index({ userId: 1, keyId: 1 }, { unique: true })
 const UserApiKey = mongoose.model('UserApiKey', userApiKeySchema, 'user_api_keys')
 
 
+
 const userSettingsSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, required: true, unique: true },
   activeKeyId: { type: String, default: '' },
@@ -451,40 +452,42 @@ const userImageApiProxy = createProxyMiddleware({
 
 app.use('/user-image-api', verifyTokenApi, requireUserApi, userImageApiProxy)
 
-async function attachActiveUserApiKey(req, res, next) {
+async function attachUserImageApiKey(req, res, next) {
   try {
-    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
+    const decoded = readJwt(req)
+    if (!decoded || (decoded.role !== 'user' && decoded.role !== 'admin')) return res.status(403).json({ error: 'Forbidden' })
+
+    const userId = new mongoose.Types.ObjectId(String(decoded.userId))
     const activeKey = await getActiveUserKey(userId)
-    const enc = String(activeKey?.apiKeyEnc || '').trim()
-    if (!enc) return res.status(403).json({ error: 'No active API key' })
-    const apiKey = decryptString(enc)
-    req.headers['authorization'] = `Bearer ${String(apiKey).trim()}`
+    if (!activeKey?.apiKeyEnc) return res.status(403).json({ error: 'No active API key' })
+
+    const apiKey = decryptString(activeKey.apiKeyEnc)
+    req._userImageApiAuth = `Bearer ${String(apiKey).trim()}`
     next()
   } catch (err) {
     res.status(500).json({ error: String(err?.message || err) })
   }
 }
 
-function makeUserImageProxy() {
-  return createProxyMiddleware({
-    target: IMAGE_API_TARGET,
-    changeOrigin: true,
-    secure: true,
-    xfwd: true,
-    proxyTimeout: 60000,
-    timeout: 60000,
-    pathRewrite: { '^/user-image-api': '' },
-    onProxyReq: (proxyReq, req) => {
-      const h = req.headers['authorization']
-      if (h) proxyReq.setHeader('Authorization', h)
-    },
-    onError: (_err, _req, res) => {
-      if (!res.headersSent) res.status(502).json({ error: 'User image proxy error' })
-    }
-  })
-}
+const userImageApiProxy = createProxyMiddleware({
+  target: IMAGE_API_TARGET,
+  changeOrigin: true,
+  secure: true,
+  xfwd: true,
+  proxyTimeout: 60000,
+  timeout: 60000,
+  pathRewrite: { '^/user-image-api': '' },
+  onProxyReq: (proxyReq, req) => {
+    const auth = req._userImageApiAuth
+    if (auth) proxyReq.setHeader('Authorization', auth)
+  },
+  onError: (_err, _req, res) => {
+    res.status(502).json({ error: 'User image proxy error' })
+  }
+})
 
-app.use('/user-image-api', verifyTokenApi, requireUserApi, attachActiveUserApiKey, makeUserImageProxy())
+app.use('/user-image-api', verifyTokenApi, requireUserApi, attachUserImageApiKey, userImageApiProxy)
+
 
 app.get('/api/user/me', verifyTokenApi, requireUserApi, (req, res) => {
   res.json({ userId: req.auth.userId, username: req.auth.username, role: req.auth.role })
@@ -544,12 +547,13 @@ app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, re
     const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
     const apiKeyEnc = encryptString(apiKey)
     const keyHash = sha256Hex(apiKey)
-
+    
     await UserApiKey.updateOne(
       { userId, keyId },
       { $set: { apiKeyEnc, keyHash, name, scopes: ['upload', 'fetch'], ratePerMinute: 30 } },
       { upsert: true }
     )
+
 
     await UserSettings.updateOne(
       { userId },
