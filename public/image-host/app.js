@@ -1,5 +1,16 @@
 const API_URL = "/user-image-api"
 
+window.addEventListener("error", (e) => {
+  try {
+    const msg = String(e?.message || "")
+    if (msg.includes("apiKey is not defined")) {
+      console.error("apiKey ReferenceError source:", e?.filename, e?.lineno, e?.colno)
+      alert(`apiKey ReferenceError in:\n${e?.filename}\nline ${e?.lineno}:${e?.colno}`)
+    }
+  } catch {}
+})
+
+
 const uploadForm = document.getElementById("uploadForm")
 const uploadFile = document.getElementById("uploadFile")
 const fileLabel = document.getElementById("fileLabel")
@@ -240,3 +251,4 @@ if (fetchForm) {
 
 setStatus("idle", "Idle")
 loadUserKeys().catch(err => setKeyStatus("err", `Failed: ${err?.message || String(err)}`))
+
