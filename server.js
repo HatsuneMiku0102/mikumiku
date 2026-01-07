@@ -557,11 +557,12 @@ app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, re
       { upsert: true }
     )
 
-    res.json({ ok: true, keyId })
+    res.json({ ok: true, keyId, apiKey })
   } catch (err) {
     res.status(err?.response?.status || 500).json({ error: err?.response?.data || String(err?.message || err) })
   }
 })
+
 
 
 app.post('/api/user/keys/activate', verifyTokenApi, requireUserApi, async (req, res) => {
