@@ -179,6 +179,26 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true, minlength: 3, maxlength: 32 },
   passwordHash: { type: String, required: true },
   createdAt: { type: Date, default: Date.now }
+
+  const userApiKeySchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
+  keyId: { type: String, required: true },
+  apiKey: { type: String, required: true },
+  name: { type: String, default: 'user' },
+  scopes: { type: String, default: 'upload,fetch' },
+  ratePerMinute: { type: Number, default: 30 },
+  createdAt: { type: Date, default: Date.now }
+})
+userApiKeySchema.index({ userId: 1, keyId: 1 }, { unique: true })
+const UserApiKey = mongoose.model('UserApiKey', userApiKeySchema, 'user_api_keys')
+
+const userSettingsSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, required: true, unique: true },
+  activeKeyId: { type: String, default: '' },
+  updatedAt: { type: Date, default: Date.now }
+})
+const UserSettings = mongoose.model('UserSettings', userSettingsSchema, 'user_settings')
+
 });
 const User = mongoose.model('User', userSchema, 'users');
 
@@ -271,9 +291,21 @@ function requireUserApi(req, res, next) {
 }
 
 function requireUserPage(req, res, next) {
-  if (!req.auth || (req.auth.role !== 'user' && req.auth.role !== 'admin')) return res.redirect('/user/auth');
-  next();
+  const token = req.cookies.token
+  if (!token) return res.redirect('/auth')
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err || !decoded || (decoded.role !== 'user' && decoded.role !== 'admin')) return res.redirect('/auth')
+    req.auth = decoded
+    next()
+  })
 }
+
+async function getActiveUserKey(userId) {
+  const settings = await UserSettings.findOne({ userId })
+  if (!settings?.activeKeyId) return null
+  return UserApiKey.findOne({ userId, keyId: settings.activeKeyId })
+}
+
 
 app.get('/user/signup', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'user-signup.html')));
 app.get('/user/auth', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'user-login.html')));
@@ -375,36 +407,120 @@ const imageApiProxy = createProxyMiddleware({
 
 app.use('/image-api', verifyTokenApi, requireUserApi, imageApiProxy);
 
-app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, res) => {
+app.get('/api/user/me', verifyTokenApi, requireUser, (req, res) => {
+  res.json({ userId: req.auth.userId, username: req.auth.username, role: req.auth.role })
+})
+
+app.get('/api/user/keys', verifyTokenApi, requireUser, async (req, res) => {
   try {
-    if (!IMAGE_HOST_ADMIN_TARGET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_TARGET not set' });
-    if (!IMAGE_HOST_ADMIN_SECRET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_SECRET not set' });
+    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
+    const keys = await UserApiKey.find({ userId }).sort({ createdAt: -1 }).limit(25).lean()
+    const settings = await UserSettings.findOne({ userId }).lean()
+    res.json({
+      activeKeyId: settings?.activeKeyId || '',
+      keys: keys.map(k => ({ keyId: k.keyId, name: k.name, scopes: k.scopes, ratePerMinute: k.ratePerMinute, createdAt: k.createdAt, apiKey: k.apiKey }))
+    })
+  } catch (err) {
+    res.status(500).json({ error: String(err?.message || err) })
+  }
+})
 
-    const target = IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, '');
-    const name = String(req.body?.name || req.auth.username || 'user').slice(0, 64);
-    const scopes = String(req.body?.scopes || 'upload,fetch');
-    const rpm = Number.isFinite(Number(req.body?.rate_per_minute)) ? String(parseInt(req.body.rate_per_minute, 10)) : '30';
-    const never = req.body?.never_expires ? '1' : '1';
-    const userId = String(req.auth.userId || req.auth.adminId || '');
+app.post('/api/user/keys/create', verifyTokenApi, requireUser, async (req, res) => {
+  try {
+    if (!IMAGE_HOST_ADMIN_TARGET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_TARGET not set' })
+    if (!IMAGE_HOST_ADMIN_SECRET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_SECRET not set' })
 
-    const bodyParams = new URLSearchParams();
-    bodyParams.set('name', name);
-    bodyParams.set('scopes', scopes);
-    bodyParams.set('rate_per_minute', rpm);
-    bodyParams.set('never_expires', never);
-    bodyParams.set('user_id', userId);
+    const target = IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, '')
+    const name = String(req.body?.name || req.auth.username || 'user').slice(0, 64)
+    const scopes = String(req.body?.scopes || 'upload,fetch')
+    const rpm = Number.isFinite(Number(req.body?.rate_per_minute)) ? parseInt(req.body.rate_per_minute, 10) : 30
+
+    const body = new URLSearchParams()
+    body.set('name', name)
+    body.set('scopes', scopes)
+    body.set('rate_per_minute', String(rpm))
+    body.set('never_expires', '1')
+    body.set('user_id', String(req.auth.userId))
 
     const resp = await axios.post(
       `${target}/admin/keys/create`,
-      bodyParams.toString(),
+      body.toString(),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-admin-secret': String(IMAGE_HOST_ADMIN_SECRET).trim() } }
-    );
+    )
 
-    res.json({ ...resp.data, image_host: target });
+    const keyId = String(resp.data?.key_id || '')
+    const apiKey = String(resp.data?.api_key || '')
+    if (!keyId || !apiKey) return res.status(500).json({ error: 'Upstream did not return key_id/api_key' })
+
+    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
+
+    await UserApiKey.updateOne(
+      { userId, keyId },
+      { $set: { apiKey, name, scopes, ratePerMinute: rpm } },
+      { upsert: true }
+    )
+
+    await UserSettings.updateOne(
+      { userId },
+      { $setOnInsert: { userId }, $set: { activeKeyId: keyId, updatedAt: new Date() } },
+      { upsert: true }
+    )
+
+    res.json({ keyId, apiKey, active: true, imageHost: target })
   } catch (err) {
-    res.status(err?.response?.status || 500).json({ error: err?.response?.data || err?.message || 'Failed' });
+    res.status(err?.response?.status || 500).json({ error: err?.response?.data || String(err?.message || err) })
   }
-});
+})
+
+app.post('/api/user/keys/activate', verifyTokenApi, requireUser, async (req, res) => {
+  try {
+    const keyId = String(req.body?.keyId || '').trim()
+    if (!keyId) return res.status(400).json({ error: 'Missing keyId' })
+
+    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
+    const exists = await UserApiKey.findOne({ userId, keyId })
+    if (!exists) return res.status(404).json({ error: 'Key not found' })
+
+    await UserSettings.updateOne(
+      { userId },
+      { $setOnInsert: { userId }, $set: { activeKeyId: keyId, updatedAt: new Date() } },
+      { upsert: true }
+    )
+
+    res.json({ ok: true, activeKeyId: keyId })
+  } catch (err) {
+    res.status(500).json({ error: String(err?.message || err) })
+  }
+})
+
+const userImageApiProxy = createProxyMiddleware({
+  target: IMAGE_API_TARGET,
+  changeOrigin: true,
+  secure: true,
+  xfwd: true,
+  proxyTimeout: 60000,
+  timeout: 60000,
+  pathRewrite: { '^/user-image-api': '' },
+  onProxyReq: async (proxyReq, req) => {
+    const token = req.cookies.token
+    if (!token) throw new Error('No auth token')
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    if (!decoded || (decoded.role !== 'user' && decoded.role !== 'admin')) throw new Error('Forbidden')
+
+    const userId = new mongoose.Types.ObjectId(String(decoded.userId))
+    const activeKey = await getActiveUserKey(userId)
+    if (!activeKey?.apiKey) throw new Error('No active API key')
+
+    proxyReq.setHeader('Authorization', `Bearer ${String(activeKey.apiKey).trim()}`)
+  },
+  onError: (_err, _req, res) => {
+    res.status(502).json({ error: 'User image proxy error' })
+  }
+})
+
+app.use('/user-image-api', userImageApiProxy)
+
 
 app.post('/api/image-host/keys/create', verifyTokenApi, requireAdminApi, async (req, res) => {
   try {
@@ -434,6 +550,14 @@ app.post('/api/image-host/keys/create', verifyTokenApi, requireAdminApi, async (
     res.status(err?.response?.status || 500).json({ error: err?.response?.data || err?.message || 'Failed' });
   }
 });
+
+app.get('/image-host/', requireUserPage, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  res.setHeader('Pragma', 'no-cache')
+  res.setHeader('Expires', '0')
+  res.sendFile(path.join(__dirname, 'public', 'image-host', 'index.html'))
+})
+
 
 app.get('/api/image-host/debug-headers', verifyTokenApi, requireAdminApi, async (_req, res) => {
   try {
