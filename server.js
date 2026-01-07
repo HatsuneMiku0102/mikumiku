@@ -729,7 +729,4 @@ io.on('connection', (socket) => {
   })
 })
 
-
-
-
 server.listen(PORT, () => { logger.info(`Server is running on port ${PORT}`) })
