@@ -213,16 +213,18 @@ function decryptString(enc) {
 
 const userApiKeySchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
-  keyId: { type: String, required: true, unique: true },
-  keyHash: { type: String, required: true, unique: true },
-  apiKeyEnc: { type: String, required: true },
-  apiKeyLast4: { type: String, default: '' },
-  name: { type: String, default: 'user' },
-  scopes: { type: [String], default: ['upload', 'fetch'] },
+  keyId: { type: String, required: true, index: true },
+  apiKey: { type: String, default: "" },
+  name: { type: String, default: "user" },
+  scopes: { type: [String], default: ["upload", "fetch"] },
   ratePerMinute: { type: Number, default: 30 },
   createdAt: { type: Date, default: Date.now }
-})
-const UserApiKey = mongoose.model('UserApiKey', userApiKeySchema, 'user_api_keys')
+});
+
+userApiKeySchema.index({ userId: 1, keyId: 1 }, { unique: true });
+
+const UserApiKey = mongoose.model("UserApiKey", userApiKeySchema, "user_api_keys");
+
 
 const userSettingsSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, required: true, unique: true },
