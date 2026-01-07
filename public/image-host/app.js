@@ -1,4 +1,4 @@
-const API_URL = "https://mikumiku.dev/image-api";
+const API_URL = "/user-image-api";
 
 const uploadForm = document.getElementById("uploadForm");
 const uploadFile = document.getElementById("uploadFile");
@@ -99,7 +99,12 @@ uploadForm.addEventListener("submit", async (e) => {
   fd.append("file", f);
 
   try {
-    const res = await fetch(`${API_URL}/upload`, { method: "POST", body: fd });
+    const res = await fetch(`${API_URL}/upload`, {
+      method: "POST",
+      body: fd,
+      credentials: "include"
+    });
+
     const text = await res.text();
     if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
     const data = JSON.parse(text);
@@ -125,7 +130,9 @@ fetchForm.addEventListener("submit", async (e) => {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: body.toString(),
+      credentials: "include"
     });
+
     const text = await res.text();
     if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
     const data = JSON.parse(text);
