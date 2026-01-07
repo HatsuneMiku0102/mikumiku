@@ -469,24 +469,7 @@ async function attachUserImageApiKey(req, res, next) {
   }
 }
 
-const userImageApiProxy = createProxyMiddleware({
-  target: IMAGE_API_TARGET,
-  changeOrigin: true,
-  secure: true,
-  xfwd: true,
-  proxyTimeout: 60000,
-  timeout: 60000,
-  pathRewrite: { '^/user-image-api': '' },
-  onProxyReq: (proxyReq, req) => {
-    const auth = req._userImageApiAuth
-    if (auth) proxyReq.setHeader('Authorization', auth)
-  },
-  onError: (_err, _req, res) => {
-    res.status(502).json({ error: 'User image proxy error' })
-  }
-})
 
-app.use('/user-image-api', verifyTokenApi, requireUserApi, attachUserImageApiKey, userImageApiProxy)
 
 
 app.get('/api/user/me', verifyTokenApi, requireUserApi, (req, res) => {
