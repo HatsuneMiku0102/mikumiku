@@ -14,7 +14,6 @@ const MongoStore = require('connect-mongo')
 const helmet = require('helmet')
 const mongoose = require('mongoose')
 const winston = require('winston')
-const { DateTime } = require('luxon')
 const { body, validationResult } = require('express-validator')
 const cors = require('cors')
 const rateLimit = require('express-rate-limit')
@@ -34,11 +33,8 @@ const PORT = process.env.PORT || 3000
 
 const IMAGE_API_TARGET = (process.env.IMAGE_API_TARGET || 'https://image-host-bde701503cb6.herokuapp.com').trim()
 const IMAGE_API_KEY = (process.env.IMAGE_API_KEY || '').trim()
-
 const IMAGE_HOST_ADMIN_TARGET = (process.env.IMAGE_HOST_ADMIN_TARGET || '').trim()
 const IMAGE_HOST_ADMIN_SECRET = (process.env.IMAGE_HOST_ADMIN_SECRET || '').trim()
-
-const ORIGIN = process.env.PROXY_ORIGIN || 'http://us-nyc-02.wisp.uno:8282'
 
 const JWT_SECRET = (process.env.JWT_SECRET || '').trim()
 if (!JWT_SECRET) {
@@ -221,12 +217,8 @@ const userApiKeySchema = new mongoose.Schema({
   ratePerMinute: { type: Number, default: 30 },
   createdAt: { type: Date, default: Date.now }
 })
-
 userApiKeySchema.index({ userId: 1, keyId: 1 }, { unique: true })
-
 const UserApiKey = mongoose.model('UserApiKey', userApiKeySchema, 'user_api_keys')
-
-
 
 const userSettingsSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, required: true, unique: true },
@@ -267,9 +259,6 @@ const sessionStore = MongoStore.create({
   ttl: 14 * 24 * 60 * 60,
   autoRemove: 'native'
 })
-
-sessionStore.on('connected', () => { logger.info('Session store connected to MongoDB') })
-sessionStore.on('error', (error) => { logger.error(`Session store error: ${error}`) })
 
 const adminSessionStore = MongoStore.create({
   mongoUrl,
@@ -341,6 +330,23 @@ async function getActiveUserKey(userId) {
   return UserApiKey.findOne({ userId, keyId: settings.activeKeyId }).lean()
 }
 
+async function attachUserImageApiKey(req, res, next) {
+  try {
+    const decoded = readJwt(req)
+    if (!decoded || (decoded.role !== 'user' && decoded.role !== 'admin')) return res.status(403).json({ error: 'Forbidden' })
+
+    const userId = new mongoose.Types.ObjectId(String(decoded.userId))
+    const activeKey = await getActiveUserKey(userId)
+    if (!activeKey?.apiKeyEnc) return res.status(403).json({ error: 'No active API key' })
+
+    const apiKey = decryptString(activeKey.apiKeyEnc)
+    req._userImageApiAuth = `Bearer ${String(apiKey).trim()}`
+    next()
+  } catch (err) {
+    res.status(500).json({ error: String(err?.message || err) })
+  }
+}
+
 app.get('/user/signup', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'user-signup.html')))
 app.get('/user/auth', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'user-login.html')))
 
@@ -392,36 +398,27 @@ app.post('/user/logout', (_req, res) => {
   res.json({ ok: true })
 })
 
-const IPINFO_API_KEY = process.env.IPINFO_API_KEY
-if (!IPINFO_API_KEY) {
-  logger.error('IPINFO_API_KEY environment variable is not set.')
-  process.exit(1)
-}
-
-const getClientIp = (req) => {
-  const forwardedFor = req.headers['x-forwarded-for']
-  if (forwardedFor) return String(forwardedFor).split(',')[0].trim()
-  return req.connection.remoteAddress
-}
-
-async function getGeoLocation(ip) {
-  try {
-    const ipInfoResponse = await axios.get(`https://ipinfo.io/${ip}/json?token=${IPINFO_API_KEY}`)
-    const ipInfoData = ipInfoResponse.data
-    return {
-      city: ipInfoData.city || 'Unknown',
-      region: ipInfoData.region || 'Unknown',
-      country: ipInfoData.country || 'Unknown',
-      ip,
-      loc: ipInfoData.loc || null
-    }
-  } catch {
-    return { city: 'Unknown', region: 'Unknown', country: 'Unknown', ip, loc: null }
-  }
-}
-
 app.options('/image-api/*', (_req, res) => res.sendStatus(204))
 app.options('/user-image-api/*', (_req, res) => res.sendStatus(204))
+
+const imageApiProxy = createProxyMiddleware({
+  target: IMAGE_API_TARGET,
+  changeOrigin: true,
+  secure: true,
+  xfwd: true,
+  proxyTimeout: 60000,
+  timeout: 60000,
+  pathRewrite: { '^/image-api': '' },
+  onProxyReq: (proxyReq) => {
+    if (!IMAGE_API_KEY) throw new Error('IMAGE_API_KEY is not set on Node server')
+    proxyReq.setHeader('Authorization', `Bearer ${String(IMAGE_API_KEY).trim()}`)
+  },
+  onError: (_err, _req, res) => {
+    res.status(502).json({ error: 'Image API proxy error' })
+  }
+})
+
+app.use('/image-api', verifyTokenApi, requireAdminApi, imageApiProxy)
 
 const userImageApiProxy = createProxyMiddleware({
   target: IMAGE_API_TARGET,
@@ -431,46 +428,16 @@ const userImageApiProxy = createProxyMiddleware({
   proxyTimeout: 60000,
   timeout: 60000,
   pathRewrite: { '^/user-image-api': '' },
-  onProxyReq: async (proxyReq, req) => {
-    const decoded = readJwt(req)
-    if (!decoded || (decoded.role !== 'user' && decoded.role !== 'admin')) throw new Error('Forbidden')
-
-    const userId = new mongoose.Types.ObjectId(String(decoded.userId))
-    const settings = await UserSettings.findOne({ userId }).lean()
-    if (!settings?.activeKeyId) throw new Error('No active API key')
-
-    const activeKey = await UserApiKey.findOne({ userId, keyId: settings.activeKeyId }).lean()
-    if (!activeKey?.apiKeyEnc) throw new Error('No active API key')
-
-    const apiKey = decryptString(activeKey.apiKeyEnc)
-    proxyReq.setHeader('Authorization', `Bearer ${String(apiKey).trim()}`)
+  onProxyReq: (proxyReq, req) => {
+    const auth = req._userImageApiAuth
+    if (auth) proxyReq.setHeader('Authorization', auth)
   },
   onError: (_err, _req, res) => {
     res.status(502).json({ error: 'User image proxy error' })
   }
 })
 
-app.use('/user-image-api', verifyTokenApi, requireUserApi, userImageApiProxy)
-
-async function attachUserImageApiKey(req, res, next) {
-  try {
-    const decoded = readJwt(req)
-    if (!decoded || (decoded.role !== 'user' && decoded.role !== 'admin')) return res.status(403).json({ error: 'Forbidden' })
-
-    const userId = new mongoose.Types.ObjectId(String(decoded.userId))
-    const activeKey = await getActiveUserKey(userId)
-    if (!activeKey?.apiKeyEnc) return res.status(403).json({ error: 'No active API key' })
-
-    const apiKey = decryptString(activeKey.apiKeyEnc)
-    req._userImageApiAuth = `Bearer ${String(apiKey).trim()}`
-    next()
-  } catch (err) {
-    res.status(500).json({ error: String(err?.message || err) })
-  }
-}
-
-
-
+app.use('/user-image-api', verifyTokenApi, requireUserApi, attachUserImageApiKey, userImageApiProxy)
 
 app.get('/api/user/me', verifyTokenApi, requireUserApi, (req, res) => {
   res.json({ userId: req.auth.userId, username: req.auth.username, role: req.auth.role })
@@ -483,11 +450,13 @@ app.get('/api/user/keys', verifyTokenApi, requireUserApi, async (req, res) => {
     const settings = await UserSettings.findOne({ userId }).lean()
     const activeKeyId = settings?.activeKeyId || ''
     const active = activeKeyId ? keys.find(k => k.keyId === activeKeyId) : null
+    const activeApiKey = active?.apiKeyEnc ? decryptString(active.apiKeyEnc) : ''
 
     res.json({
+      ok: true,
       imageHost: IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, ''),
       activeKeyId,
-      activeKeyPreview: active ? `${active.keyId}` : '',
+      activeApiKey,
       keys: keys.map(k => ({
         keyId: k.keyId,
         name: k.name,
@@ -500,7 +469,6 @@ app.get('/api/user/keys', verifyTokenApi, requireUserApi, async (req, res) => {
     res.status(500).json({ error: String(err?.message || err) })
   }
 })
-
 
 app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, res) => {
   try {
@@ -530,13 +498,12 @@ app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, re
     const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
     const apiKeyEnc = encryptString(apiKey)
     const keyHash = sha256Hex(apiKey)
-    
+
     await UserApiKey.updateOne(
       { userId, keyId },
       { $set: { apiKeyEnc, keyHash, name, scopes: ['upload', 'fetch'], ratePerMinute: 30 } },
       { upsert: true }
     )
-
 
     await UserSettings.updateOne(
       { userId },
@@ -549,8 +516,6 @@ app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, re
     res.status(err?.response?.status || 500).json({ error: err?.response?.data || String(err?.message || err) })
   }
 })
-
-
 
 app.post('/api/user/keys/activate', verifyTokenApi, requireUserApi, async (req, res) => {
   try {
@@ -570,34 +535,6 @@ app.post('/api/user/keys/activate', verifyTokenApi, requireUserApi, async (req, 
     res.json({ ok: true, activeKeyId: keyId })
   } catch (err) {
     res.status(500).json({ error: String(err?.message || err) })
-  }
-})
-
-app.post('/api/image-host/keys/create', verifyTokenApi, requireAdminApi, async (req, res) => {
-  try {
-    if (!IMAGE_HOST_ADMIN_TARGET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_TARGET not set' })
-    if (!IMAGE_HOST_ADMIN_SECRET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_SECRET not set' })
-
-    const target = IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, '')
-    const name = String(req.body?.name || 'user').slice(0, 64)
-    const scopes = String(req.body?.scopes || 'upload,fetch')
-    const rpm = Number.isFinite(Number(req.body?.rate_per_minute)) ? String(parseInt(req.body.rate_per_minute, 10)) : '30'
-
-    const bodyParams = new URLSearchParams()
-    bodyParams.set('name', name)
-    bodyParams.set('scopes', scopes)
-    bodyParams.set('rate_per_minute', rpm)
-    bodyParams.set('never_expires', '1')
-
-    const resp = await axios.post(
-      `${target}/admin/keys/create`,
-      bodyParams.toString(),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-admin-secret': String(IMAGE_HOST_ADMIN_SECRET).trim() } }
-    )
-
-    res.json({ ...resp.data, image_host: target })
-  } catch (err) {
-    res.status(err?.response?.status || 500).json({ error: err?.response?.data || err?.message || 'Failed' })
   }
 })
 
@@ -647,134 +584,6 @@ app.get('/admin', verifyTokenPage('/auth'), requireAdminPage, (_req, res) => res
 app.get('/admin-dashboard.html', (_req, res) => res.redirect('/admin'))
 
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, maxAge: 0, lastModified: false, redirect: false }))
-
-app.get('/api/geo-data', verifyTokenApi, requireAdminApi, async (_req, res) => {
-  try {
-    const byCountry = await GeoData.aggregate([{ $group: { _id: '$country', count: { $sum: 1 } } }, { $sort: { count: -1 } }])
-    res.json(byCountry)
-  } catch {
-    res.status(500).json({ error: 'Failed to fetch geo data' })
-  }
-})
-
-const blockedIps = new Set()
-
-app.post('/api/block-user', verifyTokenApi, requireAdminApi, (req, res) => {
-  const ip = String(req.body?.ip || '').trim()
-  if (!ip) return res.status(400).json({ status: 'error', message: 'Missing ip' })
-  blockedIps.add(ip)
-  for (const [, s] of io.of('/').sockets) {
-    const sip = s.handshake.headers['x-forwarded-for']?.split(',')[0].trim() || s.handshake.address
-    if (sip === ip) s.disconnect(true)
-  }
-  res.json({ status: 'success' })
-})
-
-app.post('/api/unblock-user', verifyTokenApi, requireAdminApi, (req, res) => {
-  const ip = String(req.body?.ip || '').trim()
-  if (!ip) return res.status(400).json({ status: 'error', message: 'Missing ip' })
-  blockedIps.delete(ip)
-  res.json({ status: 'success' })
-})
-
-app.post('/track-visitor', async (req, res) => {
-  const ip = getClientIp(req)
-  try {
-    const loc = await getGeoLocation(ip)
-    const city = loc.city || 'Unknown'
-    const region = loc.region || 'Unknown'
-    const country = loc.country || 'Unknown'
-    await GeoData.updateOne(
-      { ip },
-      { $set: { city, region, country }, $setOnInsert: { timestamp: new Date() } },
-      { upsert: true }
-    )
-    const byCountry = await GeoData.aggregate([{ $group: { _id: '$country', count: { $sum: 1 } } }, { $sort: { count: -1 } }])
-    io.emit('geoDataUpdate', byCountry)
-
-    if (loc && loc.loc) {
-      const [latitude, longitude] = loc.loc.split(',')
-      io.emit('visitorLocation', { id: ip, latitude: parseFloat(latitude), longitude: parseFloat(longitude), info: `${city}, ${country}` })
-    }
-
-    res.status(200).json({ success: true })
-  } catch (err) {
-    logger.error(`track-visitor failed for ${ip}: ${err?.message || 'error'}`)
-    res.status(500).json({ success: false })
-  }
-})
-
-const dbName = process.env.MONGO_DB_NAME || 'myfirstdatabase'
-const client = new MongoClient(process.env.MONGO_URL, {})
-let timelineCollection
-let configCollection
-
-async function connectToMongo() {
-  try {
-    await client.connect()
-    const db2 = client.db(dbName)
-    configCollection = db2.collection('config')
-    timelineCollection = db2.collection('timeline')
-    const toggleDoc = await configCollection.findOne({ _id: 'toggle' })
-    if (!toggleDoc) await configCollection.insertOne({ _id: 'toggle', commands_enabled: true })
-  } catch {}
-}
-connectToMongo()
-
-app.get('/api/timeline', verifyTokenApi, requireAdminApi, async (_req, res) => {
-  try {
-    const entries = await timelineCollection.find().sort({ rawTimestamp: 1 }).toArray()
-    res.json(entries)
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-app.post('/api/timeline', verifyTokenApi, requireAdminApi, async (req, res) => {
-  try {
-    const update = req.body || {}
-    const lastEntryArray = await timelineCollection.find().sort({ rawTimestamp: -1 }).limit(1).toArray()
-    if (lastEntryArray.length > 0) {
-      const lastEntry = lastEntryArray[0]
-      const lastMinute = Math.floor(Number(lastEntry.rawTimestamp || 0) / 60000)
-      const newMinute = Math.floor(Number(update.rawTimestamp || 0) / 60000)
-      if (lastMinute === newMinute) return res.json({ status: 'duplicate' })
-    }
-    await timelineCollection.insertOne(update)
-    const count = await timelineCollection.countDocuments()
-    const MAX_MINUTES = 60
-    if (count > MAX_MINUTES) {
-      const excess = count - MAX_MINUTES
-      const oldest = await timelineCollection.find().sort({ rawTimestamp: 1 }).limit(excess).toArray()
-      const ids = oldest.map(e => e._id)
-      await timelineCollection.deleteMany({ _id: { $in: ids } })
-    }
-    res.json({ status: 'ok' })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-app.get('/api/toggle', verifyTokenApi, requireAdminApi, async (_req, res) => {
-  try {
-    const toggleDoc = await configCollection.findOne({ _id: 'toggle' })
-    res.json(toggleDoc)
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-app.post('/api/toggle', verifyTokenApi, requireAdminApi, async (req, res) => {
-  try {
-    const data = req.body || {}
-    if (typeof data.commands_enabled === 'undefined') return res.status(400).json({ status: 'error', message: "Missing 'commands_enabled' property." })
-    await configCollection.updateOne({ _id: 'toggle' }, { $set: { commands_enabled: !!data.commands_enabled } }, { upsert: true })
-    const toggleDoc = await configCollection.findOne({ _id: 'toggle' })
-    res.json({ status: 'success', commands_enabled: !!toggleDoc?.commands_enabled })
-  } catch {
-    res.status(500).json({ status: 'error', message: 'Could not update configuration.' })
-  }
-})
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 const sessions = {}
@@ -931,8 +740,8 @@ io.on('connection', (socket) => {
 
   socket.on('presenceUpdate', (data) => {
     const p = String(data?.presenceType || '')
-    if (p === 'video') handleVideoPresence(data)
-    else if (p === 'browsing') handleBrowsingPresence(data)
+    if (p === 'video') handleVideoPresence(data || {})
+    else if (p === 'browsing') handleBrowsingPresence(data || {})
     else handleOfflinePresence()
     socket.broadcast.emit('presenceUpdate', data)
   })
