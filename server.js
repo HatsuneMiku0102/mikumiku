@@ -305,6 +305,39 @@ async function getGeoLocation(ip) {
   }
 }
 
+
+app.post('/api/user/keys/create', verifyTokenApi, requireUser, async (req, res) => {
+  try {
+    if (!IMAGE_HOST_ADMIN_TARGET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_TARGET not set' });
+    if (!IMAGE_HOST_ADMIN_SECRET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_SECRET not set' });
+
+    const target = IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, '');
+    const name = String(req.body?.name || req.auth.username || 'user').slice(0, 64);
+    const scopes = String(req.body?.scopes || 'upload,fetch');
+    const rpm = Number.isFinite(Number(req.body?.rate_per_minute)) ? String(parseInt(req.body.rate_per_minute, 10)) : '30';
+    const never = req.body?.never_expires ? '1' : '1';
+    const userId = String(req.auth.userId || req.auth.adminId || '');
+
+    const body = new URLSearchParams();
+    body.set('name', name);
+    body.set('scopes', scopes);
+    body.set('rate_per_minute', rpm);
+    body.set('never_expires', never);
+    body.set('user_id', userId);
+
+    const resp = await axios.post(
+      `${target}/admin/keys/create`,
+      body.toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-admin-secret': String(IMAGE_HOST_ADMIN_SECRET).trim() } }
+    );
+
+    res.json({ ...resp.data, image_host: target });
+  } catch (err) {
+    res.status(err?.response?.status || 500).json({ error: err?.response?.data || err?.message || 'Failed' });
+  }
+});
+
+
 app.post('/api/image-host/keys/create', verifyTokenApi, async (req, res) => {
   try {
     if (!IMAGE_HOST_ADMIN_TARGET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_TARGET not set' });
