@@ -468,26 +468,31 @@ app.get('/api/user/me', verifyTokenApi, requireUserApi, (req, res) => {
   res.json({ userId: req.auth.userId, username: req.auth.username, role: req.auth.role })
 })
 
-app.get('/api/user/keys', verifyTokenApi, requireUserApi, async (req, res) => {
+app.get("/api/user/keys", verifyTokenApi, requireUserApi, async (req, res) => {
   try {
-    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
-    const keys = await UserApiKey.find({ userId }).sort({ createdAt: -1 }).limit(25).lean()
-    const settings = await UserSettings.findOne({ userId }).lean()
+    const userId = new mongoose.Types.ObjectId(String(req.auth.userId));
+    const keys = await UserApiKey.find({ userId }).sort({ createdAt: -1 }).limit(25).lean();
+    const settings = await UserSettings.findOne({ userId }).lean();
+
+    const activeKeyId = String(settings?.activeKeyId || "");
+    const active = keys.find(k => String(k.keyId || "") === activeKeyId) || null;
+
     res.json({
-      activeKeyId: settings?.activeKeyId || '',
+      activeKeyId,
+      activeApiKey: String(active?.apiKey || ""),
       keys: keys.map(k => ({
         keyId: k.keyId,
         name: k.name,
         scopes: k.scopes,
         ratePerMinute: k.ratePerMinute,
-        createdAt: k.createdAt,
-        apiKeyLast4: k.apiKeyLast4
+        createdAt: k.createdAt
       }))
-    })
+    });
   } catch (err) {
-    res.status(500).json({ error: String(err?.message || err) })
+    res.status(500).json({ error: String(err?.message || err) });
   }
-})
+});
+
 
 app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, res) => {
   try {
