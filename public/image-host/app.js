@@ -39,6 +39,18 @@ function setKeyStatus(kind, text) {
   keyStatusEl.textContent = text
 }
 
+function formatBytes(n) {
+  if (!Number.isFinite(n)) return ""
+  const units = ["B", "KB", "MB", "GB"]
+  let i = 0
+  let v = n
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024
+    i += 1
+  }
+  return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${units[i]}`
+}
+
 function showError(err) {
   resultEl.classList.add("hidden")
   errorBox.classList.remove("hidden")
@@ -65,18 +77,6 @@ function showResult(data) {
   meta.textContent = bits.join(" • ")
 
   setStatus("ok", "Done")
-}
-
-function formatBytes(n) {
-  if (!Number.isFinite(n)) return ""
-  const units = ["B", "KB", "MB", "GB"]
-  let i = 0
-  let v = n
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024
-    i += 1
-  }
-  return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${units[i]}`
 }
 
 function buildCurl(apiKey) {
@@ -129,11 +129,9 @@ uploadForm.addEventListener("submit", async (e) => {
       body: fd,
       credentials: "include"
     })
-
     const text = await res.text()
     if (!res.ok) throw new Error(text || `HTTP ${res.status}`)
-    const data = JSON.parse(text)
-    showResult(data)
+    showResult(JSON.parse(text))
   } catch (err) {
     showError(err?.message || String(err))
   }
@@ -157,11 +155,9 @@ fetchForm.addEventListener("submit", async (e) => {
       body: body.toString(),
       credentials: "include"
     })
-
     const text = await res.text()
     if (!res.ok) throw new Error(text || `HTTP ${res.status}`)
-    const data = JSON.parse(text)
-    showResult(data)
+    showResult(JSON.parse(text))
   } catch (err) {
     showError(err?.message || String(err))
   }
