@@ -180,7 +180,7 @@ const userSchema = new mongoose.Schema({
   passwordHash: { type: String, required: true },
   createdAt: { type: Date, default: Date.now }
 
-  const userApiKeySchema = new mongoose.Schema({
+const userApiKeySchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
   keyId: { type: String, required: true },
   apiKey: { type: String, required: true },
