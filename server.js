@@ -175,10 +175,6 @@ mongoose.connect(mongoUrl)
   .then(() => { logger.info('Connected to MongoDB'); })
   .catch((err) => { logger.error(`Error connecting to MongoDB: ${err}`); process.exit(1); });
 
-const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true, minlength: 3, maxlength: 32 },
-  passwordHash: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
 
 const userApiKeySchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
@@ -190,6 +186,13 @@ const userApiKeySchema = new mongoose.Schema({
   active: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 })
+
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true, minlength: 3, maxlength: 32 },
+  passwordHash: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+
+
 
 const UserApiKey = mongoose.model('UserApiKey', userApiKeySchema, 'user_api_keys')
 
