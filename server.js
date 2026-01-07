@@ -169,6 +169,14 @@ mongoose.connect(mongoUrl)
   .then(() => { logger.info('Connected to MongoDB'); })
   .catch((err) => { logger.error(`Error connecting to MongoDB: ${err}`); process.exit(1); });
 
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true, minlength: 3, maxlength: 32 },
+  passwordHash: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+const User = mongoose.model('User', userSchema, 'users');
+
+
 const GeoDataSchema = new mongoose.Schema({
   ip: { type: String, required: true, unique: true },
   city: { type: String, default: 'Unknown' },
@@ -228,10 +236,20 @@ function verifyTokenApi(req, res, next) {
   const token = req.cookies.token;
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(401).json({ error: 'Unauthorized' });
-    req.userId = decoded.id;
+    if (err || !decoded) return res.status(401).json({ error: 'Unauthorized' });
+    req.auth = decoded;
     next();
   });
+}
+
+function requireAdmin(req, res, next) {
+  if (!req.auth || req.auth.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+  next();
+}
+
+function requireUser(req, res, next) {
+  if (!req.auth || (req.auth.role !== 'user' && req.auth.role !== 'admin')) return res.status(403).json({ error: 'Forbidden' });
+  next();
 }
 
 
@@ -986,5 +1004,51 @@ app.post('/api/videos', verifyToken, [
     res.status(500).json({ error: 'Error saving video metadata' });
   }
 });
+
+
+function signAuthToken(payload) {
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+}
+
+
+app.post('/user/register', async (req, res) => {
+  try {
+    const username = String(req.body?.username || '').trim();
+    const password = String(req.body?.password || '');
+    if (username.length < 3 || username.length > 32) return res.status(400).json({ error: 'Invalid username' });
+    if (password.length < 8) return res.status(400).json({ error: 'Password too short' });
+
+    const exists = await User.findOne({ username });
+    if (exists) return res.status(409).json({ error: 'Username already taken' });
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    const u = await User.create({ username, passwordHash });
+
+    const token = signAuthToken({ role: 'user', userId: String(u._id), username: u.username });
+    res.cookie('token', token, { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', maxAge: 7 * 86400 * 1000 });
+    res.json({ ok: true, redirect: '/image-host/' });
+  } catch {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/user/login', async (req, res) => {
+  try {
+    const username = String(req.body?.username || '').trim();
+    const password = String(req.body?.password || '');
+    const u = await User.findOne({ username });
+    if (!u) return res.status(401).json({ error: 'Invalid credentials' });
+
+    const ok = await bcrypt.compare(password, u.passwordHash);
+    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+
+    const token = signAuthToken({ role: 'user', userId: String(u._id), username: u.username });
+    res.cookie('token', token, { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', maxAge: 7 * 86400 * 1000 });
+    res.json({ ok: true, redirect: '/image-host/' });
+  } catch {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 server.listen(PORT, () => { logger.info(`Server is running on port ${PORT}`); });
