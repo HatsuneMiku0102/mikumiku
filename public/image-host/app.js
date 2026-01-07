@@ -1,16 +1,5 @@
 const API_URL = "/user-image-api"
 
-window.addEventListener("error", (e) => {
-  try {
-    const msg = String(e?.message || "")
-    if (msg.includes("apiKey is not defined")) {
-      console.error("apiKey ReferenceError source:", e?.filename, e?.lineno, e?.colno)
-      alert(`apiKey ReferenceError in:\n${e?.filename}\nline ${e?.lineno}:${e?.colno}`)
-    }
-  } catch {}
-})
-
-
 const uploadForm = document.getElementById("uploadForm")
 const uploadFile = document.getElementById("uploadFile")
 const fileLabel = document.getElementById("fileLabel")
@@ -30,14 +19,13 @@ const pageOpen = document.getElementById("pageOpen")
 const meta = document.getElementById("meta")
 const apiLabel = document.getElementById("apiLabel")
 
-const logoutBtn = document.getElementById("logoutBtn")
-
+const keyStatusEl = document.getElementById("keyStatus")
 const keyNameEl = document.getElementById("keyName")
 const activeKeyEl = document.getElementById("activeKey")
-const generateBtn = document.getElementById("generateKeyBtn")
-const keyStatusEl = document.getElementById("keyStatus")
-const curlUpload = document.getElementById("curlUpload")
-const curlFetch = document.getElementById("curlFetch")
+const curlUploadEl = document.getElementById("curlUpload")
+const curlFetchEl = document.getElementById("curlFetch")
+const generateKeyBtn = document.getElementById("generateKeyBtn")
+const logoutBtn = document.getElementById("logoutBtn")
 
 apiLabel.textContent = API_URL
 
@@ -91,43 +79,16 @@ function formatBytes(n) {
   return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${units[i]}`
 }
 
-function buildCurlUpload(imageHost, key) {
-  return `curl -i -X POST "${imageHost}/upload" -H "Authorization: Bearer ${key}" -F "file=@C:\\path\\to\\image.png"`
-}
-
-function buildCurlFetch(imageHost, key) {
-  return `curl -i -X POST "${imageHost}/fetch" -H "Authorization: Bearer ${key}" -H "Content-Type: application/x-www-form-urlencoded" --data "url=https://example.com/image.png"`
-}
-
-function setKeyUi(imageHost, key) {
-  const host = String(imageHost || "").trim()
-  const k = String(key || "").trim()
-
-  activeKeyEl.value = k
-  curlUpload.value = host && k ? buildCurlUpload(host, k) : ""
-  curlFetch.value = host && k ? buildCurlFetch(host, k) : ""
-}
-
-async function loadUserKeys() {
-  setKeyStatus("busy", "Loading…")
-  setKeyUi("", "")
-
-  const res = await fetch("/api/user/keys", { credentials: "include" })
-  const text = await res.text()
-  if (!res.ok) throw new Error(text || `HTTP ${res.status}`)
-
-  const data = JSON.parse(text)
-
-  const imageHost = data.imageHost || data.image_host || ""
-  const activeKey = data.activeApiKey || data.active_api_key || ""
-
-  if (!activeKey) {
-    setKeyStatus("idle", "No active key")
+function buildCurl(apiKey) {
+  const key = String(apiKey || "").trim()
+  if (!key) {
+    curlUploadEl.value = ""
+    curlFetchEl.value = ""
     return
   }
-
-  setKeyUi(imageHost, activeKey)
-  setKeyStatus("ok", "Active key ready")
+  const base = (location.origin || "").replace(/\/$/, "")
+  curlUploadEl.value = `curl -X POST "${base}${API_URL}/upload" -H "Authorization: Bearer ${key}" -F "file=@image.png"`
+  curlFetchEl.value = `curl -X POST "${base}${API_URL}/fetch" -H "Authorization: Bearer ${key}" -H "Content-Type: application/x-www-form-urlencoded" --data "url=https%3A%2F%2Fexample.com%2Fimage.png"`
 }
 
 document.addEventListener("click", async (e) => {
@@ -137,118 +98,123 @@ document.addEventListener("click", async (e) => {
   const el = document.getElementById(id)
   if (!el) return
   try {
-    await navigator.clipboard.writeText(el.value || el.textContent || "")
-    const prev = btn.textContent
+    await navigator.clipboard.writeText(el.value || "")
     btn.textContent = "Copied"
-    setTimeout(() => (btn.textContent = prev), 900)
+    setTimeout(() => (btn.textContent = "Copy"), 900)
   } catch {
-    const prev = btn.textContent
     btn.textContent = "Copy failed"
-    setTimeout(() => (btn.textContent = prev), 900)
+    setTimeout(() => (btn.textContent = "Copy"), 900)
   }
 })
 
-if (uploadFile) {
-  uploadFile.addEventListener("change", () => {
-    const f = uploadFile.files && uploadFile.files[0]
-    fileLabel.textContent = f ? f.name : "Choose an image…"
-  })
+uploadFile.addEventListener("change", () => {
+  const f = uploadFile.files && uploadFile.files[0]
+  fileLabel.textContent = f ? f.name : "Choose an image…"
+})
+
+uploadForm.addEventListener("submit", async (e) => {
+  e.preventDefault()
+  const f = uploadFile.files && uploadFile.files[0]
+  if (!f) return
+
+  setStatus("busy", "Uploading…")
+  errorBox.classList.add("hidden")
+
+  const fd = new FormData()
+  fd.append("file", f)
+
+  try {
+    const res = await fetch(`${API_URL}/upload`, {
+      method: "POST",
+      body: fd,
+      credentials: "include"
+    })
+
+    const text = await res.text()
+    if (!res.ok) throw new Error(text || `HTTP ${res.status}`)
+    const data = JSON.parse(text)
+    showResult(data)
+  } catch (err) {
+    showError(err?.message || String(err))
+  }
+})
+
+fetchForm.addEventListener("submit", async (e) => {
+  e.preventDefault()
+  const url = (fetchUrl.value || "").trim()
+  if (!url) return
+
+  setStatus("busy", "Fetching…")
+  errorBox.classList.add("hidden")
+
+  const body = new URLSearchParams()
+  body.set("url", url)
+
+  try {
+    const res = await fetch(`${API_URL}/fetch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+      credentials: "include"
+    })
+
+    const text = await res.text()
+    if (!res.ok) throw new Error(text || `HTTP ${res.status}`)
+    const data = JSON.parse(text)
+    showResult(data)
+  } catch (err) {
+    showError(err?.message || String(err))
+  }
+})
+
+async function loadKeyUi() {
+  const cached = sessionStorage.getItem("active_api_key") || ""
+  if (cached) {
+    activeKeyEl.value = cached
+    buildCurl(cached)
+    setKeyStatus("ok", "Active key loaded")
+    return
+  }
+  activeKeyEl.value = ""
+  buildCurl("")
+  setKeyStatus("idle", "No active key")
 }
 
-if (logoutBtn) {
-  logoutBtn.addEventListener("click", async () => {
-    try {
-      await fetch("/user/logout", { method: "POST", credentials: "include" })
-    } catch {}
-    window.location.href = "/user/auth"
-  })
-}
+generateKeyBtn.addEventListener("click", async () => {
+  try {
+    setKeyStatus("busy", "Generating…")
+    const name = String(keyNameEl.value || "user").trim() || "user"
 
-if (generateBtn) {
-  generateBtn.addEventListener("click", async () => {
-    try {
-      setKeyStatus("busy", "Generating…")
+    const res = await fetch("/api/user/keys/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ name })
+    })
 
-      const name = String(keyNameEl?.value || "").trim() || "user"
-      const res = await fetch("/api/user/keys/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-        credentials: "include"
-      })
+    const text = await res.text()
+    if (!res.ok) throw new Error(text || `HTTP ${res.status}`)
 
-      const text = await res.text()
-      if (!res.ok) throw new Error(text || `HTTP ${res.status}`)
+    const data = JSON.parse(text || "{}")
+    const apiKey = String(data.apiKey || data.api_key || "").trim()
+    if (!apiKey) throw new Error("No api key returned from server")
 
-      const data = JSON.parse(text)
+    activeKeyEl.value = apiKey
+    sessionStorage.setItem("active_api_key", apiKey)
+    buildCurl(apiKey)
+    setKeyStatus("ok", "Active key set")
+  } catch (err) {
+    setKeyStatus("err", `Failed: ${err?.message || String(err)}`)
+  }
+})
 
-      const imageHost = data.imageHost || data.image_host || ""
-      const newKey = data.apiKey || data.api_key || ""
-
-      if (!newKey) throw new Error("No api key returned from server")
-
-      setKeyUi(imageHost, newKey)
-      setKeyStatus("ok", "New key generated")
-    } catch (err) {
-      setKeyStatus("err", `Failed: ${err?.message || String(err)}`)
-    }
-  })
-}
-
-if (uploadForm) {
-  uploadForm.addEventListener("submit", async (e) => {
-    e.preventDefault()
-    const f = uploadFile.files && uploadFile.files[0]
-    if (!f) return
-
-    setStatus("busy", "Uploading…")
-    errorBox.classList.add("hidden")
-
-    const fd = new FormData()
-    fd.append("file", f)
-
-    try {
-      const res = await fetch(`${API_URL}/upload`, { method: "POST", body: fd, credentials: "include" })
-      const text = await res.text()
-      if (!res.ok) throw new Error(text || `HTTP ${res.status}`)
-      const data = JSON.parse(text)
-      showResult(data)
-    } catch (err) {
-      showError(err?.message || String(err))
-    }
-  })
-}
-
-if (fetchForm) {
-  fetchForm.addEventListener("submit", async (e) => {
-    e.preventDefault()
-    const url = (fetchUrl.value || "").trim()
-    if (!url) return
-
-    setStatus("busy", "Fetching…")
-    errorBox.classList.add("hidden")
-
-    const body = new URLSearchParams()
-    body.set("url", url)
-
-    try {
-      const res = await fetch(`${API_URL}/fetch`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: body.toString(),
-        credentials: "include"
-      })
-
-      const text = await res.text()
-      if (!res.ok) throw new Error(text || `HTTP ${res.status}`)
-      const data = JSON.parse(text)
-      showResult(data)
-    } catch (err) {
-      showError(err?.message || String(err))
-    }
-  })
-}
+logoutBtn.addEventListener("click", async () => {
+  try {
+    await fetch("/user/logout", { method: "POST", credentials: "include" })
+  } catch {}
+  sessionStorage.removeItem("active_api_key")
+  location.href = "/user/auth"
+})
 
 setStatus("idle", "Idle")
-loadUserKeys().catch(err => setKeyStatus("err", `Failed: ${err?.message || String(err)}`))
-
+loadKeyUi()
