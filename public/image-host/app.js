@@ -41,6 +41,7 @@ apiLabel.textContent = API_URL
 let activeXhr = null
 let dragDepth = 0
 let toastTimer = null
+let overlayShown = false
 
 const PREF_KEY = "mm_autocopy_direct"
 const autoCopyDefault = true
@@ -145,11 +146,23 @@ function setProgress(visible, pct, text) {
   if (progressText) progressText.textContent = text || ""
 }
 
+function hardHideDrop() {
+  dragDepth = 0
+  overlayShown = false
+  if (!dropOverlay) return
+  dropOverlay.classList.add("hidden")
+  dropOverlay.setAttribute("aria-hidden", "true")
+  dropOverlay.classList.remove("hot")
+  document.body.classList.remove("dropping")
+}
+
 function showDrop(on) {
   if (!dropOverlay) return
+  overlayShown = !!on
   dropOverlay.classList.toggle("hidden", !on)
   dropOverlay.setAttribute("aria-hidden", on ? "false" : "true")
   document.body.classList.toggle("dropping", !!on)
+  if (!on) dropOverlay.classList.remove("hot")
 }
 
 function cancelActive() {
@@ -285,12 +298,10 @@ function uploadViaXhr(file) {
       let data
       try { data = JSON.parse(text) } catch { reject(new Error(`Expected JSON but got:\n${text}`)); return }
 
-      const t1 = performance.now()
-      const secs = (t1 - t0) / 1000
+      const secs = (performance.now() - t0) / 1000
       const avg = secs > 0 ? (file.size / secs) : 0
       setProgress(false, 0, "")
       setStatus("ok", `Done • avg ${formatSpeed(avg)}`)
-
       resolve(data)
     }
 
@@ -365,7 +376,8 @@ function dtHasFiles(dt) {
   if (dt.items && dt.items.length > 0) {
     for (const it of Array.from(dt.items)) if (it.kind === "file") return true
   }
-  return false
+  const types = Array.from(dt.types || [])
+  return types.includes("Files")
 }
 
 function pickFirstFile(dt) {
@@ -382,35 +394,50 @@ function pickFirstFile(dt) {
   return null
 }
 
-const dragTargets = [document, document.body, dropOverlay].filter(Boolean)
-
-for (const t of dragTargets) {
-  t.addEventListener("dragenter", (e) => {
-    if (!dtHasFiles(e.dataTransfer)) return
-    dragDepth += 1
-    showDrop(true)
-  })
-  t.addEventListener("dragover", (e) => {
-    if (!dtHasFiles(e.dataTransfer)) return
-    e.preventDefault()
-    e.dataTransfer.dropEffect = "copy"
-    if (dropOverlay) dropOverlay.classList.add("hot")
-    clearTimeout(t._hotTimer)
-    t._hotTimer = setTimeout(() => dropOverlay && dropOverlay.classList.remove("hot"), 120)
-  })
-  t.addEventListener("dragleave", () => {
-    dragDepth = Math.max(0, dragDepth - 1)
-    if (dragDepth === 0) showDrop(false)
-  })
-  t.addEventListener("drop", async (e) => {
-    if (!dtHasFiles(e.dataTransfer)) return
-    e.preventDefault()
-    showDrop(false)
-    dragDepth = 0
-    const f = pickFirstFile(e.dataTransfer)
-    if (f) await handleUploadFile(f)
-  })
+function dragEnter(e) {
+  if (!dtHasFiles(e.dataTransfer)) return
+  dragDepth += 1
+  if (!overlayShown) showDrop(true)
 }
+
+function dragOver(e) {
+  if (!dtHasFiles(e.dataTransfer)) return
+  e.preventDefault()
+  e.dataTransfer.dropEffect = "copy"
+  if (dropOverlay) {
+    dropOverlay.classList.add("hot")
+    clearTimeout(dropOverlay._hotTimer)
+    dropOverlay._hotTimer = setTimeout(() => dropOverlay.classList.remove("hot"), 120)
+  }
+}
+
+function dragLeave() {
+  dragDepth = Math.max(0, dragDepth - 1)
+  if (dragDepth === 0) showDrop(false)
+}
+
+async function drop(e) {
+  if (!dtHasFiles(e.dataTransfer)) return
+  e.preventDefault()
+  const f = pickFirstFile(e.dataTransfer)
+  hardHideDrop()
+  if (f) await handleUploadFile(f)
+}
+
+document.addEventListener("dragenter", dragEnter, true)
+document.addEventListener("dragover", dragOver, true)
+document.addEventListener("dragleave", dragLeave, true)
+document.addEventListener("drop", drop, true)
+
+window.addEventListener("dragend", () => hardHideDrop())
+window.addEventListener("blur", () => hardHideDrop())
+window.addEventListener("focus", () => hardHideDrop())
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) hardHideDrop()
+})
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") hardHideDrop()
+})
 
 async function fileFromClipboardEvent(e) {
   const dt = e.clipboardData
@@ -502,3 +529,4 @@ setStatus("idle", "Idle")
 setProgress(false, 0, "")
 setAutoCopy(getAutoCopy())
 loadKeyUi()
+hardHideDrop()
