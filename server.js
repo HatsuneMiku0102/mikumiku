@@ -178,21 +178,7 @@ app.use(helmet.contentSecurityPolicy({
   }
 }))
 
-mongoose.connection.once('open', async () => {
-  try {
-    const col = mongoose.connection.db.collection('users')
-    const indexes = await col.indexes()
-    const bad = indexes.find(i => i.key && i.key.membership_id === 1)
-    if (bad?.name) {
-      await col.dropIndex(bad.name)
-      logger.info(`Dropped bad index: ${bad.name}`)
-    } else {
-      logger.info('No membership_id index found')
-    }
-  } catch (e) {
-    logger.error(`Index cleanup failed: ${e?.message || e}`)
-  }
-})
+
 
 mongoose.connect(mongoUrl)
   .then(() => { logger.info('Connected to MongoDB') })
