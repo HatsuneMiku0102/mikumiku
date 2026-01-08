@@ -425,9 +425,13 @@ const publicImageProxy = createProxyMiddleware({
 
 app.use('/img', publicImageProxy)
 
+function firstForwarded(v) {
+  return String(v || '').split(',')[0].trim()
+}
+
 function makePublicImgBase(req) {
-  const proto = String(req.headers['x-forwarded-proto'] || req.protocol || 'https')
-  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '')
+  const proto = firstForwarded(req.headers['x-forwarded-proto']) || req.protocol || 'https'
+  const host = firstForwarded(req.headers['x-forwarded-host']) || String(req.headers.host || '')
   return `${proto}://${host}`.replace(/\/$/, '') + '/img'
 }
 
