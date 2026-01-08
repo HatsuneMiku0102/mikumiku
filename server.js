@@ -610,18 +610,20 @@ app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, re
     body.set('user_id', String(req.auth.userId))
 
     const resp = await axios.post(
-      `${target}/admin/keys/create`,
+      `${target}/admin/keys/rotate`,
       body.toString(),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-admin-secret': String(IMAGE_HOST_ADMIN_SECRET).trim() } }
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-admin-secret': String(IMAGE_HOST_ADMIN_SECRET).trim() }, timeout: 12000 }
     )
 
     const keyId = String(resp.data?.key_id || '')
     const apiKey = String(resp.data?.api_key || '')
-    if (!keyId || !apiKey) return res.status(500).json({ error: 'Upstream did not return key_id/api_key' })
+    if (!keyId || !apiKey) return res.status(502).json({ error: 'Upstream did not return key_id/api_key' })
 
     const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
     const apiKeyEnc = encryptString(apiKey)
     const keyHash = sha256Hex(apiKey)
+
+    await UserApiKey.deleteMany({ userId })
 
     await UserApiKey.updateOne(
       { userId, keyId },
@@ -640,6 +642,7 @@ app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, re
     res.status(err?.response?.status || 500).json({ error: err?.response?.data || String(err?.message || err) })
   }
 })
+
 
 app.post('/api/user/keys/activate', verifyTokenApi, requireUserApi, async (req, res) => {
   try {
