@@ -367,6 +367,8 @@ app.post('/user/register', async (req, res) => {
     const username = String(req.body?.username || '').trim()
     const password = String(req.body?.password || '')
 
+    logger.info(`user/register attempt username="${username}"`)
+
     if (username.length < 3 || username.length > 32) return res.status(400).json({ error: 'Invalid username' })
     if (password.length < 8) return res.status(400).json({ error: 'Password too short' })
 
@@ -382,19 +384,24 @@ app.post('/user/register', async (req, res) => {
   } catch (err) {
     const code = err?.code
     const msg = String(err?.message || err || '')
+    const keyPattern = err?.keyPattern || null
+    const keyValue = err?.keyValue || null
 
     if (code === 11000 || msg.includes('E11000')) {
-      return res.status(409).json({ error: 'Username already taken' })
-    }
+      const fields = keyPattern ? Object.keys(keyPattern) : (keyValue ? Object.keys(keyValue) : [])
+      const field = fields[0] || 'unknown'
 
-    if (err?.name === 'ValidationError') {
-      return res.status(400).json({ error: msg })
+      logger.error(`user/register duplicate key field=${field} keyValue=${JSON.stringify(keyValue || {})}`)
+
+      if (field === 'username') return res.status(409).json({ error: 'Username already taken' })
+      return res.status(409).json({ error: `Conflict: duplicate ${field}` })
     }
 
     logger.error(`user/register failed: ${msg}`)
     res.status(500).json({ error: msg || 'Internal Server Error' })
   }
 })
+
 
 
 app.post('/user/login', async (req, res) => {
