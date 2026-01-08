@@ -27,7 +27,15 @@ const curlFetchEl = document.getElementById("curlFetch")
 const generateKeyBtn = document.getElementById("generateKeyBtn")
 const logoutBtn = document.getElementById("logoutBtn")
 
+const dropOverlay = document.getElementById("dropOverlay")
+const progressWrap = document.getElementById("progressWrap")
+const progressBar = document.getElementById("progressBar")
+const progressText = document.getElementById("progressText")
+const cancelBtn = document.getElementById("cancelBtn")
+
 apiLabel.textContent = API_URL
+
+let activeXhr = null
 
 function setStatus(kind, text) {
   statusEl.className = `status ${kind}`
@@ -51,11 +59,21 @@ function formatBytes(n) {
   return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${units[i]}`
 }
 
+function formatSpeed(bps) {
+  if (!Number.isFinite(bps) || bps <= 0) return ""
+  return `${formatBytes(bps)}/s`
+}
+
 function showError(err) {
   resultEl.classList.add("hidden")
   errorBox.classList.remove("hidden")
   errorBox.textContent = typeof err === "string" ? err : JSON.stringify(err, null, 2)
   setStatus("err", "Error")
+}
+
+function safeHref(u) {
+  const s = String(u || "").trim()
+  return /^https?:\/\//i.test(s) ? s : "#"
 }
 
 function showResult(data) {
@@ -65,8 +83,8 @@ function showResult(data) {
   directUrl.value = data.direct_url || ""
   pageUrl.value = data.page_url || ""
 
-  directOpen.href = data.direct_url || "#"
-  pageOpen.href = data.page_url || "#"
+  directOpen.href = safeHref(data.direct_url)
+  pageOpen.href = safeHref(data.page_url)
 
   previewImg.src = data.direct_url || ""
 
@@ -79,138 +97,8 @@ function showResult(data) {
   setStatus("ok", "Done")
 }
 
-function buildCurl(apiKey) {
-  const key = String(apiKey || "").trim()
-  if (!key) {
-    curlUploadEl.value = ""
-    curlFetchEl.value = ""
-    return
-  }
-  const base = (location.origin || "").replace(/\/$/, "")
-  curlUploadEl.value = `curl -X POST "${base}${API_URL}/upload" -H "Authorization: Bearer ${key}" -F "file=@image.png"`
-  curlFetchEl.value = `curl -X POST "${base}${API_URL}/fetch" -H "Authorization: Bearer ${key}" -H "Content-Type: application/x-www-form-urlencoded" --data "url=https%3A%2F%2Fexample.com%2Fimage.png"`
-}
-
-document.addEventListener("click", async (e) => {
-  const btn = e.target.closest("[data-copy]")
-  if (!btn) return
-  const id = btn.getAttribute("data-copy")
-  const el = document.getElementById(id)
-  if (!el) return
-  try {
-    await navigator.clipboard.writeText(el.value || "")
-    btn.textContent = "Copied"
-    setTimeout(() => (btn.textContent = "Copy"), 900)
-  } catch {
-    btn.textContent = "Copy failed"
-    setTimeout(() => (btn.textContent = "Copy"), 900)
-  }
-})
-
-uploadFile.addEventListener("change", () => {
-  const f = uploadFile.files && uploadFile.files[0]
-  fileLabel.textContent = f ? f.name : "Choose an image…"
-})
-
-uploadForm.addEventListener("submit", async (e) => {
-  e.preventDefault()
-  const f = uploadFile.files && uploadFile.files[0]
-  if (!f) return
-
-  setStatus("busy", "Uploading…")
-  errorBox.classList.add("hidden")
-
-  const fd = new FormData()
-  fd.append("file", f)
-
-  try {
-    const res = await fetch(`${API_URL}/upload`, {
-      method: "POST",
-      body: fd,
-      credentials: "include"
-    })
-    const text = await res.text()
-    if (!res.ok) throw new Error(text || `HTTP ${res.status}`)
-    showResult(JSON.parse(text))
-  } catch (err) {
-    showError(err?.message || String(err))
-  }
-})
-
-fetchForm.addEventListener("submit", async (e) => {
-  e.preventDefault()
-  const url = (fetchUrl.value || "").trim()
-  if (!url) return
-
-  setStatus("busy", "Fetching…")
-  errorBox.classList.add("hidden")
-
-  const body = new URLSearchParams()
-  body.set("url", url)
-
-  try {
-    const res = await fetch(`${API_URL}/fetch`, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: body.toString(),
-      credentials: "include"
-    })
-    const text = await res.text()
-    if (!res.ok) throw new Error(text || `HTTP ${res.status}`)
-    showResult(JSON.parse(text))
-  } catch (err) {
-    showError(err?.message || String(err))
-  }
-})
-
-async function loadKeyUi() {
-  const cached = sessionStorage.getItem("active_api_key") || ""
-  if (cached) {
-    activeKeyEl.value = cached
-    buildCurl(cached)
-    setKeyStatus("ok", "Active key loaded")
-    return
-  }
-  activeKeyEl.value = ""
-  buildCurl("")
-  setKeyStatus("idle", "No active key")
-}
-
-generateKeyBtn.addEventListener("click", async () => {
-  try {
-    setKeyStatus("busy", "Generating…")
-    const name = String(keyNameEl.value || "user").trim() || "user"
-
-    const res = await fetch("/api/user/keys/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ name })
-    })
-
-    const text = await res.text()
-    if (!res.ok) throw new Error(text || `HTTP ${res.status}`)
-
-    const data = JSON.parse(text || "{}")
-    const apiKey = String(data.apiKey || data.api_key || "").trim()
-    if (!apiKey) throw new Error("No api key returned from server")
-
-    activeKeyEl.value = apiKey
-    sessionStorage.setItem("active_api_key", apiKey)
-    buildCurl(apiKey)
-    setKeyStatus("ok", "Active key set")
-  } catch (err) {
-    setKeyStatus("err", `Failed: ${err?.message || String(err)}`)
-  }
-})
-
-logoutBtn.addEventListener("click", async () => {
-  try {
-    await fetch("/user/logout", { method: "POST", credentials: "include" })
-  } catch {}
-  sessionStorage.removeItem("active_api_key")
-  location.href = "/user/auth"
-})
-
-setStatus("idle", "Idle")
-loadKeyUi()
+function setProgress(visible, pct, text) {
+  if (!progressWrap) return
+  progressWrap.classList.toggle("hidden", !visible)
+  progressWrap.setAttribute("aria-hidden", visible ? "false" : "true")
+  if (progressBar) progressBar.style.width = `${Math.
