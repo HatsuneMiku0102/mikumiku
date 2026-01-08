@@ -153,16 +153,21 @@ function hardHideDrop() {
   dropOverlay.classList.add("hidden")
   dropOverlay.setAttribute("aria-hidden", "true")
   dropOverlay.classList.remove("hot")
+  dropOverlay.style.display = "none"
   document.body.classList.remove("dropping")
 }
 
 function showDrop(on) {
   if (!dropOverlay) return
   overlayShown = !!on
-  dropOverlay.classList.toggle("hidden", !on)
-  dropOverlay.setAttribute("aria-hidden", on ? "false" : "true")
-  document.body.classList.toggle("dropping", !!on)
-  if (!on) dropOverlay.classList.remove("hot")
+  if (on) {
+    dropOverlay.style.display = "flex"
+    dropOverlay.classList.remove("hidden")
+    dropOverlay.setAttribute("aria-hidden", "false")
+    document.body.classList.add("dropping")
+  } else {
+    hardHideDrop()
+  }
 }
 
 function cancelActive() {
@@ -236,6 +241,7 @@ function validateFetchUrl(raw) {
 function uploadViaXhr(file) {
   return new Promise((resolve, reject) => {
     cancelActive()
+    hardHideDrop()
     resultEl.classList.add("hidden")
     errorBox.classList.add("hidden")
 
@@ -394,13 +400,13 @@ function pickFirstFile(dt) {
   return null
 }
 
-function dragEnter(e) {
+document.addEventListener("dragenter", (e) => {
   if (!dtHasFiles(e.dataTransfer)) return
   dragDepth += 1
   if (!overlayShown) showDrop(true)
-}
+}, true)
 
-function dragOver(e) {
+document.addEventListener("dragover", (e) => {
   if (!dtHasFiles(e.dataTransfer)) return
   e.preventDefault()
   e.dataTransfer.dropEffect = "copy"
@@ -409,35 +415,26 @@ function dragOver(e) {
     clearTimeout(dropOverlay._hotTimer)
     dropOverlay._hotTimer = setTimeout(() => dropOverlay.classList.remove("hot"), 120)
   }
-}
+}, true)
 
-function dragLeave() {
+document.addEventListener("dragleave", () => {
   dragDepth = Math.max(0, dragDepth - 1)
   if (dragDepth === 0) showDrop(false)
-}
+}, true)
 
-async function drop(e) {
+document.addEventListener("drop", async (e) => {
   if (!dtHasFiles(e.dataTransfer)) return
   e.preventDefault()
   const f = pickFirstFile(e.dataTransfer)
   hardHideDrop()
   if (f) await handleUploadFile(f)
-}
-
-document.addEventListener("dragenter", dragEnter, true)
-document.addEventListener("dragover", dragOver, true)
-document.addEventListener("dragleave", dragLeave, true)
-document.addEventListener("drop", drop, true)
+}, true)
 
 window.addEventListener("dragend", () => hardHideDrop())
 window.addEventListener("blur", () => hardHideDrop())
 window.addEventListener("focus", () => hardHideDrop())
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden) hardHideDrop()
-})
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") hardHideDrop()
-})
+document.addEventListener("visibilitychange", () => { if (document.hidden) hardHideDrop() })
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") hardHideDrop() })
 
 async function fileFromClipboardEvent(e) {
   const dt = e.clipboardData
@@ -528,5 +525,6 @@ if (logoutBtn) {
 setStatus("idle", "Idle")
 setProgress(false, 0, "")
 setAutoCopy(getAutoCopy())
-loadKeyUi()
+if (dropOverlay) dropOverlay.style.display = "none"
 hardHideDrop()
+loadKeyUi()
