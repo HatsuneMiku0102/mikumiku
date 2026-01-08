@@ -370,7 +370,7 @@ app.post('/user/register', async (req, res) => {
     if (username.length < 3 || username.length > 32) return res.status(400).json({ error: 'Invalid username' })
     if (password.length < 8) return res.status(400).json({ error: 'Password too short' })
 
-    const exists = await User.findOne({ username })
+    const exists = await User.findOne({ username }).lean()
     if (exists) return res.status(409).json({ error: 'Username already taken' })
 
     const passwordHash = await bcrypt.hash(password, 12)
@@ -380,10 +380,22 @@ app.post('/user/register', async (req, res) => {
     res.cookie('token', token, { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', maxAge: 7 * 86400 * 1000 })
     res.json({ ok: true, redirect: '/image-host/' })
   } catch (err) {
-    logger.error(`user/register failed: ${err?.message || err}`)
-    res.status(500).json({ error: 'Internal Server Error' })
+    const code = err?.code
+    const msg = String(err?.message || err || '')
+
+    if (code === 11000 || msg.includes('E11000')) {
+      return res.status(409).json({ error: 'Username already taken' })
+    }
+
+    if (err?.name === 'ValidationError') {
+      return res.status(400).json({ error: msg })
+    }
+
+    logger.error(`user/register failed: ${msg}`)
+    res.status(500).json({ error: msg || 'Internal Server Error' })
   }
 })
+
 
 app.post('/user/login', async (req, res) => {
   try {
