@@ -6,8 +6,13 @@
   <title>MikuMiku Image Host</title>
   <link rel="stylesheet" href="/image-host/styles.css" />
 </head>
-<body class="bgfx">
-  <div class="bg-glow" aria-hidden="true"></div>
+<body class="ui">
+  <div class="bg" aria-hidden="true">
+    <div class="bg-grid"></div>
+    <div class="bg-stars"></div>
+    <div class="bg-glow a"></div>
+    <div class="bg-glow b"></div>
+  </div>
 
   <div id="dropOverlay" class="drop-overlay hidden" aria-hidden="true">
     <div class="drop-card">
@@ -16,141 +21,203 @@
     </div>
   </div>
 
-  <header class="wrap head">
-    <div>
-      <h1>Image Host</h1>
-      <p class="sub">Upload an image or fetch one from a direct image URL.</p>
-      <p class="sub sub2">Tip: Drag & drop anywhere, or paste an image with Ctrl+V / ⌘V.</p>
-    </div>
-
-    <div class="head-actions">
-      <button id="logoutBtn" class="btn ghost" type="button">Logout</button>
-    </div>
-  </header>
-
-  <main class="wrap grid">
-    <section class="card full">
-      <div class="row">
-        <h2>Your API Key</h2>
-        <div id="keyStatus" class="status idle">Idle</div>
-      </div>
-
-      <div class="key-grid">
-        <div class="field">
-          <div class="label">Name</div>
-          <input id="keyName" class="input" type="text" placeholder="user" autocomplete="off" />
-        </div>
-
-        <div class="field">
-          <div class="label">Active Key</div>
-          <div class="control">
-            <input id="activeKey" class="input mono" readonly />
-            <button class="btn ghost" type="button" data-copy="activeKey">Copy</button>
-          </div>
-        </div>
-
-        <div class="field">
-          <button id="generateKeyBtn" class="btn" type="button">Generate new key</button>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">✦</div>
+        <div class="brand-text">
+          <div class="brand-title">MikuMiku</div>
+          <div class="brand-sub">Image Host</div>
         </div>
       </div>
 
-      <div class="field" style="margin-top:12px;">
-        <div class="label">curl upload</div>
-        <div class="control">
-          <input id="curlUpload" class="input mono" readonly />
-          <button class="btn ghost" type="button" data-copy="curlUpload">Copy</button>
-        </div>
-      </div>
+      <nav class="nav">
+        <button class="nav-item active" type="button">
+          <span class="dot"></span>
+          Dashboard
+        </button>
+        <button class="nav-item" type="button" id="navUpload">
+          <span class="dot"></span>
+          Upload
+        </button>
+        <button class="nav-item" type="button" id="navFetch">
+          <span class="dot"></span>
+          Fetch URL
+        </button>
+      </nav>
 
-      <div class="field">
-        <div class="label">curl fetch</div>
-        <div class="control">
-          <input id="curlFetch" class="input mono" readonly />
-          <button class="btn ghost" type="button" data-copy="curlFetch">Copy</button>
+      <div class="side-card">
+        <div class="side-row">
+          <div class="side-label">API</div>
+          <div class="side-value mono" id="apiLabel"></div>
         </div>
-      </div>
 
-      <div class="row toggles" style="margin-top:12px;">
-        <div class="toggle">
-          <input id="autoCopyToggle" type="checkbox" />
-          <label for="autoCopyToggle">Auto-copy direct link after upload</label>
+        <div class="side-row">
+          <div class="side-label">Auto-copy</div>
+          <label class="switch">
+            <input id="autoCopyToggle" type="checkbox" />
+            <span class="slider"></span>
+          </label>
         </div>
+
+        <div class="side-row">
+          <button id="logoutBtn" class="btn danger" type="button">Logout</button>
+        </div>
+
         <div id="copyToast" class="toast hidden" aria-live="polite">Copied direct link</div>
       </div>
-    </section>
 
-    <section class="card">
-      <h2>Upload</h2>
-      <form id="uploadForm">
-        <label class="file">
-          <input id="uploadFile" type="file" accept="image/*" required />
-          <span id="fileLabel">Choose an image…</span>
-        </label>
-        <button class="btn" type="submit">Upload</button>
-      </form>
-      <p class="hint">Drag & drop anywhere, or paste an image from clipboard.</p>
-    </section>
-
-    <section class="card">
-      <h2>Fetch from URL</h2>
-      <form id="fetchForm" class="fetch-stack">
-        <input id="fetchUrl" class="input" type="url" placeholder="https://example.com/image.png" required />
-        <button class="btn" type="submit">Fetch</button>
-      </form>
-      <p class="hint">Use a direct image URL (jpg/png/gif/webp). We’ll warn if it doesn’t look like one.</p>
-    </section>
-
-    <section class="card full">
-      <div class="row">
-        <h2>Result</h2>
-        <div id="status" class="status idle">Idle</div>
+      <div class="side-foot">
+        <div class="muted">Tip: Drag & drop anywhere</div>
+        <div class="muted">Paste: Ctrl+V / ⌘V</div>
       </div>
+    </aside>
 
-      <div id="progressWrap" class="progress-wrap hidden" aria-hidden="true">
-        <div class="progress-top">
-          <div id="progressText" class="progress-text">Preparing…</div>
-          <button id="cancelBtn" class="btn ghost sm" type="button">Cancel</button>
-        </div>
-        <div class="progress-bar">
-          <div id="progressBar" class="progress-fill" style="width:0%"></div>
-        </div>
-      </div>
-
-      <div id="result" class="result hidden">
-        <div class="preview">
-          <img id="previewImg" alt="preview" />
+    <main class="main">
+      <header class="topbar">
+        <div class="title">
+          <h1>Dashboard</h1>
+          <p class="sub">Upload or fetch images fast — everything in one place.</p>
         </div>
 
-        <div class="fields">
-          <div class="field">
-            <div class="label">Direct image link</div>
+        <div class="stats">
+          <div class="pill">
+            <div class="pill-k">Status</div>
+            <div id="status" class="status idle">Idle</div>
+          </div>
+          <div class="pill">
+            <div class="pill-k">Key</div>
+            <div id="keyStatus" class="status idle">Idle</div>
+          </div>
+        </div>
+      </header>
+
+      <section class="grid">
+        <div class="card" id="uploadCard">
+          <div class="card-head">
+            <h2>Upload</h2>
+            <div class="hint">Drop / paste / file picker</div>
+          </div>
+
+          <form id="uploadForm" class="stack">
+            <label class="file">
+              <input id="uploadFile" type="file" accept="image/*" required />
+              <span id="fileLabel">Choose an image…</span>
+            </label>
+
+            <div class="row">
+              <button class="btn primary" type="submit">Upload</button>
+              <button class="btn ghost" type="button" id="cancelBtn">Cancel</button>
+            </div>
+          </form>
+
+          <div id="progressWrap" class="progress-wrap hidden" aria-hidden="true">
+            <div class="progress-top">
+              <div id="progressText" class="progress-text">Preparing…</div>
+            </div>
+            <div class="progress-bar">
+              <div id="progressBar" class="progress-fill" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="fetchCard">
+          <div class="card-head">
+            <h2>Fetch from URL</h2>
+            <div class="hint">Direct image URLs work best</div>
+          </div>
+
+          <form id="fetchForm" class="stack">
+            <input id="fetchUrl" class="input" type="url" placeholder="https://example.com/image.png" required />
+            <button class="btn primary" type="submit">Fetch</button>
+          </form>
+
+          <div class="muted small">
+            Allowed: http/https • jpg/png/gif/webp
+          </div>
+        </div>
+
+        <div class="card span2">
+          <div class="card-head">
+            <h2>Result</h2>
+            <div class="hint">Preview + links</div>
+          </div>
+
+          <div id="result" class="result hidden">
+            <div class="preview">
+              <img id="previewImg" alt="preview" />
+            </div>
+
+            <div class="fields">
+              <div class="field">
+                <div class="label">Direct image link</div>
+                <div class="control">
+                  <input id="directUrl" class="input mono" readonly />
+                  <button class="btn ghost" type="button" data-copy="directUrl">Copy</button>
+                  <a id="directOpen" class="btn ghost" target="_blank" rel="noreferrer">Open</a>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="label">Page link</div>
+                <div class="control">
+                  <input id="pageUrl" class="input mono" readonly />
+                  <button class="btn ghost" type="button" data-copy="pageUrl">Copy</button>
+                  <a id="pageOpen" class="btn ghost" target="_blank" rel="noreferrer">Open</a>
+                </div>
+              </div>
+
+              <div class="meta" id="meta"></div>
+            </div>
+          </div>
+
+          <pre id="errorBox" class="error hidden"></pre>
+        </div>
+
+        <div class="card span2">
+          <div class="card-head">
+            <h2>Your API Key</h2>
+            <div class="hint">Generate and use in scripts</div>
+          </div>
+
+          <div class="key-grid">
+            <div class="field">
+              <div class="label">Name</div>
+              <input id="keyName" class="input" type="text" placeholder="user" autocomplete="off" />
+            </div>
+
+            <div class="field">
+              <div class="label">Active Key</div>
+              <div class="control">
+                <input id="activeKey" class="input mono" readonly />
+                <button class="btn ghost" type="button" data-copy="activeKey">Copy</button>
+              </div>
+            </div>
+
+            <div class="field">
+              <button id="generateKeyBtn" class="btn primary" type="button">Generate new key</button>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:12px;">
+            <div class="label">curl upload</div>
             <div class="control">
-              <input id="directUrl" class="input mono" readonly />
-              <button class="btn ghost" type="button" data-copy="directUrl">Copy</button>
-              <a id="directOpen" class="btn ghost" target="_blank" rel="noreferrer">Open</a>
+              <input id="curlUpload" class="input mono" readonly />
+              <button class="btn ghost" type="button" data-copy="curlUpload">Copy</button>
             </div>
           </div>
 
           <div class="field">
-            <div class="label">Page link</div>
+            <div class="label">curl fetch</div>
             <div class="control">
-              <input id="pageUrl" class="input mono" readonly />
-              <button class="btn ghost" type="button" data-copy="pageUrl">Copy</button>
-              <a id="pageOpen" class="btn ghost" target="_blank" rel="noreferrer">Open</a>
+              <input id="curlFetch" class="input mono" readonly />
+              <button class="btn ghost" type="button" data-copy="curlFetch">Copy</button>
             </div>
           </div>
-
-          <div class="meta" id="meta"></div>
         </div>
-      </div>
-
-      <pre id="errorBox" class="error hidden"></pre>
-    </section>
-  </main>
-
-  <footer class="wrap foot">
-    <span>API:</span> <span id="apiLabel" class="mono"></span>
-  </footer>
+      </section>
+    </main>
+  </div>
 
   <script src="/image-host/app.js"></script>
 </body>
