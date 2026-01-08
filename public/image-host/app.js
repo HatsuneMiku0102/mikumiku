@@ -33,10 +33,36 @@ const progressBar = document.getElementById("progressBar")
 const progressText = document.getElementById("progressText")
 const cancelBtn = document.getElementById("cancelBtn")
 
+const autoCopyToggle = document.getElementById("autoCopyToggle")
+const copyToast = document.getElementById("copyToast")
+
 apiLabel.textContent = API_URL
 
 let activeXhr = null
 let dragDepth = 0
+let toastTimer = null
+
+const PREF_KEY = "mm_autocopy_direct"
+const autoCopyDefault = true
+
+function getAutoCopy() {
+  const v = localStorage.getItem(PREF_KEY)
+  if (v === null) return autoCopyDefault
+  return v === "1"
+}
+
+function setAutoCopy(on) {
+  localStorage.setItem(PREF_KEY, on ? "1" : "0")
+  if (autoCopyToggle) autoCopyToggle.checked = !!on
+}
+
+function showToast(text) {
+  if (!copyToast) return
+  copyToast.textContent = text || "Copied"
+  copyToast.classList.remove("hidden")
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => copyToast.classList.add("hidden"), 1300)
+}
 
 function setStatus(kind, text) {
   statusEl.className = `status ${kind}`
@@ -77,6 +103,18 @@ function safeHref(u) {
   return /^https?:\/\//i.test(s) ? s : "#"
 }
 
+async function maybeAutoCopyDirect(url) {
+  const on = getAutoCopy()
+  const s = String(url || "").trim()
+  if (!on || !/^https?:\/\//i.test(s)) return
+  try {
+    await navigator.clipboard.writeText(s)
+    showToast("Copied direct link")
+  } catch {
+    showToast("Copy blocked by browser")
+  }
+}
+
 function showResult(data) {
   errorBox.classList.add("hidden")
   resultEl.classList.remove("hidden")
@@ -96,6 +134,7 @@ function showResult(data) {
   meta.textContent = bits.join(" • ")
 
   setStatus("ok", "Done")
+  maybeAutoCopyDirect(data.direct_url)
 }
 
 function setProgress(visible, pct, text) {
@@ -110,6 +149,7 @@ function showDrop(on) {
   if (!dropOverlay) return
   dropOverlay.classList.toggle("hidden", !on)
   dropOverlay.setAttribute("aria-hidden", on ? "false" : "true")
+  document.body.classList.toggle("dropping", !!on)
 }
 
 function cancelActive() {
@@ -150,6 +190,11 @@ document.addEventListener("click", async (e) => {
     setTimeout(() => (btn.textContent = "Copy"), 900)
   }
 })
+
+if (autoCopyToggle) {
+  autoCopyToggle.addEventListener("change", () => setAutoCopy(!!autoCopyToggle.checked))
+  setAutoCopy(getAutoCopy())
+}
 
 if (uploadFile) {
   uploadFile.addEventListener("change", () => {
@@ -255,10 +300,7 @@ function uploadViaXhr(file) {
 
 async function handleUploadFile(file) {
   if (!file) return
-  if (!file.type || !file.type.startsWith("image/")) {
-    showError("That doesn’t look like an image file.")
-    return
-  }
+  if (!file.type || !file.type.startsWith("image/")) return showError("That doesn’t look like an image file.")
   try {
     const data = await uploadViaXhr(file)
     showResult(data)
@@ -308,7 +350,6 @@ if (fetchForm) {
       if (!res.ok) throw new Error(`HTTP ${res.status}\n${text}`)
       let data
       try { data = JSON.parse(text) } catch { throw new Error(`Expected JSON but got:\n${text}`) }
-
       setProgress(false, 0, "")
       showResult(data)
     } catch (err) {
@@ -322,9 +363,7 @@ function dtHasFiles(dt) {
   if (!dt) return false
   if (dt.files && dt.files.length > 0) return true
   if (dt.items && dt.items.length > 0) {
-    for (const it of Array.from(dt.items)) {
-      if (it.kind === "file") return true
-    }
+    for (const it of Array.from(dt.items)) if (it.kind === "file") return true
   }
   return false
 }
@@ -355,6 +394,9 @@ for (const t of dragTargets) {
     if (!dtHasFiles(e.dataTransfer)) return
     e.preventDefault()
     e.dataTransfer.dropEffect = "copy"
+    if (dropOverlay) dropOverlay.classList.add("hot")
+    clearTimeout(t._hotTimer)
+    t._hotTimer = setTimeout(() => dropOverlay && dropOverlay.classList.remove("hot"), 120)
   })
   t.addEventListener("dragleave", () => {
     dragDepth = Math.max(0, dragDepth - 1)
@@ -372,13 +414,13 @@ for (const t of dragTargets) {
 
 async function fileFromClipboardEvent(e) {
   const dt = e.clipboardData
-  if (!dt) return null
-
-  const items = Array.from(dt.items || [])
-  for (const it of items) {
-    if (it.kind === "file" && String(it.type || "").startsWith("image/")) {
-      const f = it.getAsFile && it.getAsFile()
-      if (f) return f
+  if (dt) {
+    const items = Array.from(dt.items || [])
+    for (const it of items) {
+      if (it.kind === "file" && String(it.type || "").startsWith("image/")) {
+        const f = it.getAsFile && it.getAsFile()
+        if (f) return f
+      }
     }
   }
 
@@ -450,9 +492,7 @@ if (generateKeyBtn) {
 
 if (logoutBtn) {
   logoutBtn.addEventListener("click", async () => {
-    try {
-      await fetch("/user/logout", { method: "POST", credentials: "include" })
-    } catch {}
+    try { await fetch("/user/logout", { method: "POST", credentials: "include" }) } catch {}
     sessionStorage.removeItem("active_api_key")
     location.href = "/user/auth"
   })
@@ -460,4 +500,5 @@ if (logoutBtn) {
 
 setStatus("idle", "Idle")
 setProgress(false, 0, "")
+setAutoCopy(getAutoCopy())
 loadKeyUi()
