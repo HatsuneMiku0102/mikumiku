@@ -7,10 +7,18 @@
   <link rel="stylesheet" href="/image-host/styles.css" />
 </head>
 <body>
+  <div id="dropOverlay" class="drop-overlay hidden" aria-hidden="true">
+    <div class="drop-card">
+      <div class="drop-title">Drop to upload</div>
+      <div class="drop-sub">or paste an image from clipboard</div>
+    </div>
+  </div>
+
   <header class="wrap head">
     <div>
       <h1>Image Host</h1>
       <p class="sub">Upload an image or fetch one from a direct image URL.</p>
+      <p class="sub sub2">Tip: Drag & drop anywhere, or paste an image with Ctrl+V / ⌘V.</p>
     </div>
 
     <div class="head-actions">
@@ -70,7 +78,7 @@
         </label>
         <button class="btn" type="submit">Upload</button>
       </form>
-      <p class="hint">Requires an active API key on your account.</p>
+      <p class="hint">Drag & drop anywhere, or paste an image from clipboard.</p>
     </section>
 
     <section class="card">
@@ -79,13 +87,23 @@
         <input id="fetchUrl" class="input" type="url" placeholder="https://example.com/image.png" required />
         <button class="btn" type="submit">Fetch</button>
       </form>
-      <p class="hint">Use a direct image URL (jpg/png/gif/webp).</p>
+      <p class="hint">Use a direct image URL (jpg/png/gif/webp). We’ll warn if it doesn’t look like one.</p>
     </section>
 
     <section class="card full">
       <div class="row">
         <h2>Result</h2>
         <div id="status" class="status idle">Idle</div>
+      </div>
+
+      <div id="progressWrap" class="progress-wrap hidden" aria-hidden="true">
+        <div class="progress-top">
+          <div id="progressText" class="progress-text">Preparing…</div>
+          <button id="cancelBtn" class="btn ghost sm" type="button">Cancel</button>
+        </div>
+        <div class="progress-bar">
+          <div id="progressBar" class="progress-fill" style="width:0%"></div>
+        </div>
       </div>
 
       <div id="result" class="result hidden">
