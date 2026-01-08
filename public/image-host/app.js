@@ -36,12 +36,17 @@ const cancelBtn = document.getElementById("cancelBtn")
 const autoCopyToggle = document.getElementById("autoCopyToggle")
 const copyToast = document.getElementById("copyToast")
 
+const navUpload = document.getElementById("navUpload")
+const navFetch = document.getElementById("navFetch")
+const uploadCard = document.getElementById("uploadCard")
+const fetchCard = document.getElementById("fetchCard")
+
 apiLabel.textContent = API_URL
 
 let activeXhr = null
 let dragDepth = 0
-let toastTimer = null
 let overlayShown = false
+let toastTimer = null
 
 const PREF_KEY = "mm_autocopy_direct"
 const autoCopyDefault = true
@@ -62,7 +67,7 @@ function showToast(text) {
   copyToast.textContent = text || "Copied"
   copyToast.classList.remove("hidden")
   clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => copyToast.classList.add("hidden"), 1300)
+  toastTimer = setTimeout(() => copyToast.classList.add("hidden"), 1200)
 }
 
 function setStatus(kind, text) {
@@ -153,21 +158,14 @@ function hardHideDrop() {
   dropOverlay.classList.add("hidden")
   dropOverlay.setAttribute("aria-hidden", "true")
   dropOverlay.classList.remove("hot")
-  dropOverlay.style.display = "none"
-  document.body.classList.remove("dropping")
 }
 
 function showDrop(on) {
   if (!dropOverlay) return
   overlayShown = !!on
-  if (on) {
-    dropOverlay.style.display = "flex"
-    dropOverlay.classList.remove("hidden")
-    dropOverlay.setAttribute("aria-hidden", "false")
-    document.body.classList.add("dropping")
-  } else {
-    hardHideDrop()
-  }
+  dropOverlay.classList.toggle("hidden", !on)
+  dropOverlay.setAttribute("aria-hidden", on ? "false" : "true")
+  if (!on) dropOverlay.classList.remove("hot")
 }
 
 function cancelActive() {
@@ -177,6 +175,7 @@ function cancelActive() {
   }
   setProgress(false, 0, "")
   setStatus("idle", "Idle")
+  hardHideDrop()
 }
 
 if (cancelBtn) cancelBtn.addEventListener("click", () => cancelActive())
@@ -241,7 +240,6 @@ function validateFetchUrl(raw) {
 function uploadViaXhr(file) {
   return new Promise((resolve, reject) => {
     cancelActive()
-    hardHideDrop()
     resultEl.classList.add("hidden")
     errorBox.classList.add("hidden")
 
@@ -522,9 +520,16 @@ if (logoutBtn) {
   })
 }
 
+function scrollToCard(el) {
+  if (!el) return
+  el.scrollIntoView({ behavior: "smooth", block: "center" })
+}
+
+if (navUpload) navUpload.addEventListener("click", () => scrollToCard(uploadCard))
+if (navFetch) navFetch.addEventListener("click", () => scrollToCard(fetchCard))
+
 setStatus("idle", "Idle")
 setProgress(false, 0, "")
 setAutoCopy(getAutoCopy())
-if (dropOverlay) dropOverlay.style.display = "none"
 hardHideDrop()
 loadKeyUi()
