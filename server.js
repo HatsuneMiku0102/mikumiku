@@ -535,33 +535,33 @@ const userImageApiProxy = createProxyMiddleware({
   xfwd: true,
   proxyTimeout: 60000,
   timeout: 60000,
-  selfHandleResponse: true,
-  pathRewrite: { '^/user-image-api': '' },
+  pathRewrite: (path, req) => {
+    const p = String(path || "")
+    if (p.startsWith("/user-image-api")) return p.replace("/user-image-api", "")
+    return p
+  },
   onProxyReq: (proxyReq, req) => {
     const auth = req._userImageApiAuth
     if (!auth) return
-    const key = String(auth).replace(/^Bearer\s+/i, '').trim()
-    proxyReq.setHeader('Authorization', `Bearer ${key}`)
-  },
-  onProxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, _res) => {
-    const p = req.originalUrl || req.url || ''
-    const s = proxyRes.statusCode
-    logger.info(`user-image-api upstream status=${s} path=${p}`)
+    const key = String(auth).replace(/^Bearer\s+/i, "").trim()
+    proxyReq.setHeader("Authorization", `Bearer ${key}`)
 
-    const ct = String(proxyRes.headers['content-type'] || '')
-    if (ct.includes('application/json')) {
-      return rewriteImageLinksInJson(req, responseBuffer)
-    }
-    return responseBuffer
-  }),
+    const orig = req.originalUrl || req.url || ""
+    logger.info(`user-image-api proxyReq: orig=${orig} -> ${proxyReq.path}`)
+  },
+  onProxyRes: (proxyRes, req) => {
+    const p = req.originalUrl || req.url || ""
+    logger.info(`user-image-api upstream status=${proxyRes.statusCode} path=${p}`)
+  },
   onError: (_err, req, res) => {
-    const p = req.originalUrl || req.url || ''
+    const p = req.originalUrl || req.url || ""
     logger.error(`user-image-api proxy error path=${p}`)
-    res.status(502).json({ error: 'User image proxy error' })
+    res.status(502).json({ error: "User image proxy error" })
   }
 })
 
-app.use('/user-image-api', verifyTokenApi, requireUserApi, attachUserImageApiKey, userImageApiProxy)
+app.use("/user-image-api", verifyTokenApi, requireUserApi, attachUserImageApiKey, userImageApiProxy)
+
 
 app.get('/api/user/me', verifyTokenApi, requireUserApi, (req, res) => {
   res.json({ userId: req.auth.userId, username: req.auth.username, role: req.auth.role })
