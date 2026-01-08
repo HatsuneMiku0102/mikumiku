@@ -36,6 +36,7 @@ const cancelBtn = document.getElementById("cancelBtn")
 apiLabel.textContent = API_URL
 
 let activeXhr = null
+let dragDepth = 0
 
 function setStatus(kind, text) {
   statusEl.className = `status ${kind}`
@@ -105,6 +106,12 @@ function setProgress(visible, pct, text) {
   if (progressText) progressText.textContent = text || ""
 }
 
+function showDrop(on) {
+  if (!dropOverlay) return
+  dropOverlay.classList.toggle("hidden", !on)
+  dropOverlay.setAttribute("aria-hidden", on ? "false" : "true")
+}
+
 function cancelActive() {
   if (activeXhr) {
     try { activeXhr.abort() } catch {}
@@ -114,9 +121,7 @@ function cancelActive() {
   setStatus("idle", "Idle")
 }
 
-if (cancelBtn) {
-  cancelBtn.addEventListener("click", () => cancelActive())
-}
+if (cancelBtn) cancelBtn.addEventListener("click", () => cancelActive())
 
 function buildCurl(apiKey) {
   const key = String(apiKey || "").trim()
@@ -146,16 +151,16 @@ document.addEventListener("click", async (e) => {
   }
 })
 
-uploadFile.addEventListener("change", () => {
-  const f = uploadFile.files && uploadFile.files[0]
-  fileLabel.textContent = f ? f.name : "Choose an image…"
-})
+if (uploadFile) {
+  uploadFile.addEventListener("change", () => {
+    const f = uploadFile.files && uploadFile.files[0]
+    fileLabel.textContent = f ? f.name : "Choose an image…"
+  })
+}
 
 function isProbablyDirectImageUrl(u) {
-  const s = String(u || "").trim()
-  if (!s) return false
-  const lower = s.toLowerCase()
-  return /\.(png|jpe?g|gif|webp)(\?|#|$)/i.test(lower)
+  const s = String(u || "").trim().toLowerCase()
+  return /\.(png|jpe?g|gif|webp)(\?|#|$)/i.test(s)
 }
 
 function validateFetchUrl(raw) {
@@ -231,6 +236,7 @@ function uploadViaXhr(file) {
         reject(new Error(`HTTP ${xhr.status}\n${text}`))
         return
       }
+
       let data
       try { data = JSON.parse(text) } catch { reject(new Error(`Expected JSON but got:\n${text}`)); return }
 
@@ -261,107 +267,142 @@ async function handleUploadFile(file) {
   }
 }
 
-uploadForm.addEventListener("submit", async (e) => {
-  e.preventDefault()
-  const f = uploadFile.files && uploadFile.files[0]
-  if (!f) return
-  await handleUploadFile(f)
-})
-
-fetchForm.addEventListener("submit", async (e) => {
-  e.preventDefault()
-  const v = validateFetchUrl(fetchUrl.value)
-  if (!v.ok) {
-    showError(v.error)
-    return
-  }
-
-  setStatus("busy", "Fetching…")
-  errorBox.classList.add("hidden")
-  resultEl.classList.add("hidden")
-
-  if (v.warn) {
-    errorBox.classList.remove("hidden")
-    errorBox.textContent = v.warn
-  } else {
-    errorBox.classList.add("hidden")
-  }
-
-  const body = new URLSearchParams()
-  body.set("url", v.value)
-
-  try {
-    setProgress(true, 20, "Fetching image…")
-    const res = await fetch(`${API_URL}/fetch`, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: body.toString(),
-      credentials: "include"
-    })
-
-    const text = await res.text()
-    if (!res.ok) throw new Error(`HTTP ${res.status}\n${text}`)
-    let data
-    try { data = JSON.parse(text) } catch { throw new Error(`Expected JSON but got:\n${text}`) }
-    setProgress(false, 0, "")
-    showResult(data)
-  } catch (err) {
-    setProgress(false, 0, "")
-    showError(err?.message || String(err))
-  }
-})
-
-function showDrop(on) {
-  if (!dropOverlay) return
-  dropOverlay.classList.toggle("hidden", !on)
-  dropOverlay.setAttribute("aria-hidden", on ? "false" : "true")
+if (uploadForm) {
+  uploadForm.addEventListener("submit", async (e) => {
+    e.preventDefault()
+    const f = uploadFile.files && uploadFile.files[0]
+    if (!f) return
+    await handleUploadFile(f)
+  })
 }
 
-let dragDepth = 0
+if (fetchForm) {
+  fetchForm.addEventListener("submit", async (e) => {
+    e.preventDefault()
+    const v = validateFetchUrl(fetchUrl.value)
+    if (!v.ok) return showError(v.error)
 
-window.addEventListener("dragenter", (e) => {
-  if (!e.dataTransfer) return
-  if (!Array.from(e.dataTransfer.types || []).includes("Files")) return
-  dragDepth += 1
-  showDrop(true)
-})
+    setStatus("busy", "Fetching…")
+    resultEl.classList.add("hidden")
 
-window.addEventListener("dragover", (e) => {
-  if (!e.dataTransfer) return
-  if (!Array.from(e.dataTransfer.types || []).includes("Files")) return
-  e.preventDefault()
-})
+    if (v.warn) {
+      errorBox.classList.remove("hidden")
+      errorBox.textContent = v.warn
+    } else {
+      errorBox.classList.add("hidden")
+    }
 
-window.addEventListener("dragleave", () => {
-  dragDepth = Math.max(0, dragDepth - 1)
-  if (dragDepth === 0) showDrop(false)
-})
+    const body = new URLSearchParams()
+    body.set("url", v.value)
 
-window.addEventListener("drop", async (e) => {
-  try {
-    if (!e.dataTransfer) return
-    if (!Array.from(e.dataTransfer.types || []).includes("Files")) return
+    try {
+      setProgress(true, 20, "Fetching image…")
+      const res = await fetch(`${API_URL}/fetch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+        credentials: "include"
+      })
+
+      const text = await res.text()
+      if (!res.ok) throw new Error(`HTTP ${res.status}\n${text}`)
+      let data
+      try { data = JSON.parse(text) } catch { throw new Error(`Expected JSON but got:\n${text}`) }
+
+      setProgress(false, 0, "")
+      showResult(data)
+    } catch (err) {
+      setProgress(false, 0, "")
+      showError(err?.message || String(err))
+    }
+  })
+}
+
+function dtHasFiles(dt) {
+  if (!dt) return false
+  if (dt.files && dt.files.length > 0) return true
+  if (dt.items && dt.items.length > 0) {
+    for (const it of Array.from(dt.items)) {
+      if (it.kind === "file") return true
+    }
+  }
+  return false
+}
+
+function pickFirstFile(dt) {
+  if (!dt) return null
+  if (dt.files && dt.files.length) return dt.files[0]
+  if (dt.items && dt.items.length) {
+    for (const it of Array.from(dt.items)) {
+      if (it.kind === "file") {
+        const f = it.getAsFile && it.getAsFile()
+        if (f) return f
+      }
+    }
+  }
+  return null
+}
+
+const dragTargets = [document, document.body, dropOverlay].filter(Boolean)
+
+for (const t of dragTargets) {
+  t.addEventListener("dragenter", (e) => {
+    if (!dtHasFiles(e.dataTransfer)) return
+    dragDepth += 1
+    showDrop(true)
+  })
+  t.addEventListener("dragover", (e) => {
+    if (!dtHasFiles(e.dataTransfer)) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = "copy"
+  })
+  t.addEventListener("dragleave", () => {
+    dragDepth = Math.max(0, dragDepth - 1)
+    if (dragDepth === 0) showDrop(false)
+  })
+  t.addEventListener("drop", async (e) => {
+    if (!dtHasFiles(e.dataTransfer)) return
     e.preventDefault()
     showDrop(false)
     dragDepth = 0
-    const f = e.dataTransfer.files && e.dataTransfer.files[0]
+    const f = pickFirstFile(e.dataTransfer)
     if (f) await handleUploadFile(f)
-  } finally {
-    showDrop(false)
-    dragDepth = 0
+  })
+}
+
+async function fileFromClipboardEvent(e) {
+  const dt = e.clipboardData
+  if (!dt) return null
+
+  const items = Array.from(dt.items || [])
+  for (const it of items) {
+    if (it.kind === "file" && String(it.type || "").startsWith("image/")) {
+      const f = it.getAsFile && it.getAsFile()
+      if (f) return f
+    }
   }
-})
+
+  if (navigator.clipboard && navigator.clipboard.read) {
+    try {
+      const items2 = await navigator.clipboard.read()
+      for (const item of items2) {
+        for (const type of item.types || []) {
+          if (String(type).startsWith("image/")) {
+            const blob = await item.getType(type)
+            return new File([blob], "clipboard-image", { type: blob.type || type })
+          }
+        }
+      }
+    } catch {}
+  }
+
+  return null
+}
 
 window.addEventListener("paste", async (e) => {
-  try {
-    if (!e.clipboardData) return
-    const items = Array.from(e.clipboardData.items || [])
-    const img = items.find(it => it.kind === "file" && String(it.type || "").startsWith("image/"))
-    if (!img) return
-    const f = img.getAsFile()
-    if (!f) return
-    await handleUploadFile(f)
-  } catch {}
+  const f = await fileFromClipboardEvent(e)
+  if (!f) return
+  await handleUploadFile(f)
 })
 
 async function loadKeyUi() {
@@ -377,41 +418,45 @@ async function loadKeyUi() {
   setKeyStatus("idle", "No active key")
 }
 
-generateKeyBtn.addEventListener("click", async () => {
-  try {
-    setKeyStatus("busy", "Generating…")
-    const name = String(keyNameEl.value || "user").trim() || "user"
+if (generateKeyBtn) {
+  generateKeyBtn.addEventListener("click", async () => {
+    try {
+      setKeyStatus("busy", "Generating…")
+      const name = String(keyNameEl.value || "user").trim() || "user"
 
-    const res = await fetch("/api/user/keys/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ name })
-    })
+      const res = await fetch("/api/user/keys/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name })
+      })
 
-    const text = await res.text()
-    if (!res.ok) throw new Error(text || `HTTP ${res.status}`)
+      const text = await res.text()
+      if (!res.ok) throw new Error(text || `HTTP ${res.status}`)
 
-    const data = JSON.parse(text || "{}")
-    const apiKey = String(data.apiKey || data.api_key || "").trim()
-    if (!apiKey) throw new Error("No api key returned from server")
+      const data = JSON.parse(text || "{}")
+      const apiKey = String(data.apiKey || data.api_key || "").trim()
+      if (!apiKey) throw new Error("No api key returned from server")
 
-    activeKeyEl.value = apiKey
-    sessionStorage.setItem("active_api_key", apiKey)
-    buildCurl(apiKey)
-    setKeyStatus("ok", "Active key set")
-  } catch (err) {
-    setKeyStatus("err", `Failed: ${err?.message || String(err)}`)
-  }
-})
+      activeKeyEl.value = apiKey
+      sessionStorage.setItem("active_api_key", apiKey)
+      buildCurl(apiKey)
+      setKeyStatus("ok", "Active key set")
+    } catch (err) {
+      setKeyStatus("err", `Failed: ${err?.message || String(err)}`)
+    }
+  })
+}
 
-logoutBtn.addEventListener("click", async () => {
-  try {
-    await fetch("/user/logout", { method: "POST", credentials: "include" })
-  } catch {}
-  sessionStorage.removeItem("active_api_key")
-  location.href = "/user/auth"
-})
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", async () => {
+    try {
+      await fetch("/user/logout", { method: "POST", credentials: "include" })
+    } catch {}
+    sessionStorage.removeItem("active_api_key")
+    location.href = "/user/auth"
+  })
+}
 
 setStatus("idle", "Idle")
 setProgress(false, 0, "")
