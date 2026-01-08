@@ -3,32 +3,54 @@ document.addEventListener('DOMContentLoaded', () => {
   const errorEl = document.getElementById('error')
   const okEl = document.getElementById('ok')
   const btn = document.getElementById('signup-btn')
+  const togglePass = document.getElementById('togglePass')
+  const pass = document.getElementById('password')
+  const user = document.getElementById('username')
 
   const show = (el, msg) => {
-    if (!el) return
     el.textContent = msg || ''
     el.style.display = msg ? 'block' : 'none'
   }
+
+  const setBusy = (busy) => {
+    btn.disabled = !!busy
+    btn.textContent = busy ? 'Creating…' : 'Create account'
+  }
+
+  if (togglePass && pass) {
+    togglePass.addEventListener('click', () => {
+      const showPass = pass.type === 'password'
+      pass.type = showPass ? 'text' : 'password'
+      togglePass.textContent = showPass ? 'Hide' : 'Show'
+    })
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      show(errorEl, '')
+      show(okEl, '')
+    }
+  })
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault()
     show(errorEl, '')
     show(okEl, '')
 
-    const username = document.getElementById('username')?.value.trim() || ''
-    const password = document.getElementById('password')?.value || ''
+    const username = String(user.value || '').trim()
+    const password = String(pass.value || '')
 
     if (username.length < 3 || username.length > 32) {
-      show(errorEl, 'Username must be 3–32 characters')
+      show(errorEl, 'Username must be 3–32 characters.')
       return
     }
 
     if (password.length < 8) {
-      show(errorEl, 'Password must be at least 8 characters')
+      show(errorEl, 'Password must be at least 8 characters.')
       return
     }
 
-    btn.disabled = true
+    setBusy(true)
 
     try {
       const res = await fetch('/user/register', {
@@ -38,20 +60,20 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ username, password })
       })
 
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        show(errorEl, data.error || 'Signup failed')
+        show(errorEl, data.error || 'Signup failed.')
         return
       }
 
       show(okEl, 'Account created. Redirecting…')
       setTimeout(() => {
         window.location.href = data.redirect || '/image-host/'
-      }, 800)
+      }, 700)
     } catch {
-      show(errorEl, 'Network error')
+      show(errorEl, 'Network error.')
     } finally {
-      btn.disabled = false
+      setBusy(false)
     }
   })
 })
