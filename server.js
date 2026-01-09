@@ -229,9 +229,12 @@ const UserApiKey = mongoose.model('UserApiKey', userApiKeySchema, 'user_api_keys
 const userSettingsSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, required: true, unique: true },
   activeKeyId: { type: String, default: '' },
+  avatarDirectUrl: { type: String, default: '' },
+  avatarPageUrl: { type: String, default: '' },
   updatedAt: { type: Date, default: Date.now }
 })
 const UserSettings = mongoose.model('UserSettings', userSettingsSchema, 'user_settings')
+
 
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true, minlength: 3, maxlength: 32 },
