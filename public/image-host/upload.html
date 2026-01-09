@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MikuMiku • Upload</title>
+  <link rel="stylesheet" href="/image-host/styles.css" />
+</head>
+<body class="ui" data-page="upload">
+  <div class="bg" aria-hidden="true">
+    <div class="bg-grid"></div>
+    <div class="bg-stars"></div>
+    <div class="bg-glow a"></div>
+    <div class="bg-glow b"></div>
+  </div>
+
+  <div id="dropOverlay" class="drop-overlay hidden" aria-hidden="true">
+    <div class="drop-card">
+      <div class="drop-title">Drop to upload</div>
+      <div class="drop-sub">or paste an image from clipboard</div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">✦</div>
+        <div class="brand-text">
+          <div class="brand-title">MikuMiku</div>
+          <div class="brand-sub">User Panel</div>
+        </div>
+      </div>
+
+      <div class="profile-mini">
+        <div class="avatar">
+          <img id="miniAvatar" alt="avatar" />
+          <div id="avatarFallback" class="avatar-fallback hidden">U</div>
+        </div>
+        <div class="profile-mini-meta">
+          <div id="miniUsername" class="profile-mini-name">Loading…</div>
+          <div class="profile-mini-sub muted">Upload</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav-item" href="/image-host/" data-nav="dashboard"><span class="dot"></span>Dashboard</a>
+        <a class="nav-item" href="/image-host/upload" data-nav="upload"><span class="dot"></span>Upload</a>
+        <a class="nav-item" href="/image-host/fetch" data-nav="fetch"><span class="dot"></span>Fetch URL</a>
+        <a class="nav-item" href="/image-host/profile" data-nav="profile"><span class="dot"></span>Profile</a>
+      </nav>
+
+      <div class="side-card">
+        <div class="side-row">
+          <div class="side-label">API</div>
+          <div class="side-value mono" id="apiLabel"></div>
+        </div>
+
+        <div class="side-row">
+          <div class="side-label">Auto-copy</div>
+          <label class="switch">
+            <input id="autoCopyToggle" type="checkbox" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="side-row">
+          <button id="logoutBtn" class="btn danger" type="button">Logout</button>
+        </div>
+
+        <div id="copyToast" class="toast hidden" aria-live="polite">Copied</div>
+      </div>
+
+      <div class="side-foot">
+        <div class="muted">Drag & drop anywhere</div>
+        <div class="muted">Paste: Ctrl+V / ⌘V</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="title">
+          <h1>Upload</h1>
+          <p class="sub">Drop, paste, or pick a file.</p>
+        </div>
+
+        <div class="stats">
+          <div class="pill">
+            <div class="pill-k">Status</div>
+            <div id="status" class="status idle">Idle</div>
+          </div>
+        </div>
+      </header>
+
+      <section class="grid two">
+        <div class="card">
+          <div class="card-head">
+            <h2>Upload</h2>
+            <div class="hint">Fast + clean</div>
+          </div>
+
+          <form id="uploadForm" class="stack">
+            <label class="file">
+              <input id="uploadFile" type="file" accept="image/*" required />
+              <span id="fileLabel">Choose an image…</span>
+            </label>
+
+            <div class="row">
+              <button class="btn primary" type="submit">Upload</button>
+              <button class="btn ghost" id="cancelBtn" type="button">Cancel</button>
+            </div>
+          </form>
+
+          <div id="progressWrap" class="progress-wrap hidden" aria-hidden="true">
+            <div class="progress-top">
+              <div id="progressText" class="progress-text">Preparing…</div>
+            </div>
+            <div class="progress-bar">
+              <div id="progressBar" class="progress-fill" style="width:0%"></div>
+            </div>
+          </div>
+
+          <pre id="errorBox" class="error hidden"></pre>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>Result</h2>
+            <div class="hint">Preview + links</div>
+          </div>
+
+          <div id="result" class="result hidden">
+            <div class="preview">
+              <img id="previewImg" alt="preview" />
+            </div>
+
+            <div class="fields">
+              <div class="field">
+                <div class="label">Direct image link</div>
+                <div class="control">
+                  <input id="directUrl" class="input mono" readonly />
+                  <button class="btn ghost" type="button" data-copy="directUrl">Copy</button>
+                  <a id="directOpen" class="btn ghost" target="_blank" rel="noreferrer">Open</a>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="label">Page link</div>
+                <div class="control">
+                  <input id="pageUrl" class="input mono" readonly />
+                  <button class="btn ghost" type="button" data-copy="pageUrl">Copy</button>
+                  <a id="pageOpen" class="btn ghost" target="_blank" rel="noreferrer">Open</a>
+                </div>
+              </div>
+
+              <div class="meta" id="meta"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/image-host/app.js"></script>
+</body>
+</html>
