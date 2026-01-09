@@ -597,6 +597,122 @@ app.get('/api/user/keys', verifyTokenApi, requireUserApi, async (req, res) => {
   }
 })
 
+app.get('/api/user/profile', verifyTokenApi, requireUserApi, async (req, res) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
+    const u = await User.findById(userId).lean()
+    if (!u) return res.status(404).json({ error: 'User not found' })
+
+    const s = await UserSettings.findOne({ userId }).lean()
+
+    res.json({
+      ok: true,
+      user: {
+        userId: String(userId),
+        username: u.username,
+        avatarDirectUrl: s?.avatarDirectUrl || '',
+        avatarPageUrl: s?.avatarPageUrl || ''
+      }
+    })
+  } catch (err) {
+    res.status(500).json({ error: String(err?.message || err) })
+  }
+})
+
+app.post('/api/user/profile/username', verifyTokenApi, requireUserApi, async (req, res) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
+    const nextUsername = String(req.body?.username || '').trim()
+
+    if (nextUsername.length < 3 || nextUsername.length > 32) {
+      return res.status(400).json({ error: 'Username must be 3–32 characters' })
+    }
+
+    const exists = await User.findOne({ username: nextUsername }).lean()
+    if (exists && String(exists._id) !== String(userId)) {
+      return res.status(409).json({ error: 'Username already taken' })
+    }
+
+    const updated = await User.findByIdAndUpdate(
+      userId,
+      { $set: { username: nextUsername } },
+      { new: true }
+    ).lean()
+
+    if (!updated) return res.status(404).json({ error: 'User not found' })
+
+    const token = signAuthToken({ role: req.auth.role, userId: String(userId), username: nextUsername })
+    res.cookie('token', token, { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', maxAge: 7 * 86400 * 1000 })
+
+    res.json({ ok: true, username: nextUsername })
+  } catch (err) {
+    res.status(500).json({ error: String(err?.message || err) })
+  }
+})
+
+app.post('/api/user/profile/password', verifyTokenApi, requireUserApi, async (req, res) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
+    const currentPassword = String(req.body?.currentPassword || '')
+    const newPassword = String(req.body?.newPassword || '')
+
+    if (newPassword.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' })
+
+    const u = await User.findById(userId)
+    if (!u) return res.status(404).json({ error: 'User not found' })
+
+    const ok = await bcrypt.compare(currentPassword, u.passwordHash)
+    if (!ok) return res.status(401).json({ error: 'Current password is incorrect' })
+
+    const passwordHash = await bcrypt.hash(newPassword, 12)
+    await User.updateOne({ _id: userId }, { $set: { passwordHash } })
+
+    res.json({ ok: true })
+  } catch (err) {
+    res.status(500).json({ error: String(err?.message || err) })
+  }
+})
+
+app.post('/api/user/profile/avatar', verifyTokenApi, requireUserApi, async (req, res) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
+    const avatarDirectUrl = String(req.body?.avatarDirectUrl || '').trim()
+    const avatarPageUrl = String(req.body?.avatarPageUrl || '').trim()
+
+    if (!avatarDirectUrl) return res.status(400).json({ error: 'Missing avatarDirectUrl' })
+    if (!/^https?:\/\//i.test(avatarDirectUrl) && !avatarDirectUrl.startsWith('/')) {
+      return res.status(400).json({ error: 'Invalid avatarDirectUrl' })
+    }
+
+    await UserSettings.updateOne(
+      { userId },
+      { $setOnInsert: { userId }, $set: { avatarDirectUrl, avatarPageUrl, updatedAt: new Date() } },
+      { upsert: true }
+    )
+
+    res.json({ ok: true, avatarDirectUrl, avatarPageUrl })
+  } catch (err) {
+    res.status(500).json({ error: String(err?.message || err) })
+  }
+})
+
+app.post('/api/user/profile/avatar/remove', verifyTokenApi, requireUserApi, async (req, res) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
+
+    await UserSettings.updateOne(
+      { userId },
+      { $setOnInsert: { userId }, $set: { avatarDirectUrl: '', avatarPageUrl: '', updatedAt: new Date() } },
+      { upsert: true }
+    )
+
+    res.json({ ok: true })
+  } catch (err) {
+    res.status(500).json({ error: String(err?.message || err) })
+  }
+})
+
+
 app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, res) => {
   try {
     if (!IMAGE_HOST_ADMIN_TARGET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_TARGET not set' })
