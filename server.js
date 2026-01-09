@@ -788,8 +788,30 @@ app.get('/image-host/', verifyTokenPage('/user/auth'), requireUserPage, (req, re
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
   res.setHeader('Pragma', 'no-cache')
   res.setHeader('Expires', '0')
-  res.sendFile(path.join(__dirname, 'public', 'image-host', 'index.html'))
+  res.sendFile(path.join(__dirname, 'public', 'image-host', 'dashboard.html'))
 })
+
+app.get('/image-host/upload', verifyTokenPage('/user/auth'), requireUserPage, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  res.setHeader('Pragma', 'no-cache')
+  res.setHeader('Expires', '0')
+  res.sendFile(path.join(__dirname, 'public', 'image-host', 'upload.html'))
+})
+
+app.get('/image-host/fetch', verifyTokenPage('/user/auth'), requireUserPage, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  res.setHeader('Pragma', 'no-cache')
+  res.setHeader('Expires', '0')
+  res.sendFile(path.join(__dirname, 'public', 'image-host', 'fetch.html'))
+})
+
+app.get('/image-host/profile', verifyTokenPage('/user/auth'), requireUserPage, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  res.setHeader('Pragma', 'no-cache')
+  res.setHeader('Expires', '0')
+  res.sendFile(path.join(__dirname, 'public', 'image-host', 'profile.html'))
+})
+
 
 app.get('/auth', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-login.html')))
 
