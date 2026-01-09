@@ -27,23 +27,26 @@
         <div class="brand-icon">✦</div>
         <div class="brand-text">
           <div class="brand-title">MikuMiku</div>
-          <div class="brand-sub">Image Host</div>
+          <div class="brand-sub">User Panel</div>
+        </div>
+      </div>
+
+      <div class="profile-mini">
+        <div class="avatar">
+          <img id="miniAvatar" alt="avatar" />
+          <div id="avatarFallback" class="avatar-fallback hidden">U</div>
+        </div>
+        <div class="profile-mini-meta">
+          <div id="miniUsername" class="profile-mini-name">Loading…</div>
+          <div class="profile-mini-sub muted">Profile & uploads</div>
         </div>
       </div>
 
       <nav class="nav">
-        <button class="nav-item active" type="button">
-          <span class="dot"></span>
-          Dashboard
-        </button>
-        <button class="nav-item" type="button" id="navUpload">
-          <span class="dot"></span>
-          Upload
-        </button>
-        <button class="nav-item" type="button" id="navFetch">
-          <span class="dot"></span>
-          Fetch URL
-        </button>
+        <button class="nav-item active" type="button" id="navDashboard"><span class="dot"></span>Dashboard</button>
+        <button class="nav-item" type="button" id="navUpload"><span class="dot"></span>Upload</button>
+        <button class="nav-item" type="button" id="navFetch"><span class="dot"></span>Fetch URL</button>
+        <button class="nav-item" type="button" id="navProfile"><span class="dot"></span>Profile</button>
       </nav>
 
       <div class="side-card">
@@ -68,7 +71,7 @@
       </div>
 
       <div class="side-foot">
-        <div class="muted">Tip: Drag & drop anywhere</div>
+        <div class="muted">Drag & drop anywhere</div>
         <div class="muted">Paste: Ctrl+V / ⌘V</div>
       </div>
     </aside>
@@ -77,7 +80,7 @@
       <header class="topbar">
         <div class="title">
           <h1>Dashboard</h1>
-          <p class="sub">Upload or fetch images fast — everything in one place.</p>
+          <p class="sub">Uploads, fetch, keys, and your profile in one place.</p>
         </div>
 
         <div class="stats">
@@ -132,12 +135,10 @@
             <button class="btn primary" type="submit">Fetch</button>
           </form>
 
-          <div class="muted small">
-            Allowed: http/https • jpg/png/gif/webp
-          </div>
+          <div class="muted small">Allowed: http/https • jpg/png/gif/webp</div>
         </div>
 
-        <div class="card span2">
+        <div class="card span2" id="resultCard">
           <div class="card-head">
             <h2>Result</h2>
             <div class="hint">Preview + links</div>
@@ -174,10 +175,10 @@
           <pre id="errorBox" class="error hidden"></pre>
         </div>
 
-        <div class="card span2">
+        <div class="card span2" id="keysCard">
           <div class="card-head">
             <h2>Your API Key</h2>
-            <div class="hint">Generate and use in scripts</div>
+            <div class="hint">Regenerate replaces current</div>
           </div>
 
           <div class="key-grid">
@@ -195,7 +196,7 @@
             </div>
 
             <div class="field">
-              <button id="generateKeyBtn" class="btn primary" type="button">Generate new key</button>
+              <button id="generateKeyBtn" class="btn primary" type="button">Regenerate key</button>
             </div>
           </div>
 
@@ -215,6 +216,65 @@
             </div>
           </div>
         </div>
+
+        <div class="card span2" id="profileCard">
+          <div class="card-head">
+            <h2>Profile</h2>
+            <div class="hint">Username • password • avatar</div>
+          </div>
+
+          <div class="profile-grid">
+            <div class="profile-avatar">
+              <div class="avatar big">
+                <img id="profileAvatarImg" alt="avatar" />
+                <div id="profileAvatarFallback" class="avatar-fallback hidden">U</div>
+              </div>
+
+              <div class="row" style="justify-content:center;">
+                <label class="btn ghost" style="cursor:pointer;">
+                  <input id="avatarFile" type="file" accept="image/*" style="display:none;" />
+                  Upload photo
+                </label>
+                <button id="removeAvatarBtn" class="btn danger" type="button">Remove</button>
+              </div>
+
+              <div class="muted small" style="text-align:center;">Tip: upload uses your active key</div>
+            </div>
+
+            <div class="profile-forms">
+              <form id="usernameForm" class="stack">
+                <div class="field">
+                  <div class="label">Username</div>
+                  <div class="control">
+                    <input id="newUsername" class="input" autocomplete="username" />
+                    <button class="btn primary" type="submit">Save</button>
+                  </div>
+                </div>
+                <div id="usernameMsg" class="msg hidden"></div>
+              </form>
+
+              <form id="passwordForm" class="stack">
+                <div class="field">
+                  <div class="label">Current password</div>
+                  <input id="currentPassword" class="input" type="password" autocomplete="current-password" />
+                </div>
+
+                <div class="field">
+                  <div class="label">New password</div>
+                  <input id="newPassword" class="input" type="password" autocomplete="new-password" />
+                </div>
+
+                <div class="row">
+                  <button class="btn primary" type="submit">Change password</button>
+                  <button class="btn ghost" id="togglePwBtn" type="button">Show</button>
+                </div>
+
+                <div id="passwordMsg" class="msg hidden"></div>
+              </form>
+            </div>
+          </div>
+        </div>
+
       </section>
     </main>
   </div>
