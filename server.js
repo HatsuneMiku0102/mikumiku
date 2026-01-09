@@ -504,6 +504,24 @@ function rewriteImageLinksInJson(req, bodyBuffer) {
   }
 }
 
+app.use('/sharex', createProxyMiddleware({
+  target: IMAGE_API_TARGET,
+  changeOrigin: true,
+  secure: true,
+  xfwd: true,
+  proxyTimeout: 60000,
+  timeout: 60000,
+  pathRewrite: { '^/sharex': '' },
+  onProxyReq: (proxyReq, req) => {
+    const auth = req.headers.authorization || req.headers.Authorization
+    if (auth) proxyReq.setHeader('Authorization', auth)
+  },
+  onError: (_err, _req, res) => {
+    res.status(502).json({ error: 'ShareX proxy error' })
+  }
+}))
+
+
 const imageApiProxy = createProxyMiddleware({
   target: IMAGE_API_TARGET,
   changeOrigin: true,
