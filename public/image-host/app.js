@@ -38,8 +38,33 @@ const copyToast = document.getElementById("copyToast")
 
 const navUpload = document.getElementById("navUpload")
 const navFetch = document.getElementById("navFetch")
+const navProfile = document.getElementById("navProfile")
+const navDashboard = document.getElementById("navDashboard")
+
 const uploadCard = document.getElementById("uploadCard")
 const fetchCard = document.getElementById("fetchCard")
+const profileCard = document.getElementById("profileCard")
+const resultCard = document.getElementById("resultCard")
+const keysCard = document.getElementById("keysCard")
+
+const miniAvatar = document.getElementById("miniAvatar")
+const avatarFallback = document.getElementById("avatarFallback")
+const miniUsername = document.getElementById("miniUsername")
+
+const profileAvatarImg = document.getElementById("profileAvatarImg")
+const profileAvatarFallback = document.getElementById("profileAvatarFallback")
+const avatarFile = document.getElementById("avatarFile")
+const removeAvatarBtn = document.getElementById("removeAvatarBtn")
+
+const usernameForm = document.getElementById("usernameForm")
+const newUsername = document.getElementById("newUsername")
+const usernameMsg = document.getElementById("usernameMsg")
+
+const passwordForm = document.getElementById("passwordForm")
+const currentPassword = document.getElementById("currentPassword")
+const newPassword = document.getElementById("newPassword")
+const passwordMsg = document.getElementById("passwordMsg")
+const togglePwBtn = document.getElementById("togglePwBtn")
 
 apiLabel.textContent = API_URL
 
@@ -106,13 +131,13 @@ function showError(err) {
 
 function safeHref(u) {
   const s = String(u || "").trim()
-  return /^https?:\/\//i.test(s) ? s : "#"
+  return /^https?:\/\//i.test(s) || s.startsWith("/") ? s : "#"
 }
 
 async function maybeAutoCopyDirect(url) {
   const on = getAutoCopy()
   const s = String(url || "").trim()
-  if (!on || !/^https?:\/\//i.test(s)) return
+  if (!on || !/^https?:\/\//i.test(s) && !s.startsWith("/")) return
   try {
     await navigator.clipboard.writeText(s)
     showToast("Copied direct link")
@@ -482,10 +507,164 @@ async function loadKeyUi() {
   setKeyStatus("idle", "No active key")
 }
 
+async function loadProfile() {
+  try {
+    const res = await fetch("/api/user/profile", { credentials: "include" })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(String(data.error || "Failed to load profile"))
+
+    const u = data.user || {}
+    const username = String(u.username || "")
+    const avatar = String(u.avatarDirectUrl || "")
+
+    miniUsername.textContent = username || "User"
+    newUsername.value = username || ""
+
+    const letter = (username || "U").slice(0, 1).toUpperCase()
+    avatarFallback.textContent = letter
+    profileAvatarFallback.textContent = letter
+
+    if (avatar) {
+      miniAvatar.src = avatar
+      profileAvatarImg.src = avatar
+      miniAvatar.classList.remove("hidden")
+      profileAvatarImg.classList.remove("hidden")
+      avatarFallback.classList.add("hidden")
+      profileAvatarFallback.classList.add("hidden")
+    } else {
+      miniAvatar.removeAttribute("src")
+      profileAvatarImg.removeAttribute("src")
+      avatarFallback.classList.remove("hidden")
+      profileAvatarFallback.classList.remove("hidden")
+    }
+  } catch {
+    miniUsername.textContent = "User"
+  }
+}
+
+function showMsg(el, kind, text) {
+  if (!el) return
+  el.className = `msg ${kind}`
+  el.textContent = text || ""
+  el.classList.toggle("hidden", !text)
+}
+
+if (usernameForm) {
+  usernameForm.addEventListener("submit", async (e) => {
+    e.preventDefault()
+    showMsg(usernameMsg, "", "")
+    const u = String(newUsername.value || "").trim()
+    if (u.length < 3 || u.length > 32) return showMsg(usernameMsg, "err", "Username must be 3–32 characters")
+
+    try {
+      const res = await fetch("/api/user/profile/username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ username: u })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(String(data.error || "Failed"))
+      showMsg(usernameMsg, "ok", "Username updated")
+      await loadProfile()
+    } catch (err) {
+      showMsg(usernameMsg, "err", err?.message || "Failed")
+    }
+  })
+}
+
+if (togglePwBtn) {
+  togglePwBtn.addEventListener("click", () => {
+    const t = newPassword.type === "password" ? "text" : "password"
+    newPassword.type = t
+    currentPassword.type = t
+    togglePwBtn.textContent = t === "text" ? "Hide" : "Show"
+  })
+}
+
+if (passwordForm) {
+  passwordForm.addEventListener("submit", async (e) => {
+    e.preventDefault()
+    showMsg(passwordMsg, "", "")
+    const cur = String(currentPassword.value || "")
+    const nxt = String(newPassword.value || "")
+    if (!cur) return showMsg(passwordMsg, "err", "Enter your current password")
+    if (nxt.length < 8) return showMsg(passwordMsg, "err", "New password must be at least 8 characters")
+
+    try {
+      const res = await fetch("/api/user/profile/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ currentPassword: cur, newPassword: nxt })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(String(data.error || "Failed"))
+      currentPassword.value = ""
+      newPassword.value = ""
+      showMsg(passwordMsg, "ok", "Password updated")
+    } catch (err) {
+      showMsg(passwordMsg, "err", err?.message || "Failed")
+    }
+  })
+}
+
+async function uploadAvatar(file) {
+  const fd = new FormData()
+  fd.append("file", file, file.name || "avatar")
+  const res = await fetch(`${API_URL}/upload`, { method: "POST", body: fd, credentials: "include" })
+  const text = await res.text()
+  if (!res.ok) throw new Error(text || `HTTP ${res.status}`)
+  const data = JSON.parse(text)
+  const direct = String(data.direct_url || "")
+  const page = String(data.page_url || "")
+
+  const save = await fetch("/api/user/profile/avatar", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ avatarDirectUrl: direct, avatarPageUrl: page })
+  })
+  const saveData = await save.json().catch(() => ({}))
+  if (!save.ok) throw new Error(String(saveData.error || "Failed to save avatar"))
+
+  await loadProfile()
+}
+
+if (avatarFile) {
+  avatarFile.addEventListener("change", async () => {
+    const f = avatarFile.files && avatarFile.files[0]
+    if (!f) return
+    try {
+      setStatus("busy", "Uploading avatar…")
+      await uploadAvatar(f)
+      setStatus("ok", "Avatar updated")
+    } catch (err) {
+      setStatus("err", "Error")
+      showError(err?.message || String(err))
+    } finally {
+      avatarFile.value = ""
+    }
+  })
+}
+
+if (removeAvatarBtn) {
+  removeAvatarBtn.addEventListener("click", async () => {
+    try {
+      const res = await fetch("/api/user/profile/avatar/remove", { method: "POST", credentials: "include" })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(String(data.error || "Failed"))
+      await loadProfile()
+    } catch (err) {
+      showError(err?.message || String(err))
+    }
+  })
+}
+
 if (generateKeyBtn) {
   generateKeyBtn.addEventListener("click", async () => {
     try {
-      setKeyStatus("busy", "Generating…")
+      setKeyStatus("busy", "Regenerating…")
       const name = String(keyNameEl.value || "user").trim() || "user"
 
       const res = await fetch("/api/user/keys/create", {
@@ -525,11 +704,20 @@ function scrollToCard(el) {
   el.scrollIntoView({ behavior: "smooth", block: "center" })
 }
 
-if (navUpload) navUpload.addEventListener("click", () => scrollToCard(uploadCard))
-if (navFetch) navFetch.addEventListener("click", () => scrollToCard(fetchCard))
+function setActiveNav(btn) {
+  const all = [navDashboard, navUpload, navFetch, navProfile].filter(Boolean)
+  for (const b of all) b.classList.remove("active")
+  if (btn) btn.classList.add("active")
+}
+
+if (navDashboard) navDashboard.addEventListener("click", () => { setActiveNav(navDashboard); scrollToCard(resultCard) })
+if (navUpload) navUpload.addEventListener("click", () => { setActiveNav(navUpload); scrollToCard(uploadCard) })
+if (navFetch) navFetch.addEventListener("click", () => { setActiveNav(navFetch); scrollToCard(fetchCard) })
+if (navProfile) navProfile.addEventListener("click", () => { setActiveNav(navProfile); scrollToCard(profileCard) })
 
 setStatus("idle", "Idle")
 setProgress(false, 0, "")
 setAutoCopy(getAutoCopy())
 hardHideDrop()
 loadKeyUi()
+loadProfile()
