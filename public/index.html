@@ -1166,16 +1166,45 @@
     document.addEventListener("DOMContentLoaded",function(){
       const el=document.getElementById("quoteText")
       if(!el)return
-      const quotes=["Sound The Future","Happy 2026 To Anyone That Sees This Message","Music Is What Connects Our Lives"]
+  
+      function timeOfDay(){
+        const h=new Date().getHours()
+        if(h>=5 && h<12) return "morning"
+        if(h>=12 && h<18) return "afternoon"
+        return "evening"
+      }
+  
+      function dynamicGreeting(){
+        return "Good " + timeOfDay() + " from the United Kingdom"
+      }
+  
+      let quotes=[
+        dynamicGreeting(),
+        "Tell Your World <3",
+        "Music Is What Connects Our Lives"
+      ]
+  
+      function refreshGreetingQuote(){
+        quotes[0]=dynamicGreeting()
+        if(i===0) el.textContent=quotes[0]
+      }
+  
       let i=0
-      if(quotes.length<=1){el.textContent=quotes[0];return}
+      el.textContent=quotes[0]
+  
       setInterval(function(){
         i=(i+1)%quotes.length
         el.style.opacity="0"
-        setTimeout(function(){el.textContent=quotes[i];el.style.opacity="1"},220)
+        setTimeout(function(){
+          el.textContent=quotes[i]
+          el.style.opacity="1"
+        },220)
       },6000)
+  
+      setInterval(refreshGreetingQuote,60000)
     })
   </script>
+
 
   <script>
   document.addEventListener("DOMContentLoaded",function(){
@@ -1295,4 +1324,5 @@
   </script>
 </body>
 </html>
+
 
