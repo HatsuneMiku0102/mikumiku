@@ -178,8 +178,6 @@ app.use(helmet.contentSecurityPolicy({
   }
 }))
 
-
-
 mongoose.connect(mongoUrl)
   .then(() => { logger.info('Connected to MongoDB') })
   .catch((err) => { logger.error(`Error connecting to MongoDB: ${err}`); process.exit(1) })
@@ -234,7 +232,6 @@ const userSettingsSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 })
 const UserSettings = mongoose.model('UserSettings', userSettingsSchema, 'user_settings')
-
 
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true, minlength: 3, maxlength: 32 },
@@ -407,8 +404,6 @@ app.post('/user/register', async (req, res) => {
   }
 })
 
-
-
 app.post('/user/login', async (req, res) => {
   try {
     const username = String(req.body?.username || '').trim()
@@ -521,7 +516,6 @@ app.use('/sharex', createProxyMiddleware({
   }
 }))
 
-
 const imageApiProxy = createProxyMiddleware({
   target: IMAGE_API_TARGET,
   changeOrigin: true,
@@ -583,9 +577,74 @@ const userImageApiProxy = createProxyMiddleware({
 
 app.use("/user-image-api", verifyTokenApi, requireUserApi, attachUserImageApiKey, userImageApiProxy)
 
-
 app.get('/api/user/me', verifyTokenApi, requireUserApi, (req, res) => {
   res.json({ userId: req.auth.userId, username: req.auth.username, role: req.auth.role })
+})
+
+const weatherLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
+const weatherCache = new Map()
+function weatherCacheKey(city) {
+  return String(city || '').trim().toLowerCase()
+}
+function pickCity(q) {
+  const city = String(q || '').trim()
+  if (!city) return ''
+  if (city.length > 80) return city.slice(0, 80)
+  return city
+}
+
+app.get('/api/weather', weatherLimiter, async (req, res) => {
+  try {
+    if (!OPENWEATHER_API_KEY) return res.status(500).json({ error: 'OPENWEATHER_API_KEY is not set' })
+
+    const city = pickCity(req.query?.city)
+    if (!city) return res.status(400).json({ error: 'Missing city' })
+
+    const key = weatherCacheKey(city)
+    const now = Date.now()
+    const cached = weatherCache.get(key)
+    if (cached && cached.expiresAt > now) return res.json(cached.payload)
+
+    const url = 'https://api.openweathermap.org/data/2.5/weather'
+    const resp = await axios.get(url, {
+      params: {
+        q: city,
+        appid: OPENWEATHER_API_KEY,
+        units: 'metric'
+      },
+      timeout: 8000
+    })
+
+    const w = resp.data || {}
+    const main = w.main || {}
+    const wind = w.wind || {}
+    const weatherArr = Array.isArray(w.weather) ? w.weather : []
+    const first = weatherArr[0] || {}
+
+    const payload = {
+      ok: true,
+      city: String(w.name || city),
+      condition: String(first.description || first.main || 'Unknown'),
+      conditionIcon: String(first.icon || '01d'),
+      temperature: typeof main.temp === 'number' ? main.temp : null,
+      humidity: typeof main.humidity === 'number' ? main.humidity : null,
+      wind_speed: typeof wind.speed === 'number' ? wind.speed : null
+    }
+
+    weatherCache.set(key, { expiresAt: now + 10 * 60 * 1000, payload })
+    res.json(payload)
+  } catch (err) {
+    const status = err?.response?.status
+    const msg = err?.response?.data?.message || err?.message || 'Weather request failed'
+    if (status === 404) return res.status(404).json({ error: 'City not found' })
+    res.status(502).json({ error: String(msg) })
+  }
 })
 
 app.get('/api/user/keys', verifyTokenApi, requireUserApi, async (req, res) => {
@@ -730,7 +789,6 @@ app.post('/api/user/profile/avatar/remove', verifyTokenApi, requireUserApi, asyn
   }
 })
 
-
 app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, res) => {
   try {
     if (!IMAGE_HOST_ADMIN_TARGET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_TARGET not set' })
@@ -780,7 +838,6 @@ app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, re
   }
 })
 
-
 app.post('/api/user/keys/activate', verifyTokenApi, requireUserApi, async (req, res) => {
   try {
     const keyId = String(req.body?.keyId || '').trim()
@@ -829,7 +886,6 @@ app.get('/image-host/profile', verifyTokenPage('/user/auth'), requireUserPage, (
   res.setHeader('Expires', '0')
   res.sendFile(path.join(__dirname, 'public', 'image-host', 'profile.html'))
 })
-
 
 app.get('/auth', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-login.html')))
 
