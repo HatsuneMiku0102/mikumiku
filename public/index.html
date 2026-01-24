@@ -645,30 +645,35 @@
   document.addEventListener("DOMContentLoaded",function(){
     const card=document.getElementById("nowPlayingCard")
     const section=document.getElementById("youtubeSection")
-    const offlineBanner=document.getElementById("offline-indicator")
-    const offlineChip=document.getElementById("offlineChip")
+    const offline=document.getElementById("offline-indicator")
+  
     const titleEl=document.getElementById("videoTitle")
     const thumb=document.getElementById("videoThumbnailImage")
     const skThumb=document.getElementById("thumbSkeleton")
     const skTitle=document.getElementById("titleSkeleton")
     const skLine=document.getElementById("lineSkeleton")
+  
     const channelEl=document.getElementById("channelName")
     const viewsEl=document.getElementById("viewCount")
     const likesEl=document.getElementById("likeCount")
     const pubEl=document.getElementById("publishedDate")
     const catEl=document.getElementById("videoCategory")
+    const descEl=document.getElementById("descriptionModalDescription")
+  
     const bar=document.getElementById("progressBar")
     const liveEl=document.getElementById("liveIndicator")
     const pauseEl=document.getElementById("pauseIndicator")
-    const descEl=document.getElementById("descriptionModalDescription")
+  
     const btnDesc=document.getElementById("toggleDescriptionButton")
     const trans=document.getElementById("ytTransition")
+  
     const scroller=document.getElementById("historyScroller")
     const moreBtn=document.getElementById("historyMoreBtn")
     const backdrop=document.getElementById("historyBackdrop")
     const histModal=document.getElementById("historyModal")
     const histGrid=document.getElementById("historyModalGrid")
     const closeHist=document.getElementById("closeHistoryModal")
+  
     const MP=document.getElementById("miniPlayer")
     const MPt=document.getElementById("miniTitle")
     const MPth=document.getElementById("miniThumb")
@@ -676,13 +681,15 @@
     const MPclose=document.getElementById("mpClose")
     const MPstatus=document.getElementById("mpStatus")
     const MPsub=document.getElementById("miniSub")
+  
     const hoverArea=document.getElementById("progressHover")
     const openStats=document.getElementById("openStats")
     const statsModal=document.getElementById("statsModal")
+  
     const idleOverlay=document.getElementById("idleOverlay")
     const idleOrbs=document.getElementById("idleOrbs")
     const konami=document.getElementById("konamiBox")
-
+  
     let currentVideoId=null
     let countedVideoId=null
     let statsTickTimer=null
@@ -693,14 +700,35 @@
     let currentDuration=0
     let currentTime=0
     let isPlaying=false
-    const OFFLINE_DELAY=2000
+    let isTransitioning=false
+  
+    const OFFLINE_DELAY=2500
+    const TRANSITION_GRACE=7000
     const IDLE_AFTER=20000
     const PLAY_COOLDOWN_MS=300000
-
+  
     function ensureStats(){if(!localStorage.getItem("stats")){localStorage.setItem("stats",'{"totalPlays":0,"totalSeconds":0,"channels":{},"videos":{}}')}}
     function num(v){return v==null?null:Number(v)}
     function truthy(v){return v===true||v==="true"||v===1||v==="1"}
-
+    function numberFmt(e){if(typeof e==="string")e=e.replace(/,/g,"");const n=Number(e);return isNaN(n)?"N/A":n.toLocaleString()}
+  
+    function setTransitioning(on){
+      isTransitioning=!!on
+      if(section) section.classList.toggle("entering",isTransitioning)
+      if(trans) trans.classList.toggle("active",isTransitioning)
+      if(skThumb) skThumb.style.display=isTransitioning?"block":"none"
+      if(skTitle) skTitle.style.display=isTransitioning?"block":"none"
+      if(skLine) skLine.style.display=isTransitioning?"block":"none"
+      if(card) card.classList.toggle("np-transitioning",isTransitioning)
+      if(offline) offline.classList.remove("visible")
+    }
+  
+    function goOnline(){
+      if(offline) offline.classList.remove("visible")
+      if(card) card.classList.remove("offline")
+      if(section) section.style.display="block"
+    }
+  
     function setOfflineState(){
       currentVideoId=null
       countedVideoId=null
@@ -709,7 +737,8 @@
       isPaused=false
       isLiveNow=false
       isPlaying=false
-
+      setTransitioning(false)
+  
       if(titleEl) titleEl.textContent="Offline"
       if(channelEl) channelEl.textContent="—"
       if(viewsEl) viewsEl.textContent="—"
@@ -717,23 +746,23 @@
       if(pubEl) pubEl.textContent="—"
       if(catEl) catEl.textContent="—"
       if(descEl) descEl.textContent="Waiting for playback…"
-
+  
       if(thumb){
         thumb.removeAttribute("src")
         thumb.style.display="none"
       }
-
+  
       if(bar) bar.style.width="0%"
       if(MPp) MPp.style.width="0%"
-
+  
       if(MPt) MPt.textContent="Offline"
       if(MPsub) MPsub.textContent="Waiting for playback"
       if(MPstatus) MPstatus.textContent="Offline"
       if(MP) MP.setAttribute("data-state","offline")
-
+  
       if(liveEl) liveEl.classList.remove("active")
       if(pauseEl) pauseEl.classList.remove("active")
-
+  
       localStorage.setItem("playerState","offline")
       localStorage.removeItem("currentVideoTitle")
       localStorage.removeItem("currentVideoThumbnail")
@@ -744,25 +773,49 @@
       localStorage.removeItem("currentVideoCategory")
       localStorage.removeItem("currentVideoDescription")
     }
-
+  
+    function goOffline(){
+      setTransitioning(false)
+      if(offline) offline.classList.add("visible")
+      if(card) card.classList.add("offline")
+      setOfflineState()
+    }
+  
+    function scheduleOffline(){
+      clearTimeout(offlineTimer)
+      offlineTimer=setTimeout(goOffline,OFFLINE_DELAY)
+    }
+  
+    function cancelOffline(){
+      clearTimeout(offlineTimer)
+      offlineTimer=null
+      goOnline()
+    }
+  
     function renderProgress(e){
       if(!bar)return
       const live=truthy(e.isLive)
-      if(live){bar.style.width="100%";if(MPp)MPp.style.width="100%";currentDuration=0;currentTime=0;return}
+      if(live){
+        bar.style.width="100%"
+        if(MPp) MPp.style.width="100%"
+        currentDuration=0
+        currentTime=0
+        return
+      }
       const d=num(e.duration), ct=num(e.currentTime), pct=num(e.percent)
       if(typeof d==="number"&&d>0&&typeof ct==="number"&&ct>=0){
         const w=Math.max(0,Math.min(100,(ct/d)*100))
         bar.style.width=w+"%"
-        if(MPp)MPp.style.width=w+"%"
+        if(MPp) MPp.style.width=w+"%"
         currentDuration=d
         currentTime=ct
       }else if(typeof pct==="number"&&!isNaN(pct)){
         const w=Math.max(0,Math.min(100,pct))
         bar.style.width=w+"%"
-        if(MPp)MPp.style.width=w+"%"
+        if(MPp) MPp.style.width=w+"%"
       }
     }
-
+  
     function renderState(e){
       const live=truthy(e.isLive)
       const paused=truthy(e.isPaused)
@@ -772,91 +825,12 @@
       isLiveNow=live
       isPlaying=!paused
     }
-
-    function goOnline(){
-      if(offlineBanner)offlineBanner.classList.remove("visible")
-      if(offlineChip)offlineChip.classList.remove("active")
-      if(card)card.classList.remove("offline")
-      if(section)section.style.display="block"
+  
+    function animateDetails(){
+      const els=document.querySelectorAll(".video-details .animate-in, .np-meta .animate-in")
+      els.forEach(x=>{x.classList.remove("active");void x.offsetWidth;x.classList.add("fade-enter","active")})
     }
-
-    function goOffline(){
-      if(offlineBanner)offlineBanner.classList.add("visible")
-      if(offlineChip)offlineChip.classList.add("active")
-      if(card)card.classList.add("offline")
-    }
-
-    function scheduleOffline(){clearTimeout(offlineTimer);offlineTimer=setTimeout(goOffline,OFFLINE_DELAY)}
-    function cancelOffline(){clearTimeout(offlineTimer);offlineTimer=null;goOnline()}
-
-    function numberFmt(e){if(typeof e==="string")e=e.replace(/,/g,"");const n=Number(e);return isNaN(n)?"N/A":n.toLocaleString()}
-
-    function fill(e){
-      currentVideoId=e.videoId||null
-      window.__currentVideoId=currentVideoId
-      localStorage.setItem("currentVideoId", currentVideoId || "")
-      if(titleEl)titleEl.textContent=e.title||""
-      if(channelEl)channelEl.textContent=e.channelTitle||""
-      if(viewsEl)viewsEl.textContent=numberFmt(e.viewCount)
-      if(likesEl)likesEl.textContent=numberFmt(e.likeCount)
-      if(pubEl)pubEl.textContent=e.publishedAt?new Date(e.publishedAt).toLocaleDateString():pubEl.textContent
-      if(catEl)catEl.textContent=e.category||""
-      if(descEl)descEl.textContent=e.description||""
-      if(thumb){
-        if(e.thumbnail){
-          thumb.removeAttribute("loading")
-          thumb.src=e.thumbnail
-          thumb.style.display="block"
-        }else{
-          thumb.style.display="none"
-        }
-      }
-
-      if(MPt) MPt.textContent=e.title||""
-      if(MPsub) MPsub.textContent="Drag to move"
-      if(MPstatus) MPstatus.textContent=truthy(e.isLive)?"Live":(truthy(e.isPaused)?"Paused":"Now Playing")
-      if(MP) MP.setAttribute("data-state","playing")
-
-      if(MPth){
-        if(e.thumbnail){
-          MPth.src=e.thumbnail
-          MPth.style.display="block"
-        }else{
-          MPth.removeAttribute("src")
-          MPth.style.display="none"
-        }
-      }
-
-      goOnline()
-      renderProgress(e)
-      renderState(e)
-      if(btnDesc)btnDesc.style.display="block"
-
-      localStorage.setItem("playerState","playing")
-      localStorage.setItem("currentVideoTitle",titleEl?titleEl.textContent:"")
-      localStorage.setItem("currentVideoThumbnail",thumb&&thumb.src?thumb.src:"")
-      localStorage.setItem("currentVideoChannel",channelEl?channelEl.textContent:"")
-      localStorage.setItem("currentVideoViews",viewsEl?viewsEl.textContent:"")
-      localStorage.setItem("currentVideoLikes",likesEl?likesEl.textContent:"")
-      localStorage.setItem("currentVideoPublished",pubEl?pubEl.textContent:"")
-      localStorage.setItem("currentVideoCategory",catEl?catEl.textContent:"")
-      localStorage.setItem("currentVideoDescription",descEl?descEl.textContent:"")
-
-      saveHistory(e)
-    }
-
-    function showIncoming(e){
-      if(section) section.classList.add("entering")
-      if(trans) trans.classList.add("active")
-      if(skThumb)skThumb.style.display="block"
-      if(skTitle)skTitle.style.display="block"
-      if(skLine)skLine.style.display="block"
-      const img=new Image
-      const p1=new Promise(res=>{img.onload=()=>res(true);img.onerror=()=>res(false);if(e.thumbnail)img.src=e.thumbnail})
-      const p2=new Promise(res=>setTimeout(()=>res(false),800))
-      Promise.race([p1,p2]).then(()=>{fill(e);setTimeout(()=>{if(trans)trans.classList.remove("active");if(section)section.classList.remove("entering");if(skThumb)skThumb.style.display="none";if(skTitle)skTitle.style.display="none";if(skLine)skLine.style.display="none"},180)})
-    }
-
+  
     function readHist(){const raw=localStorage.getItem("npHistory");try{return raw?JSON.parse(raw):[]}catch{return[]}}
     function saveHistory(e){
       const arr=readHist().filter(x=>x.videoId!==e.videoId)
@@ -865,7 +839,7 @@
       localStorage.setItem("npHistory",JSON.stringify(out))
       renderHist(out)
     }
-
+  
     function histItem(e){
       const t=document.createElement("div");t.className="hist-item";t.dataset.videoId=e.videoId
       const n=document.createElement("img");n.className="hist-thumb";n.src=e.thumbnail||""
@@ -879,7 +853,7 @@
       })
       return t
     }
-
+  
     function renderHist(arr){
       if(scroller) scroller.innerHTML=""
       const head=arr.slice(0,3);head.forEach(n=>scroller&&scroller.appendChild(histItem(n)))
@@ -887,33 +861,121 @@
       if(histGrid) histGrid.innerHTML=""
       const rest=arr.slice(3);rest.forEach(o=>histGrid&&histGrid.appendChild(histItem(o)))
     }
-
+  
     function initHist(){renderHist(readHist())}
+  
     function toggleHist(open=true){
-      if(open){if(backdrop)backdrop.classList.add("active");if(histModal)histModal.classList.add("active");document.body.classList.add("modal-open")}
-      else{if(backdrop)backdrop.classList.remove("active");if(histModal)histModal.classList.remove("active");document.body.classList.remove("modal-open")}
+      if(open){
+        if(backdrop) backdrop.classList.add("active")
+        if(histModal) histModal.classList.add("active")
+        document.body.classList.add("modal-open")
+      }else{
+        if(backdrop) backdrop.classList.remove("active")
+        if(histModal) histModal.classList.remove("active")
+        document.body.classList.remove("modal-open")
+      }
     }
-
+  
+    function softLoadingState(){
+      goOnline()
+      setTransitioning(true)
+      if(titleEl && (!titleEl.textContent || titleEl.textContent==="Offline")) titleEl.textContent="Loading next…"
+      if(MPstatus) MPstatus.textContent="Loading"
+      if(MPt && (!MPt.textContent || MPt.textContent==="Offline")) MPt.textContent="Loading next…"
+      if(MPsub) MPsub.textContent="Waiting for next track"
+      if(MP) MP.setAttribute("data-state","loading")
+    }
+  
+    function fill(e){
+      currentVideoId=e.videoId||null
+      window.__currentVideoId=currentVideoId
+      localStorage.setItem("currentVideoId", currentVideoId || "")
+  
+      if(titleEl) titleEl.textContent=e.title||""
+      if(channelEl) channelEl.textContent=e.channelTitle||""
+      if(viewsEl) viewsEl.textContent=numberFmt(e.viewCount)
+      if(likesEl) likesEl.textContent=numberFmt(e.likeCount)
+      if(pubEl) pubEl.textContent=e.publishedAt?new Date(e.publishedAt).toLocaleDateString():pubEl.textContent
+      if(catEl) catEl.textContent=e.category||""
+      if(descEl) descEl.textContent=e.description||""
+  
+      if(thumb){
+        if(e.thumbnail){
+          thumb.removeAttribute("loading")
+          thumb.src=e.thumbnail
+          thumb.style.display="block"
+        }else{
+          thumb.style.display="none"
+        }
+      }
+  
+      if(MPt) MPt.textContent=e.title||""
+      if(MPsub) MPsub.textContent="Drag to move"
+      if(MPstatus) MPstatus.textContent=truthy(e.isLive)?"Live":(truthy(e.isPaused)?"Paused":"Now Playing")
+      if(MP) MP.setAttribute("data-state","playing")
+  
+      if(MPth){
+        if(e.thumbnail){
+          MPth.src=e.thumbnail
+          MPth.style.display="block"
+        }else{
+          MPth.removeAttribute("src")
+          MPth.style.display="none"
+        }
+      }
+  
+      renderProgress(e)
+      renderState(e)
+      if(btnDesc) btnDesc.style.display="block"
+  
+      localStorage.setItem("playerState","playing")
+      localStorage.setItem("currentVideoTitle",titleEl?titleEl.textContent:"")
+      localStorage.setItem("currentVideoThumbnail",thumb&&thumb.src?thumb.src:"")
+      localStorage.setItem("currentVideoChannel",channelEl?channelEl.textContent:"")
+      localStorage.setItem("currentVideoViews",viewsEl?viewsEl.textContent:"")
+      localStorage.setItem("currentVideoLikes",likesEl?likesEl.textContent:"")
+      localStorage.setItem("currentVideoPublished",pubEl?pubEl.textContent:"")
+      localStorage.setItem("currentVideoCategory",catEl?catEl.textContent:"")
+      localStorage.setItem("currentVideoDescription",descEl?descEl.textContent:"")
+  
+      goOnline()
+      setTransitioning(false)
+      animateDetails()
+      saveHistory(e)
+    }
+  
+    function showIncoming(e){
+      softLoadingState()
+      if(!e || !e.thumbnail){
+        setTimeout(()=>setTransitioning(true),0)
+        return
+      }
+      const img=new Image
+      const p1=new Promise(res=>{img.onload=()=>res(true);img.onerror=()=>res(false);img.src=e.thumbnail})
+      const p2=new Promise(res=>setTimeout(()=>res(false),900))
+      Promise.race([p1,p2]).then(()=>{fill(e);setTimeout(()=>setTransitioning(false),140)})
+    }
+  
     async function refreshLiveCounts(){
-      if(!currentVideoId)return
-      if(!liveEl||!liveEl.classList.contains("active"))return
+      if(!currentVideoId) return
+      if(!liveEl || !liveEl.classList.contains("active")) return
       try{
         const res=await fetch("/api/youtube/stats?videoId="+encodeURIComponent(currentVideoId))
-        if(!res.ok)return
+        if(!res.ok) return
         const data=await res.json()
-        if(typeof data.viewCount!=="undefined"&&viewsEl)viewsEl.textContent=numberFmt(data.viewCount)
-        if(typeof data.likeCount!=="undefined"&&likesEl)likesEl.textContent=numberFmt(data.likeCount)
+        if(typeof data.viewCount!=="undefined" && viewsEl) viewsEl.textContent=numberFmt(data.viewCount)
+        if(typeof data.likeCount!=="undefined" && likesEl) likesEl.textContent=numberFmt(data.likeCount)
       }catch{}
     }
-
+  
     function scheduleCounts(){
       if(statsTickTimer){clearInterval(statsTickTimer);statsTickTimer=null}
-      if(liveEl&&liveEl.classList.contains("active")) statsTickTimer=setInterval(refreshLiveCounts,10000)
+      if(liveEl && liveEl.classList.contains("active")) statsTickTimer=setInterval(refreshLiveCounts,10000)
     }
-
+  
     function shouldCountPlay(e){
       const id=e.videoId||e.title||""
-      if(!id)return false
+      if(!id) return false
       const map=JSON.parse(localStorage.getItem("playSeen")||"{}")
       const last=map[id]||0
       const now=Date.now()
@@ -921,7 +983,7 @@
       if(ok){map[id]=now;localStorage.setItem("playSeen",JSON.stringify(map))}
       return ok
     }
-
+  
     function bumpPlay(e){
       ensureStats()
       const key="stats"
@@ -934,88 +996,124 @@
       st.videos[vid].count+=1
       localStorage.setItem(key,JSON.stringify(st))
     }
-
+  
     function renderStats(){
       ensureStats()
-      const st=JSON.parse(localStorage.getItem("stats"))
+      const key="stats"
+      const st=JSON.parse(localStorage.getItem(key))
       const t=document.getElementById("statTotal")
       const tm=document.getElementById("statTime")
       const ch=document.getElementById("statChannels")
+  
       if(t) t.textContent=st.totalPlays.toLocaleString()
       const mins=Math.floor(st.totalSeconds/60)
       const hrs=Math.floor(mins/60)
       const rem=mins%60
       if(tm) tm.textContent=(hrs>0?hrs+"h ":"")+rem+"m"
       if(ch) ch.textContent=Object.keys(st.channels).length.toString()
-
+  
       const topC=Object.entries(st.channels).sort((a,b)=>b[1]-a[1]).slice(0,5)
       const tc=document.getElementById("topChannels")
-      if(tc){tc.innerHTML="";topC.forEach(([name,count])=>{const it=document.createElement("div");it.className="top-item";const l=document.createElement("div");l.textContent=name;const r=document.createElement("div");r.textContent=count;it.appendChild(l);it.appendChild(r);tc.appendChild(it)})}
-
+      if(tc){
+        tc.innerHTML=""
+        topC.forEach(([name,count])=>{
+          const it=document.createElement("div");it.className="top-item"
+          const l=document.createElement("div");l.textContent=name
+          const r=document.createElement("div");r.textContent=count
+          it.appendChild(l);it.appendChild(r);tc.appendChild(it)
+        })
+      }
+  
       const topV=Object.entries(st.videos).sort((a,b)=>b[1].count-a[1].count).slice(0,5)
       const tv=document.getElementById("topVideos")
-      if(tv){tv.innerHTML="";topV.forEach(([id,obj])=>{const it=document.createElement("div");it.className="top-item";const l=document.createElement("div");l.textContent=obj.title;const r=document.createElement("div");r.textContent=obj.count;it.appendChild(l);it.appendChild(r);tv.appendChild(it)})}
+      if(tv){
+        tv.innerHTML=""
+        topV.forEach(([id,obj])=>{
+          const it=document.createElement("div");it.className="top-item"
+          const l=document.createElement("div");l.textContent=obj.title
+          const r=document.createElement("div");r.textContent=obj.count
+          it.appendChild(l);it.appendChild(r);tv.appendChild(it)
+        })
+      }
     }
-
+  
     const socket=io()
-    socket.on("connect",function(){cancelOffline()})
-    socket.on("disconnect",function(){scheduleOffline();isPlaying=false;setOfflineState()})
-
+  
+    socket.on("connect",function(){
+      cancelOffline()
+      if(localStorage.getItem("playerState")==="offline"){
+        softLoadingState()
+      }
+    })
+  
+    socket.on("disconnect",function(){
+      scheduleOffline()
+      softLoadingState()
+      isPlaying=false
+    })
+  
     socket.on("presenceUpdate",function(e){
       lastPresenceTs=Date.now()
-
+  
       if(!e || e.presenceType==="offline"){
+        cancelOffline()
         scheduleOffline()
+        softLoadingState()
         isPlaying=false
-        setOfflineState()
         return
       }
-
+  
       cancelOffline()
-
+  
       if(e.presenceType==="video"){
         const live=e.isLive!==undefined?truthy(e.isLive):false
         const paused=e.isPaused!==undefined?truthy(e.isPaused):false
-
-        if(e.videoId&&e.videoId!==countedVideoId&&shouldCountPlay(e)){bumpPlay(e);countedVideoId=e.videoId}
-
-        if(e.videoId===currentVideoId){
+  
+        if(e.videoId && e.videoId!==countedVideoId && shouldCountPlay(e)){
+          bumpPlay(e)
+          countedVideoId=e.videoId
+        }
+  
+        if(e.videoId && e.videoId===currentVideoId){
           renderProgress(Object.assign({},e,{isLive:live}))
           renderState({isLive:live,isPaused:paused})
           if(MPstatus) MPstatus.textContent=live?"Live":(paused?"Paused":"Now Playing")
-        }else{
-          showIncoming(Object.assign({},e,{isLive:live,isPaused:paused}))
-          scheduleCounts()
+          isPlaying=!paused
+          setTransitioning(false)
+          return
         }
-
-        isPlaying=!paused
-        localStorage.setItem("playerState","playing")
-        if(MP) MP.setAttribute("data-state","playing")
+  
+        if(e.videoId && e.videoId!==currentVideoId){
+          const payload=Object.assign({},e,{isLive:live,isPaused:paused})
+          showIncoming(payload)
+          scheduleCounts()
+          isPlaying=!paused
+          localStorage.setItem("playerState","playing")
+          if(MP) MP.setAttribute("data-state","playing")
+          return
+        }
+  
+        softLoadingState()
+        isPlaying=false
         return
       }
-
+  
       if(e.presenceType==="browsing"){
+        const withinGrace=Date.now()-lastPresenceTs<TRANSITION_GRACE
+        cancelOffline()
+        scheduleOffline()
+        withinGrace?softLoadingState():setOfflineState()
         isPlaying=false
-        setOfflineState()
         return
       }
     })
-
+  
     initHist()
     if(moreBtn) moreBtn.addEventListener("click",function(){toggleHist(true)})
     if(backdrop) backdrop.addEventListener("click",function(){toggleHist(false)})
     if(closeHist) closeHist.addEventListener("click",function(){toggleHist(false)})
     document.addEventListener("keydown",function(e){if(e.key==="Escape"&&histModal&&histModal.classList.contains("active"))toggleHist(false)})
-
-    setInterval(function(){
-      if(isPlaying){
-        ensureStats()
-        const st=JSON.parse(localStorage.getItem("stats"))
-        st.totalSeconds+=1
-        localStorage.setItem("stats",JSON.stringify(st))
-      }
-    },1000)
-
+  
     if(openStats) openStats.addEventListener("click",function(){
       if(statsModal) statsModal.classList.add("active")
       const bd=document.getElementById("backdrop")
@@ -1023,26 +1121,38 @@
       document.body.classList.add("modal-open")
       renderStats()
     })
-
+  
     const bd=document.getElementById("backdrop")
     if(bd) bd.addEventListener("click",function(){
       if(statsModal) statsModal.classList.remove("active")
       bd.classList.remove("active")
       document.body.classList.remove("modal-open")
     })
-
+  
     if(section && MP){
-      const obs=new IntersectionObserver(entries=>{entries.forEach(ent=>{MP.classList.toggle("active",!ent.isIntersecting)})},{threshold:0})
+      const obs=new IntersectionObserver(entries=>{
+        entries.forEach(ent=>{MP.classList.toggle("active",!ent.isIntersecting)})
+      },{threshold:0})
       obs.observe(section)
     }
-
+  
     if(MPclose) MPclose.addEventListener("click",()=>{MP&&MP.classList.remove("active")})
-
+  
+    setInterval(function(){
+      if(isPlaying){
+        ensureStats()
+        const key="stats"
+        const st=JSON.parse(localStorage.getItem(key))
+        st.totalSeconds+=1
+        localStorage.setItem(key,JSON.stringify(st))
+      }
+    },1000)
+  
     function fmt(sec){sec=Math.max(0,Math.floor(sec));const m=Math.floor(sec/60);const s=sec%60;return m+":"+(s<10?"0":"")+s}
-
+  
     let hoverTip=null
     function ensureHoverTip(){
-      if(hoverTip)return hoverTip
+      if(hoverTip) return hoverTip
       const tip=document.createElement("div")
       tip.style.position="fixed"
       tip.style.display="none"
@@ -1059,10 +1169,10 @@
       hoverTip={wrap:tip,img,time}
       return hoverTip
     }
-
+  
     function onSeekMove(ev){
-      if(!hoverArea)return
-      if(!currentDuration||currentDuration<=0){if(hoverTip)hoverTip.wrap.style.display="none";return}
+      if(!hoverArea) return
+      if(!currentDuration || currentDuration<=0){if(hoverTip) hoverTip.wrap.style.display="none";return}
       const rect=hoverArea.getBoundingClientRect()
       const x=Math.min(Math.max(0,ev.clientX-rect.left),rect.width)
       const ratio=x/rect.width
@@ -1074,24 +1184,24 @@
       tip.wrap.style.top=(pageY>10?pageY:10)+"px"
       tip.wrap.style.transform="translateX(-50%)"
       tip.wrap.style.display="block"
-      if(thumb&&thumb.src)tip.img.src=thumb.src
+      if(thumb && thumb.src) tip.img.src=thumb.src
       tip.time.textContent=fmt(t)
     }
-
-    function onSeekLeave(){if(hoverTip)hoverTip.wrap.style.display="none"}
-
+  
+    function onSeekLeave(){if(hoverTip) hoverTip.wrap.style.display="none"}
+  
     if(hoverArea){
       hoverArea.addEventListener("mousemove",onSeekMove)
       hoverArea.addEventListener("mouseleave",onSeekLeave)
     }
-
+  
     setInterval(function(){
-      const idle=Date.now()-lastPresenceTs>IDLE_AFTER && !(liveEl&&liveEl.classList.contains("active")) && !(thumb&&thumb.src)
+      const idle=Date.now()-lastPresenceTs>IDLE_AFTER && !(liveEl&&liveEl.classList.contains("active")) && !(thumb&&thumb.src) && !isTransitioning
       if(idleOverlay) idleOverlay.classList.toggle("active",idle)
     },1000)
-
+  
     function seedOrbs(){
-      if(!idleOrbs)return
+      if(!idleOrbs) return
       idleOrbs.innerHTML=""
       for(let i=0;i<24;i++){
         const s=document.createElement("span")
@@ -1107,16 +1217,25 @@
       }
     }
     seedOrbs()
-
+  
     const code=[38,38,40,40,37,39,37,39,66,65];let pos=0
     window.addEventListener("keydown",function(e){
-      if(e.keyCode===code[pos]){pos++;if(pos===code.length){if(konami)konami.classList.add("active");setTimeout(()=>{if(konami)konami.classList.remove("active")},3000);pos=0}}
-      else{pos=0}
+      if(e.keyCode===code[pos]){
+        pos++
+        if(pos===code.length){
+          if(konami) konami.classList.add("active")
+          setTimeout(()=>{if(konami) konami.classList.remove("active")},3000)
+          pos=0
+        }
+      }else pos=0
     })
-
-    if(localStorage.getItem("playerState")==="offline") {setOfflineState();goOffline()}
+  
+    const savedState=localStorage.getItem("playerState")
+    if(savedState==="offline") setOfflineState()
+    if(savedState!=="offline" && !thumb?.src) softLoadingState()
   })
   </script>
+
 
   <script>
   document.addEventListener("DOMContentLoaded",function(){
@@ -1324,5 +1443,6 @@
   </script>
 </body>
 </html>
+
 
 
