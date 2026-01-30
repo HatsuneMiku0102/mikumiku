@@ -374,8 +374,21 @@ async function attachUserImageApiKey(req, res, next) {
 function isSafeState(s) {
   const v = String(s || '').trim()
   if (!v) return false
-  if (v.length < 8 || v.length > 256) return false
-  return /^[A-Za-z0-9._:-]+$/.test(v)
+  if (v.length < 8 || v.length > 2048) return false
+  return /^[A-Za-z0-9._:-]+$/.test(v) || v.split('.').length === 3
+}
+
+function decodeStateJwt(state) {
+  try {
+    const decoded = jwt.verify(String(state), JWT_SECRET)
+    if (!decoded || typeof decoded !== 'object') return null
+    const user_id = String(decoded.user_id || '').trim()
+    const session_id = String(decoded.session_id || '').trim()
+    if (!user_id || !session_id) return null
+    return { user_id, session_id }
+  } catch {
+    return null
+  }
 }
 
 function wowApiBase(region) {
@@ -444,6 +457,29 @@ function flattenWowCharacters(profileJson) {
   return deduped
 }
 
+app.post('/oauth/state', async (req, res) => {
+  try {
+    const state = String(req.body?.state || '').trim()
+    const user_id = String(req.body?.user_id || '').trim()
+    const session_id = String(req.body?.session_id || '').trim()
+    if (!isSafeState(state) || !user_id || !session_id) return res.status(400).json({ ok: false, error: 'invalid_request' })
+
+    const ip = String(req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim()
+    const ua = String(req.headers['user-agent'] || '').slice(0, 400)
+
+    await Session.updateOne(
+      { state },
+      { $setOnInsert: { state, user_id, session_id, created_at: new Date() }, $set: { ip_address: ip, user_agent: ua } },
+      { upsert: true }
+    )
+
+    res.json({ ok: true })
+  } catch (err) {
+    logger.error(`oauth/state failed: ${err?.message || err}`)
+    res.status(500).json({ ok: false, error: 'server_error' })
+  }
+})
+
 app.get('/oauth/login', async (req, res) => {
   try {
     const state = String(req.query?.state || '').trim()
@@ -480,8 +516,24 @@ app.post('/oauth/intake', async (req, res) => {
     const state = String(req.body?.state || '').trim()
     if (!code || !isSafeState(state)) return res.status(400).json({ error: 'Missing/invalid code/state' })
 
-    const sess = await Session.findOne({ state }).lean()
-    if (!sess) return res.status(400).json({ error: 'Unknown state' })
+    let sess = await Session.findOne({ state }).lean()
+
+    if (!sess) {
+      const decoded = decodeStateJwt(state)
+      if (!decoded) return res.status(400).json({ error: 'Unknown state' })
+
+      const ip = String(req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim()
+      const ua = String(req.headers['user-agent'] || '').slice(0, 400)
+
+      await Session.updateOne(
+        { state },
+        { $setOnInsert: { state, user_id: decoded.user_id, session_id: decoded.session_id, created_at: new Date() }, $set: { ip_address: ip, user_agent: ua } },
+        { upsert: true }
+      )
+
+      sess = await Session.findOne({ state }).lean()
+      if (!sess) return res.status(400).json({ error: 'Unknown state' })
+    }
 
     const tokenData = await exchangeBlizzardCodeForToken(code)
     const accessToken = String(tokenData?.access_token || '').trim()
@@ -558,6 +610,7 @@ app.post('/oauth/submit', async (req, res) => {
     res.status(500).json({ ok: false, status: 'server_error' })
   }
 })
+
 
 app.get('/user/signup', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'user-signup.html')))
 app.get('/user/auth', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'user-login.html')))
