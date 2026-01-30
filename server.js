@@ -54,6 +54,15 @@ if (!API_KEY_ENC_SECRET) {
   process.exit(1)
 }
 
+const BLIZZARD_CLIENT_ID = String(process.env.BLIZZARD_CLIENT_ID || '').trim()
+const BLIZZARD_CLIENT_SECRET = String(process.env.BLIZZARD_CLIENT_SECRET || '').trim()
+const BLIZZARD_REDIRECT_URI = String(process.env.BLIZZARD_REDIRECT_URI || 'https://mikumiku.dev/oauth/callback').trim()
+const BLIZZARD_REGION = String(process.env.BLIZZARD_REGION || 'eu').trim().toLowerCase()
+const WOW_LOCALE = String(process.env.WOW_LOCALE || 'en_GB').trim()
+
+const BLIZZARD_AUTHORIZE = 'https://oauth.battle.net/authorize'
+const BLIZZARD_TOKEN = 'https://oauth.battle.net/token'
+
 const app = express()
 app.set('trust proxy', true)
 
@@ -258,6 +267,7 @@ const sessionSchema = new mongoose.Schema({
   user_agent: { type: String }
 })
 mongoose.model('Session', sessionSchema, 'sessions')
+const Session = mongoose.model('Session')
 
 const adminSessionStore = MongoStore.create({
   mongoUrl,
@@ -360,6 +370,194 @@ async function attachUserImageApiKey(req, res, next) {
     res.status(500).json({ error: 'Internal Server Error' })
   }
 }
+
+function isSafeState(s) {
+  const v = String(s || '').trim()
+  if (!v) return false
+  if (v.length < 8 || v.length > 256) return false
+  return /^[A-Za-z0-9._:-]+$/.test(v)
+}
+
+function wowApiBase(region) {
+  const r = String(region || 'eu').toLowerCase()
+  return `https://${r}.api.blizzard.com`
+}
+
+async function exchangeBlizzardCodeForToken(code) {
+  if (!BLIZZARD_CLIENT_ID || !BLIZZARD_CLIENT_SECRET) {
+    throw new Error('BLIZZARD_CLIENT_ID/BLIZZARD_CLIENT_SECRET not set')
+  }
+
+  const body = new URLSearchParams()
+  body.set('grant_type', 'authorization_code')
+  body.set('code', String(code))
+  body.set('redirect_uri', BLIZZARD_REDIRECT_URI)
+
+  const basic = Buffer.from(`${BLIZZARD_CLIENT_ID}:${BLIZZARD_CLIENT_SECRET}`).toString('base64')
+
+  const resp = await axios.post(
+    BLIZZARD_TOKEN,
+    body.toString(),
+    {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${basic}`
+      },
+      timeout: 12000
+    }
+  )
+
+  return resp.data || {}
+}
+
+function flattenWowCharacters(profileJson) {
+  const out = []
+  const accounts = Array.isArray(profileJson?.wow_accounts) ? profileJson.wow_accounts : []
+  for (const acc of accounts) {
+    const chars = Array.isArray(acc?.characters) ? acc.characters : []
+    for (const c of chars) {
+      const name = String(c?.name || '').trim()
+      const realmName = String(c?.realm?.name || c?.realm?.slug || '').trim()
+      if (!name || !realmName) continue
+      out.push({ name, realm: realmName })
+    }
+  }
+  const seen = new Set()
+  const deduped = []
+  for (const c of out) {
+    const k = `${c.name}::${c.realm}`.toLowerCase()
+    if (seen.has(k)) continue
+    seen.add(k)
+    deduped.push(c)
+  }
+  deduped.sort((a, b) => {
+    const an = a.name.toLowerCase()
+    const bn = b.name.toLowerCase()
+    if (an < bn) return -1
+    if (an > bn) return 1
+    const ar = a.realm.toLowerCase()
+    const br = b.realm.toLowerCase()
+    if (ar < br) return -1
+    if (ar > br) return 1
+    return 0
+  })
+  return deduped
+}
+
+app.get('/oauth/login', async (req, res) => {
+  try {
+    const state = String(req.query?.state || '').trim()
+    if (!isSafeState(state)) return res.status(400).send('Missing/invalid state')
+
+    const q = new URLSearchParams()
+    q.set('client_id', BLIZZARD_CLIENT_ID)
+    q.set('scope', 'openid wow.profile')
+    q.set('redirect_uri', BLIZZARD_REDIRECT_URI)
+    q.set('response_type', 'code')
+    q.set('state', state)
+
+    res.redirect(302, `${BLIZZARD_AUTHORIZE}?${q.toString()}`)
+  } catch (err) {
+    logger.error(`oauth/login failed: ${err?.message || err}`)
+    res.status(500).send('OAuth login error')
+  }
+})
+
+app.get('/oauth/callback', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  res.setHeader('Pragma', 'no-cache')
+  res.setHeader('Expires', '0')
+  res.sendFile(path.join(__dirname, 'public', 'callback.html'))
+})
+
+app.get('/oauth/intake', (_req, res) => {
+  res.status(405).json({ error: 'Use POST /oauth/intake' })
+})
+
+app.post('/oauth/intake', async (req, res) => {
+  try {
+    const code = String(req.body?.code || '').trim()
+    const state = String(req.body?.state || '').trim()
+    if (!code || !isSafeState(state)) return res.status(400).json({ error: 'Missing/invalid code/state' })
+
+    const sess = await Session.findOne({ state }).lean()
+    if (!sess) return res.status(400).json({ error: 'Unknown state' })
+
+    const tokenData = await exchangeBlizzardCodeForToken(code)
+    const accessToken = String(tokenData?.access_token || '').trim()
+    const expiresIn = Number(tokenData?.expires_in || 0)
+    if (!accessToken) return res.status(502).json({ error: 'Token exchange failed' })
+
+    const region = BLIZZARD_REGION || 'eu'
+    const namespace = `profile-${region}`
+    const url = `${wowApiBase(region)}/profile/user/wow`
+
+    const profileResp = await axios.get(url, {
+      params: {
+        namespace,
+        locale: WOW_LOCALE,
+        access_token: accessToken
+      },
+      timeout: 12000
+    })
+
+    const profileJson = profileResp.data || {}
+    const choices = flattenWowCharacters(profileJson)
+
+    await Session.updateOne(
+      { state },
+      {
+        $set: {
+          oauth_access_token: accessToken,
+          oauth_expires_at: expiresIn ? new Date(Date.now() + expiresIn * 1000) : null,
+          oauth_region: region,
+          oauth_locale: WOW_LOCALE,
+          oauth_chars: choices,
+          oauth_updated_at: new Date()
+        }
+      }
+    )
+
+    res.json({ ok: true, choices })
+  } catch (err) {
+    const status = err?.response?.status
+    const data = err?.response?.data
+    logger.error(`oauth/intake failed: ${err?.message || err} status=${status || ''} data=${typeof data === 'string' ? data : JSON.stringify(data || {})}`)
+    res.status(500).json({ error: 'OAuth intake failed' })
+  }
+})
+
+app.post('/oauth/submit', async (req, res) => {
+  try {
+    const state = String(req.body?.state || '').trim()
+    const choice = String(req.body?.choice || '').trim()
+    if (!isSafeState(state) || !choice.includes('::')) return res.status(400).json({ ok: false, status: 'invalid_request' })
+
+    const sess = await Session.findOne({ state }).lean()
+    if (!sess) return res.status(400).json({ ok: false, status: 'unknown_state' })
+
+    const [nameRaw, realmRaw] = choice.split('::')
+    const name = String(nameRaw || '').trim()
+    const realm = String(realmRaw || '').trim()
+    if (!name || !realm) return res.status(400).json({ ok: false, status: 'invalid_choice' })
+
+    await Session.updateOne(
+      { state },
+      {
+        $set: {
+          oauth_selected_name: name,
+          oauth_selected_realm: realm,
+          oauth_selected_at: new Date()
+        }
+      }
+    )
+
+    res.json({ ok: true })
+  } catch (err) {
+    logger.error(`oauth/submit failed: ${err?.message || err}`)
+    res.status(500).json({ ok: false, status: 'server_error' })
+  }
+})
 
 app.get('/user/signup', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'user-signup.html')))
 app.get('/user/auth', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'user-login.html')))
