@@ -506,78 +506,82 @@ app.get('/oauth/callback', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'callback.html'))
 })
 
-app.get('/oauth/intake', (_req, res) => {
-  res.status(405).json({ error: 'Use POST /oauth/intake' })
-})
-
-app.post('/oauth/intake', async (req, res) => {
+app.get('/oauth/intake', async (req, res) => {
   try {
-    const code = String(req.body?.code || '').trim()
-    const state = String(req.body?.state || '').trim()
-    if (!code || !isSafeState(state)) return res.status(400).json({ error: 'Missing/invalid code/state' })
-
-    let sess = await Session.findOne({ state }).lean()
-
-    if (!sess) {
-      const decoded = decodeStateJwt(state)
-      if (!decoded) return res.status(400).json({ error: 'Unknown state' })
-
-      const ip = String(req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim()
-      const ua = String(req.headers['user-agent'] || '').slice(0, 400)
-
-      await Session.updateOne(
-        { state },
-        { $setOnInsert: { state, user_id: decoded.user_id, session_id: decoded.session_id, created_at: new Date() }, $set: { ip_address: ip, user_agent: ua } },
-        { upsert: true }
-      )
-
-      sess = await Session.findOne({ state }).lean()
-      if (!sess) return res.status(400).json({ error: 'Unknown state' })
-    }
-
-    const tokenData = await exchangeBlizzardCodeForToken(code)
-    const accessToken = String(tokenData?.access_token || '').trim()
-    const expiresIn = Number(tokenData?.expires_in || 0)
-    if (!accessToken) return res.status(502).json({ error: 'Token exchange failed' })
-
-    const region = BLIZZARD_REGION || 'eu'
-    const namespace = `profile-${region}`
-    const url = `${wowApiBase(region)}/profile/user/wow`
-
-    const profileResp = await axios.get(url, {
-      params: {
-        namespace,
-        locale: WOW_LOCALE,
-        access_token: accessToken
-      },
-      timeout: 12000
-    })
-
-    const profileJson = profileResp.data || {}
-    const choices = flattenWowCharacters(profileJson)
-
-    await Session.updateOne(
-      { state },
-      {
-        $set: {
-          oauth_access_token: accessToken,
-          oauth_expires_at: expiresIn ? new Date(Date.now() + expiresIn * 1000) : null,
-          oauth_region: region,
-          oauth_locale: WOW_LOCALE,
-          oauth_chars: choices,
-          oauth_updated_at: new Date()
-        }
-      }
-    )
-
-    res.json({ ok: true, choices })
-  } catch (err) {
-    const status = err?.response?.status
-    const data = err?.response?.data
-    logger.error(`oauth/intake failed: ${err?.message || err} status=${status || ''} data=${typeof data === 'string' ? data : JSON.stringify(data || {})}`)
+    const code = String(req.query?.code || '').trim()
+    const state = String(req.query?.state || '').trim()
+    if (!code || !state) return res.status(400).json({ error: 'Missing code/state' })
+    req.body = { code, state }
+    return app._router.handle(req, res, () => {})
+  } catch {
     res.status(500).json({ error: 'OAuth intake failed' })
   }
 })
+
+app.post('/oauth/intake', async (req, res) => {
+  async function handleOAuthIntake(req, res) {
+    try {
+      const code = String((req.body?.code ?? req.query?.code) || '').trim()
+      const state = String((req.body?.state ?? req.query?.state) || '').trim()
+      if (!code || !isSafeState(state)) return res.status(400).json({ error: 'Missing/invalid code/state' })
+  
+      let sess = await Session.findOne({ state }).lean()
+      if (!sess) {
+        const decoded = decodeStateJwt(state)
+        if (!decoded) return res.status(400).json({ error: 'Unknown state' })
+  
+        const ip = String(req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim()
+        const ua = String(req.headers['user-agent'] || '').slice(0, 400)
+  
+        await Session.updateOne(
+          { state },
+          { $setOnInsert: { state, user_id: decoded.user_id, session_id: decoded.session_id, created_at: new Date() }, $set: { ip_address: ip, user_agent: ua } },
+          { upsert: true }
+        )
+      }
+  
+      const tokenData = await exchangeBlizzardCodeForToken(code)
+      const accessToken = String(tokenData?.access_token || '').trim()
+      const expiresIn = Number(tokenData?.expires_in || 0)
+      if (!accessToken) return res.status(502).json({ error: 'Token exchange failed' })
+  
+      const region = BLIZZARD_REGION || 'eu'
+      const namespace = `profile-${region}`
+      const url = `${wowApiBase(region)}/profile/user/wow`
+  
+      const profileResp = await axios.get(url, {
+        params: { namespace, locale: WOW_LOCALE, access_token: accessToken },
+        timeout: 12000
+      })
+  
+      const choices = flattenWowCharacters(profileResp.data || {})
+  
+      await Session.updateOne(
+        { state },
+        {
+          $set: {
+            oauth_access_token: accessToken,
+            oauth_expires_at: expiresIn ? new Date(Date.now() + expiresIn * 1000) : null,
+            oauth_region: region,
+            oauth_locale: WOW_LOCALE,
+            oauth_chars: choices,
+            oauth_updated_at: new Date()
+          }
+        }
+      )
+  
+      res.json({ ok: true, choices })
+    } catch (err) {
+      const status = err?.response?.status
+      const data = err?.response?.data
+      logger.error(`oauth/intake failed: ${err?.message || err} status=${status || ''} data=${typeof data === 'string' ? data : JSON.stringify(data || {})}`)
+      res.status(500).json({ error: 'OAuth intake failed' })
+    }
+  }
+  
+  app.get('/oauth/intake', handleOAuthIntake)
+  app.post('/oauth/intake', handleOAuthIntake)
+
 
 app.post('/oauth/submit', async (req, res) => {
   try {
