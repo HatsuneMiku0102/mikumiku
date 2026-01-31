@@ -536,7 +536,10 @@ async function handleOAuthIntake(req, res) {
   try {
     const code = String((req.body?.code ?? req.query?.code) || '').trim()
     const state = String((req.body?.state ?? req.query?.state) || '').trim()
-    if (!code || !isSafeState(state)) return res.status(400).json({ ok: false, error: 'Missing/invalid code/state', rid })
+
+    if (!code || !isSafeState(state)) {
+      return res.status(400).json({ ok: false, error: 'Missing/invalid code/state', rid })
+    }
 
     let sess = await Session.findOne({ state }).lean()
     if (!sess) {
@@ -556,7 +559,15 @@ async function handleOAuthIntake(req, res) {
       if (!sess) return res.status(400).json({ ok: false, error: 'Unknown state', rid })
     }
 
-    const redirectUri = String(sess?.oauth_redirect_uri || '').trim() || BLIZZARD_REDIRECT_URI_ENV || computeRedirectUri(req)
+    if (sess?.oauth_intake_done && String(sess?.oauth_last_code || '') === code) {
+      const choices = Array.isArray(sess?.oauth_chars) ? sess.oauth_chars : []
+      return res.json({ ok: true, choices, rid, cached: true })
+    }
+
+    const redirectUri =
+      String(sess?.oauth_redirect_uri || '').trim() ||
+      BLIZZARD_REDIRECT_URI_ENV ||
+      computeRedirectUri(req)
 
     logger.info(`oauth/intake rid=${rid} exchanging code for token state=${state.slice(0, 12)}... redirect_uri=${redirectUri}`)
 
@@ -589,12 +600,14 @@ async function handleOAuthIntake(req, res) {
           oauth_locale: WOW_LOCALE,
           oauth_chars: choices,
           oauth_updated_at: new Date(),
-          oauth_redirect_uri: redirectUri
+          oauth_redirect_uri: redirectUri,
+          oauth_last_code: code,
+          oauth_intake_done: true
         }
       }
     )
 
-    res.json({ ok: true, choices, rid })
+    return res.json({ ok: true, choices, rid, cached: false })
   } catch (err) {
     const status = err?.response?.status || null
     const data = err?.response?.data ?? null
@@ -603,8 +616,7 @@ async function handleOAuthIntake(req, res) {
     logger.error(`oauth/intake failed rid=${rid} msg=${msg} status=${status || ''} data=${typeof data === 'string' ? data : JSON.stringify(data || {})}`)
 
     const httpStatus = status && Number.isFinite(status) ? status : 500
-
-    res.status(httpStatus).json({
+    return res.status(httpStatus).json({
       ok: false,
       error: 'OAuth intake failed',
       rid,
@@ -615,8 +627,8 @@ async function handleOAuthIntake(req, res) {
   }
 }
 
-app.get('/oauth/intake', handleOAuthIntake)
 app.post('/oauth/intake', handleOAuthIntake)
+
 
 async function oauthSubmitHandler(req, res) {
   const rid = crypto.randomBytes(8).toString('hex')
