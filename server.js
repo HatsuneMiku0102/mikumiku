@@ -592,16 +592,37 @@ app.post('/oauth/intake', handleOAuthIntake)
 app.post('/oauth/submit', async (req, res) => {
   try {
     const state = String(req.body?.state || '').trim()
-    const choice = String(req.body?.choice || '').trim()
-    if (!isSafeState(state) || !choice.includes('::')) return res.status(400).json({ ok: false, status: 'invalid_request' })
+    const choiceRaw = String(req.body?.choice || '').trim()
+    if (!isSafeState(state) || !choiceRaw) return res.status(400).json({ ok: false, status: 'invalid_request' })
 
     const sess = await Session.findOne({ state }).lean()
     if (!sess) return res.status(400).json({ ok: false, status: 'unknown_state' })
 
-    const [nameRaw, realmRaw] = choice.split('::')
-    const name = String(nameRaw || '').trim()
-    const realm = String(realmRaw || '').trim()
+    let name = ''
+    let realm = ''
+    let realm_slug = ''
+    let name_slug = ''
+    let region = BLIZZARD_REGION || 'eu'
+
+    if (choiceRaw.startsWith('{')) {
+      let payload = null
+      try { payload = JSON.parse(choiceRaw) } catch { payload = null }
+      if (payload && typeof payload === 'object') {
+        name = String(payload.name || '').trim()
+        realm = String(payload.realm || '').trim()
+        realm_slug = String(payload.realm_slug || payload.realmSlug || '').trim()
+        name_slug = String(payload.name_slug || payload.nameSlug || '').trim()
+        region = String(payload.region || region).trim().toLowerCase() || region
+      }
+    } else if (choiceRaw.includes('::')) {
+      const [nameRaw, realmRaw] = choiceRaw.split('::')
+      name = String(nameRaw || '').trim()
+      realm = String(realmRaw || '').trim()
+    }
+
     if (!name || !realm) return res.status(400).json({ ok: false, status: 'invalid_choice' })
+    if (!realm_slug) realm_slug = slugify(realm)
+    if (!name_slug) name_slug = slugify(name)
 
     await Session.updateOne(
       { state },
@@ -614,6 +635,7 @@ app.post('/oauth/submit', async (req, res) => {
     res.status(500).json({ ok: false, status: 'server_error' })
   }
 })
+
 
 
 
