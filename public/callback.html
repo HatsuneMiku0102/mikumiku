@@ -1,142 +1,392 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FinalFinalizing sign-in</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Finish sign-in</title>
+
 <style>
-:root{--bg:#0b1220;--card:#0f172a;--muted:#9ca3af;--text:#e5e7eb;--accent:#60a5fa;--accent-weak:#60a5fa22}
-*{box-sizing:border-box} html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial}
-.wrap{min-height:100%;display:grid;place-items:center;padding:24px}
-.card{width:100%;max-width:680px;background:linear-gradient(180deg,#111827cc,#0b1324cc);border:1px solid #1f2937;border-radius:18px;box-shadow:0 10px 40px #0006;overflow:hidden}
-.hdr{padding:24px 24px 8px;border-bottom:1px solid #1f2937}
-.title{margin:0;font-size:20px;display:flex;gap:10px;align-items:center}
-.dot{width:10px;height:10px;border-radius:999px;background:var(--accent);box-shadow:0 0 20px var(--accent-weak)}
-.sub{margin:6px 0 0;color:var(--muted);font-size:14px}
-.body{padding:24px}
-.row{margin:14px 0}
-.flex{display:flex;gap:12px;align-items:center}
-.spinner{width:24px;height:24px;border:3px solid var(--accent-weak);border-top-color:var(--accent);border-radius:999px;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.btn{appearance:none;border:1px solid var(--accent);background:linear-gradient(180deg,var(--accent),#2563eb);color:#fff;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer;box-shadow:0 6px 20px var(--accent-weak);text-decoration:none;display:inline-flex;align-items:center;gap:8px}
-.err{color:#f87171}
-.ok{color:#34d399}
-select{width:100%;padding:10px;border-radius:10px;background:#0b1324;color:var(--text);border:1px solid #1f2937}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    color:#e5e7eb;
+    font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial;
+    background:
+      radial-gradient(1200px 600px at 20% 10%,#0b1730,#070b15 65%),
+      radial-gradient(1000px 400px at 90% 110%,#0a1228,#070b15 60%);
+  }
+  .container{max-width:1000px;margin:6vh auto;padding:24px}
+  .card{
+    background:linear-gradient(180deg,#111827cc,#0b1324cc);
+    border:1px solid #1f2937;border-radius:18px;overflow:hidden;
+    box-shadow:0 10px 40px #0006
+  }
+  .header{padding:22px;border-bottom:1px solid #1f2937}
+  .title{margin:0;font-size:20px;display:flex;gap:10px;align-items:center}
+  .dot{width:10px;height:10px;border-radius:999px;background:#34d399;box-shadow:0 0 20px #34d39955}
+  .sub{margin:6px 0 0;color:#9ca3af;font-size:14px}
+  .body{padding:22px}
+  .row{margin:12px 0}
+  .flex{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .spinner{width:32px;height:32px;border:3px solid #34d39933;border-top-color:#34d399;border-radius:999px;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .input,select,button{font:inherit}
+  .input,select{
+    width:100%;background:#0b1220;color:#e5e7eb;border:1px solid #334155;border-radius:12px;
+    padding:12px 14px;outline:none;transition:border .15s ease,box-shadow .15s ease;font-size:15px
+  }
+  .input:focus,select:focus{border-color:#34d399;box-shadow:0 0 0 4px #34d39933}
+  .btn{
+    appearance:none;border:1px solid #10b981;background:linear-gradient(180deg,#34d399,#10b981);color:#fff;
+    padding:12px 16px;border-radius:12px;font-weight:800;cursor:pointer;transition:transform .08s ease,box-shadow .2s ease;
+    box-shadow:0 8px 24px #10b98144;text-decoration:none;display:inline-flex;align-items:center;gap:8px
+  }
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .btn.secondary{background:none;color:#e5e7eb;border-color:#334155;box-shadow:none}
+  .grid{display:grid;grid-template-columns:1fr;gap:16px}
+  @media(min-width:960px){.grid{grid-template-columns:2fr 3fr}}
+  .badge{display:inline-block;padding:6px 10px;border:1px solid #38485f;border-radius:999px;font-size:12px;color:#c7d2fe;background:#0b1220}
+  .err{color:#fca5a5}
+  .ok{color:#86efac}
+  .panel{background:#0a0f1d;border:1px solid #1f2937;border-radius:14px;padding:14px}
+  .card-mini{display:flex;gap:14px;align-items:center}
+  .avatar{width:72px;height:72px;border-radius:12px;object-fit:cover;background:#0b1220;border:1px solid #1f2937}
+  .meta{display:grid;gap:4px}
+  .kv{display:flex;gap:8px;flex-wrap:wrap}
+  .kv span{padding:4px 8px;border:1px solid #334155;border-radius:999px;font-size:12px;color:#cbd5e1}
+  .muted{color:#9ca3af}
+  .skel{position:relative;overflow:hidden;background:#0b1220;border:1px solid #1f2937;border-radius:12px}
+  .skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);animation:sh 1.2s infinite}
+  @keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+  .shortcuts{font-size:12px;color:#9ca3af}
+  .note{padding:12px 14px;border:1px solid #78350f;background:#111827;border-radius:12px}
 </style>
-</head>
+
 <body>
-<div class="wrap">
-  <div class="card">
-    <div class="hdr">
-      <h1 class="title"><span class="dot"></span>Finalizing sign-in</h1>
-      <p class="sub">Processing your Battle.net response…</p>
-    </div>
-    <div class="body" id="content">
-      <div class="flex"><div class="spinner"></div><div>Talking to the bot…</div></div>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <h1 class="title"><span class="dot"></span>Finishing sign-in</h1>
+        <p class="sub">Pick your character and submit <span class="badge">cb:v3</span></p>
+      </div>
+      <div class="body">
+
+        <div id="step-loading" class="row flex">
+          <div class="spinner"></div><div>Talking to server…</div>
+        </div>
+
+        <div id="step-error" class="row" style="display:none">
+          <div class="row err" id="err-text"></div>
+          <div class="row"><a class="btn secondary" href="/">Return</a> <button id="retry" class="btn secondary">Retry</button></div>
+        </div>
+
+        <div id="step-select" style="display:none">
+          <div class="row flex">
+            <span class="badge" id="who"></span>
+            <span class="shortcuts">Enter to submit • ↑/↓ to move • Double-click to quick submit</span>
+          </div>
+
+          <div class="grid">
+            <div class="panel">
+              <div class="row"><input id="q" class="input" placeholder="Search name or realm"></div>
+              <div class="row"><select id="choice" size="12" style="height:360px"></select></div>
+              <div class="row"><span class="badge" id="count"></span></div>
+            </div>
+
+            <div class="panel" id="preview">
+              <div id="pv-skel" class="skel" style="height:160px;display:none"></div>
+              <div id="pv-empty" class="muted">Select a character to see details</div>
+              <div id="pv-card" style="display:none">
+                <div class="card-mini">
+                  <img id="pv-avatar" class="avatar" src="" alt="">
+                  <div class="meta">
+                    <div id="pv-title" style="font-weight:800"></div>
+                    <div class="kv">
+                      <span id="pv-class"></span>
+                      <span id="pv-ilvl"></span>
+                      <span id="pv-faction"></span>
+                      <span id="pv-score"></span>
+                    </div>
+                    <div class="kv"><span id="pv-raid"></span></div>
+                    <div><a id="pv-rio" class="btn secondary" target="_blank" rel="noopener">Open Raider.IO</a></div>
+                    <div class="note muted" id="pv-note" style="display:none"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <button id="submit" class="btn" disabled>Submit application</button>
+            <a class="btn secondary" href="/">Cancel</a>
+          </div>
+        </div>
+
+        <div id="step-done" class="row" style="display:none">
+          <div class="row ok" id="done-text"></div>
+          <div class="row"><a class="btn secondary" href="https://discord.com/app">Return to Discord</a></div>
+        </div>
+
+      </div>
     </div>
   </div>
-</div>
 
 <script>
-const API_BASE = "https://mikumikudev-c530e6b3e669.herokuapp.com";
+  const API_BASE = location.origin
 
-function setHTML(h){document.getElementById("content").innerHTML=h}
-function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+  const params = new URLSearchParams(location.search)
+  let code = params.get("code") || ""
+  let state = params.get("state") || ""
+  if (code || state) history.replaceState(null, "", location.pathname)
 
-async function postJSON(url, payload){
-  const r = await fetch(url,{
-    method:"POST",
-    mode:"cors",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify(payload),
-    credentials:"omit"
-  });
-  const txt = await r.text();
-  let data = {}; try{data = JSON.parse(txt)}catch{}
-  if(!r.ok) throw new Error("HTTP "+r.status+" "+txt);
-  return data;
-}
+  const loading = document.getElementById("step-loading")
+  const stepErr = document.getElementById("step-error")
+  const errText = document.getElementById("err-text")
+  const retryBtn = document.getElementById("retry")
+  const stepSel = document.getElementById("step-select")
+  const stepDone = document.getElementById("step-done")
+  const who = document.getElementById("who")
+  const q = document.getElementById("q")
+  const sel = document.getElementById("choice")
+  const btn = document.getElementById("submit")
+  const count = document.getElementById("count")
 
-async function submitForm(url, fields){
-  const fd = new FormData();
-  for(const [k,v] of Object.entries(fields)) fd.append(k,v);
-  const r = await fetch(url,{method:"POST",mode:"cors",body:fd,credentials:"omit"});
-  const txt = await r.text();
-  let data = {}; try{data = JSON.parse(txt)}catch{}
-  if(!r.ok) throw new Error("HTTP "+r.status+" "+txt);
-  return data;
-}
+  const pvSkel = document.getElementById("pv-skel")
+  const pvEmpty = document.getElementById("pv-empty")
+  const pvCard = document.getElementById("pv-card")
+  const pvAvatar = document.getElementById("pv-avatar")
+  const pvTitle = document.getElementById("pv-title")
+  const pvClass = document.getElementById("pv-class")
+  const pvIlvl = document.getElementById("pv-ilvl")
+  const pvFaction = document.getElementById("pv-faction")
+  const pvScore = document.getElementById("pv-score")
+  const pvRaid = document.getElementById("pv-raid")
+  const pvRio = document.getElementById("pv-rio")
+  const pvNote = document.getElementById("pv-note")
 
-(async function(){
-  const p = new URLSearchParams(location.search);
-  const code = p.get("code")||"";
-  const state = p.get("state")||"";
-  const oauthErr = p.get("error")||"";
-  const oauthErrDesc = p.get("error_description")||"";
+  const doneText = document.getElementById("done-text")
 
-  if(oauthErr){
-    setHTML('<div class="row err">OAuth error: '+esc(oauthErr)+'<br>'+esc(oauthErrDesc)+'</div>');
-    return;
+  let allChoices = []
+  let lastSelected = ""
+  let USER_ID = ""
+
+  function show(node){
+    loading.style.display="none"
+    stepErr.style.display="none"
+    stepSel.style.display="none"
+    stepDone.style.display="none"
+    node.style.display="block"
   }
 
-  if(!code||!state){
-    setHTML('<div class="row err">Missing <b>code</b> or <b>state</b> in callback URL.<br><small>'+esc(location.href)+'</small></div>');
-    return;
+  function render(list){
+    sel.innerHTML=""
+    list.forEach(o=>{
+      const opt=document.createElement("option")
+      opt.value=JSON.stringify(o)
+      opt.textContent=o.name+" — "+o.realm
+      sel.appendChild(opt)
+    })
+    count.textContent=list.length+" character(s)"
+    if(lastSelected){
+      const i=[...sel.options].findIndex(o=>o.value===lastSelected)
+      if(i>=0) sel.selectedIndex=i
+    }
+    btn.disabled = sel.selectedOptions.length===0
   }
 
-  try{
-    const intake = await postJSON(API_BASE + "/oauth/intake", { code, state });
-    const choices = Array.isArray(intake.choices) ? intake.choices : [];
-    if(choices.length === 0){
-      setHTML('<div class="row err">No characters found.</div>');
-      return;
-    }
+  function skel(on){
+    pvSkel.style.display=on?"block":"none"
+    pvEmpty.style.display=on?"none":"block"
+    pvCard.style.display="none"
+  }
 
-    const renderDone = (label) => {
-      setHTML(
-        '<div class="row ok">Submitted as <b>'+esc(label)+'</b>.</div>' +
-        '<div class="row"><a class="btn" href="https://discord.com/app">Return to Discord</a></div>'
-      );
-    };
+  function clearPreview(){
+    pvAvatar.src=""
+    pvTitle.textContent=""
+    pvClass.textContent=""
+    pvIlvl.textContent=""
+    pvFaction.textContent=""
+    pvScore.textContent=""
+    pvRaid.textContent=""
+    pvRio.href="#"
+    pvNote.style.display="none"
+    pvNote.textContent=""
+    pvCard.style.display="none"
+    pvEmpty.style.display="block"
+    pvSkel.style.display="none"
+  }
 
-    if(choices.length === 1){
-      const c = choices[0];
-      const label = (c.name || "?") + " — " + (c.realm || "?");
-      const res = await submitForm(API_BASE + "/oauth/submit", { state, choice: JSON.stringify(c) });
-      if(res.ok){ renderDone(label); }
-      else{ setHTML('<div class="row err">Submission failed: '+esc(res.status||res.error||"error")+'</div>'); }
-      return;
-    }
+  function currentChoice(){
+    if(!sel.value) return null
+    try{ return JSON.parse(sel.value) }catch{ return null }
+  }
 
-    const opts = choices.map((c,i)=>{
-      const label = (c.name||"?") + " — " + (c.realm||"?");
-      return '<option value="'+i+'">'+esc(label)+'</option>';
-    }).join("");
+  async function fillPreview(region, realm, name){
+    skel(true)
+    try{
+      const u="https://raider.io/api/v1/characters/profile?"+new URLSearchParams({
+        region, realm, name, fields:"gear,raid_progression,mythic_plus_scores_by_season:current"
+      }).toString()
+      const r=await fetch(u)
+      if(!r.ok){ clearPreview(); return }
+      const d=await r.json()
 
-    setHTML(
-      '<div class="row">Select your character</div>' +
-      '<div class="row"><select id="sel" size="8">'+opts+'</select></div>' +
-      '<div class="row"><button class="btn" id="go">Continue</button></div>'
-    );
+      const cls=d.class||""
+      const spec=(d.active_spec_name||"") + (d.active_spec_role?(" • "+d.active_spec_role):"")
+      const ilvl=d.gear && d.gear.item_level_equipped ? Math.round(Number(d.gear.item_level_equipped)) : null
 
-    document.getElementById("go").onclick = async ()=>{
-      const idx = parseInt(document.getElementById("sel").value, 10);
-      const c = choices[idx];
-      const label = (c?.name||"?") + " — " + (c?.realm||"?");
-      setHTML('<div class="flex"><div class="spinner"></div><div>Submitting…</div></div>');
-      try{
-        const res = await submitForm(API_BASE + "/oauth/submit", { state, choice: JSON.stringify(c) });
-        if(res.ok){ renderDone(label); }
-        else{ setHTML('<div class="row err">Submission failed: '+esc(res.status||res.error||"error")+'</div>'); }
-      }catch(e){
-        setHTML('<div class="row err">HTTP error: '+esc(e.message)+'</div>');
+      let score=0
+      if(Array.isArray(d.mythic_plus_scores_by_season) && d.mythic_plus_scores_by_season.length){
+        const s0=d.mythic_plus_scores_by_season[0]||{}
+        if(s0.scores && s0.scores.all!=null) score=Math.round(Number(s0.scores.all)||0)
       }
-    };
 
-  }catch(e){
-    setHTML('<div class="row err">Network error: '+esc(e.message)+'</div>');
+      pvAvatar.src=d.thumbnail_url||""
+      pvTitle.textContent=name+" — "+realm
+      pvClass.textContent=spec ? (spec+" • "+cls) : cls
+      pvIlvl.textContent=ilvl ? ("iLvl "+ilvl) : ""
+      pvFaction.textContent=d.faction||""
+      pvScore.textContent=score ? ("M+ "+score) : "No current M+ score"
+      pvRaid.textContent=""
+      pvRio.href=d.profile_url || ("https://raider.io/characters/"+region+"/"+realm.toLowerCase().replace(/\s+/g,"-")+"/"+name)
+
+      pvEmpty.style.display="none"
+      pvSkel.style.display="none"
+      pvCard.style.display="block"
+      pvNote.style.display = (!score) ? "block" : "none"
+      pvNote.textContent = (!score) ? "This character has no current-season Mythic+ score on Raider.IO." : ""
+    }catch{
+      clearPreview()
+    }
   }
-})();
+
+  async function intake(){
+    if(!code || !state){
+      errText.textContent="Missing code or state."
+      show(stepErr)
+      return
+    }
+    try{
+      const r=await fetch(API_BASE + "/oauth/intake", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({state, code}),
+        cache:"no-store"
+      })
+      const data = await r.json().catch(()=>null)
+      if(!r.ok || !data || !data.ok){
+        errText.textContent = "Intake failed: " + (data ? (data.error || JSON.stringify(data)) : "bad response")
+        show(stepErr)
+        return
+      }
+
+      USER_ID = ((data.user_id_str ?? data.user_id) ?? "").toString()
+      who.textContent = "Discord: " + USER_ID
+
+      allChoices=(data.choices||[]).map(o=>({
+        name:o.name,
+        realm:o.realm,
+        realm_slug:o.realm_slug,
+        name_slug:o.name_slug,
+        region:(o.region||"eu").toLowerCase()
+      }))
+
+      render(allChoices)
+      show(stepSel)
+
+      if(sel.options.length){
+        sel.selectedIndex=0
+        lastSelected=sel.value
+        const c=currentChoice()
+        if(c) fillPreview(c.region, c.realm, c.name)
+      }
+    }catch{
+      errText.textContent="Network error."
+      show(stepErr)
+    }
+  }
+
+  function filterNow(){
+    const s=q.value.toLowerCase()
+    const f=!s ? allChoices : allChoices.filter(o=>o.name.toLowerCase().includes(s) || o.realm.toLowerCase().includes(s))
+    render(f)
+    if(sel.options.length){
+      sel.selectedIndex=0
+      lastSelected=sel.value
+      const c=currentChoice()
+      if(c) fillPreview(c.region, c.realm, c.name)
+    }else{
+      clearPreview()
+    }
+  }
+
+  q.addEventListener("input", filterNow)
+  sel.addEventListener("change", ()=>{
+    btn.disabled = sel.selectedOptions.length===0
+    lastSelected = sel.value
+    const c=currentChoice()
+    if(c) fillPreview(c.region, c.realm, c.name)
+  })
+  sel.addEventListener("dblclick", ()=>{ if(!btn.disabled) submitApp() })
+
+  document.addEventListener("keydown", e=>{
+    if(e.key==="Enter" && document.activeElement!==q && !btn.disabled) submitApp()
+    if(e.key==="ArrowDown"){
+      if(sel.selectedIndex<sel.options.length-1){ sel.selectedIndex++; sel.dispatchEvent(new Event("change")) }
+      e.preventDefault()
+    }
+    if(e.key==="ArrowUp"){
+      if(sel.selectedIndex>0){ sel.selectedIndex--; sel.dispatchEvent(new Event("change")) }
+      e.preventDefault()
+    }
+  })
+
+  async function submitApp(){
+    const c=currentChoice()
+    if(!c) return
+    if(!state){
+      errText.textContent="Missing state at submit time."
+      show(stepErr)
+      return
+    }
+
+    btn.disabled=true
+    const prev=btn.textContent
+    btn.textContent="Submitting…"
+
+    const choice = c.name + "::" + c.realm
+    const qs = new URLSearchParams({ state, choice }).toString()
+
+    try{
+      const r=await fetch(API_BASE + "/oauth/submit?" + qs, {
+        method:"POST",
+        headers:{ "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8" },
+        body: qs,
+        cache:"no-store"
+      })
+      const data = await r.json().catch(()=>null)
+      if(!r.ok || !data || !data.ok){
+        errText.textContent="Submit failed: " + (data ? (data.status || data.error || JSON.stringify(data)) : "bad response")
+        show(stepErr)
+        btn.disabled=false
+        btn.textContent=prev
+        return
+      }
+
+      doneText.textContent="Submitted."
+      show(stepDone)
+    }catch{
+      errText.textContent="Network error."
+      show(stepErr)
+      btn.disabled=false
+      btn.textContent=prev
+    }
+  }
+
+  btn.addEventListener("click", submitApp)
+  retryBtn.addEventListener("click", ()=>{ show(loading); clearPreview(); intake() })
+
+  intake()
 </script>
 </body>
 </html>
