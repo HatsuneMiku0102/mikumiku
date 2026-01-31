@@ -507,13 +507,11 @@ app.get('/oauth/callback', (_req, res) => {
 })
 
 async function handleOAuthIntake(req, res) {
-  const rid = crypto.randomBytes(6).toString('hex')
+  const rid = crypto.randomBytes(8).toString('hex')
   try {
     const code = String((req.body?.code ?? req.query?.code) || '').trim()
     const state = String((req.body?.state ?? req.query?.state) || '').trim()
-    if (!code || !isSafeState(state)) {
-      return res.status(400).json({ ok: false, error: 'Missing/invalid code/state', rid })
-    }
+    if (!code || !isSafeState(state)) return res.status(400).json({ ok: false, error: 'Missing/invalid code/state', rid })
 
     let sess = await Session.findOne({ state }).lean()
     if (!sess) {
@@ -533,19 +531,22 @@ async function handleOAuthIntake(req, res) {
       if (!sess) return res.status(400).json({ ok: false, error: 'Unknown state', rid })
     }
 
+    logger.info(`oauth/intake rid=${rid} exchanging code for token state=${state.slice(0, 12)}...`)
+
     const tokenData = await exchangeBlizzardCodeForToken(code)
     const accessToken = String(tokenData?.access_token || '').trim()
     const expiresIn = Number(tokenData?.expires_in || 0)
-    if (!accessToken) {
-      return res.status(502).json({ ok: false, error: 'Token exchange failed', rid, details: tokenData || null })
-    }
+    if (!accessToken) return res.status(502).json({ ok: false, error: 'Token exchange failed', rid })
 
     const region = BLIZZARD_REGION || 'eu'
     const namespace = `profile-${region}`
     const url = `${wowApiBase(region)}/profile/user/wow`
 
+    logger.info(`oauth/intake rid=${rid} fetching user profile url=${url} namespace=${namespace} locale=${WOW_LOCALE}`)
+
     const profileResp = await axios.get(url, {
-      params: { namespace, locale: WOW_LOCALE, access_token: accessToken },
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: { namespace, locale: WOW_LOCALE },
       timeout: 12000
     })
 
@@ -567,9 +568,9 @@ async function handleOAuthIntake(req, res) {
 
     res.json({ ok: true, choices, rid })
   } catch (err) {
-    const status = err?.response?.status
-    const data = err?.response?.data
-    const msg = String(err?.message || err || 'unknown_error')
+    const status = err?.response?.status || null
+    const data = err?.response?.data ?? null
+    const msg = String(err?.message || err || '')
 
     logger.error(`oauth/intake failed rid=${rid} msg=${msg} status=${status || ''} data=${typeof data === 'string' ? data : JSON.stringify(data || {})}`)
 
@@ -577,12 +578,13 @@ async function handleOAuthIntake(req, res) {
       ok: false,
       error: 'OAuth intake failed',
       rid,
-      upstream_status: status || null,
-      upstream_data: data || null,
+      upstream_status: status,
+      upstream_data: data,
       message: msg
     })
   }
 }
+
 
 app.get('/oauth/intake', handleOAuthIntake)
 app.post('/oauth/intake', handleOAuthIntake)
