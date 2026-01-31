@@ -619,19 +619,22 @@ app.get('/oauth/intake', handleOAuthIntake)
 app.post('/oauth/intake', handleOAuthIntake)
 
 async function oauthSubmitHandler(req, res) {
+  const rid = crypto.randomBytes(8).toString('hex')
   try {
     const state = String((req.body?.state ?? req.query?.state) || '').trim()
-    let choiceRaw = (req.body?.choice ?? req.query?.choice)
-
+    const choiceRaw = (req.body?.choice ?? req.query?.choice)
     const choiceStr = String(choiceRaw || '').trim()
 
     if (!isSafeState(state) || !choiceStr) {
-      logger.error(`oauth/submit invalid_request: state_ok=${isSafeState(state)} choice_len=${choiceStr.length}`)
-      return res.status(400).json({ ok: false, status: 'invalid_request' })
+      logger.error(`oauth/submit rid=${rid} invalid_request state_ok=${isSafeState(state)} choice_len=${choiceStr.length}`)
+      return res.status(400).json({ ok: false, status: 'invalid_request', rid })
     }
 
     let name = ''
     let realm = ''
+    let region = ''
+    let realm_slug = ''
+    let name_slug = ''
 
     if (choiceStr.includes('::')) {
       const [nameRaw, realmRaw] = choiceStr.split('::')
@@ -642,34 +645,90 @@ async function oauthSubmitHandler(req, res) {
         const parsed = JSON.parse(choiceStr)
         name = String(parsed?.name || '').trim()
         realm = String(parsed?.realm || '').trim()
+        region = String(parsed?.region || '').trim()
+        realm_slug = String(parsed?.realm_slug || '').trim()
+        name_slug = String(parsed?.name_slug || '').trim()
       } catch {
-        logger.error(`oauth/submit invalid_choice: choice="${choiceStr.slice(0, 120)}"`)
-        return res.status(400).json({ ok: false, status: 'invalid_request' })
+        logger.error(`oauth/submit rid=${rid} invalid_choice raw="${choiceStr.slice(0, 160)}"`)
+        return res.status(400).json({ ok: false, status: 'invalid_request', rid })
       }
     }
 
     if (!name || !realm) {
-      logger.error(`oauth/submit invalid_choice: name="${name}" realm="${realm}" raw="${choiceStr.slice(0, 120)}"`)
-      return res.status(400).json({ ok: false, status: 'invalid_request' })
+      logger.error(`oauth/submit rid=${rid} invalid_choice name="${name}" realm="${realm}" raw="${choiceStr.slice(0, 160)}"`)
+      return res.status(400).json({ ok: false, status: 'invalid_request', rid })
     }
 
     const sess = await Session.findOne({ state }).lean()
     if (!sess) {
-      logger.error(`oauth/submit unknown_state: state="${state.slice(0, 32)}..."`)
-      return res.status(400).json({ ok: false, status: 'unknown_state' })
+      logger.error(`oauth/submit rid=${rid} unknown_state state="${state.slice(0, 32)}..."`)
+      return res.status(400).json({ ok: false, status: 'unknown_state', rid })
     }
+
+    const user_id = String(sess?.user_id || '').trim()
+    const session_id = String(sess?.session_id || '').trim()
+    const intent = String(sess?.intent || '').trim() || (session_id.startsWith('linkalt:') ? 'linkalt' : 'apply')
+
+    if (!region) region = String(sess?.oauth_region || BLIZZARD_REGION || 'eu').trim().toLowerCase()
+
+    const chars = Array.isArray(sess?.oauth_chars) ? sess.oauth_chars : []
+    const match = chars.find(c => {
+      const cn = String(c?.name || '').trim().toLowerCase()
+      const cr = String(c?.realm || '').trim().toLowerCase()
+      return cn === name.toLowerCase() && cr === realm.toLowerCase()
+    })
+
+    if (!realm_slug) realm_slug = String(match?.realm_slug || match?.realmSlug || '').trim()
+    if (!name_slug) name_slug = String(match?.name_slug || match?.nameSlug || '').trim()
+
+    if (!realm_slug) realm_slug = slugify(realm)
+    if (!name_slug) name_slug = slugify(name)
 
     await Session.updateOne(
       { state },
-      { $set: { oauth_selected_name: name, oauth_selected_realm: realm, oauth_selected_at: new Date() } }
+      { $set: { oauth_selected_name: name, oauth_selected_realm: realm, oauth_selected_region: region, oauth_selected_at: new Date() } }
     )
 
-    res.json({ ok: true })
+    const payload = {
+      state,
+      rid,
+      user_id,
+      intent,
+      session_id,
+      character: {
+        name,
+        realm,
+        region,
+        realm_slug,
+        name_slug
+      }
+    }
+
+    const botAck = await emitToBot('oauth:submit', payload, 8000)
+
+    await Session.updateOne(
+      { state },
+      {
+        $set: {
+          oauth_bot_notified_at: new Date(),
+          oauth_bot_ack: botAck,
+          oauth_bot_ok: !!botAck?.ok
+        }
+      }
+    ).catch(() => {})
+
+    const ok = true
+    return res.json({
+      ok,
+      rid,
+      bot: botAck
+    })
   } catch (err) {
-    logger.error(`oauth/submit failed: ${err?.message || err}`)
-    res.status(500).json({ ok: false, status: 'server_error' })
+    logger.error(`oauth/submit rid=${rid} failed: ${err?.message || err}`)
+    return res.status(500).json({ ok: false, status: 'server_error', rid })
   }
 }
+
 
 app.post('/oauth/submit', oauthSubmitHandler)
 app.get('/oauth/submit', oauthSubmitHandler)
