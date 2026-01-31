@@ -592,19 +592,43 @@ app.post('/oauth/intake', handleOAuthIntake)
 async function oauthSubmitHandler(req, res) {
   try {
     const state = String((req.body?.state ?? req.query?.state) || '').trim()
-    const choice = String((req.body?.choice ?? req.query?.choice) || '').trim()
+    let choiceRaw = (req.body?.choice ?? req.query?.choice)
 
-    if (!isSafeState(state) || !choice.includes('::')) {
+    const choiceStr = String(choiceRaw || '').trim()
+
+    if (!isSafeState(state) || !choiceStr) {
+      logger.error(`oauth/submit invalid_request: state_ok=${isSafeState(state)} choice_len=${choiceStr.length}`)
+      return res.status(400).json({ ok: false, status: 'invalid_request' })
+    }
+
+    let name = ''
+    let realm = ''
+
+    if (choiceStr.includes('::')) {
+      const [nameRaw, realmRaw] = choiceStr.split('::')
+      name = String(nameRaw || '').trim()
+      realm = String(realmRaw || '').trim()
+    } else {
+      try {
+        const parsed = JSON.parse(choiceStr)
+        name = String(parsed?.name || '').trim()
+        realm = String(parsed?.realm || '').trim()
+      } catch {
+        logger.error(`oauth/submit invalid_choice: choice="${choiceStr.slice(0, 120)}"`)
+        return res.status(400).json({ ok: false, status: 'invalid_request' })
+      }
+    }
+
+    if (!name || !realm) {
+      logger.error(`oauth/submit invalid_choice: name="${name}" realm="${realm}" raw="${choiceStr.slice(0, 120)}"`)
       return res.status(400).json({ ok: false, status: 'invalid_request' })
     }
 
     const sess = await Session.findOne({ state }).lean()
-    if (!sess) return res.status(400).json({ ok: false, status: 'unknown_state' })
-
-    const [nameRaw, realmRaw] = choice.split('::')
-    const name = String(nameRaw || '').trim()
-    const realm = String(realmRaw || '').trim()
-    if (!name || !realm) return res.status(400).json({ ok: false, status: 'invalid_choice' })
+    if (!sess) {
+      logger.error(`oauth/submit unknown_state: state="${state.slice(0, 32)}..."`)
+      return res.status(400).json({ ok: false, status: 'unknown_state' })
+    }
 
     await Session.updateOne(
       { state },
