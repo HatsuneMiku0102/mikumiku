@@ -590,6 +590,7 @@ app.get('/oauth/intake', handleOAuthIntake)
 app.post('/oauth/intake', handleOAuthIntake)
 
 app.post('/oauth/submit', async (req, res) => {
+res.status(405).send('Method Not Allowed. Use POST /oauth/submit from the callback page.')
   try {
     const state = String(req.body?.state || '').trim()
     const choiceRaw = String(req.body?.choice || '').trim()
