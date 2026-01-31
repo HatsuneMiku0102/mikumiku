@@ -56,7 +56,7 @@ if (!API_KEY_ENC_SECRET) {
 
 const BLIZZARD_CLIENT_ID = String(process.env.BLIZZARD_CLIENT_ID || '').trim()
 const BLIZZARD_CLIENT_SECRET = String(process.env.BLIZZARD_CLIENT_SECRET || '').trim()
-const BLIZZARD_REDIRECT_URI = String(process.env.BLIZZARD_REDIRECT_URI || 'https://mikumiku.dev/oauth/callback').trim()
+const BLIZZARD_REDIRECT_URI_ENV = String(process.env.BLIZZARD_REDIRECT_URI || '').trim()
 const BLIZZARD_REGION = String(process.env.BLIZZARD_REGION || 'eu').trim().toLowerCase()
 const WOW_LOCALE = String(process.env.WOW_LOCALE || 'en_GB').trim()
 
@@ -220,16 +220,6 @@ function decryptString(enc) {
   return Buffer.concat([p1, p2]).toString('utf8')
 }
 
-function slugify(s) {
-  return String(s || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[’']/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-    .replace(/-+/g, '-')
-}
-
 const userApiKeySchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
   keyId: { type: String, required: true, index: true },
@@ -275,15 +265,7 @@ const sessionSchema = new mongoose.Schema({
   created_at: { type: Date, default: Date.now, expires: 86400 },
   ip_address: { type: String },
   user_agent: { type: String },
-  oauth_access_token: { type: String },
-  oauth_expires_at: { type: Date },
-  oauth_region: { type: String },
-  oauth_locale: { type: String },
-  oauth_chars: { type: Array },
-  oauth_updated_at: { type: Date },
-  oauth_selected_name: { type: String },
-  oauth_selected_realm: { type: String },
-  oauth_selected_at: { type: Date }
+  oauth_redirect_uri: { type: String }
 })
 mongoose.model('Session', sessionSchema, 'sessions')
 const Session = mongoose.model('Session')
@@ -415,7 +397,22 @@ function wowApiBase(region) {
   return `https://${r}.api.blizzard.com`
 }
 
-async function exchangeBlizzardCodeForToken(code) {
+function firstForwarded(v) {
+  return String(v || '').split(',')[0].trim()
+}
+
+function makePublicBase(req) {
+  const proto = firstForwarded(req.headers['x-forwarded-proto']) || req.protocol || 'https'
+  const host = firstForwarded(req.headers['x-forwarded-host']) || String(req.headers.host || '')
+  return `${proto}://${host}`.replace(/\/$/, '')
+}
+
+function computeRedirectUri(req) {
+  const base = makePublicBase(req)
+  return `${base}/oauth/callback`
+}
+
+async function exchangeBlizzardCodeForToken(code, redirectUri) {
   if (!BLIZZARD_CLIENT_ID || !BLIZZARD_CLIENT_SECRET) {
     throw new Error('BLIZZARD_CLIENT_ID/BLIZZARD_CLIENT_SECRET not set')
   }
@@ -423,7 +420,7 @@ async function exchangeBlizzardCodeForToken(code) {
   const body = new URLSearchParams()
   body.set('grant_type', 'authorization_code')
   body.set('code', String(code))
-  body.set('redirect_uri', BLIZZARD_REDIRECT_URI)
+  body.set('redirect_uri', String(redirectUri))
 
   const basic = Buffer.from(`${BLIZZARD_CLIENT_ID}:${BLIZZARD_CLIENT_SECRET}`).toString('base64')
 
@@ -442,7 +439,7 @@ async function exchangeBlizzardCodeForToken(code) {
   return resp.data || {}
 }
 
-function flattenWowCharacters(profileJson, region = BLIZZARD_REGION || 'eu') {
+function flattenWowCharacters(profileJson) {
   const out = []
   const accounts = Array.isArray(profileJson?.wow_accounts) ? profileJson.wow_accounts : []
   for (const acc of accounts) {
@@ -450,10 +447,8 @@ function flattenWowCharacters(profileJson, region = BLIZZARD_REGION || 'eu') {
     for (const c of chars) {
       const name = String(c?.name || '').trim()
       const realmName = String(c?.realm?.name || c?.realm?.slug || '').trim()
-      const realmSlug = String(c?.realm?.slug || '').trim() || slugify(realmName)
-      const nameSlug = String(c?.character?.nameSlug || '').trim() || slugify(name)
       if (!name || !realmName) continue
-      out.push({ name, realm: realmName, realm_slug: realmSlug, name_slug: nameSlug, region: String(region || 'eu').toLowerCase() })
+      out.push({ name, realm: realmName })
     }
   }
   const seen = new Set()
@@ -483,6 +478,7 @@ app.post('/oauth/state', async (req, res) => {
     const state = String(req.body?.state || '').trim()
     const user_id = String(req.body?.user_id || '').trim()
     const session_id = String(req.body?.session_id || '').trim()
+    const redirect_uri = String(req.body?.redirect_uri || '').trim()
     if (!isSafeState(state) || !user_id || !session_id) return res.status(400).json({ ok: false, error: 'invalid_request' })
 
     const ip = String(req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim()
@@ -490,7 +486,7 @@ app.post('/oauth/state', async (req, res) => {
 
     await Session.updateOne(
       { state },
-      { $setOnInsert: { state, user_id, session_id, created_at: new Date() }, $set: { ip_address: ip, user_agent: ua } },
+      { $setOnInsert: { state, user_id, session_id, created_at: new Date() }, $set: { ip_address: ip, user_agent: ua, oauth_redirect_uri: redirect_uri || undefined } },
       { upsert: true }
     )
 
@@ -506,10 +502,18 @@ app.get('/oauth/login', async (req, res) => {
     const state = String(req.query?.state || '').trim()
     if (!isSafeState(state)) return res.status(400).send('Missing/invalid state')
 
+    const redirectUri = computeRedirectUri(req)
+
+    await Session.updateOne(
+      { state },
+      { $set: { oauth_redirect_uri: redirectUri } },
+      { upsert: false }
+    ).catch(() => {})
+
     const q = new URLSearchParams()
     q.set('client_id', BLIZZARD_CLIENT_ID)
     q.set('scope', 'openid wow.profile')
-    q.set('redirect_uri', BLIZZARD_REDIRECT_URI)
+    q.set('redirect_uri', redirectUri)
     q.set('response_type', 'code')
     q.set('state', state)
 
@@ -552,9 +556,11 @@ async function handleOAuthIntake(req, res) {
       if (!sess) return res.status(400).json({ ok: false, error: 'Unknown state', rid })
     }
 
-    logger.info(`oauth/intake rid=${rid} exchanging code for token state=${state.slice(0, 12)}...`)
+    const redirectUri = String(sess?.oauth_redirect_uri || '').trim() || BLIZZARD_REDIRECT_URI_ENV || computeRedirectUri(req)
 
-    const tokenData = await exchangeBlizzardCodeForToken(code)
+    logger.info(`oauth/intake rid=${rid} exchanging code for token state=${state.slice(0, 12)}... redirect_uri=${redirectUri}`)
+
+    const tokenData = await exchangeBlizzardCodeForToken(code, redirectUri)
     const accessToken = String(tokenData?.access_token || '').trim()
     const expiresIn = Number(tokenData?.expires_in || 0)
     if (!accessToken) return res.status(502).json({ ok: false, error: 'Token exchange failed', rid })
@@ -571,7 +577,7 @@ async function handleOAuthIntake(req, res) {
       timeout: 12000
     })
 
-    const choices = flattenWowCharacters(profileResp.data || {}, region)
+    const choices = flattenWowCharacters(profileResp.data || {})
 
     await Session.updateOne(
       { state },
@@ -582,20 +588,13 @@ async function handleOAuthIntake(req, res) {
           oauth_region: region,
           oauth_locale: WOW_LOCALE,
           oauth_chars: choices,
-          oauth_updated_at: new Date()
+          oauth_updated_at: new Date(),
+          oauth_redirect_uri: redirectUri
         }
       }
     )
 
-    const intent = String(sess?.session_id || '').split(':')[0] || 'apply'
-
-    res.json({
-      ok: true,
-      choices,
-      rid,
-      user_id_str: String(sess?.user_id || ''),
-      intent
-    })
+    res.json({ ok: true, choices, rid })
   } catch (err) {
     const status = err?.response?.status || null
     const data = err?.response?.data ?? null
@@ -603,7 +602,9 @@ async function handleOAuthIntake(req, res) {
 
     logger.error(`oauth/intake failed rid=${rid} msg=${msg} status=${status || ''} data=${typeof data === 'string' ? data : JSON.stringify(data || {})}`)
 
-    res.status(500).json({
+    const httpStatus = status && Number.isFinite(status) ? status : 500
+
+    res.status(httpStatus).json({
       ok: false,
       error: 'OAuth intake failed',
       rid,
@@ -621,6 +622,7 @@ async function oauthSubmitHandler(req, res) {
   try {
     const state = String((req.body?.state ?? req.query?.state) || '').trim()
     let choiceRaw = (req.body?.choice ?? req.query?.choice)
+
     const choiceStr = String(choiceRaw || '').trim()
 
     if (!isSafeState(state) || !choiceStr) {
@@ -630,24 +632,16 @@ async function oauthSubmitHandler(req, res) {
 
     let name = ''
     let realm = ''
-    let realm_slug = ''
-    let name_slug = ''
-    let region = BLIZZARD_REGION || 'eu'
 
     if (choiceStr.includes('::')) {
       const [nameRaw, realmRaw] = choiceStr.split('::')
       name = String(nameRaw || '').trim()
       realm = String(realmRaw || '').trim()
-      realm_slug = slugify(realm)
-      name_slug = slugify(name)
     } else {
       try {
         const parsed = JSON.parse(choiceStr)
         name = String(parsed?.name || '').trim()
         realm = String(parsed?.realm || '').trim()
-        realm_slug = String(parsed?.realm_slug || '').trim() || slugify(realm)
-        name_slug = String(parsed?.name_slug || '').trim() || slugify(name)
-        region = String(parsed?.region || region).trim().toLowerCase() || region
       } catch {
         logger.error(`oauth/submit invalid_choice: choice="${choiceStr.slice(0, 120)}"`)
         return res.status(400).json({ ok: false, status: 'invalid_request' })
@@ -670,26 +664,7 @@ async function oauthSubmitHandler(req, res) {
       { $set: { oauth_selected_name: name, oauth_selected_realm: realm, oauth_selected_at: new Date() } }
     )
 
-    const user_id = String(sess?.user_id || '').trim()
-    const session_id = String(sess?.session_id || '').trim()
-    const intent = session_id.split(':')[0] || 'apply'
-
-    const botPayload = {
-      state,
-      user_id,
-      session_id,
-      intent,
-      character: { name, realm, region, realm_slug, name_slug }
-    }
-
-    const botAck = await emitToBot('oauth:submit', botPayload, 12000)
-
-    if (!botAck?.ok) {
-      logger.error(`oauth/submit bot_ack_failed state=${state.slice(0, 12)}... ack=${JSON.stringify(botAck || {})}`)
-      return res.status(502).json({ ok: false, status: 'bot_unavailable', bot: botAck })
-    }
-
-    res.json({ ok: true, bot: botAck })
+    res.json({ ok: true })
   } catch (err) {
     logger.error(`oauth/submit failed: ${err?.message || err}`)
     res.status(500).json({ ok: false, status: 'server_error' })
@@ -804,10 +779,6 @@ const publicImageProxy = createProxyMiddleware({
 })
 
 app.use('/img', publicImageProxy)
-
-function firstForwarded(v) {
-  return String(v || '').split(',')[0].trim()
-}
 
 function makePublicImgBase(req) {
   const proto = firstForwarded(req.headers['x-forwarded-proto']) || req.protocol || 'https'
@@ -1008,284 +979,6 @@ app.get('/api/weather', weatherLimiter, async (req, res) => {
   }
 })
 
-app.get('/api/user/keys', verifyTokenApi, requireUserApi, async (req, res) => {
-  try {
-    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
-    const keys = await UserApiKey.find({ userId }).sort({ createdAt: -1 }).limit(25).lean()
-    const settings = await UserSettings.findOne({ userId }).lean()
-    const activeKeyId = settings?.activeKeyId || ''
-    const active = activeKeyId ? keys.find(k => k.keyId === activeKeyId) : null
-    const activeApiKey = active?.apiKeyEnc ? decryptString(active.apiKeyEnc) : ''
-
-    res.json({
-      ok: true,
-      imageHost: IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, ''),
-      activeKeyId,
-      activeApiKey,
-      keys: keys.map(k => ({
-        keyId: k.keyId,
-        name: k.name,
-        scopes: k.scopes,
-        ratePerMinute: k.ratePerMinute,
-        createdAt: k.createdAt
-      }))
-    })
-  } catch (err) {
-    res.status(500).json({ error: String(err?.message || err) })
-  }
-})
-
-app.get('/api/user/profile', verifyTokenApi, requireUserApi, async (req, res) => {
-  try {
-    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
-    const u = await User.findById(userId).lean()
-    if (!u) return res.status(404).json({ error: 'User not found' })
-
-    const s = await UserSettings.findOne({ userId }).lean()
-
-    res.json({
-      ok: true,
-      user: {
-        userId: String(userId),
-        username: u.username,
-        avatarDirectUrl: s?.avatarDirectUrl || '',
-        avatarPageUrl: s?.avatarPageUrl || ''
-      }
-    })
-  } catch (err) {
-    res.status(500).json({ error: String(err?.message || err) })
-  }
-})
-
-app.post('/api/user/profile/username', verifyTokenApi, requireUserApi, async (req, res) => {
-  try {
-    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
-    const nextUsername = String(req.body?.username || '').trim()
-
-    if (nextUsername.length < 3 || nextUsername.length > 32) {
-      return res.status(400).json({ error: 'Username must be 3–32 characters' })
-    }
-
-    const exists = await User.findOne({ username: nextUsername }).lean()
-    if (exists && String(exists._id) !== String(userId)) {
-      return res.status(409).json({ error: 'Username already taken' })
-    }
-
-    const updated = await User.findByIdAndUpdate(
-      userId,
-      { $set: { username: nextUsername } },
-      { new: true }
-    ).lean()
-
-    if (!updated) return res.status(404).json({ error: 'User not found' })
-
-    const token = signAuthToken({ role: req.auth.role, userId: String(userId), username: nextUsername })
-    res.cookie('token', token, { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', maxAge: 7 * 86400 * 1000 })
-
-    res.json({ ok: true, username: nextUsername })
-  } catch (err) {
-    res.status(500).json({ error: String(err?.message || err) })
-  }
-})
-
-app.post('/api/user/profile/password', verifyTokenApi, requireUserApi, async (req, res) => {
-  try {
-    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
-    const currentPassword = String(req.body?.currentPassword || '')
-    const newPassword = String(req.body?.newPassword || '')
-
-    if (newPassword.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' })
-
-    const u = await User.findById(userId)
-    if (!u) return res.status(404).json({ error: 'User not found' })
-
-    const ok = await bcrypt.compare(currentPassword, u.passwordHash)
-    if (!ok) return res.status(401).json({ error: 'Current password is incorrect' })
-
-    const passwordHash = await bcrypt.hash(newPassword, 12)
-    await User.updateOne({ _id: userId }, { $set: { passwordHash } })
-
-    res.json({ ok: true })
-  } catch (err) {
-    res.status(500).json({ error: String(err?.message || err) })
-  }
-})
-
-app.post('/api/user/profile/avatar', verifyTokenApi, requireUserApi, async (req, res) => {
-  try {
-    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
-    const avatarDirectUrl = String(req.body?.avatarDirectUrl || '').trim()
-    const avatarPageUrl = String(req.body?.avatarPageUrl || '').trim()
-
-    if (!avatarDirectUrl) return res.status(400).json({ error: 'Missing avatarDirectUrl' })
-    if (!/^https?:\/\//i.test(avatarDirectUrl) && !avatarDirectUrl.startsWith('/')) {
-      return res.status(400).json({ error: 'Invalid avatarDirectUrl' })
-    }
-
-    await UserSettings.updateOne(
-      { userId },
-      { $setOnInsert: { userId }, $set: { avatarDirectUrl, avatarPageUrl, updatedAt: new Date() } },
-      { upsert: true }
-    )
-
-    res.json({ ok: true, avatarDirectUrl, avatarPageUrl })
-  } catch (err) {
-    res.status(500).json({ error: String(err?.message || err) })
-  }
-})
-
-app.post('/api/user/profile/avatar/remove', verifyTokenApi, requireUserApi, async (req, res) => {
-  try {
-    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
-
-    await UserSettings.updateOne(
-      { userId },
-      { $setOnInsert: { userId }, $set: { avatarDirectUrl: '', avatarPageUrl: '', updatedAt: new Date() } },
-      { upsert: true }
-    )
-
-    res.json({ ok: true })
-  } catch (err) {
-    res.status(500).json({ error: String(err?.message || err) })
-  }
-})
-
-app.post('/api/user/keys/create', verifyTokenApi, requireUserApi, async (req, res) => {
-  try {
-    if (!IMAGE_HOST_ADMIN_TARGET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_TARGET not set' })
-    if (!IMAGE_HOST_ADMIN_SECRET) return res.status(500).json({ error: 'IMAGE_HOST_ADMIN_SECRET not set' })
-
-    const target = IMAGE_HOST_ADMIN_TARGET.replace(/\/$/, '')
-    const name = String(req.body?.name || req.auth.username || 'user').slice(0, 64)
-
-    const body = new URLSearchParams()
-    body.set('name', name)
-    body.set('scopes', 'upload,fetch')
-    body.set('rate_per_minute', '30')
-    body.set('never_expires', '1')
-    body.set('user_id', String(req.auth.userId))
-
-    const resp = await axios.post(
-      `${target}/admin/keys/rotate`,
-      body.toString(),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-admin-secret': String(IMAGE_HOST_ADMIN_SECRET).trim() }, timeout: 12000 }
-    )
-
-    const keyId = String(resp.data?.key_id || '')
-    const apiKey = String(resp.data?.api_key || '')
-    if (!keyId || !apiKey) return res.status(502).json({ error: 'Upstream did not return key_id/api_key' })
-
-    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
-    const apiKeyEnc = encryptString(apiKey)
-    const keyHash = sha256Hex(apiKey)
-
-    await UserApiKey.deleteMany({ userId })
-
-    await UserApiKey.updateOne(
-      { userId, keyId },
-      { $set: { apiKeyEnc, keyHash, name, scopes: ['upload', 'fetch'], ratePerMinute: 30 } },
-      { upsert: true }
-    )
-
-    await UserSettings.updateOne(
-      { userId },
-      { $setOnInsert: { userId }, $set: { activeKeyId: keyId, updatedAt: new Date() } },
-      { upsert: true }
-    )
-
-    res.json({ ok: true, keyId, apiKey })
-  } catch (err) {
-    res.status(err?.response?.status || 500).json({ error: err?.response?.data || String(err?.message || err) })
-  }
-})
-
-app.post('/api/user/keys/activate', verifyTokenApi, requireUserApi, async (req, res) => {
-  try {
-    const keyId = String(req.body?.keyId || '').trim()
-    if (!keyId) return res.status(400).json({ error: 'Missing keyId' })
-
-    const userId = new mongoose.Types.ObjectId(String(req.auth.userId))
-    const exists = await UserApiKey.findOne({ userId, keyId }).lean()
-    if (!exists) return res.status(404).json({ error: 'Key not found' })
-
-    await UserSettings.updateOne(
-      { userId },
-      { $setOnInsert: { userId }, $set: { activeKeyId: keyId, updatedAt: new Date() } },
-      { upsert: true }
-    )
-
-    res.json({ ok: true, activeKeyId: keyId })
-  } catch (err) {
-    res.status(500).json({ error: String(err?.message || err) })
-  }
-})
-
-app.get('/image-host/', verifyTokenPage('/user/auth'), requireUserPage, (req, res) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
-  res.setHeader('Pragma', 'no-cache')
-  res.setHeader('Expires', '0')
-  res.sendFile(path.join(__dirname, 'public', 'image-host', 'dashboard.html'))
-})
-
-app.get('/image-host/upload', verifyTokenPage('/user/auth'), requireUserPage, (req, res) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
-  res.setHeader('Pragma', 'no-cache')
-  res.setHeader('Expires', '0')
-  res.sendFile(path.join(__dirname, 'public', 'image-host', 'upload.html'))
-})
-
-app.get('/image-host/fetch', verifyTokenPage('/user/auth'), requireUserPage, (req, res) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
-  res.setHeader('Pragma', 'no-cache')
-  res.setHeader('Expires', '0')
-  res.sendFile(path.join(__dirname, 'public', 'image-host', 'fetch.html'))
-})
-
-app.get('/image-host/profile', verifyTokenPage('/user/auth'), requireUserPage, (req, res) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
-  res.setHeader('Pragma', 'no-cache')
-  res.setHeader('Expires', '0')
-  res.sendFile(path.join(__dirname, 'public', 'image-host', 'profile.html'))
-})
-
-app.get('/auth', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-login.html')))
-
-const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: 'Too many login attempts from this IP, please try again after 15 minutes' })
-
-app.post('/login', loginLimiter, async (req, res) => {
-  try {
-    const { username, password } = req.body || {}
-    const adminUsername = process.env.ADMIN_USERNAME || ''
-    const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH || ''
-    if (!adminUsername || !adminPasswordHash) return res.status(500).json({ auth: false, message: 'Admin not configured' })
-
-    if (String(username || '') !== adminUsername) return res.status(401).json({ auth: false, message: 'Invalid username or password' })
-    const isPasswordValid = await bcrypt.compare(String(password || ''), adminPasswordHash)
-    if (!isPasswordValid) return res.status(401).json({ auth: false, message: 'Invalid username or password' })
-
-    const token = signAuthToken({ role: 'admin', adminId: adminUsername, username: adminUsername })
-    res.cookie('token', token, { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', maxAge: 7 * 86400 * 1000 })
-
-    req.session.save((err) => {
-      if (err) return res.status(500).json({ auth: false, message: 'Error saving session' })
-      res.status(200).json({ auth: true, redirect: '/admin' })
-    })
-  } catch {
-    res.status(500).json({ auth: false, message: 'Internal Server Error' })
-  }
-})
-
-app.post('/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie('admin_session_cookie', { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' })
-    res.cookie('token', '', { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/', expires: new Date(0) })
-    res.redirect('/auth')
-  })
-})
-
-app.get('/admin', verifyTokenPage('/auth'), requireAdminPage, (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html')))
-app.get('/admin-dashboard.html', (_req, res) => res.redirect('/admin'))
-
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, maxAge: 0, lastModified: false, redirect: false }))
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -1451,4 +1144,4 @@ botNsp.on('connection', (socket) => {
 
 server.listen(PORT, () => { logger.info(`Server is running on port ${PORT}`) })
 
-module.exports = { app, server }
+server.js
