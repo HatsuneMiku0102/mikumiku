@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Finalizing sign-in</title>
+<title>FinalFinalizing sign-in</title>
 <style>
 :root{--bg:#0b1220;--card:#0f172a;--muted:#9ca3af;--text:#e5e7eb;--accent:#60a5fa;--accent-weak:#60a5fa22}
 *{box-sizing:border-box} html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial}
@@ -21,60 +21,118 @@
 .btn{appearance:none;border:1px solid var(--accent);background:linear-gradient(180deg,var(--accent),#2563eb);color:#fff;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer;box-shadow:0 6px 20px var(--accent-weak);text-decoration:none;display:inline-flex;align-items:center;gap:8px}
 .err{color:#f87171}
 .ok{color:#34d399}
+select{width:100%;padding:10px;border-radius:10px;background:#0b1324;color:var(--text);border:1px solid #1f2937}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="card">
-    <div class="hdr"><h1 class="title"><span class="dot"></span>Finalizing sign-in</h1><p class="sub">Processing your Battle.net response…</p></div>
-    <div class="body" id="content"><div class="flex"><div class="spinner"></div><div>Talking to the bot…</div></div></div>
+    <div class="hdr">
+      <h1 class="title"><span class="dot"></span>Finalizing sign-in</h1>
+      <p class="sub">Processing your Battle.net response…</p>
+    </div>
+    <div class="body" id="content">
+      <div class="flex"><div class="spinner"></div><div>Talking to the bot…</div></div>
+    </div>
   </div>
 </div>
+
 <script>
-const API_BASE = "https://mikumiku.dev";
+const API_BASE = "https://mikumikudev-c530e6b3e669.herokuapp.com";
+
 function setHTML(h){document.getElementById("content").innerHTML=h}
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+
 async function postJSON(url, payload){
-  const r = await fetch(url,{method:"POST",mode:"cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),credentials:"omit"});
+  const r = await fetch(url,{
+    method:"POST",
+    mode:"cors",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(payload),
+    credentials:"omit"
+  });
   const txt = await r.text();
   let data = {}; try{data = JSON.parse(txt)}catch{}
   if(!r.ok) throw new Error("HTTP "+r.status+" "+txt);
   return data;
 }
+
 async function submitForm(url, fields){
-  const fd = new FormData(); for(const [k,v] of Object.entries(fields)) fd.append(k,v);
+  const fd = new FormData();
+  for(const [k,v] of Object.entries(fields)) fd.append(k,v);
   const r = await fetch(url,{method:"POST",mode:"cors",body:fd,credentials:"omit"});
   const txt = await r.text();
   let data = {}; try{data = JSON.parse(txt)}catch{}
   if(!r.ok) throw new Error("HTTP "+r.status+" "+txt);
   return data;
 }
+
 (async function(){
   const p = new URLSearchParams(location.search);
-  const code = p.get("code")||""; const state = p.get("state")||"";
-  if(!code||!state){ setHTML('<div class="row err">Missing code or state.</div>'); return }
+  const code = p.get("code")||"";
+  const state = p.get("state")||"";
+  const oauthErr = p.get("error")||"";
+  const oauthErrDesc = p.get("error_description")||"";
+
+  if(oauthErr){
+    setHTML('<div class="row err">OAuth error: '+esc(oauthErr)+'<br>'+esc(oauthErrDesc)+'</div>');
+    return;
+  }
+
+  if(!code||!state){
+    setHTML('<div class="row err">Missing <b>code</b> or <b>state</b> in callback URL.<br><small>'+esc(location.href)+'</small></div>');
+    return;
+  }
+
   try{
-    const intake = await postJSON(API_BASE+"/oauth/intake",{code,state});
-    const choices = Array.isArray(intake.choices)?intake.choices:[];
-    if(choices.length===0){ setHTML('<div class="row err">No characters found.</div>'); return }
-    if(choices.length===1){
-      const choice = choices[0].name+"::"+choices[0].realm;
-      const res = await submitForm(API_BASE+"/oauth/submit",{state,choice});
-      if(res.ok){ setHTML('<div class="row ok">Submitted as <b>'+esc(choice.replace("::"," — "))+'</b>.</div><div class="row"><a class="btn" href="https://discord.com/app">Return to Discord</a></div>'); }
-      else{ setHTML('<div class="row err">Submission failed: '+esc(res.status||"error")+'</div>'); }
-      return
+    const intake = await postJSON(API_BASE + "/oauth/intake", { code, state });
+    const choices = Array.isArray(intake.choices) ? intake.choices : [];
+    if(choices.length === 0){
+      setHTML('<div class="row err">No characters found.</div>');
+      return;
     }
-    const opts = choices.map(c=>'<option value="'+esc(c.name+"::"+c.realm)+'">'+esc(c.name+" — "+c.realm)+'</option>').join("");
-    setHTML('<div class="row">Select your character</div><div class="row"><select id="sel" size="8">'+opts+'</select></div><div class="row"><button class="btn" id="go">Continue</button></div>');
+
+    const renderDone = (label) => {
+      setHTML(
+        '<div class="row ok">Submitted as <b>'+esc(label)+'</b>.</div>' +
+        '<div class="row"><a class="btn" href="https://discord.com/app">Return to Discord</a></div>'
+      );
+    };
+
+    if(choices.length === 1){
+      const c = choices[0];
+      const label = (c.name || "?") + " — " + (c.realm || "?");
+      const res = await submitForm(API_BASE + "/oauth/submit", { state, choice: JSON.stringify(c) });
+      if(res.ok){ renderDone(label); }
+      else{ setHTML('<div class="row err">Submission failed: '+esc(res.status||res.error||"error")+'</div>'); }
+      return;
+    }
+
+    const opts = choices.map((c,i)=>{
+      const label = (c.name||"?") + " — " + (c.realm||"?");
+      return '<option value="'+i+'">'+esc(label)+'</option>';
+    }).join("");
+
+    setHTML(
+      '<div class="row">Select your character</div>' +
+      '<div class="row"><select id="sel" size="8">'+opts+'</select></div>' +
+      '<div class="row"><button class="btn" id="go">Continue</button></div>'
+    );
+
     document.getElementById("go").onclick = async ()=>{
-      const choice = document.getElementById("sel").value;
+      const idx = parseInt(document.getElementById("sel").value, 10);
+      const c = choices[idx];
+      const label = (c?.name||"?") + " — " + (c?.realm||"?");
       setHTML('<div class="flex"><div class="spinner"></div><div>Submitting…</div></div>');
       try{
-        const res = await submitForm(API_BASE+"/oauth/submit",{state,choice});
-        if(res.ok){ setHTML('<div class="row ok">Submitted as <b>'+esc(choice.replace("::"," — "))+'</b>.</div><div class="row"><a class="btn" href="https://discord.com/app">Return</a></div>'); }
-        else{ setHTML('<div class="row err">Submission failed: '+esc(res.status||"error")+'</div>'); }
-      }catch(e){ setHTML('<div class="row err">HTTP error: '+esc(e.message)+'</div>'); }
+        const res = await submitForm(API_BASE + "/oauth/submit", { state, choice: JSON.stringify(c) });
+        if(res.ok){ renderDone(label); }
+        else{ setHTML('<div class="row err">Submission failed: '+esc(res.status||res.error||"error")+'</div>'); }
+      }catch(e){
+        setHTML('<div class="row err">HTTP error: '+esc(e.message)+'</div>');
+      }
     };
+
   }catch(e){
     setHTML('<div class="row err">Network error: '+esc(e.message)+'</div>');
   }
