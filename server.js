@@ -220,6 +220,16 @@ function decryptString(enc) {
   return Buffer.concat([p1, p2]).toString('utf8')
 }
 
+function slugify(s) {
+  return String(s || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[’']/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+}
+
 const userApiKeySchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
   keyId: { type: String, required: true, index: true },
@@ -264,7 +274,16 @@ const sessionSchema = new mongoose.Schema({
   session_id: { type: String, required: true },
   created_at: { type: Date, default: Date.now, expires: 86400 },
   ip_address: { type: String },
-  user_agent: { type: String }
+  user_agent: { type: String },
+  oauth_access_token: { type: String },
+  oauth_expires_at: { type: Date },
+  oauth_region: { type: String },
+  oauth_locale: { type: String },
+  oauth_chars: { type: Array },
+  oauth_updated_at: { type: Date },
+  oauth_selected_name: { type: String },
+  oauth_selected_realm: { type: String },
+  oauth_selected_at: { type: Date }
 })
 mongoose.model('Session', sessionSchema, 'sessions')
 const Session = mongoose.model('Session')
@@ -423,7 +442,7 @@ async function exchangeBlizzardCodeForToken(code) {
   return resp.data || {}
 }
 
-function flattenWowCharacters(profileJson) {
+function flattenWowCharacters(profileJson, region = BLIZZARD_REGION || 'eu') {
   const out = []
   const accounts = Array.isArray(profileJson?.wow_accounts) ? profileJson.wow_accounts : []
   for (const acc of accounts) {
@@ -431,8 +450,10 @@ function flattenWowCharacters(profileJson) {
     for (const c of chars) {
       const name = String(c?.name || '').trim()
       const realmName = String(c?.realm?.name || c?.realm?.slug || '').trim()
+      const realmSlug = String(c?.realm?.slug || '').trim() || slugify(realmName)
+      const nameSlug = String(c?.character?.nameSlug || '').trim() || slugify(name)
       if (!name || !realmName) continue
-      out.push({ name, realm: realmName })
+      out.push({ name, realm: realmName, realm_slug: realmSlug, name_slug: nameSlug, region: String(region || 'eu').toLowerCase() })
     }
   }
   const seen = new Set()
@@ -550,7 +571,7 @@ async function handleOAuthIntake(req, res) {
       timeout: 12000
     })
 
-    const choices = flattenWowCharacters(profileResp.data || {})
+    const choices = flattenWowCharacters(profileResp.data || {}, region)
 
     await Session.updateOne(
       { state },
@@ -566,7 +587,15 @@ async function handleOAuthIntake(req, res) {
       }
     )
 
-    res.json({ ok: true, choices, rid })
+    const intent = String(sess?.session_id || '').split(':')[0] || 'apply'
+
+    res.json({
+      ok: true,
+      choices,
+      rid,
+      user_id_str: String(sess?.user_id || ''),
+      intent
+    })
   } catch (err) {
     const status = err?.response?.status || null
     const data = err?.response?.data ?? null
@@ -585,7 +614,6 @@ async function handleOAuthIntake(req, res) {
   }
 }
 
-
 app.get('/oauth/intake', handleOAuthIntake)
 app.post('/oauth/intake', handleOAuthIntake)
 
@@ -593,7 +621,6 @@ async function oauthSubmitHandler(req, res) {
   try {
     const state = String((req.body?.state ?? req.query?.state) || '').trim()
     let choiceRaw = (req.body?.choice ?? req.query?.choice)
-
     const choiceStr = String(choiceRaw || '').trim()
 
     if (!isSafeState(state) || !choiceStr) {
@@ -603,16 +630,24 @@ async function oauthSubmitHandler(req, res) {
 
     let name = ''
     let realm = ''
+    let realm_slug = ''
+    let name_slug = ''
+    let region = BLIZZARD_REGION || 'eu'
 
     if (choiceStr.includes('::')) {
       const [nameRaw, realmRaw] = choiceStr.split('::')
       name = String(nameRaw || '').trim()
       realm = String(realmRaw || '').trim()
+      realm_slug = slugify(realm)
+      name_slug = slugify(name)
     } else {
       try {
         const parsed = JSON.parse(choiceStr)
         name = String(parsed?.name || '').trim()
         realm = String(parsed?.realm || '').trim()
+        realm_slug = String(parsed?.realm_slug || '').trim() || slugify(realm)
+        name_slug = String(parsed?.name_slug || '').trim() || slugify(name)
+        region = String(parsed?.region || region).trim().toLowerCase() || region
       } catch {
         logger.error(`oauth/submit invalid_choice: choice="${choiceStr.slice(0, 120)}"`)
         return res.status(400).json({ ok: false, status: 'invalid_request' })
@@ -635,7 +670,26 @@ async function oauthSubmitHandler(req, res) {
       { $set: { oauth_selected_name: name, oauth_selected_realm: realm, oauth_selected_at: new Date() } }
     )
 
-    res.json({ ok: true })
+    const user_id = String(sess?.user_id || '').trim()
+    const session_id = String(sess?.session_id || '').trim()
+    const intent = session_id.split(':')[0] || 'apply'
+
+    const botPayload = {
+      state,
+      user_id,
+      session_id,
+      intent,
+      character: { name, realm, region, realm_slug, name_slug }
+    }
+
+    const botAck = await emitToBot('oauth:submit', botPayload, 12000)
+
+    if (!botAck?.ok) {
+      logger.error(`oauth/submit bot_ack_failed state=${state.slice(0, 12)}... ack=${JSON.stringify(botAck || {})}`)
+      return res.status(502).json({ ok: false, status: 'bot_unavailable', bot: botAck })
+    }
+
+    res.json({ ok: true, bot: botAck })
   } catch (err) {
     logger.error(`oauth/submit failed: ${err?.message || err}`)
     res.status(500).json({ ok: false, status: 'server_error' })
@@ -645,9 +699,28 @@ async function oauthSubmitHandler(req, res) {
 app.post('/oauth/submit', oauthSubmitHandler)
 app.get('/oauth/submit', oauthSubmitHandler)
 
+function emitToBot(eventName, payload, timeoutMs = 8000) {
+  return new Promise((resolve) => {
+    if (!BOT_SOCKET_SECRET) return resolve({ ok: false, error: 'missing_secret' })
+    if (!botSocketId) return resolve({ ok: false, error: 'bot_offline' })
 
+    let done = false
+    const t = setTimeout(() => {
+      if (done) return
+      done = true
+      resolve({ ok: false, error: 'ack_timeout' })
+    }, timeoutMs)
 
-
+    botNsp.to(BOT_SOCKET_ROOM).timeout(timeoutMs).emit(eventName, payload, (err, responses) => {
+      if (done) return
+      done = true
+      clearTimeout(t)
+      if (err) return resolve({ ok: false, error: 'ack_error', details: String(err?.message || err) })
+      const first = Array.isArray(responses) ? responses[0] : null
+      resolve(first || { ok: true })
+    })
+  })
+}
 
 app.get('/user/signup', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'user-signup.html')))
 app.get('/user/auth', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'user-login.html')))
@@ -1348,4 +1421,34 @@ io.on('connection', (socket) => {
   })
 })
 
+const BOT_SOCKET_SECRET = String(process.env.BOT_SOCKET_SECRET || '').trim()
+const BOT_SOCKET_ROOM = String(process.env.BOT_SOCKET_ROOM || 'oauth-bot').trim()
+
+const botNsp = io.of('/bot')
+let botSocketId = null
+
+botNsp.use((socket, next) => {
+  const token = String(socket.handshake?.auth?.token || socket.handshake?.query?.token || '').trim()
+  if (!BOT_SOCKET_SECRET || token !== BOT_SOCKET_SECRET) return next(new Error('unauthorized'))
+  next()
+})
+
+botNsp.on('connection', (socket) => {
+  botSocketId = socket.id
+  socket.join(BOT_SOCKET_ROOM)
+  logger.info(`BOT connected socketId=${socket.id}`)
+
+  socket.on('disconnect', () => {
+    if (botSocketId === socket.id) botSocketId = null
+    logger.info(`BOT disconnected socketId=${socket.id}`)
+  })
+
+  socket.on('bot:ready', (data, ack) => {
+    logger.info(`BOT ready: ${JSON.stringify(data || {})}`)
+    if (ack) ack({ ok: true })
+  })
+})
+
 server.listen(PORT, () => { logger.info(`Server is running on port ${PORT}`) })
+
+module.exports = { app, server }
