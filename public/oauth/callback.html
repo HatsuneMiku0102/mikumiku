@@ -67,7 +67,7 @@
     <div class="card">
       <div class="header">
         <h1 class="title"><span class="dot"></span>Finishing sign-in</h1>
-        <p class="sub">Pick your character and submit</p>
+        <p class="sub">Pick your character and submit <span class="badge">cb:v3</span></p>
       </div>
       <div class="body">
 
@@ -133,6 +133,7 @@
 
 <script>
   const API_BASE = location.origin
+
   const params = new URLSearchParams(location.search)
   let code = params.get("code") || ""
   let state = params.get("state") || ""
@@ -269,7 +270,8 @@
       const r=await fetch(API_BASE + "/oauth/intake", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({state, code})
+        body:JSON.stringify({state, code}),
+        cache:"no-store"
       })
       const data = await r.json().catch(()=>null)
       if(!r.ok || !data || !data.ok){
@@ -353,13 +355,14 @@
     btn.textContent="Submitting…"
 
     const choice = c.name + "::" + c.realm
-    const bodyStr = new URLSearchParams({ state, choice }).toString()
+    const qs = new URLSearchParams({ state, choice }).toString()
 
     try{
-      const r=await fetch(API_BASE + "/oauth/submit", {
+      const r=await fetch(API_BASE + "/oauth/submit?" + qs, {
         method:"POST",
         headers:{ "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8" },
-        body: bodyStr
+        body: qs,
+        cache:"no-store"
       })
       const data = await r.json().catch(()=>null)
       if(!r.ok || !data || !data.ok){
