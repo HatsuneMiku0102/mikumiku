@@ -507,15 +507,18 @@ app.get('/oauth/callback', (_req, res) => {
 })
 
 async function handleOAuthIntake(req, res) {
+  const rid = crypto.randomBytes(6).toString('hex')
   try {
     const code = String((req.body?.code ?? req.query?.code) || '').trim()
     const state = String((req.body?.state ?? req.query?.state) || '').trim()
-    if (!code || !isSafeState(state)) return res.status(400).json({ error: 'Missing/invalid code/state' })
+    if (!code || !isSafeState(state)) {
+      return res.status(400).json({ ok: false, error: 'Missing/invalid code/state', rid })
+    }
 
     let sess = await Session.findOne({ state }).lean()
     if (!sess) {
       const decoded = decodeStateJwt(state)
-      if (!decoded) return res.status(400).json({ error: 'Unknown state' })
+      if (!decoded) return res.status(400).json({ ok: false, error: 'Unknown state', rid })
 
       const ip = String(req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim()
       const ua = String(req.headers['user-agent'] || '').slice(0, 400)
@@ -527,13 +530,15 @@ async function handleOAuthIntake(req, res) {
       )
 
       sess = await Session.findOne({ state }).lean()
-      if (!sess) return res.status(400).json({ error: 'Unknown state' })
+      if (!sess) return res.status(400).json({ ok: false, error: 'Unknown state', rid })
     }
 
     const tokenData = await exchangeBlizzardCodeForToken(code)
     const accessToken = String(tokenData?.access_token || '').trim()
     const expiresIn = Number(tokenData?.expires_in || 0)
-    if (!accessToken) return res.status(502).json({ error: 'Token exchange failed' })
+    if (!accessToken) {
+      return res.status(502).json({ ok: false, error: 'Token exchange failed', rid, details: tokenData || null })
+    }
 
     const region = BLIZZARD_REGION || 'eu'
     const namespace = `profile-${region}`
@@ -560,12 +565,22 @@ async function handleOAuthIntake(req, res) {
       }
     )
 
-    res.json({ ok: true, choices })
+    res.json({ ok: true, choices, rid })
   } catch (err) {
     const status = err?.response?.status
     const data = err?.response?.data
-    logger.error(`oauth/intake failed: ${err?.message || err} status=${status || ''} data=${typeof data === 'string' ? data : JSON.stringify(data || {})}`)
-    res.status(500).json({ error: 'OAuth intake failed' })
+    const msg = String(err?.message || err || 'unknown_error')
+
+    logger.error(`oauth/intake failed rid=${rid} msg=${msg} status=${status || ''} data=${typeof data === 'string' ? data : JSON.stringify(data || {})}`)
+
+    res.status(500).json({
+      ok: false,
+      error: 'OAuth intake failed',
+      rid,
+      upstream_status: status || null,
+      upstream_data: data || null,
+      message: msg
+    })
   }
 }
 
