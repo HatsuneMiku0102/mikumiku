@@ -5,128 +5,518 @@
 <title>Finish sign-in</title>
 
 <style>
+  :root{
+    --bg0:#050816;
+    --bg1:#0a1120;
+    --bg2:#0d1630;
+    --card:rgba(11,19,36,.88);
+    --card2:rgba(10,15,29,.92);
+    --line:#1f2937;
+    --line2:#334155;
+    --text:#e5e7eb;
+    --muted:#9ca3af;
+    --muted2:#cbd5e1;
+    --accent:#34d399;
+    --accent2:#10b981;
+    --accent3:#22d3ee;
+    --ok:#86efac;
+    --err:#fca5a5;
+    --warn:#fbbf24;
+    --shadow:0 20px 60px rgba(0,0,0,.45);
+    --focus:0 0 0 4px rgba(52,211,153,.18);
+    --radius:20px;
+    --radius2:14px;
+  }
+
   *{box-sizing:border-box}
   html,body{height:100%}
   body{
     margin:0;
-    color:#e5e7eb;
+    color:var(--text);
     font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial;
     background:
-      radial-gradient(1200px 600px at 20% 10%,#0b1730,#070b15 65%),
-      radial-gradient(1000px 400px at 90% 110%,#0a1228,#070b15 60%);
+      radial-gradient(1200px 700px at 12% 8%, rgba(34,211,238,.12), transparent 60%),
+      radial-gradient(900px 550px at 85% 10%, rgba(52,211,153,.11), transparent 60%),
+      radial-gradient(900px 500px at 50% 110%, rgba(16,185,129,.08), transparent 60%),
+      linear-gradient(180deg, var(--bg0), var(--bg1) 45%, var(--bg2));
   }
-  .container{max-width:1000px;margin:6vh auto;padding:24px}
+
+  .shell{
+    min-height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+
+  .container{
+    width:min(1120px,100%);
+    display:grid;
+    gap:18px;
+  }
+
   .card{
-    background:linear-gradient(180deg,#111827cc,#0b1324cc);
-    border:1px solid #1f2937;border-radius:18px;overflow:hidden;
-    box-shadow:0 10px 40px #0006
+    background:linear-gradient(180deg, rgba(17,24,39,.9), var(--card));
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    overflow:hidden;
+    box-shadow:var(--shadow);
+    backdrop-filter:blur(8px);
   }
-  .header{padding:22px;border-bottom:1px solid #1f2937}
-  .title{margin:0;font-size:20px;display:flex;gap:10px;align-items:center}
-  .dot{width:10px;height:10px;border-radius:999px;background:#34d399;box-shadow:0 0 20px #34d39955}
-  .sub{margin:6px 0 0;color:#9ca3af;font-size:14px}
+
+  .header{
+    padding:24px 24px 18px;
+    border-bottom:1px solid var(--line);
+    background:
+      radial-gradient(500px 180px at 0% 0%, rgba(52,211,153,.08), transparent 70%),
+      radial-gradient(420px 180px at 100% 0%, rgba(34,211,238,.08), transparent 70%);
+  }
+
+  .topline{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+
+  .title{
+    margin:0;
+    font-size:24px;
+    line-height:1.2;
+    display:flex;
+    gap:12px;
+    align-items:center;
+    letter-spacing:-.02em;
+  }
+
+  .dot{
+    width:12px;
+    height:12px;
+    border-radius:999px;
+    background:var(--accent);
+    box-shadow:0 0 20px rgba(52,211,153,.45);
+    flex:0 0 auto;
+  }
+
+  .sub{
+    margin:8px 0 0;
+    color:var(--muted);
+    font-size:14px;
+  }
+
   .body{padding:22px}
+
   .row{margin:12px 0}
   .flex{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  .spinner{width:32px;height:32px;border:3px solid #34d39933;border-top-color:#34d399;border-radius:999px;animation:spin 1s linear infinite}
+  .between{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+  .spinner{
+    width:32px;
+    height:32px;
+    border:3px solid rgba(52,211,153,.18);
+    border-top-color:var(--accent);
+    border-radius:999px;
+    animation:spin 1s linear infinite;
+  }
+
   @keyframes spin{to{transform:rotate(360deg)}}
+
   .input,select,button{font:inherit}
+
   .input,select{
-    width:100%;background:#0b1220;color:#e5e7eb;border:1px solid #334155;border-radius:12px;
-    padding:12px 14px;outline:none;transition:border .15s ease,box-shadow .15s ease;font-size:15px
+    width:100%;
+    background:#0b1220;
+    color:var(--text);
+    border:1px solid var(--line2);
+    border-radius:12px;
+    padding:12px 14px;
+    outline:none;
+    transition:border-color .15s ease, box-shadow .15s ease, transform .12s ease;
+    font-size:15px;
   }
-  .input:focus,select:focus{border-color:#34d399;box-shadow:0 0 0 4px #34d39933}
+
+  .input:hover,select:hover{border-color:#475569}
+  .input:focus,select:focus{
+    border-color:var(--accent);
+    box-shadow:var(--focus);
+  }
+
   .btn{
-    appearance:none;border:1px solid #10b981;background:linear-gradient(180deg,#34d399,#10b981);color:#fff;
-    padding:12px 16px;border-radius:12px;font-weight:800;cursor:pointer;transition:transform .08s ease,box-shadow .2s ease;
-    box-shadow:0 8px 24px #10b98144;text-decoration:none;display:inline-flex;align-items:center;gap:8px
+    appearance:none;
+    border:1px solid var(--accent2);
+    background:linear-gradient(180deg, var(--accent), var(--accent2));
+    color:#fff;
+    padding:12px 16px;
+    border-radius:12px;
+    font-weight:800;
+    cursor:pointer;
+    transition:transform .08s ease, box-shadow .2s ease, opacity .15s ease, filter .15s ease;
+    box-shadow:0 10px 26px rgba(16,185,129,.22);
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    min-height:46px;
   }
-  .btn:disabled{opacity:.6;cursor:not-allowed}
-  .btn.secondary{background:none;color:#e5e7eb;border-color:#334155;box-shadow:none}
-  .grid{display:grid;grid-template-columns:1fr;gap:16px}
-  @media(min-width:960px){.grid{grid-template-columns:2fr 3fr}}
-  .badge{display:inline-block;padding:6px 10px;border:1px solid #38485f;border-radius:999px;font-size:12px;color:#c7d2fe;background:#0b1220}
-  .err{color:#fca5a5}
-  .ok{color:#86efac}
-  .panel{background:#0a0f1d;border:1px solid #1f2937;border-radius:14px;padding:14px}
-  .card-mini{display:flex;gap:14px;align-items:center}
-  .avatar{width:72px;height:72px;border-radius:12px;object-fit:cover;background:#0b1220;border:1px solid #1f2937}
-  .meta{display:grid;gap:4px}
-  .kv{display:flex;gap:8px;flex-wrap:wrap}
-  .kv span{padding:4px 8px;border:1px solid #334155;border-radius:999px;font-size:12px;color:#cbd5e1}
-  .muted{color:#9ca3af}
-  .skel{position:relative;overflow:hidden;background:#0b1220;border:1px solid #1f2937;border-radius:12px}
-  .skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);animation:sh 1.2s infinite}
+
+  .btn:hover{filter:brightness(1.05)}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{
+    opacity:.58;
+    cursor:not-allowed;
+    box-shadow:none;
+    filter:none;
+  }
+
+  .btn.secondary{
+    background:rgba(11,18,32,.65);
+    color:var(--text);
+    border-color:var(--line2);
+    box-shadow:none;
+  }
+
+  .btn.ghost{
+    background:transparent;
+    color:var(--muted2);
+    border-color:var(--line2);
+    box-shadow:none;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:1.15fr .95fr;
+    gap:16px;
+  }
+
+  @media(max-width:960px){
+    .grid{grid-template-columns:1fr}
+    .header,.body{padding:18px}
+    .title{font-size:22px}
+  }
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 10px;
+    border:1px solid #38485f;
+    border-radius:999px;
+    font-size:12px;
+    color:#c7d2fe;
+    background:#0b1220;
+    white-space:nowrap;
+  }
+
+  .badge.soft{
+    color:var(--muted2);
+    background:rgba(11,18,32,.55);
+  }
+
+  .err{color:var(--err)}
+  .ok{color:var(--ok)}
+  .muted{color:var(--muted)}
+
+  .panel{
+    background:var(--card2);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:14px;
+  }
+
+  .panel-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:10px;
+    flex-wrap:wrap;
+  }
+
+  .panel-title{
+    margin:0;
+    font-size:15px;
+    font-weight:800;
+    letter-spacing:-.01em;
+  }
+
+  .toolbar{
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:10px;
+    align-items:center;
+  }
+
+  .toolbar-actions{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+
+  .list-wrap{
+    position:relative;
+  }
+
+  select{
+    height:420px;
+    padding:8px;
+  }
+
+  select option{
+    padding:10px 12px;
+    border-radius:10px;
+  }
+
+  .help{
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  .empty{
+    border:1px dashed #334155;
+    background:rgba(11,18,32,.45);
+    border-radius:14px;
+    padding:18px 16px;
+    color:var(--muted);
+    text-align:center;
+  }
+
+  .card-mini{
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
+  }
+
+  .avatar{
+    width:78px;
+    height:78px;
+    border-radius:14px;
+    object-fit:cover;
+    background:#0b1220;
+    border:1px solid var(--line);
+    flex:0 0 auto;
+  }
+
+  .meta{
+    display:grid;
+    gap:8px;
+    min-width:0;
+  }
+
+  .pv-title{
+    font-weight:800;
+    font-size:18px;
+    line-height:1.2;
+    letter-spacing:-.02em;
+  }
+
+  .kv{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  .kv span{
+    padding:5px 9px;
+    border:1px solid var(--line2);
+    border-radius:999px;
+    font-size:12px;
+    color:var(--muted2);
+    background:rgba(11,18,32,.55);
+  }
+
+  .note{
+    padding:12px 14px;
+    border:1px solid rgba(251,191,36,.22);
+    background:rgba(120,53,15,.12);
+    border-radius:12px;
+  }
+
+  .skel{
+    position:relative;
+    overflow:hidden;
+    background:#0b1220;
+    border:1px solid var(--line);
+    border-radius:12px;
+  }
+
+  .skel::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);
+    animation:sh 1.2s infinite;
+  }
+
   @keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
-  .shortcuts{font-size:12px;color:#9ca3af}
-  .note{padding:12px 14px;border:1px solid #78350f;background:#111827;border-radius:12px}
+
+  .actions{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:16px;
+  }
+
+  .status{
+    min-height:20px;
+    font-size:13px;
+    color:var(--muted);
+  }
+
+  .success-box,.error-box{
+    border-radius:14px;
+    padding:14px 16px;
+    border:1px solid;
+    background:rgba(255,255,255,.03);
+  }
+
+  .success-box{
+    border-color:rgba(34,197,94,.28);
+    background:rgba(34,197,94,.08);
+  }
+
+  .error-box{
+    border-color:rgba(239,68,68,.28);
+    background:rgba(239,68,68,.08);
+  }
+
+  .done-actions,.error-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:14px;
+  }
+
+  .tiny{
+    font-size:12px;
+    color:var(--muted);
+  }
 </style>
 
 <body>
-  <div class="container">
-    <div class="card">
-      <div class="header">
-        <h1 class="title"><span class="dot"></span>Finishing sign-in</h1>
-        <p class="sub">Pick your character and submit <span class="badge">cb:v3</span></p>
-      </div>
-      <div class="body">
-
-        <div id="step-loading" class="row flex">
-          <div class="spinner"></div><div>Talking to server…</div>
+  <div class="shell">
+    <div class="container">
+      <div class="card">
+        <div class="header">
+          <div class="topline">
+            <h1 class="title"><span class="dot"></span>Finish sign-in</h1>
+            <span class="badge">cb:v4</span>
+          </div>
+          <p class="sub">Choose the character you want to use for your application, preview their profile, then submit.</p>
         </div>
 
-        <div id="step-error" class="row" style="display:none">
-          <div class="row err" id="err-text"></div>
-          <div class="row"><a class="btn secondary" href="/">Return</a> <button id="retry" class="btn secondary">Retry</button></div>
-        </div>
-
-        <div id="step-select" style="display:none">
-          <div class="row flex">
-            <span class="badge" id="who"></span>
-            <span class="shortcuts">Enter to submit • ↑/↓ to move • Double-click to quick submit</span>
+        <div class="body">
+          <div id="step-loading" class="row flex">
+            <div class="spinner"></div>
+            <div>
+              <div>Talking to server…</div>
+              <div class="tiny">Loading your available characters.</div>
+            </div>
           </div>
 
-          <div class="grid">
-            <div class="panel">
-              <div class="row"><input id="q" class="input" placeholder="Search name or realm"></div>
-              <div class="row"><select id="choice" size="12" style="height:360px"></select></div>
-              <div class="row"><span class="badge" id="count"></span></div>
-            </div>
-
-            <div class="panel" id="preview">
-              <div id="pv-skel" class="skel" style="height:160px;display:none"></div>
-              <div id="pv-empty" class="muted">Select a character to see details</div>
-              <div id="pv-card" style="display:none">
-                <div class="card-mini">
-                  <img id="pv-avatar" class="avatar" src="" alt="">
-                  <div class="meta">
-                    <div id="pv-title" style="font-weight:800"></div>
-                    <div class="kv">
-                      <span id="pv-class"></span>
-                      <span id="pv-ilvl"></span>
-                      <span id="pv-faction"></span>
-                      <span id="pv-score"></span>
-                    </div>
-                    <div class="kv"><span id="pv-raid"></span></div>
-                    <div><a id="pv-rio" class="btn secondary" target="_blank" rel="noopener">Open Raider.IO</a></div>
-                    <div class="note muted" id="pv-note" style="display:none"></div>
-                  </div>
-                </div>
+          <div id="step-error" style="display:none">
+            <div class="error-box">
+              <div class="err" id="err-text"></div>
+              <div class="error-actions">
+                <a class="btn secondary" href="/">Return</a>
+                <button id="retry" class="btn secondary" type="button">Retry</button>
               </div>
             </div>
           </div>
 
-          <div class="row">
-            <button id="submit" class="btn" disabled>Submit application</button>
-            <a class="btn secondary" href="/">Cancel</a>
+          <div id="step-select" style="display:none">
+            <div class="between row">
+              <div class="flex">
+                <span class="badge" id="who"></span>
+                <span class="badge soft" id="selection-state">No character selected</span>
+              </div>
+              <div class="help">Enter submits • ↑/↓ navigate the list • Double-click quick submits</div>
+            </div>
+
+            <div class="grid">
+              <div class="panel">
+                <div class="panel-head">
+                  <h2 class="panel-title">Your characters</h2>
+                  <span class="badge soft" id="count">0 characters</span>
+                </div>
+
+                <div class="toolbar">
+                  <input id="q" class="input" autocomplete="off" placeholder="Search by character name or realm">
+                  <div class="toolbar-actions">
+                    <button id="clear-search" class="btn ghost" type="button">Clear</button>
+                  </div>
+                </div>
+
+                <div class="row list-wrap">
+                  <select id="choice" size="12" aria-label="Available characters"></select>
+                </div>
+
+                <div id="list-empty" class="empty" style="display:none">
+                  No characters match your search.
+                </div>
+
+                <div class="row between">
+                  <div class="help">Characters are sorted alphabetically.</div>
+                  <div class="help" id="search-meta"></div>
+                </div>
+              </div>
+
+              <div class="panel" id="preview">
+                <div class="panel-head">
+                  <h2 class="panel-title">Character preview</h2>
+                  <span class="badge soft" id="preview-state">Waiting for selection</span>
+                </div>
+
+                <div id="pv-skel" class="skel" style="height:180px;display:none"></div>
+                <div id="pv-empty" class="empty">Select a character to see details.</div>
+
+                <div id="pv-card" style="display:none">
+                  <div class="card-mini">
+                    <img id="pv-avatar" class="avatar" src="" alt="">
+                    <div class="meta">
+                      <div id="pv-title" class="pv-title"></div>
+
+                      <div class="kv">
+                        <span id="pv-class"></span>
+                        <span id="pv-ilvl"></span>
+                        <span id="pv-faction"></span>
+                        <span id="pv-score"></span>
+                      </div>
+
+                      <div class="kv">
+                        <span id="pv-raid" style="display:none"></span>
+                      </div>
+
+                      <div class="flex">
+                        <a id="pv-rio" class="btn secondary" target="_blank" rel="noopener">Open Raider.IO</a>
+                      </div>
+
+                      <div class="note muted" id="pv-note" style="display:none"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="status" id="preview-status"></div>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button id="submit" class="btn" type="button" disabled>Submit application</button>
+              <a class="btn secondary" href="/">Cancel</a>
+            </div>
+          </div>
+
+          <div id="step-done" style="display:none">
+            <div class="success-box">
+              <div class="ok" id="done-text"></div>
+              <div class="done-actions">
+                <a class="btn secondary" href="https://discord.com/app">Return to Discord</a>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div id="step-done" class="row" style="display:none">
-          <div class="row ok" id="done-text"></div>
-          <div class="row"><a class="btn secondary" href="https://discord.com/app">Return to Discord</a></div>
-        </div>
-
       </div>
     </div>
   </div>
@@ -145,11 +535,16 @@
   const retryBtn = document.getElementById("retry")
   const stepSel = document.getElementById("step-select")
   const stepDone = document.getElementById("step-done")
+
   const who = document.getElementById("who")
   const q = document.getElementById("q")
   const sel = document.getElementById("choice")
   const btn = document.getElementById("submit")
   const count = document.getElementById("count")
+  const clearSearchBtn = document.getElementById("clear-search")
+  const listEmpty = document.getElementById("list-empty")
+  const searchMeta = document.getElementById("search-meta")
+  const selectionState = document.getElementById("selection-state")
 
   const pvSkel = document.getElementById("pv-skel")
   const pvEmpty = document.getElementById("pv-empty")
@@ -163,117 +558,245 @@
   const pvRaid = document.getElementById("pv-raid")
   const pvRio = document.getElementById("pv-rio")
   const pvNote = document.getElementById("pv-note")
+  const previewState = document.getElementById("preview-state")
+  const previewStatus = document.getElementById("preview-status")
 
   const doneText = document.getElementById("done-text")
 
   let allChoices = []
-  let lastSelected = ""
+  let filteredChoices = []
+  let selectedKey = ""
   let USER_ID = ""
+  let previewToken = 0
+
+  function makeKey(o){
+    return [o.region || "eu", o.realm || "", o.name || ""].join("|").toLowerCase()
+  }
+
+  function sortChoices(list){
+    return [...list].sort((a,b)=>{
+      const nameCmp = a.name.localeCompare(b.name, undefined, { sensitivity:"base" })
+      if(nameCmp !== 0) return nameCmp
+      return a.realm.localeCompare(b.realm, undefined, { sensitivity:"base" })
+    })
+  }
 
   function show(node){
-    loading.style.display="none"
-    stepErr.style.display="none"
-    stepSel.style.display="none"
-    stepDone.style.display="none"
-    node.style.display="block"
+    loading.style.display = "none"
+    stepErr.style.display = "none"
+    stepSel.style.display = "none"
+    stepDone.style.display = "none"
+    node.style.display = "block"
+  }
+
+  function updateSubmitState(){
+    const c = currentChoice()
+    btn.disabled = !c
+    btn.textContent = c ? `Submit application as ${c.name}` : "Submit application"
+    selectionState.textContent = c ? `Selected: ${c.name} — ${c.realm}` : "No character selected"
+  }
+
+  function updateListMeta(){
+    const total = allChoices.length
+    const visible = filteredChoices.length
+    count.textContent = visible === 1 ? "1 character" : `${visible} characters`
+    searchMeta.textContent = q.value.trim() ? `Showing ${visible} of ${total}` : `${total} total`
+    listEmpty.style.display = visible ? "none" : "block"
+    sel.style.display = visible ? "block" : "none"
   }
 
   function render(list){
-    sel.innerHTML=""
-    list.forEach(o=>{
-      const opt=document.createElement("option")
-      opt.value=JSON.stringify(o)
-      opt.textContent=o.name+" — "+o.realm
+    filteredChoices = list
+    sel.innerHTML = ""
+
+    for(const o of list){
+      const opt = document.createElement("option")
+      opt.value = makeKey(o)
+      opt.textContent = `${o.name} — ${o.realm}`
+      opt.dataset.name = o.name
+      opt.dataset.realm = o.realm
       sel.appendChild(opt)
-    })
-    count.textContent=list.length+" character(s)"
-    if(lastSelected){
-      const i=[...sel.options].findIndex(o=>o.value===lastSelected)
-      if(i>=0) sel.selectedIndex=i
     }
-    btn.disabled = sel.selectedOptions.length===0
+
+    const hasSelectedInView = selectedKey && list.some(o => makeKey(o) === selectedKey)
+
+    if(hasSelectedInView){
+      sel.value = selectedKey
+    }else if(list.length){
+      selectedKey = makeKey(list[0])
+      sel.value = selectedKey
+    }else{
+      selectedKey = ""
+    }
+
+    updateListMeta()
+    updateSubmitState()
   }
 
-  function skel(on){
-    pvSkel.style.display=on?"block":"none"
-    pvEmpty.style.display=on?"none":"block"
-    pvCard.style.display="none"
+  function setPreviewLoading(on, label){
+    pvSkel.style.display = on ? "block" : "none"
+    pvEmpty.style.display = on ? "none" : "block"
+    pvCard.style.display = "none"
+    previewState.textContent = on ? "Loading preview" : (label || "Waiting for selection")
+    previewStatus.textContent = on ? "Fetching live character details from Raider.IO…" : ""
   }
 
-  function clearPreview(){
-    pvAvatar.src=""
-    pvTitle.textContent=""
-    pvClass.textContent=""
-    pvIlvl.textContent=""
-    pvFaction.textContent=""
-    pvScore.textContent=""
-    pvRaid.textContent=""
-    pvRio.href="#"
-    pvNote.style.display="none"
-    pvNote.textContent=""
-    pvCard.style.display="none"
-    pvEmpty.style.display="block"
-    pvSkel.style.display="none"
+  function clearPreview(message){
+    pvAvatar.src = ""
+    pvAvatar.alt = ""
+    pvTitle.textContent = ""
+    pvClass.textContent = ""
+    pvIlvl.textContent = ""
+    pvFaction.textContent = ""
+    pvScore.textContent = ""
+    pvRaid.textContent = ""
+    pvRaid.style.display = "none"
+    pvRio.href = "#"
+    pvNote.style.display = "none"
+    pvNote.textContent = ""
+    pvCard.style.display = "none"
+    pvSkel.style.display = "none"
+    pvEmpty.style.display = "block"
+    previewState.textContent = "Waiting for selection"
+    previewStatus.textContent = message || ""
   }
 
   function currentChoice(){
-    if(!sel.value) return null
-    try{ return JSON.parse(sel.value) }catch{ return null }
+    if(!selectedKey) return null
+    return filteredChoices.find(o => makeKey(o) === selectedKey)
+      || allChoices.find(o => makeKey(o) === selectedKey)
+      || null
   }
 
   async function fillPreview(region, realm, name){
-    skel(true)
+    const token = ++previewToken
+    setPreviewLoading(true, "Loading preview")
+
     try{
-      const u="https://raider.io/api/v1/characters/profile?"+new URLSearchParams({
-        region, realm, name, fields:"gear,raid_progression,mythic_plus_scores_by_season:current"
+      const u = "https://raider.io/api/v1/characters/profile?" + new URLSearchParams({
+        region,
+        realm,
+        name,
+        fields:"gear,raid_progression,mythic_plus_scores_by_season:current"
       }).toString()
-      const r=await fetch(u)
-      if(!r.ok){ clearPreview(); return }
-      const d=await r.json()
 
-      const cls=d.class||""
-      const spec=(d.active_spec_name||"") + (d.active_spec_role?(" • "+d.active_spec_role):"")
-      const ilvl=d.gear && d.gear.item_level_equipped ? Math.round(Number(d.gear.item_level_equipped)) : null
+      const r = await fetch(u)
+      if(token !== previewToken) return
 
-      let score=0
-      if(Array.isArray(d.mythic_plus_scores_by_season) && d.mythic_plus_scores_by_season.length){
-        const s0=d.mythic_plus_scores_by_season[0]||{}
-        if(s0.scores && s0.scores.all!=null) score=Math.round(Number(s0.scores.all)||0)
+      if(!r.ok){
+        clearPreview("Could not load Raider.IO preview for this character.")
+        return
       }
 
-      pvAvatar.src=d.thumbnail_url||""
-      pvTitle.textContent=name+" — "+realm
-      pvClass.textContent=spec ? (spec+" • "+cls) : cls
-      pvIlvl.textContent=ilvl ? ("iLvl "+ilvl) : ""
-      pvFaction.textContent=d.faction||""
-      pvScore.textContent=score ? ("M+ "+score) : "No current M+ score"
-      pvRaid.textContent=""
-      pvRio.href=d.profile_url || ("https://raider.io/characters/"+region+"/"+realm.toLowerCase().replace(/\s+/g,"-")+"/"+name)
+      const d = await r.json()
+      if(token !== previewToken) return
 
-      pvEmpty.style.display="none"
-      pvSkel.style.display="none"
-      pvCard.style.display="block"
-      pvNote.style.display = (!score) ? "block" : "none"
-      pvNote.textContent = (!score) ? "This character has no current-season Mythic+ score on Raider.IO." : ""
+      const cls = d.class || ""
+      const spec = (d.active_spec_name || "") + (d.active_spec_role ? ` • ${d.active_spec_role}` : "")
+      const ilvl = d.gear && d.gear.item_level_equipped ? Math.round(Number(d.gear.item_level_equipped)) : null
+
+      let score = 0
+      if(Array.isArray(d.mythic_plus_scores_by_season) && d.mythic_plus_scores_by_season.length){
+        const s0 = d.mythic_plus_scores_by_season[0] || {}
+        if(s0.scores && s0.scores.all != null) score = Math.round(Number(s0.scores.all) || 0)
+      }
+
+      let raidText = ""
+      if(d.raid_progression && typeof d.raid_progression === "object"){
+        const entries = Object.entries(d.raid_progression)
+        if(entries.length){
+          const [raidName, raidData] = entries[0]
+          const summary = []
+          if(raidData.summary) summary.push(raidData.summary)
+          raidText = summary.length ? `${raidName}: ${summary.join(" • ")}` : raidName
+        }
+      }
+
+      pvAvatar.src = d.thumbnail_url || ""
+      pvAvatar.alt = `${name} avatar`
+      pvTitle.textContent = `${name} — ${realm}`
+      pvClass.textContent = spec ? `${spec} • ${cls}` : cls || "Unknown class"
+      pvIlvl.textContent = ilvl ? `iLvl ${ilvl}` : "iLvl unavailable"
+      pvFaction.textContent = d.faction || "Faction unknown"
+      pvScore.textContent = score ? `M+ ${score}` : "No current M+ score"
+
+      if(raidText){
+        pvRaid.textContent = raidText
+        pvRaid.style.display = "inline-flex"
+      }else{
+        pvRaid.textContent = ""
+        pvRaid.style.display = "none"
+      }
+
+      pvRio.href = d.profile_url || `https://raider.io/characters/${region}/${realm.toLowerCase().replace(/\s+/g,"-")}/${name}`
+
+      pvEmpty.style.display = "none"
+      pvSkel.style.display = "none"
+      pvCard.style.display = "block"
+      previewState.textContent = "Preview ready"
+      previewStatus.textContent = ""
+
+      pvNote.style.display = score ? "none" : "block"
+      pvNote.textContent = score ? "" : "This character has no current-season Mythic+ score on Raider.IO."
     }catch{
-      clearPreview()
+      if(token !== previewToken) return
+      clearPreview("Network error while loading the Raider.IO preview.")
+    }
+  }
+
+  function syncSelectionFromDom(){
+    if(sel.value){
+      selectedKey = sel.value
+    }else{
+      selectedKey = ""
+    }
+    updateSubmitState()
+  }
+
+  function applyFilter(){
+    const s = q.value.trim().toLowerCase()
+
+    const list = !s
+      ? sortChoices(allChoices)
+      : sortChoices(
+          allChoices.filter(o => {
+            const hay = `${o.name} ${o.realm} ${o.name} - ${o.realm}`.toLowerCase()
+            return hay.includes(s)
+          })
+        )
+
+    const previousChoice = currentChoice()
+    render(list)
+
+    const c = currentChoice()
+    if(c){
+      if(!previousChoice || makeKey(previousChoice) !== makeKey(c)){
+        fillPreview(c.region, c.realm, c.name)
+      }else{
+        updateSubmitState()
+      }
+    }else{
+      clearPreview("No character selected.")
     }
   }
 
   async function intake(){
     if(!code || !state){
-      errText.textContent="Missing code or state."
+      errText.textContent = "Missing code or state."
       show(stepErr)
       return
     }
+
     try{
-      const r=await fetch(API_BASE + "/oauth/intake", {
+      const r = await fetch(API_BASE + "/oauth/intake", {
         method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({state, code}),
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ state, code }),
         cache:"no-store"
       })
-      const data = await r.json().catch(()=>null)
+
+      const data = await r.json().catch(() => null)
+
       if(!r.ok || !data || !data.ok){
         errText.textContent = "Intake failed: " + (data ? (data.error || JSON.stringify(data)) : "bad response")
         show(stepErr)
@@ -283,108 +806,134 @@
       USER_ID = ((data.user_id_str ?? data.user_id) ?? "").toString()
       who.textContent = "Discord: " + USER_ID
 
-      allChoices=(data.choices||[]).map(o=>({
-        name:o.name,
-        realm:o.realm,
-        realm_slug:o.realm_slug,
-        name_slug:o.name_slug,
-        region:(o.region||"eu").toLowerCase()
-      }))
+      allChoices = sortChoices(
+        (data.choices || []).map(o => ({
+          name:o.name,
+          realm:o.realm,
+          realm_slug:o.realm_slug,
+          name_slug:o.name_slug,
+          region:(o.region || "eu").toLowerCase()
+        }))
+      )
 
       render(allChoices)
       show(stepSel)
 
-      if(sel.options.length){
-        sel.selectedIndex=0
-        lastSelected=sel.value
-        const c=currentChoice()
+      if(filteredChoices.length){
+        const c = currentChoice()
         if(c) fillPreview(c.region, c.realm, c.name)
+      }else{
+        clearPreview("No characters were returned by the server.")
       }
     }catch{
-      errText.textContent="Network error."
+      errText.textContent = "Network error."
       show(stepErr)
     }
   }
 
-  function filterNow(){
-    const s=q.value.toLowerCase()
-    const f=!s ? allChoices : allChoices.filter(o=>o.name.toLowerCase().includes(s) || o.realm.toLowerCase().includes(s))
-    render(f)
-    if(sel.options.length){
-      sel.selectedIndex=0
-      lastSelected=sel.value
-      const c=currentChoice()
-      if(c) fillPreview(c.region, c.realm, c.name)
-    }else{
-      clearPreview()
-    }
-  }
-
-  q.addEventListener("input", filterNow)
-  sel.addEventListener("change", ()=>{
-    btn.disabled = sel.selectedOptions.length===0
-    lastSelected = sel.value
-    const c=currentChoice()
-    if(c) fillPreview(c.region, c.realm, c.name)
-  })
-  sel.addEventListener("dblclick", ()=>{ if(!btn.disabled) submitApp() })
-
-  document.addEventListener("keydown", e=>{
-    if(e.key==="Enter" && document.activeElement!==q && !btn.disabled) submitApp()
-    if(e.key==="ArrowDown"){
-      if(sel.selectedIndex<sel.options.length-1){ sel.selectedIndex++; sel.dispatchEvent(new Event("change")) }
-      e.preventDefault()
-    }
-    if(e.key==="ArrowUp"){
-      if(sel.selectedIndex>0){ sel.selectedIndex--; sel.dispatchEvent(new Event("change")) }
-      e.preventDefault()
-    }
-  })
-
   async function submitApp(){
-    const c=currentChoice()
+    const c = currentChoice()
     if(!c) return
+
     if(!state){
-      errText.textContent="Missing state at submit time."
+      errText.textContent = "Missing state at submit time."
       show(stepErr)
       return
     }
 
-    btn.disabled=true
-    const prev=btn.textContent
-    btn.textContent="Submitting…"
+    btn.disabled = true
+    const prev = btn.textContent
+    btn.textContent = "Submitting…"
 
     const choice = c.name + "::" + c.realm
     const qs = new URLSearchParams({ state, choice }).toString()
 
     try{
-      const r=await fetch(API_BASE + "/oauth/submit?" + qs, {
+      const r = await fetch(API_BASE + "/oauth/submit?" + qs, {
         method:"POST",
         headers:{ "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8" },
-        body: qs,
+        body:qs,
         cache:"no-store"
       })
-      const data = await r.json().catch(()=>null)
+
+      const data = await r.json().catch(() => null)
+
       if(!r.ok || !data || !data.ok){
-        errText.textContent="Submit failed: " + (data ? (data.status || data.error || JSON.stringify(data)) : "bad response")
+        errText.textContent = "Submit failed: " + (data ? (data.status || data.error || JSON.stringify(data)) : "bad response")
         show(stepErr)
-        btn.disabled=false
-        btn.textContent=prev
+        btn.disabled = false
+        btn.textContent = prev
         return
       }
 
-      doneText.textContent="Submitted."
+      doneText.textContent = `Submitted successfully as ${c.name} — ${c.realm}.`
       show(stepDone)
     }catch{
-      errText.textContent="Network error."
+      errText.textContent = "Network error."
       show(stepErr)
-      btn.disabled=false
-      btn.textContent=prev
+      btn.disabled = false
+      btn.textContent = prev
     }
   }
 
+  q.addEventListener("input", applyFilter)
+
+  clearSearchBtn.addEventListener("click", ()=>{
+    if(!q.value) return
+    q.value = ""
+    applyFilter()
+    q.focus()
+  })
+
+  sel.addEventListener("change", ()=>{
+    syncSelectionFromDom()
+    const c = currentChoice()
+    if(c) fillPreview(c.region, c.realm, c.name)
+    else clearPreview("No character selected.")
+  })
+
+  sel.addEventListener("dblclick", ()=>{
+    if(!btn.disabled) submitApp()
+  })
+
+  document.addEventListener("keydown", e=>{
+    if(stepSel.style.display === "none") return
+
+    const active = document.activeElement
+    const isTyping = active === q
+
+    if(e.key === "Enter" && !isTyping && !btn.disabled){
+      e.preventDefault()
+      submitApp()
+      return
+    }
+
+    if(active !== sel) return
+
+    if(e.key === "ArrowDown"){
+      if(sel.selectedIndex < sel.options.length - 1){
+        sel.selectedIndex++
+        sel.dispatchEvent(new Event("change"))
+      }
+      e.preventDefault()
+    }
+
+    if(e.key === "ArrowUp"){
+      if(sel.selectedIndex > 0){
+        sel.selectedIndex--
+        sel.dispatchEvent(new Event("change"))
+      }
+      e.preventDefault()
+    }
+  })
+
   btn.addEventListener("click", submitApp)
-  retryBtn.addEventListener("click", ()=>{ show(loading); clearPreview(); intake() })
+
+  retryBtn.addEventListener("click", ()=>{
+    show(loading)
+    clearPreview("")
+    intake()
+  })
 
   intake()
 </script>
