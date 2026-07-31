@@ -572,6 +572,18 @@ async function handleOAuthIntake(req, res) {
     logger.info(`oauth/intake rid=${rid} exchanging code for token state=${state.slice(0, 12)}... redirect_uri=${redirectUri}`)
 
     const tokenData = await exchangeBlizzardCodeForToken(code, redirectUri)
+    const grantedScope = String(tokenData?.scope || '').trim()
+logger.info(`oauth/intake rid=${rid} token granted_scope=${grantedScope || 'none'}`)
+
+    const grantedScopes = new Set(grantedScope.split(/\s+/).filter(Boolean))
+    if (!grantedScopes.has('wow.profile')) {
+      return res.status(403).json({
+        ok: false,
+        error: 'Blizzard did not grant wow.profile',
+        granted_scope: grantedScope,
+        rid
+      })
+    }
     const accessToken = String(tokenData?.access_token || '').trim()
     const expiresIn = Number(tokenData?.expires_in || 0)
     if (!accessToken) return res.status(502).json({ ok: false, error: 'Token exchange failed', rid })
